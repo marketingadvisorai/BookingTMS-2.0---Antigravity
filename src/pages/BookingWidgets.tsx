@@ -6,7 +6,8 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Code, Copy, Check, ExternalLink, Eye, Settings2, Palette, Monitor, Save } from 'lucide-react';
+import { Code, Copy, Check, ExternalLink, Eye, Settings2, Palette, Monitor, Save, Lock } from 'lucide-react';
+import { useAuth } from '../lib/auth/AuthContext';
 import { Separator } from '../components/ui/separator';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
@@ -94,6 +95,12 @@ const widgetTemplates = [
 ];
 
 export function BookingWidgets() {
+  const { isRole } = useAuth();
+  const isBetaOwner = isRole('beta-owner');
+  
+  // Beta owners can only access these 3 widgets
+  const betaAllowedWidgets = ['calendar', 'singlegame', 'multistep'];
+  
   const [selectedTemplate, setSelectedTemplate] = useState('singlegame');
   const [showPreview, setShowPreview] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -458,79 +465,112 @@ export function BookingWidgets() {
       <div>
         <h2 className="text-gray-900 dark:text-white mb-3 sm:mb-4">Choose Your Template</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
-          {widgetTemplates.map((template) => (
-            <Card
-              key={template.id}
-              className={`border-2 transition-all cursor-pointer ${
-                selectedTemplate === template.id
-                  ? 'border-blue-600 dark:border-[#4f46e5] shadow-md dark:shadow-[0_0_20px_rgba(79,70,229,0.2)]'
-                  : 'border-gray-200 dark:border-[#2a2a2a] hover:border-gray-300 dark:hover:border-[#3a3a3a]'
-              }`}
-              style={{
-                borderColor: selectedTemplate === template.id ? primaryColor : undefined,
-              }}
-              onClick={() => setSelectedTemplate(template.id)}
-            >
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <h3 className="text-gray-900 dark:text-white text-sm sm:text-base">{template.name}</h3>
-                      {template.recommended && (
-                        <Badge variant="secondary" className="bg-blue-100 dark:bg-[#4f46e5]/20 text-blue-700 dark:text-[#6366f1] border border-blue-200 dark:border-[#4f46e5]/30 text-xs flex-shrink-0">
-                          Recommended
-                        </Badge>
-                      )}
+          {widgetTemplates.map((template) => {
+            const isLocked = isBetaOwner && !betaAllowedWidgets.includes(template.id);
+            
+            return (
+              <Card
+                key={template.id}
+                className={`border-2 transition-all ${
+                  isLocked ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
+                } ${
+                  selectedTemplate === template.id
+                    ? 'border-blue-600 dark:border-[#4f46e5] shadow-md dark:shadow-[0_0_20px_rgba(79,70,229,0.2)]'
+                    : 'border-gray-200 dark:border-[#2a2a2a] hover:border-gray-300 dark:hover:border-[#3a3a3a]'
+                }`}
+                style={{
+                  borderColor: selectedTemplate === template.id ? primaryColor : undefined,
+                }}
+                onClick={() => !isLocked && setSelectedTemplate(template.id)}
+              >
+                <CardContent className="p-4 sm:p-6 relative">
+                  {/* Pro Feature Overlay for Beta Owners */}
+                  {isLocked && (
+                    <div className="absolute inset-0 bg-black/60 dark:bg-black/70 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center z-10 p-6">
+                      <Lock className="w-8 h-8 text-white mb-3" />
+                      <h3 className="text-white text-lg font-semibold mb-2">Pro Features</h3>
+                      <p className="text-gray-300 text-sm text-center mb-4">Upgrade to unlock Custom Settings</p>
+                      <Button 
+                        className="bg-[#4f46e5] hover:bg-[#4338ca] text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toast.info('Contact us to upgrade your plan');
+                        }}
+                      >
+                        Upgrade
+                      </Button>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-[#a3a3a3] mb-3">{template.description}</p>
-                    <Badge variant="secondary" className="text-xs bg-gray-100 dark:bg-[#1e1e1e] text-gray-700 dark:text-[#a3a3a3] border border-gray-200 dark:border-[#2a2a2a]">
-                      {template.category}
-                    </Badge>
+                  )}
+                  
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <h3 className="text-gray-900 dark:text-white text-sm sm:text-base">{template.name}</h3>
+                        {template.recommended && (
+                          <Badge variant="secondary" className="bg-blue-100 dark:bg-[#4f46e5]/20 text-blue-700 dark:text-[#6366f1] border border-blue-200 dark:border-[#4f46e5]/30 text-xs flex-shrink-0">
+                            Recommended
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-[#a3a3a3] mb-3">{template.description}</p>
+                      <Badge variant="secondary" className="text-xs bg-gray-100 dark:bg-[#1e1e1e] text-gray-700 dark:text-[#a3a3a3] border border-gray-200 dark:border-[#2a2a2a]">
+                        {template.category}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-2 mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTemplate(template.id);
-                      setShowPreview(true);
-                    }}
-                    className="flex-1 h-9 text-xs sm:text-sm"
-                  >
-                    <Eye className="w-4 h-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Preview</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTemplate(template.id);
-                      setShowSettings(true);
-                    }}
-                    className="flex-1 h-9 text-xs sm:text-sm"
-                  >
-                    <Settings2 className="w-4 h-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Settings</span>
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTemplate(template.id);
-                      setShowEmbed(true);
-                    }}
-                    className="flex-1 h-9 text-xs sm:text-sm bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca]"
-                  >
-                    <Code className="w-4 h-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Embed</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isLocked) {
+                          setSelectedTemplate(template.id);
+                          setShowPreview(true);
+                        }
+                      }}
+                      disabled={isLocked}
+                      className="flex-1 h-9 text-xs sm:text-sm"
+                    >
+                      <Eye className="w-4 h-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Preview</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isLocked) {
+                          setSelectedTemplate(template.id);
+                          setShowSettings(true);
+                        }
+                      }}
+                      disabled={isLocked}
+                      className="flex-1 h-9 text-xs sm:text-sm"
+                    >
+                      <Settings2 className="w-4 h-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Settings</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isLocked) {
+                          setSelectedTemplate(template.id);
+                          setShowEmbed(true);
+                        }
+                      }}
+                      disabled={isLocked}
+                      className="flex-1 h-9 text-xs sm:text-sm bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca]"
+                    >
+                      <Code className="w-4 h-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Embed</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
 

@@ -34,6 +34,16 @@ export type Permission =
   | 'widgets.edit'
   | 'widgets.create'
   | 'widgets.delete'
+  | 'widgets.calendar.view'
+  | 'widgets.calendar.edit'
+  | 'widgets.calendar.create'
+  
+  // Venues
+  | 'venues.view'
+  | 'venues.create'
+  | 'venues.edit'
+  | 'venues.delete'
+  | 'venues.configure'
   
   // Marketing
   | 'marketing.view'
@@ -61,10 +71,13 @@ export type Permission =
   // Staff/Team
   | 'staff.view'
   | 'staff.edit'
+  | 'staff.create'
+  | 'staff.delete'
   
   // Waivers
   | 'waivers.view'
   | 'waivers.edit'
+  | 'waivers.create'
   
   // Media
   | 'media.view'
@@ -90,7 +103,7 @@ export type Permission =
  * User role types
  * Defines the hierarchy of user roles in the system
  */
-export type UserRole = 'super-admin' | 'admin' | 'manager' | 'staff';
+export type UserRole = 'super-admin' | 'admin' | 'beta-owner' | 'manager' | 'staff';
 
 /**
  * Role configuration with permissions
@@ -163,6 +176,12 @@ export interface AuthContextType {
   users: User[];
   roles: RoleConfig[];
   isLoading: boolean;
+  
+  // Authentication
+  login: (usernameOrEmail: string, password: string, role?: UserRole) => Promise<void>;
+  logout: () => Promise<void>;
+  switchUser: (userId: string) => void;
+  refreshUsers: () => Promise<void>;
   
   // User management
   createUser: (payload: CreateUserPayload) => Promise<User>;

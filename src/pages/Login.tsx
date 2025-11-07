@@ -6,10 +6,10 @@ import { useAuth } from '../lib/auth/AuthContext';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
-import { X, Shield, UserCog, Users, User } from 'lucide-react';
+import { X, Shield, UserCog, Users, User, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-type UserRole = 'super-admin' | 'admin' | 'manager' | 'staff' | null;
+type UserRole = 'super-admin' | 'admin' | 'beta-owner' | 'manager' | 'staff' | null;
 
 const Login = () => {
   const { theme } = useTheme();
@@ -50,6 +50,13 @@ const Login = () => {
       color: isDark ? '#3b82f6' : '#2563eb',
     },
     {
+      id: 'beta-owner' as UserRole,
+      label: 'Beta Owner Login',
+      description: 'Multi-venue owner access (Beta Testing)',
+      icon: Building2,
+      color: isDark ? '#f59e0b' : '#d97706',
+    },
+    {
       id: 'manager' as UserRole,
       label: 'Manager Login',
       description: 'View and limited edit access',
@@ -61,7 +68,7 @@ const Login = () => {
       label: 'Staff Login',
       description: 'Basic view-only access',
       icon: User,
-      color: isDark ? '#f59e0b' : '#d97706',
+      color: isDark ? '#6b7280' : '#4b5563',
     },
   ];
 
@@ -269,7 +276,9 @@ const Login = () => {
                 )}
                 {!errors.password && (
                   <p className={`text-xs ${textSecondary}`}>
-                    💡 Demo password: <span className={`font-mono ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>demo123</span>
+                    💡 Demo password: <span className={`font-mono ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                      {selectedRole === 'beta-owner' ? '123admin' : 'demo123'}
+                    </span>
                   </p>
                 )}
               </div>

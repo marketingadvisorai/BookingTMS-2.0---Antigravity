@@ -460,12 +460,12 @@ export function Billing() {
                     Renews Dec 15, 2025
                   </div>
                   <div className={`flex items-center gap-2 ${textMutedClass}`}>
-                    <DollarSign className="w-4 h-4" />
-                    $99/month
+                    <Shield className="w-4 h-4" />
+                    Custom Pricing
                   </div>
                   <div className={`flex items-center gap-2 ${textMutedClass}`}>
                     <Award className="w-4 h-4" />
-                    30 days free trial used
+                    Premium Support
                   </div>
                 </div>
               </div>
@@ -532,46 +532,13 @@ export function Billing() {
                 
                 <div className="mt-4">
                   <div className="flex items-baseline gap-2">
-                    {typeof monthlyPrice === 'string' ? (
-                      <span className={textClass}>
-                        {monthlyPrice}
-                      </span>
-                    ) : monthlyPrice === 0 ? (
-                      <div>
-                        <span className={textClass}>Free</span>
-                        <p className={`text-xs mt-1 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                          3.9% per booking transaction
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        <span className={textClass}>
-                          ${monthlyPrice.toFixed(0)}
-                        </span>
-                        <span className={textMutedClass}>/month</span>
-                      </>
-                    )}
+                    <span className={`text-lg font-semibold ${textClass}`}>
+                      Custom Pricing
+                    </span>
                   </div>
-                  {billingCycle === 'yearly' && typeof monthlyPrice === 'number' && monthlyPrice > 0 && (
-                    <p className={`text-xs mt-1 ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>
-                      Billed ${(monthlyPrice * 12).toFixed(0)}/year
-                    </p>
-                  )}
-                  {plan.id === 'enterprise' && (
-                    <Badge className={isDark ? 'bg-orange-500/20 text-orange-400 border-0 mt-2' : 'bg-orange-100 text-orange-700 border-0 mt-2'}>
-                      Contact Sales
-                    </Badge>
-                  )}
-                  {!isCurrentPlan && plan.id === 'free' && (
-                    <Badge className={isDark ? 'bg-emerald-500/20 text-emerald-400 border-0 mt-2' : 'bg-emerald-100 text-emerald-700 border-0 mt-2'}>
-                      No credit card required
-                    </Badge>
-                  )}
-                  {!isCurrentPlan && plan.id === 'starter' && (
-                    <Badge className={isDark ? 'bg-[#4f46e5]/20 text-[#6366f1] border-0 mt-2' : 'bg-blue-100 text-blue-700 border-0 mt-2'}>
-                      30 days free trial
-                    </Badge>
-                  )}
+                  <Badge className={isDark ? 'bg-[#4f46e5]/20 text-[#6366f1] border-0 mt-2' : 'bg-blue-100 text-blue-700 border-0 mt-2'}>
+                    Contact us for pricing
+                  </Badge>
                 </div>
               </CardHeader>
               
@@ -598,19 +565,16 @@ export function Billing() {
                   <Button 
                     style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
                     className={`w-full h-11 ${
-                      plan.id === 'enterprise'
-                        ? (isDark ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'bg-orange-600 hover:bg-orange-700')
-                        : plan.popular 
+                      plan.popular 
                         ? (isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-purple-600 hover:bg-purple-700')
                         : (isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700')
                     }`}
-                    onClick={() => handleChangePlan(plan.id)}
+                    onClick={() => {
+                      toast.info('Please contact our sales team for pricing and plan details');
+                    }}
                   >
-                    {plan.id === 'enterprise' ? 'Contact Sales' :
-                     plan.id === 'free' ? 'Start Free' :
-                     plan.id === 'starter' ? 'Start Free Trial' : 
-                     plans.findIndex(p => p.id === currentPlan) < plans.findIndex(p => p.id === plan.id) ? 'Upgrade' : 'Downgrade'}
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Contact Sales
                   </Button>
                 )}
               </CardContent>

@@ -28,6 +28,7 @@ import { AccountSettings } from './pages/AccountSettings';
 import { PaymentHistory } from './pages/PaymentHistory';
 import Notifications from './pages/Notifications';
 import Login from './pages/Login';
+import BetaLogin from './pages/BetaLogin';
 import BackendDashboard from './pages/BackendDashboard';
 import GiftVouchers from './pages/GiftVouchers';
 import { Toaster } from './components/ui/sonner';
@@ -37,7 +38,7 @@ import { Toaster } from './components/ui/sonner';
 // ============================================================================
 // Set DEV_MODE to true to bypass login (auto-login as Super Admin)
 // Set DEV_MODE to false to require authentication (production-like behavior)
-const DEV_MODE = true; // Change to false to require authentication in production
+const DEV_MODE = false; // Changed to false to test beta login
 
 // Protected App Content Component
 function AppContent() {
@@ -154,11 +155,21 @@ function AppContent() {
 
 export default function App() {
   const [isEmbedMode, setIsEmbedMode] = useState(false);
+  const [isBetaLogin, setIsBetaLogin] = useState(false);
   const [showLoadingScreen, setShowLoadingScreen] = useState(true);
 
   useEffect(() => {
-    // Check if we're in embed mode
     const params = new URLSearchParams(window.location.search);
+    const path = window.location.pathname;
+    
+    // Check if we're in beta-login mode
+    if (params.has('beta') || path === '/beta-login' || path === '/beta-login/' || params.get('login') === 'beta') {
+      setIsBetaLogin(true);
+      setShowLoadingScreen(false);
+      return;
+    }
+
+    // Check if we're in embed mode
     if (params.has('widget')) {
       setIsEmbedMode(true);
       // Skip loading screen for embed mode
@@ -167,9 +178,21 @@ export default function App() {
   }, []);
 
   // Show loading screen on initial load
-  if (showLoadingScreen && !isEmbedMode) {
+  if (showLoadingScreen && !isEmbedMode && !isBetaLogin) {
     return (
       <LoadingScreen onLoadingComplete={() => setShowLoadingScreen(false)} />
+    );
+  }
+
+  // Render beta login page
+  if (isBetaLogin) {
+    return (
+      <ThemeProvider>
+        <AuthProvider>
+          <BetaLogin />
+          <Toaster />
+        </AuthProvider>
+      </ThemeProvider>
     );
   }
 

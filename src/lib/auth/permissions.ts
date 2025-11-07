@@ -20,6 +20,11 @@ const SUPER_ADMIN_PERMISSIONS: Permission[] = [
   'bookings.edit',
   'bookings.delete',
   'bookings.export',
+  'venues.view',
+  'venues.create',
+  'venues.edit',
+  'venues.delete',
+  'venues.configure',
   'games.view',
   'games.create',
   'games.edit',
@@ -28,6 +33,9 @@ const SUPER_ADMIN_PERMISSIONS: Permission[] = [
   'widgets.edit',
   'widgets.create',
   'widgets.delete',
+  'widgets.calendar.view',
+  'widgets.calendar.edit',
+  'widgets.calendar.create',
   'customers.view',
   'customers.create',
   'customers.edit',
@@ -43,8 +51,11 @@ const SUPER_ADMIN_PERMISSIONS: Permission[] = [
   'reports.export',
   'staff.view',
   'staff.edit',
+  'staff.create',
+  'staff.delete',
   'waivers.view',
   'waivers.edit',
+  'waivers.create',
   'media.view',
   'media.upload',
   'media.delete',
@@ -70,6 +81,11 @@ const ADMIN_PERMISSIONS: Permission[] = [
   'bookings.edit',
   'bookings.delete',
   'bookings.export',
+  'venues.view',
+  'venues.create',
+  'venues.edit',
+  'venues.delete',
+  'venues.configure',
   'games.view',
   'games.create',
   'games.edit',
@@ -78,6 +94,9 @@ const ADMIN_PERMISSIONS: Permission[] = [
   'widgets.edit',
   'widgets.create',
   'widgets.delete',
+  'widgets.calendar.view',
+  'widgets.calendar.edit',
+  'widgets.calendar.create',
   'customers.view',
   'customers.create',
   'customers.edit',
@@ -93,8 +112,11 @@ const ADMIN_PERMISSIONS: Permission[] = [
   'reports.export',
   'staff.view',
   'staff.edit',
+  'staff.create',
+  'staff.delete',
   'waivers.view',
   'waivers.edit',
+  'waivers.create',
   'media.view',
   'media.upload',
   'media.delete',
@@ -142,6 +164,70 @@ const STAFF_PERMISSIONS: Permission[] = [
   'waivers.view',
 ];
 
+/**
+ * Beta Owner - MVP Testing Role for Escape Room Owner
+ * Full access to core features for 3 venue management
+ * Limited to Calendar widgets only, no staff management
+ * AI Agents: view status only (no settings)
+ */
+const BETA_OWNER_PERMISSIONS: Permission[] = [
+  // Dashboard
+  'dashboard.view',
+  'dashboard.stats',
+  
+  // Bookings - Full access
+  'bookings.view',
+  'bookings.create',
+  'bookings.edit',
+  'bookings.delete',
+  'bookings.export',
+  
+  // Venues - CRITICAL for multi-venue management
+  'venues.view',
+  'venues.create',
+  'venues.edit',
+  'venues.delete',
+  'venues.configure',
+  
+  // Games/Events - Manage escape room experiences
+  'games.view',
+  'games.create',
+  'games.edit',
+  'games.delete',
+  
+  // Booking Widgets - LIMITED to Calendar widgets only
+  'widgets.view',
+  'widgets.calendar.view',
+  'widgets.calendar.edit',
+  'widgets.calendar.create',
+  
+  // Customers - Customer management
+  'customers.view',
+  'customers.create',
+  'customers.edit',
+  'customers.export',
+  
+  // Waivers - CRITICAL for liability (escape rooms)
+  'waivers.view',
+  'waivers.edit',
+  'waivers.create',
+  
+  // Reports - Business insights
+  'reports.view',
+  'reports.export',
+  
+  // Payments - Financial tracking
+  'payments.view',
+  'payments.export',
+  
+  // AI Agents - View status only (NO settings access)
+  'ai-agents.view',
+  
+  // Settings - Basic configuration
+  'settings.view',
+  'settings.edit',
+];
+
 // ============================================================================
 // ROLE CONFIGURATIONS
 // ============================================================================
@@ -162,6 +248,14 @@ export const ROLES: RoleConfig[] = [
     permissions: ADMIN_PERMISSIONS,
     color: '#4f46e5', // Vibrant Blue
     icon: 'UserCog',
+  },
+  {
+    id: 'beta-owner',
+    name: 'Beta Owner',
+    description: 'MVP Testing - Escape room owner with calendar widgets only, no staff access',
+    permissions: BETA_OWNER_PERMISSIONS,
+    color: '#f59e0b', // Amber/Orange
+    icon: 'Building2',
   },
   {
     id: 'manager',

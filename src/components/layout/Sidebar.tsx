@@ -40,7 +40,7 @@ export function Sidebar({ currentPage, onNavigate = () => {}, isMobileOpen = fal
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard.view' as Permission },
     { id: 'bookings', label: 'Bookings', icon: Calendar, permission: 'bookings.view' as Permission },
     { id: 'games', label: 'Events / Rooms', icon: Gamepad2, permission: 'games.view' as Permission },
-    { id: 'venues', label: 'Venues', icon: Building2, permission: 'widgets.view' as Permission },
+    { id: 'venues', label: 'Venues', icon: Building2, permission: 'venues.view' as Permission },
     { id: 'widgets', label: 'Booking Widgets', icon: Code, permission: 'widgets.view' as Permission },
     { id: 'customers', label: 'Customers / Guests', icon: UserCircle, permission: 'customers.view' as Permission },
     { id: 'inbox', label: 'Inbox', icon: Inbox, permission: 'dashboard.view' as Permission },

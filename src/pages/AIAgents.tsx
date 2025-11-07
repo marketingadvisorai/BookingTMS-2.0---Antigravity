@@ -63,6 +63,7 @@ import {
 } from '../components/ui/dialog';
 import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
+import { useAuth } from '../lib/auth/AuthContext';
 
 interface Agent {
   id: string;
@@ -118,7 +119,9 @@ const agents: Agent[] = [
 
 export function AIAgents() {
   const { theme } = useTheme();
+  const { isRole } = useAuth();
   const isDark = theme === 'dark';
+  const isBetaOwner = isRole('beta-owner');
   
   // Semantic class variables
   const textClass = isDark ? 'text-white' : 'text-gray-900';
@@ -335,7 +338,8 @@ export function AIAgents() {
         }
       />
 
-      {/* Customer Assistant Section - Featured */}
+      {/* Customer Assistant Section - Featured (Hidden for Beta Owners) */}
+      {!isBetaOwner && (
       <Card className={`${cardBgClass} border-2 ${isDark ? 'border-[#4f46e5]/30 shadow-[0_0_30px_rgba(79,70,229,0.15)]' : 'border-blue-200 shadow-lg'}`}>
         <CardHeader className="p-6">
           <div className="flex items-start justify-between gap-4">
@@ -640,6 +644,7 @@ export function AIAgents() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Overview Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -752,47 +757,80 @@ export function AIAgents() {
                   </div>
                 </div>
 
-                {/* Enable/Disable Toggle */}
-                <div className={`flex items-center justify-between p-3 border rounded-lg ${borderClass}`}>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={state.enabled}
-                      onCheckedChange={() => handleToggleAgent(agent.id)}
-                    />
-                    <span className={`text-sm ${textClass}`}>
-                      {state.enabled ? 'Agent Active' : 'Agent Inactive'}
-                    </span>
+                {/* Enable/Disable Toggle - Hidden for Beta Owners */}
+                {!isBetaOwner && (
+                  <div className={`flex items-center justify-between p-3 border rounded-lg ${borderClass}`}>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={state.enabled}
+                        onCheckedChange={() => handleToggleAgent(agent.id)}
+                      />
+                      <span className={`text-sm ${textClass}`}>
+                        {state.enabled ? 'Agent Active' : 'Agent Inactive'}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Beta Owner View - Status Only */}
+                {isBetaOwner && (
+                  <div className={`p-4 border rounded-lg ${borderClass} ${bgElevatedClass}`}>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm font-medium ${textClass}`}>Status</span>
+                      <Badge variant={state.enabled ? "default" : "secondary"} className={state.enabled ? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400" : ""}>
+                        {state.enabled ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                    <p className={`text-xs ${textMutedClass} mt-2`}>
+                      Contact support to modify agent settings
+                    </p>
+                  </div>
+                )}
 
                 <Separator className={borderClass} />
 
-                {/* Action Buttons */}
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
+                {/* Action Buttons - Hidden for Beta Owners */}
+                {!isBetaOwner && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        className="w-full h-11"
+                        onClick={() => openConfigDialog(agent.id)}
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Configure
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full h-11"
+                        onClick={() => openTrainDialog(agent.id)}
+                      >
+                        <Brain className="w-4 h-4 mr-2" />
+                        Train
+                      </Button>
+                    </div>
+                    <Button 
+                      className="w-full h-11"
+                      style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
+                    >
+                      <Activity className="w-4 h-4 mr-2" />
+                      View Analytics
+                    </Button>
+                  </>
+                )}
+                
+                {/* Beta Owner - View Only Button */}
+                {isBetaOwner && (
+                  <Button 
                     variant="outline"
                     className="w-full h-11"
-                    onClick={() => openConfigDialog(agent.id)}
+                    onClick={() => toast.info('Analytics available in Pro plan')}
                   >
-                    <Settings className="w-4 h-4 mr-2" />
-                    Configure
+                    <Activity className="w-4 h-4 mr-2" />
+                    View Analytics
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full h-11"
-                    onClick={() => openTrainDialog(agent.id)}
-                  >
-                    <Brain className="w-4 h-4 mr-2" />
-                    Train
-                  </Button>
-                </div>
-                <Button 
-                  className="w-full h-11"
-                  style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
-                >
-                  <Activity className="w-4 h-4 mr-2" />
-                  View Analytics
-                </Button>
+                )}
               </CardContent>
             </Card>
           );

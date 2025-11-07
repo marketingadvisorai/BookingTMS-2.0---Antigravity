@@ -110,6 +110,16 @@ const MOCK_USERS: User[] = [
     organizationId: '00000000-0000-0000-0000-000000000001',
   },
   {
+    id: '5',
+    email: 'betaadmin@bookingtms.com',
+    name: 'Beta Admin',
+    role: 'beta-owner',
+    status: 'active',
+    createdAt: '2024-11-08T00:00:00Z',
+    lastLogin: '2025-11-08T00:00:00Z',
+    organizationId: '00000000-0000-0000-0000-000000000001',
+  },
+  {
     id: '3',
     email: 'manager@bookingtms.com',
     name: 'Manager User',
@@ -316,6 +326,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const demoCredentials: Record<string, { username: string; password: string; role: UserRole }> = {
         'superadmin': { username: 'superadmin', password: 'demo123', role: 'super-admin' },
         'admin': { username: 'admin', password: 'demo123', role: 'admin' },
+        'betaadmin': { username: 'betaadmin', password: '123admin', role: 'beta-owner' },
         'manager': { username: 'manager', password: 'demo123', role: 'manager' },
         'staff': { username: 'staff', password: 'demo123', role: 'staff' },
       };

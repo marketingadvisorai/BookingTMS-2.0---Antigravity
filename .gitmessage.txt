@@ -1,0 +1,11 @@
+# Commit title (imperative, ~50 chars)
+# e.g. feat(auth): add password reset flow
+
+# Body:
+# - What changed and why
+# - Scope: files/modules touched
+# - Any refs (ticket/issue/PRD)
+
+# Example:
+# feat(widgets): add Farebook price calculation util
+# Implements calculation rules and unit tests; updates widgets/FarebookWidget.tsx.

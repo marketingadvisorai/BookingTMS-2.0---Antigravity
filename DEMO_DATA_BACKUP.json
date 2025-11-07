@@ -1,0 +1,318 @@
+{
+  "backup_timestamp": "2025-11-06T10:24:00Z",
+  "description": "All demo data extracted from admin views before removal",
+  "note": "This data can be restored when requested",
+  "data": {
+    "games": [
+      {
+        "id": 1,
+        "name": "Mystery Manor",
+        "description": "Uncover the secrets of an abandoned mansion",
+        "duration": 60,
+        "capacity": 8,
+        "basePrice": 30,
+        "status": "active",
+        "difficulty": "Medium",
+        "imageUrl": "https://images.unsplash.com/photo-1576086213369-97a306d36557?w=400&h=300&fit=crop"
+      },
+      {
+        "id": 2,
+        "name": "Space Odyssey",
+        "description": "Save your ship from a catastrophic malfunction",
+        "duration": 75,
+        "capacity": 6,
+        "basePrice": 35,
+        "status": "active",
+        "difficulty": "Hard",
+        "imageUrl": "https://images.unsplash.com/photo-1614732414444-096e5f1122d5?w=400&h=300&fit=crop"
+      },
+      {
+        "id": 3,
+        "name": "Zombie Outbreak",
+        "description": "Survive the zombie apocalypse and find the cure",
+        "duration": 60,
+        "capacity": 10,
+        "basePrice": 30,
+        "status": "active",
+        "difficulty": "Medium",
+        "imageUrl": "https://images.unsplash.com/photo-1509248961158-e54f6934749c?w=400&h=300&fit=crop"
+      },
+      {
+        "id": 4,
+        "name": "Treasure Hunt",
+        "description": "Follow the map to discover hidden treasure",
+        "duration": 45,
+        "capacity": 6,
+        "basePrice": 25,
+        "status": "active",
+        "difficulty": "Easy",
+        "imageUrl": "https://images.unsplash.com/photo-1511800453077-8c0afa94175f?w=400&h=300&fit=crop"
+      },
+      {
+        "id": 5,
+        "name": "Prison Break",
+        "description": "Escape from the maximum security prison",
+        "duration": 60,
+        "capacity": 8,
+        "basePrice": 30,
+        "status": "inactive",
+        "difficulty": "Hard",
+        "imageUrl": "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90?w=400&h=300&fit=crop"
+      },
+      {
+        "id": 6,
+        "name": "Wizards Quest",
+        "description": "Master the magical arts and defeat the dark wizard",
+        "duration": 90,
+        "capacity": 6,
+        "basePrice": 40,
+        "status": "active",
+        "difficulty": "Hard",
+        "imageUrl": "https://images.unsplash.com/photo-1518133683791-0b9de5a55f34?w=400&h=300&fit=crop"
+      }
+    ],
+    "bookings": {
+      "weeklyData": [
+        { "week": "Week 1", "bookings": 45 },
+        { "week": "Week 2", "bookings": 52 },
+        { "week": "Week 3", "bookings": 48 },
+        { "week": "Week 4", "bookings": 61 },
+        { "week": "Week 5", "bookings": 55 },
+        { "week": "Week 6", "bookings": 67 },
+        { "week": "Week 7", "bookings": 72 },
+        { "week": "Week 8", "bookings": 68 }
+      ],
+      "todayBookings": [
+        { "hour": "9AM", "bookings": 3 },
+        { "hour": "10AM", "bookings": 5 },
+        { "hour": "11AM", "bookings": 7 },
+        { "hour": "12PM", "bookings": 4 },
+        { "hour": "1PM", "bookings": 6 },
+        { "hour": "2PM", "bookings": 8 },
+        { "hour": "3PM", "bookings": 9 },
+        { "hour": "4PM", "bookings": 7 },
+        { "hour": "5PM", "bookings": 6 },
+        { "hour": "6PM", "bookings": 10 }
+      ],
+      "upcoming": [
+        {
+          "id": 1,
+          "customer": "Sarah Johnson",
+          "game": "Mystery Manor",
+          "time": "2:00 PM",
+          "guests": 4,
+          "status": "confirmed"
+        },
+        {
+          "id": 2,
+          "customer": "Mike Chen",
+          "game": "Space Odyssey",
+          "time": "3:30 PM",
+          "guests": 6,
+          "status": "confirmed"
+        },
+        {
+          "id": 3,
+          "customer": "Emily Davis",
+          "game": "Zombie Outbreak",
+          "time": "4:00 PM",
+          "guests": 5,
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "customer": "Alex Thompson",
+          "game": "Treasure Hunt",
+          "time": "5:30 PM",
+          "guests": 3,
+          "status": "confirmed"
+        },
+        {
+          "id": 5,
+          "customer": "Jessica Brown",
+          "game": "Prison Break",
+          "time": "6:00 PM",
+          "guests": 8,
+          "status": "confirmed"
+        }
+      ],
+      "recentActivity": [
+        {
+          "id": 1,
+          "type": "booking",
+          "customer": "Sarah Johnson",
+          "game": "Mystery Manor",
+          "time": "10 minutes ago",
+          "status": "confirmed"
+        },
+        {
+          "id": 2,
+          "type": "review",
+          "customer": "Mike Chen",
+          "game": "Space Odyssey",
+          "time": "1 hour ago",
+          "status": "positive",
+          "rating": 5
+        },
+        {
+          "id": 3,
+          "type": "booking",
+          "customer": "Emily Davis",
+          "game": "Zombie Outbreak",
+          "time": "2 hours ago",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "type": "booking",
+          "customer": "Alex Thompson",
+          "game": "Treasure Hunt",
+          "time": "3 hours ago",
+          "status": "confirmed"
+        },
+        {
+          "id": 5,
+          "type": "cancellation",
+          "customer": "Lisa Martinez",
+          "game": "Mystery Manor",
+          "time": "5 hours ago",
+          "status": "cancelled"
+        }
+      ]
+    },
+    "customers": {},
+    "notifications": {},
+    "categories": [],
+    "waivers": {
+      "records": [
+        {
+          "id": "WV-1001",
+          "customer": "Sarah Johnson",
+          "email": "sarah.j@email.com",
+          "booking": "BK-1001",
+          "game": "Mystery Manor",
+          "signedDate": "Oct 29, 2025",
+          "status": "signed",
+          "templateName": "Standard Liability Waiver"
+        },
+        {
+          "id": "WV-1002",
+          "customer": "Mike Chen",
+          "email": "mike.c@email.com",
+          "booking": "BK-1002",
+          "game": "Space Odyssey",
+          "signedDate": "Oct 29, 2025",
+          "status": "signed",
+          "templateName": "Standard Liability Waiver"
+        },
+        {
+          "id": "WV-1003",
+          "customer": "Emily Davis",
+          "email": "emily.d@email.com",
+          "booking": "BK-1003",
+          "game": "Zombie Outbreak",
+          "signedDate": "Oct 28, 2025",
+          "status": "signed",
+          "templateName": "Standard Liability Waiver"
+        },
+        {
+          "id": "WV-1004",
+          "customer": "Alex Thompson",
+          "email": "alex.t@email.com",
+          "booking": "BK-1004",
+          "game": "Treasure Hunt",
+          "signedDate": "Oct 28, 2025",
+          "status": "signed",
+          "templateName": "Minor Participant Waiver"
+        },
+        {
+          "id": "WV-1005",
+          "customer": "David Kim",
+          "email": "david.k@email.com",
+          "booking": "BK-1006",
+          "game": "Prison Break",
+          "signedDate": "-",
+          "status": "pending",
+          "templateName": "Standard Liability Waiver"
+        },
+        {
+          "id": "WV-1006",
+          "customer": "Jessica Brown",
+          "email": "jessica.b@email.com",
+          "booking": "BK-1007",
+          "game": "Wizards Quest",
+          "signedDate": "Oct 27, 2025",
+          "status": "signed",
+          "templateName": "Photo Release Waiver"
+        }
+      ],
+      "templates": [
+        {
+          "id": "TPL-001",
+          "name": "Standard Liability Waiver",
+          "description": "General release and indemnity agreement for all participants",
+          "type": "Liability",
+          "content": "I, {FULL_NAME}, born on {DATE_OF_BIRTH}, agree to participate in the activity.\nI acknowledge the risks involved and release the organizer from liability.\nContact: {EMAIL} | {PHONE}. Emergency Contact: {EMERGENCY_CONTACT}.\nSigned on {DATE}.",
+          "status": "active",
+          "requiredFields": ["Full Name", "Date of Birth", "Email", "Phone", "Emergency Contact"],
+          "assignedGames": ["All Games"],
+          "createdDate": "Oct 1, 2025",
+          "lastModified": "Oct 15, 2025",
+          "usageCount": 234
+        },
+        {
+          "id": "TPL-002",
+          "name": "Minor Participant Waiver",
+          "description": "Waiver for participants under 18 years old - requires parent/guardian signature",
+          "type": "Minor Consent",
+          "content": "Minor: {MINOR_NAME}, DOB {DATE_OF_BIRTH}.\nParent/Guardian: {PARENT_GUARDIAN_NAME}. Email: {PARENT_EMAIL}. Phone: {PARENT_PHONE}.\nI consent to my minor participating and accept the terms.\nSigned on {DATE}.",
+          "status": "active",
+          "requiredFields": ["Minor Name", "Date of Birth", "Parent/Guardian Name", "Parent Email", "Parent Phone"],
+          "assignedGames": ["All Games"],
+          "createdDate": "Oct 1, 2025",
+          "lastModified": "Oct 10, 2025",
+          "usageCount": 87
+        },
+        {
+          "id": "TPL-003",
+          "name": "Photo Release Waiver",
+          "description": "Permission to use photos and videos for marketing purposes",
+          "type": "Photo/Video Release",
+          "content": "I, {FULL_NAME}, grant permission to use photos/videos for marketing.\nContact: {EMAIL}. Signature: {SIGNATURE}. Date: {DATE}.",
+          "status": "active",
+          "requiredFields": ["Full Name", "Email", "Signature"],
+          "assignedGames": ["All Games"],
+          "createdDate": "Oct 5, 2025",
+          "lastModified": "Oct 20, 2025",
+          "usageCount": 156
+        },
+        {
+          "id": "TPL-004",
+          "name": "Medical Disclosure Form",
+          "description": "Health conditions and medical information disclosure",
+          "type": "Medical",
+          "content": "Medical Conditions: {MEDICAL_CONDITIONS}.\nAllergies: {ALLERGIES}. Medications: {MEDICATIONS}.\nEmergency Contact: {EMERGENCY_CONTACT}. Date: {DATE}.",
+          "status": "active",
+          "requiredFields": ["Full Name", "Medical Conditions", "Allergies", "Medications", "Emergency Contact"],
+          "assignedGames": ["Zombie Outbreak", "Prison Break"],
+          "createdDate": "Oct 8, 2025",
+          "lastModified": "Oct 18, 2025",
+          "usageCount": 45
+        },
+        {
+          "id": "TPL-005",
+          "name": "COVID-19 Health Screening",
+          "description": "Health screening questionnaire for COVID-19 symptoms",
+          "type": "Health Screening",
+          "content": "Name: {FULL_NAME}. Temperature: {TEMPERATURE_CHECK}.\nSymptoms: {SYMPTOM_CHECKLIST}. Date: {DATE}.",
+          "status": "inactive",
+          "requiredFields": ["Full Name", "Temperature Check", "Symptom Checklist"],
+          "assignedGames": [],
+          "createdDate": "Sep 20, 2025",
+          "lastModified": "Sep 25, 2025",
+          "usageCount": 312
+        }
+      ]
+    }
+  }
+}

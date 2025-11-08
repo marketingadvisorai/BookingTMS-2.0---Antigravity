@@ -69,6 +69,87 @@ export interface BookingResult {
 }
 
 export class SupabaseBookingService {
+  private static normalizeGameForWidget(game: VenueGame) {
+    const settings = game.settings || {};
+    return {
+      id: game.id,
+      name: game.name,
+      slug: game.slug,
+      description: game.description || 'An exciting experience awaits!',
+      tagline: game.tagline || '',
+      difficulty: game.difficulty || 'Medium',
+      duration: game.duration || 60,
+      minPlayers: game.min_players || 2,
+      maxPlayers: game.max_players || 8,
+      min_players: game.min_players || 2,
+      max_players: game.max_players || 8,
+      price: game.price || 0,
+      childPrice: game.child_price,
+      child_price: game.child_price,
+      minAge: game.min_age,
+      successRate: game.success_rate || 50,
+      image: game.image_url,
+      imageUrl: game.image_url,
+      coverImage: game.image_url,
+      status: 'active',
+      settings,
+      blockedDates: settings.blockedDates || [],
+      availability: settings.availability || {},
+      operatingDays:
+        settings.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      startTime: settings.startTime || '09:00',
+      endTime: settings.endTime || '21:00',
+      slotInterval: settings.slotInterval || 60,
+      advanceBooking: settings.advanceBooking || 30,
+      requiresWaiver: settings.requiresWaiver || false,
+      selectedWaiver: settings.selectedWaiver || null,
+      cancellationWindow: settings.cancellationWindow || 24,
+      specialInstructions: settings.specialInstructions || '',
+      galleryImages: settings.galleryImages || [],
+      videos: settings.videos || [],
+      language: settings.language || ['English'],
+      minChildren: settings.minChildren || 0,
+      maxChildren: settings.maxChildren || 0,
+      location: settings.location || '',
+      faqs: settings.faqs || [],
+      cancellationPolicies: settings.cancellationPolicies || [],
+    };
+  }
+
+  private static mergeWidgetConfig(venue: VenueConfig, games: VenueGame[]) {
+    const storedConfig = (venue.settings?.widgetConfig as Record<string, any>) || {};
+    const storedGames = Array.isArray(storedConfig.games) ? storedConfig.games : [];
+
+    const normalizedGames = games.map((game) => this.normalizeGameForWidget(game));
+
+    const mergedGames = normalizedGames.map((normalizedGame) => {
+      const storedGame = storedGames.find((game: any) => game.id === normalizedGame.id);
+      if (!storedGame) {
+        return normalizedGame;
+      }
+
+      return {
+        ...normalizedGame,
+        ...storedGame,
+        id: normalizedGame.id,
+      };
+    });
+
+    const mergedConfig = {
+      venueId: venue.id,
+      venueName: venue.name,
+      primaryColor: venue.primary_color,
+      baseUrl: venue.base_url,
+      ...storedConfig,
+      games: mergedGames,
+    };
+
+    return {
+      config: mergedConfig,
+      games: normalizedGames,
+    };
+  }
+
   /**
    * Get venue configuration by embed key (public access)
    */
@@ -114,6 +195,26 @@ export class SupabaseBookingService {
       console.error('Exception fetching venue games:', error);
       return [];
     }
+  }
+
+  /**
+   * Get full widget configuration for embeds (venue + normalized games + stored widget settings)
+   */
+  static async getVenueWidgetConfig(embedKey: string) {
+    const venue = await this.getVenueByEmbedKey(embedKey);
+
+    if (!venue) {
+      return null;
+    }
+
+    const games = await this.getVenueGames(venue.id);
+    const { config, games: normalizedGames } = this.mergeWidgetConfig(venue, games);
+
+    return {
+      venue,
+      games: normalizedGames,
+      widgetConfig: config,
+    };
   }
 
   /**

@@ -1,5 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTheme } from '../components/layout/ThemeContext';
+import { useBookings } from '../hooks/useBookings';
+import { useGames, type Game } from '../hooks/useGames';
+import { useVenues, type Venue } from '../hooks/useVenues';
+import { useAuth } from '../lib/auth/AuthContext';
+import { PageLoadingScreen } from '../components/layout/PageLoadingScreen';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -42,7 +47,8 @@ import {
   ChevronRight,
   FileText,
   Grid3x3,
-  Columns
+  Columns,
+  Loader2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -55,11 +61,12 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, Di
 import { Label } from '../components/ui/label';
 import { Separator } from '../components/ui/separator';
 import { Calendar } from '../components/ui/calendar';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { Textarea } from '../components/ui/textarea';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { jsPDF } from 'jspdf';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { AdminBookingService } from '../services/AdminBookingService';
 
 interface Booking {
   id: string;
@@ -67,19 +74,113 @@ interface Booking {
   email: string;
   phone: string;
   game: string;
+  gameId?: string;
   date: string;
   time: string;
   groupSize: number;
   adults: number;
   children: number;
   amount: number;
-  status: 'confirmed' | 'pending' | 'cancelled' | 'in-progress' | 'completed';
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no-show';
   paymentMethod: string;
   notes: string;
   assignedStaffId?: string;
   checkInTime?: string;
   checkOutTime?: string;
+  venueId?: string;
+  venueName?: string;
 }
+
+interface AddBookingFormValues {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  venueId: string;
+  gameId: string;
+  date: string;
+  time: string;
+  adults: number;
+  children: number;
+  notes: string;
+  customerNotes: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  depositAmount: number;
+}
+
+interface GameOption {
+  id: string;
+  name: string;
+  venueId?: string;
+  duration: number;
+  price: number;
+  childPrice: number;
+  color: string;
+}
+
+interface AddBookingSubmission extends AddBookingFormValues {
+  totalAmount: number;
+  endTime: string;
+}
+
+interface AddBookingDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreate: (values: AddBookingSubmission) => Promise<void>;
+  bookings: Booking[];
+  gamesData: GameOption[];
+  venues: Venue[];
+  isSubmitting: boolean;
+}
+
+// Adapter function to convert Supabase BookingWithDetails to UI Booking format
+const adaptBookingFromSupabase = (sb: any): Booking => ({
+  id: sb.confirmation_code || sb.id,
+  customer: sb.customer_name || 'Unknown',
+  email: sb.customer_email || '',
+  phone: sb.customer_phone || '',
+  game: sb.game_name || 'Unknown Game',
+  gameId: sb.game_id,
+  date: sb.booking_date || '',
+  time: sb.booking_time || '',
+  groupSize: sb.players || 0,
+  adults: sb.players || 0,
+  children: 0,
+  amount: Number(sb.total_amount) || 0,
+  status: (sb.status || 'pending') as 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no-show',
+  paymentMethod: sb.payment_method || 'Credit Card',
+  notes: sb.notes || '',
+  assignedStaffId: sb.metadata?.assigned_staff_id,
+  checkInTime: sb.metadata?.check_in_time,
+  checkOutTime: sb.metadata?.check_out_time,
+  venueId: sb.venue_id,
+  venueName: sb.venue_name || 'Unknown Venue',
+});
+
+// Game colors for calendar views
+const gameColors: Record<string, string> = {
+  'Mystery Manor': '#8b5cf6',
+  'Space Odyssey': '#3b82f6',
+  'Zombie Outbreak': '#ef4444',
+  'Treasure Hunt': '#f59e0b',
+  'Prison Break': '#10b981',
+};
+
+const addMinutesToTime = (time: string, minutes: number): string => {
+  if (!time) return time;
+  const [hours, mins] = time.split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(mins)) return time;
+  const start = new Date();
+  start.setHours(hours, mins, 0, 0);
+  start.setMinutes(start.getMinutes() + minutes);
+  const resultHours = start.getHours().toString().padStart(2, '0');
+  const resultMinutes = start.getMinutes().toString().padStart(2, '0');
+  return `${resultHours}:${resultMinutes}`;
+};
+
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number.isFinite(amount) ? amount : 0);
 
 const seedBookings: Booking[] = [
   {
@@ -196,17 +297,32 @@ const seedBookings: Booking[] = [
   },
 ];
 
-const gamesData = [
-  { id: 1, name: 'Mystery Manor', color: '#8b5cf6' },
-  { id: 2, name: 'Space Odyssey', color: '#3b82f6' },
-  { id: 3, name: 'Zombie Outbreak', color: '#ef4444' },
-  { id: 4, name: 'Treasure Hunt', color: '#f59e0b' },
-  { id: 5, name: 'Prison Break', color: '#10b981' },
-];
-
 export function Bookings() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  
+  // Venue filter state
+  const [selectedVenueId, setSelectedVenueId] = useState<string | undefined>(undefined);
+  
+  // Supabase hooks
+  const { bookings: supabaseBookings, loading: bookingsLoading, updateBooking, cancelBooking, refreshBookings } = useBookings(selectedVenueId);
+  const { games, loading: gamesLoading } = useGames();
+  const { venues, loading: venuesLoading } = useVenues();
+  const { currentUser } = useAuth();
+  
+  // Build games data with colors for calendar
+  const gamesData: GameOption[] = useMemo(() => 
+    (games || []).map(g => ({
+      id: g.id,
+      name: g.name,
+      venueId: g.venue_id,
+      duration: g.duration ?? 60,
+      price: Number(g.price) || 0,
+      childPrice: Number((g as any).child_price ?? g.price) || Number(g.price) || 0,
+      color: gameColors[g.name] || '#6b7280'
+    })),
+    [games]
+  );
   
   // Semantic class variables
   const textClass = isDark ? 'text-white' : 'text-gray-900';
@@ -217,6 +333,8 @@ export function Bookings() {
   const codeBgClass = isDark ? 'bg-[#1e1e1e]' : 'bg-gray-100';
   
   const [view, setView] = useState<'table' | 'month' | 'week' | 'day' | 'schedule'>('month');
+  const [isCreatingBooking, setIsCreatingBooking] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAddBooking, setShowAddBooking] = useState(false);
   const [showBookingDetails, setShowBookingDetails] = useState(false);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
@@ -231,7 +349,13 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
   const [exportDateRange, setExportDateRange] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
 
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  // Convert Supabase bookings to UI format
+  const bookings = useMemo(() => 
+    (supabaseBookings || []).map(adaptBookingFromSupabase),
+    [supabaseBookings]
+  );
+  
+  // Staff list - for now empty, will be populated from auth users in future
   const [staffList, setStaffList] = useState<{ id: string; name: string }[]>([]);
   
   // Date range states
@@ -245,42 +369,6 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
   const [statusFilter, setStatusFilter] = useState('all');
   const [gameFilter, setGameFilter] = useState('all-games');
   // Removed staff filter from search options bar
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('admin_bookings');
-      if (stored) {
-        const parsed: Booking[] = JSON.parse(stored);
-        setBookings(parsed);
-      } else {
-        setBookings(seedBookings);
-        localStorage.setItem('admin_bookings', JSON.stringify(seedBookings));
-      }
-    } catch (e) {
-      setBookings(seedBookings);
-    }
-
-    try {
-      const staffRaw = localStorage.getItem('admin_staff');
-      if (staffRaw) {
-        const staffParsed = JSON.parse(staffRaw);
-        const simplified = Array.isArray(staffParsed)
-          ? staffParsed.map((s: any) => ({ id: String(s.id), name: s.name }))
-          : [];
-        setStaffList(simplified);
-      } else {
-        setStaffList([]);
-      }
-    } catch (e) {
-      setStaffList([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('admin_bookings', JSON.stringify(bookings));
-    } catch {}
-  }, [bookings]);
 
   const handleViewDetails = (booking: any) => {
     setSelectedBooking(booking);
@@ -387,14 +475,27 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
     setShowRescheduleDialog(true);
   };
 
-  const confirmReschedule = (dateStr: string, timeStr: string) => {
+  const confirmReschedule = async (dateStr: string, timeStr: string) => {
     if (!selectedBooking) return;
-    setBookings(prev => prev.map(b => b.id === selectedBooking.id ? { ...b, date: dateStr, time: timeStr } : b));
-    setShowRescheduleDialog(false);
-    // Ensure any open Booking Details dialog is closed to avoid lingering overlays
-    setShowBookingDetails(false);
-    setSelectedBooking(null);
-    toast.success('Booking rescheduled');
+    try {
+      // Find the original Supabase booking
+      const sbBooking = (supabaseBookings || []).find(b => 
+        b.confirmation_code === selectedBooking.id || b.id === selectedBooking.id
+      );
+      if (sbBooking) {
+        await updateBooking(sbBooking.id, {
+          booking_date: dateStr,
+          booking_time: timeStr
+        });
+      }
+      setShowRescheduleDialog(false);
+      setShowBookingDetails(false);
+      setSelectedBooking(null);
+      toast.success('Booking rescheduled');
+    } catch (error) {
+      console.error('Failed to reschedule:', error);
+      toast.error('Failed to reschedule booking');
+    }
   };
 
   const handleCancel = (booking: any) => {
@@ -402,18 +503,22 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
     setShowCancelDialog(true);
   };
 
-  const confirmCancel = (reason?: string) => {
+  const confirmCancel = async (reason?: string) => {
     if (!selectedBooking) return;
-    setBookings(prev => prev.map(b => b.id === selectedBooking.id ? { 
-      ...b, 
-      status: 'cancelled', 
-      notes: reason ? `${b.notes ? b.notes + '\n' : ''}Cancelled: ${reason}` : `${b.notes ? b.notes + '\n' : ''}Cancelled`,
-      checkInTime: undefined,
-      checkOutTime: undefined
-    } : b));
-    setShowCancelDialog(false);
-    setSelectedBooking(null);
-    toast.success('Booking cancelled');
+    try {
+      const sbBooking = (supabaseBookings || []).find(b => 
+        b.confirmation_code === selectedBooking.id || b.id === selectedBooking.id
+      );
+      if (sbBooking) {
+        await cancelBooking(sbBooking.id, reason, false);
+      }
+      setShowCancelDialog(false);
+      setSelectedBooking(null);
+      toast.success('Booking cancelled');
+    } catch (error) {
+      console.error('Failed to cancel:', error);
+      toast.error('Failed to cancel booking');
+    }
   };
 
   const handleSendConfirmation = (booking: any) => {
@@ -532,26 +637,120 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
     return matchesSearch && matchesStatus && matchesGame && matchesDateRange;
   });
 
-  const assignStaff = (bookingId: string, staffId: string) => {
-    setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, assignedStaffId: staffId } : b));
-    toast.success('Staff assigned');
+  const assignStaff = async (bookingId: string, staffId: string) => {
+    try {
+      const sbBooking = (supabaseBookings || []).find(b => 
+        b.confirmation_code === bookingId || b.id === bookingId
+      );
+      if (sbBooking) {
+        await updateBooking(sbBooking.id, {
+          metadata: {
+            ...sbBooking.metadata,
+            assigned_staff_id: staffId
+          }
+        });
+      }
+      toast.success('Staff assigned');
+    } catch (error) {
+      console.error('Failed to assign staff:', error);
+      toast.error('Failed to assign staff');
+    }
   };
 
-  const updateStatus = (bookingId: string, status: Booking['status']) => {
-    setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status } : b));
-    toast.success('Status updated');
+  const updateStatus = async (bookingId: string, status: Booking['status']) => {
+    try {
+      const sbBooking = (supabaseBookings || []).find(b => 
+        b.confirmation_code === bookingId || b.id === bookingId
+      );
+      if (sbBooking) {
+        await updateBooking(sbBooking.id, { status });
+      }
+      toast.success('Status updated');
+    } catch (error) {
+      console.error('Failed to update status:', error);
+      toast.error('Failed to update status');
+    }
   };
 
-  const checkIn = (bookingId: string) => {
-    const ts = new Date().toISOString();
-    setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, checkInTime: ts, status: 'in-progress' } : b));
-    toast.success('Checked in');
+  const checkIn = async (bookingId: string) => {
+    try {
+      const ts = new Date().toISOString();
+      const sbBooking = (supabaseBookings || []).find(b => 
+        b.confirmation_code === bookingId || b.id === bookingId
+      );
+      if (sbBooking) {
+        await updateBooking(sbBooking.id, {
+          status: 'confirmed',
+          metadata: {
+            ...sbBooking.metadata,
+            check_in_time: ts
+          }
+        });
+      }
+      toast.success('Checked in');
+    } catch (error) {
+      console.error('Failed to check in:', error);
+      toast.error('Failed to check in');
+    }
   };
 
-  const checkOut = (bookingId: string) => {
-    const ts = new Date().toISOString();
-    setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, checkOutTime: ts, status: 'completed' } : b));
-    toast.success('Checked out');
+  const checkOut = async (bookingId: string) => {
+    try {
+      const ts = new Date().toISOString();
+      const sbBooking = (supabaseBookings || []).find(b => 
+        b.confirmation_code === bookingId || b.id === bookingId
+      );
+      if (sbBooking) {
+        await updateBooking(sbBooking.id, {
+          status: 'completed',
+          metadata: {
+            ...sbBooking.metadata,
+            check_out_time: ts
+          }
+        });
+      }
+      toast.success('Checked out');
+    } catch (error) {
+      console.error('Failed to check out:', error);
+      toast.error('Failed to check out');
+    }
+  };
+
+  const handleCreateBooking = async (values: AddBookingSubmission) => {
+    if (isCreatingBooking) return;
+
+    try {
+      setIsCreatingBooking(true);
+
+      await AdminBookingService.createAdminBooking({
+        venue_id: values.venueId,
+        game_id: values.gameId,
+        customer_name: `${values.firstName} ${values.lastName}`.trim(),
+        customer_email: values.email,
+        customer_phone: values.phone,
+        booking_date: values.date,
+        start_time: values.time,
+        end_time: values.endTime,
+        adults: values.adults,
+        children: values.children,
+        total_amount: values.totalAmount,
+        payment_method: values.paymentMethod,
+        payment_status: values.paymentStatus,
+        deposit_amount: values.depositAmount,
+        notes: values.notes?.trim() ? values.notes : undefined,
+        customer_notes: values.customerNotes?.trim() ? values.customerNotes : undefined,
+      });
+
+      toast.success('Booking created successfully');
+      await refreshBookings();
+      setView('month');
+    } catch (error: any) {
+      console.error('Failed to create booking:', error);
+      toast.error(error?.message || 'Failed to create booking');
+      throw error;
+    } finally {
+      setIsCreatingBooking(false);
+    }
   };
 
   return (
@@ -562,13 +761,34 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
         description="Manage and track all your bookings"
         sticky
         action={
-          <Button 
-            className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] w-full sm:w-auto h-11"
-            onClick={() => setShowAddBooking(true)}
-          >
-            <Plus className="w-5 h-5 sm:w-4 sm:h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Add New Booking</span>
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={async () => {
+                setIsRefreshing(true);
+                try {
+                  await refreshBookings();
+                  toast.success('Bookings refreshed successfully');
+                } catch (error) {
+                  toast.error('Failed to refresh bookings');
+                } finally {
+                  setIsRefreshing(false);
+                }
+              }}
+              disabled={isRefreshing}
+              className="h-11 w-11"
+            >
+              <RefreshCcw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button 
+              className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] w-full sm:w-auto h-11"
+              onClick={() => setShowAddBooking(true)}
+            >
+              <Plus className="w-5 h-5 sm:w-4 sm:h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Add New Booking</span>
+            </Button>
+          </div>
         }
       />
 
@@ -769,6 +989,24 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                 </PopoverContent>
               </Popover>
 
+              {/* Venue Filter in Search Bar */}
+              <Select value={selectedVenueId || 'all-venues'} onValueChange={(value) => {
+                setSelectedVenueId(value === 'all-venues' ? undefined : value);
+                setView('month'); // Switch to month view when venue changes
+              }}>
+                <SelectTrigger className="flex-1 sm:w-40 sm:flex-initial h-11">
+                  <SelectValue placeholder="All Venues" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all-venues">All Venues</SelectItem>
+                  {(venues || []).map((venue) => (
+                    <SelectItem key={venue.id} value={venue.id}>
+                      {venue.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="flex-1 sm:w-40 sm:flex-initial h-11">
                   <SelectValue placeholder="Status" />
@@ -778,7 +1016,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                   <SelectItem value="confirmed">Confirmed</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="no-show">No Show</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
@@ -818,6 +1056,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                     setStatusFilter('all');
                     setGameFilter('all-games');
                     setDateRangePreset('all');
+                    setSelectedVenueId(undefined);
                     toast.success('Filters cleared');
                   }}>
                     <Filter className="w-4 h-4 mr-2" />
@@ -835,7 +1074,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
             </div>
 
             {/* Active Filters Indicator */}
-            {(searchTerm || statusFilter !== 'all' || gameFilter !== 'all-games' || dateRangePreset !== 'all') && (
+            {(searchTerm || statusFilter !== 'all' || gameFilter !== 'all-games' || dateRangePreset !== 'all' || selectedVenueId) && (
               <div className="flex items-center gap-2 text-xs flex-wrap">
                 <span className="text-gray-600 dark:text-[#737373]">Active filters:</span>
                 {searchTerm && (
@@ -862,12 +1101,19 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                     <button onClick={() => setDateRangePreset('all')} className="ml-1 hover:text-red-600 dark:hover:text-red-500">×</button>
                   </Badge>
                 )}
+                {selectedVenueId && (
+                  <Badge variant="secondary" className="gap-1 bg-gray-100 dark:bg-[#1e1e1e] text-gray-700 dark:text-[#a3a3a3]">
+                    Venue: {venues?.find(v => v.id === selectedVenueId)?.name || 'Selected'}
+                    <button onClick={() => setSelectedVenueId(undefined)} className="ml-1 hover:text-red-600 dark:hover:text-red-500">×</button>
+                  </Badge>
+                )}
                 <button 
                   onClick={() => {
                     setSearchTerm('');
                     setStatusFilter('all');
                     setGameFilter('all-games');
                     setDateRangePreset('all');
+                    setSelectedVenueId(undefined);
                   }}
                   className="text-[#4f46e5] dark:text-[#6366f1] hover:text-[#4338ca] dark:hover:text-[#818cf8] ml-auto"
                 >
@@ -881,30 +1127,51 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
 
       {/* View Toggle and Stats */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <Tabs value={view} onValueChange={(v) => setView(v as any)} className="w-full sm:w-auto">
-          <TabsList className="w-full sm:w-auto grid grid-cols-5 sm:flex">
-            <TabsTrigger value="month" className="gap-2 flex-1 sm:flex-initial">
-              <CalendarDays className="w-4 h-4" />
-              <span className="hidden sm:inline">Month</span>
-            </TabsTrigger>
-            <TabsTrigger value="week" className="gap-2 flex-1 sm:flex-initial">
-              <Grid3x3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Week</span>
-            </TabsTrigger>
-            <TabsTrigger value="day" className="gap-2 flex-1 sm:flex-initial">
-              <Clock className="w-4 h-4" />
-              <span className="hidden sm:inline">Day</span>
-            </TabsTrigger>
-            <TabsTrigger value="schedule" className="gap-2 flex-1 sm:flex-initial">
-              <Columns className="w-4 h-4" />
-              <span className="hidden sm:inline">Schedule</span>
-            </TabsTrigger>
-            <TabsTrigger value="table" className="gap-2 flex-1 sm:flex-initial">
-              <List className="w-4 h-4" />
-              <span className="hidden sm:inline">Table</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <Tabs value={view} onValueChange={(v) => setView(v as any)} className="w-full sm:w-auto">
+            <TabsList className="w-full sm:w-auto grid grid-cols-5 sm:flex">
+              <TabsTrigger value="month" className="gap-2 flex-1 sm:flex-initial">
+                <CalendarDays className="w-4 h-4" />
+                <span className="hidden sm:inline">Month</span>
+              </TabsTrigger>
+              <TabsTrigger value="week" className="gap-2 flex-1 sm:flex-initial">
+                <Grid3x3 className="w-4 h-4" />
+                <span className="hidden sm:inline">Week</span>
+              </TabsTrigger>
+              <TabsTrigger value="day" className="gap-2 flex-1 sm:flex-initial">
+                <Clock className="w-4 h-4" />
+                <span className="hidden sm:inline">Day</span>
+              </TabsTrigger>
+              <TabsTrigger value="schedule" className="gap-2 flex-1 sm:flex-initial">
+                <Columns className="w-4 h-4" />
+                <span className="hidden sm:inline">Schedule</span>
+              </TabsTrigger>
+              <TabsTrigger value="table" className="gap-2 flex-1 sm:flex-initial">
+                <List className="w-4 h-4" />
+                <span className="hidden sm:inline">Table</span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          {/* Venue Filter */}
+          <Select value={selectedVenueId || 'all'} onValueChange={(value) => {
+            setSelectedVenueId(value === 'all' ? undefined : value);
+            setView('month'); // Switch to month view when venue changes
+          }}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="All Venues" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Venues</SelectItem>
+              {(venues || []).map((venue) => (
+                <SelectItem key={venue.id} value={venue.id}>
+                  {venue.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
         <p className="text-sm text-gray-600 dark:text-[#737373]">
           {filteredBookings.length} {filteredBookings.length !== bookings.length && `of ${bookings.length}`} booking{filteredBookings.length !== 1 ? 's' : ''}
         </p>
@@ -918,6 +1185,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
           onShowAttendees={handleShowAttendees}
           calendarMonth={calendarMonth}
           setCalendarMonth={setCalendarMonth}
+          gamesData={gamesData}
         />
       )}
 
@@ -928,6 +1196,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
           onViewDetails={handleViewDetails}
           selectedDate={selectedDate || new Date()}
           setSelectedDate={setSelectedDate}
+          gamesData={gamesData}
         />
       )}
 
@@ -938,6 +1207,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
           onViewDetails={handleViewDetails}
           selectedDate={selectedDate || new Date()}
           setSelectedDate={setSelectedDate}
+          gamesData={gamesData}
         />
       )}
 
@@ -948,6 +1218,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
           onViewDetails={handleViewDetails}
           selectedDate={selectedDate || new Date()}
           setSelectedDate={setSelectedDate}
+          gamesData={gamesData}
         />
       )}
 
@@ -985,7 +1256,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                             ${booking.status === 'confirmed' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : ''}
                             ${booking.status === 'pending' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30' : ''}
                             ${booking.status === 'cancelled' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30' : ''}
-                            ${booking.status === 'in-progress' ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/30' : ''}
+                            ${booking.status === 'no-show' ? 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-500/30' : ''}
                             ${booking.status === 'completed' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/30' : ''}
                           `}
                         >
@@ -1117,7 +1388,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                           ${booking.status === 'confirmed' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : ''}
                           ${booking.status === 'pending' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30' : ''}
                           ${booking.status === 'cancelled' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30' : ''}
-                          ${booking.status === 'in-progress' ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/30' : ''}
+                          ${booking.status === 'no-show' ? 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-500/30' : ''}
                           ${booking.status === 'completed' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/30' : ''}
                         `}
                       >
@@ -1184,37 +1455,10 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
         open={showAddBooking}
         onOpenChange={setShowAddBooking}
         bookings={bookings}
-        onCreate={(newBooking: Omit<Booking, 'id' | 'groupSize' | 'amount' | 'status'> & { adults: number; children: number }) => {
-          const nextIdNumber = bookings.length > 0 ? Math.max(...bookings.map(b => parseInt(b.id.replace('BK-', '')))) + 1 : 1001;
-          const id = `BK-${nextIdNumber}`;
-          const groupSize = (newBooking.adults || 0) + (newBooking.children || 0);
-          const amount = (newBooking.adults * 30) + (newBooking.children * 20);
-          const paymentMap: Record<string, string> = {
-            'credit-card': 'Credit Card',
-            'cash': 'Cash',
-            'paypal': 'PayPal',
-            'bank-transfer': 'Bank Transfer',
-          };
-          const paymentLabel = paymentMap[(newBooking as any).paymentMethod] || (newBooking as any).paymentMethod;
-          const bookingToAdd: Booking = {
-            id,
-            customer: newBooking.customer,
-            email: newBooking.email,
-            phone: newBooking.phone,
-            game: newBooking.game,
-            date: newBooking.date,
-            time: newBooking.time,
-            groupSize,
-            adults: newBooking.adults,
-            children: newBooking.children,
-            amount,
-            status: 'confirmed',
-            paymentMethod: paymentLabel,
-            notes: newBooking.notes,
-          };
-          setBookings(prev => [bookingToAdd, ...prev]);
-          toast.success('Booking created successfully');
-        }}
+        gamesData={gamesData}
+        venues={venues}
+        onCreate={handleCreateBooking}
+        isSubmitting={isCreatingBooking}
       />
 
       {/* Booking Details Dialog */}
@@ -1260,6 +1504,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
         onOpenChange={setShowAttendeeList}
         date={selectedDate}
         bookings={selectedDate ? getBookingsForDate(selectedDate) : []}
+        gamesData={gamesData}
       />
 
       {/* Cancel Dialog */}
@@ -1377,7 +1622,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
 }
 
 // Month Calendar View Component
-function MonthCalendarView({ bookings, onViewDetails, onShowAttendees, calendarMonth, setCalendarMonth }: any) {
+function MonthCalendarView({ bookings, onViewDetails, onShowAttendees, calendarMonth, setCalendarMonth, gamesData }: any) {
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -1405,7 +1650,7 @@ function MonthCalendarView({ bookings, onViewDetails, onShowAttendees, calendarM
     setCalendarMonth(new Date(year, month + 1, 1));
   };
 
-  const days = [];
+  const days: React.ReactElement[] = [];
   for (let i = 0; i < startingDayOfWeek; i++) {
     days.push(<div key={`empty-${i}`} className="min-h-[80px] sm:min-h-[120px]" />);
   }
@@ -1519,9 +1764,9 @@ function MonthCalendarView({ bookings, onViewDetails, onShowAttendees, calendarM
 }
 
 // Week View Component
-function WeekView({ bookings, onViewDetails, selectedDate, setSelectedDate }: any) {
-  const getWeekDays = (date: Date) => {
-    const days = [];
+function WeekView({ bookings, onViewDetails, selectedDate, setSelectedDate, gamesData }: any) {
+  const getWeekDays = (date: Date): Date[] => {
+    const days: Date[] = [];
     const startOfWeek = new Date(date);
     startOfWeek.setDate(date.getDate() - date.getDay());
     
@@ -1639,7 +1884,7 @@ function WeekView({ bookings, onViewDetails, selectedDate, setSelectedDate }: an
 }
 
 // Day View Component
-function DayView({ bookings, onViewDetails, selectedDate, setSelectedDate }: any) {
+function DayView({ bookings, onViewDetails, selectedDate, setSelectedDate, gamesData }: any) {
   const timeSlots = Array.from({ length: 14 }, (_, i) => `${String(10 + i).padStart(2, '0')}:00`);
   
   const getBookingsForTimeSlot = (time: string) => {
@@ -1753,7 +1998,7 @@ function DayView({ bookings, onViewDetails, selectedDate, setSelectedDate }: any
 }
 
 // Schedule View Component (All Rooms Side by Side)
-function ScheduleView({ bookings, onViewDetails, selectedDate, setSelectedDate }: any) {
+function ScheduleView({ bookings, onViewDetails, selectedDate, setSelectedDate, gamesData }: any) {
   const timeSlots = Array.from({ length: 14 }, (_, i) => `${String(10 + i).padStart(2, '0')}:00`);
   
   const getBookingsForGameAndTime = (game: string, time: string) => {
@@ -1866,26 +2111,39 @@ function ScheduleView({ bookings, onViewDetails, selectedDate, setSelectedDate }
 }
 
 // Add Booking Dialog Component
-function AddBookingDialog({ open, onOpenChange, onCreate, bookings = [] }: any) {
+function AddBookingDialog({ open, onOpenChange, onCreate, bookings, gamesData, venues, isSubmitting }: AddBookingDialogProps) {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
-    customer: '',
+  const [formData, setFormData] = useState<AddBookingFormValues>({
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
-    game: '',
+    venueId: '',
+    gameId: '',
     date: '',
     time: '',
     adults: 2,
     children: 0,
     notes: '',
+    customerNotes: '',
     paymentMethod: 'credit-card',
+    paymentStatus: 'pending',
+    depositAmount: 0,
   });
 
   // Validation & helpers
   const isEmailValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const selectedVenue = useMemo(() => venues.find((v) => v.id === formData.venueId), [venues, formData.venueId]);
+  const selectedGame = useMemo(() => gamesData.find((g) => g.id === formData.gameId), [gamesData, formData.gameId]);
   const isSlotAvailable = (date: string, time: string) => {
-    if (!date || !time) return false;
-    return !bookings.some((b: any) => b.date === date && b.time === time && b.status !== 'cancelled');
+    if (!date || !time || !selectedGame || !formData.venueId) return false;
+    return !bookings.some((b) => {
+      const sameDate = b.date === date;
+      const sameTime = b.time === time;
+      const sameGame = b.gameId ? b.gameId === selectedGame.id : b.game === selectedGame.name;
+      const sameVenue = b.venueId ? b.venueId === formData.venueId : true;
+      return sameDate && sameTime && sameGame && sameVenue && b.status !== 'cancelled';
+    });
   };
   const isDateTimeNotPast = (date: string, time: string) => {
     if (!date || !time) return false;
@@ -1896,8 +2154,12 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings = [] }: any) 
   };
 
   const validateStep1 = () => {
-    if (!formData.customer.trim()) {
-      toast.error('Please enter the customer name.');
+    if (!formData.firstName.trim()) {
+      toast.error('Please enter the first name.');
+      return false;
+    }
+    if (!formData.lastName.trim()) {
+      toast.error('Please enter the last name.');
       return false;
     }
     if (!formData.email.trim() || !isEmailValid(formData.email.trim())) {
@@ -1908,7 +2170,8 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings = [] }: any) 
   };
 
   const validateStep2 = () => {
-    if (!formData.game) { toast.error('Please select a game.'); return false; }
+    if (!formData.venueId) { toast.error('Please select a venue.'); return false; }
+    if (!formData.gameId) { toast.error('Please select a game.'); return false; }
     if (!formData.date) { toast.error('Please select a date.'); return false; }
     if (!formData.time) { toast.error('Please select a time.'); return false; }
     if ((formData.adults ?? 0) < 1) { toast.error('Adults must be at least 1.'); return false; }
@@ -1924,27 +2187,58 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings = [] }: any) 
     setStep(step + 1);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Final guard before create
     if (!validateStep1() || !validateStep2()) return;
     if (onCreate) {
-      onCreate({ ...formData });
+      try {
+        const submission: AddBookingSubmission = {
+          ...formData,
+          totalAmount,
+          endTime: estimatedEndTime || formData.time,
+        };
+        await onCreate(submission);
+        onOpenChange(false);
+        setStep(1);
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          venueId: '',
+          gameId: '',
+          date: '',
+          time: '',
+          adults: 2,
+          children: 0,
+          notes: '',
+          customerNotes: '',
+          paymentMethod: 'credit-card',
+          paymentStatus: 'pending',
+          depositAmount: 0,
+        });
+      } catch (error) {
+        // errors handled by onCreate (toast), keep dialog open
+      }
+      return;
     }
-    onOpenChange(false);
-    setStep(1);
-    setFormData({
-      customer: '',
-      email: '',
-      phone: '',
-      game: '',
-      date: '',
-      time: '',
-      adults: 2,
-      children: 0,
-      notes: '',
-      paymentMethod: 'credit-card',
-    });
   };
+
+  const availableGames = useMemo(() => {
+    if (!formData.venueId) return gamesData;
+    return gamesData.filter((g) => g.venueId === formData.venueId);
+  }, [gamesData, formData.venueId]);
+
+  const totalAmount = useMemo(() => {
+    const adultPrice = selectedGame?.price ?? 30;
+    const childPrice = selectedGame?.childPrice ?? Math.max((selectedGame?.price ?? 30) * 0.7, 0);
+    return (formData.adults * adultPrice) + (formData.children * childPrice);
+  }, [formData.adults, formData.children, selectedGame]);
+
+  const estimatedEndTime = useMemo(() => {
+    if (!selectedGame || !formData.time) return '';
+    return addMinutesToTime(formData.time, selectedGame.duration);
+  }, [selectedGame, formData.time]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1965,15 +2259,27 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings = [] }: any) 
                 <h3 className="text-sm sm:text-base text-gray-900">Customer Information</h3>
               </div>
               
-              <div>
-                <Label htmlFor="customer" className="text-sm">Customer Name *</Label>
-                <Input
-                  id="customer"
-                  value={formData.customer}
-                  onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
-                  placeholder="Enter full name"
-                  className="mt-1 h-11"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="firstName" className="text-sm">First Name *</Label>
+                  <Input
+                    id="firstName"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    placeholder="Enter first name"
+                    className="mt-1 h-11"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName" className="text-sm">Last Name *</Label>
+                  <Input
+                    id="lastName"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    placeholder="Enter last name"
+                    className="mt-1 h-11"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2012,17 +2318,57 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings = [] }: any) 
               </div>
 
               <div>
-                <Label htmlFor="game" className="text-sm">Select Game *</Label>
-                <Select value={formData.game} onValueChange={(value) => setFormData({ ...formData, game: value })}>
+                <Label htmlFor="venue" className="text-sm">Select Venue *</Label>
+                <Select
+                  value={formData.venueId}
+                  onValueChange={(value) => setFormData((prev) => ({
+                    ...prev,
+                    venueId: value,
+                    gameId: '',
+                    time: '',
+                  }))}
+                >
                   <SelectTrigger className="mt-1 h-11">
-                    <SelectValue placeholder="Choose a game" />
+                    <SelectValue placeholder="Choose a venue" />
                   </SelectTrigger>
                   <SelectContent>
-                    {gamesData.map(game => (
-                      <SelectItem key={game.id} value={game.name}>
-                        {game.name}
+                    {Array.isArray(venues) && venues.length > 0 ? (
+                      venues.map((venue) => (
+                        <SelectItem key={venue.id} value={venue.id}>
+                          {venue.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-venues" disabled>
+                        No venues available
                       </SelectItem>
-                    ))}
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="game" className="text-sm">Select Game *</Label>
+                <Select
+                  value={formData.gameId}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, gameId: value, time: '' }))}
+                  disabled={!formData.venueId}
+                >
+                  <SelectTrigger className="mt-1 h-11">
+                    <SelectValue placeholder={formData.venueId ? 'Choose a game' : 'Select a venue first'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableGames.length > 0 ? (
+                      availableGames.map((game) => (
+                        <SelectItem key={game.id} value={game.id}>
+                          {game.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-games" disabled>
+                        {formData.venueId ? 'No games available for this venue' : 'Select a venue to load games'}
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -2040,13 +2386,17 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings = [] }: any) 
                 </div>
                 <div>
                   <Label htmlFor="time" className="text-sm">Time *</Label>
-                  <Select value={formData.time} onValueChange={(value) => setFormData({ ...formData, time: value })}>
+                  <Select
+                    value={formData.time}
+                    onValueChange={(value) => setFormData({ ...formData, time: value })}
+                    disabled={!formData.date || !formData.gameId}
+                  >
                     <SelectTrigger className="mt-1 h-11">
-                      <SelectValue placeholder="Select time" />
+                      <SelectValue placeholder={formData.gameId ? 'Select time' : 'Select a game first'} />
                     </SelectTrigger>
                     <SelectContent>
                       {['10:00','12:00','14:00','16:00','18:00','20:00'].map((t) => {
-                        const unavailable = formData.date ? !isSlotAvailable(formData.date, t) : false;
+                        const unavailable = formData.date && formData.gameId ? !isSlotAvailable(formData.date, t) : true;
                         const label = (
                           t === '10:00' ? '10:00 AM' :
                           t === '12:00' ? '12:00 PM' :
@@ -2057,7 +2407,7 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings = [] }: any) 
                         );
                         return (
                           <SelectItem key={t} value={t} disabled={unavailable}>
-                            {label}{unavailable ? ' (Unavailable)' : ''}
+                            {label}{unavailable && formData.date && formData.gameId ? ' (Unavailable)' : ''}
                           </SelectItem>
                         );
                       })}
@@ -2092,14 +2442,26 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings = [] }: any) 
               </div>
 
               <div>
-                <Label htmlFor="notes" className="text-sm">Special Notes</Label>
+                <Label htmlFor="notes" className="text-sm">Internal Notes (Admin Only)</Label>
                 <Textarea
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Any special requirements or notes..."
+                  placeholder="Internal notes for staff..."
                   className="mt-1"
-                  rows={3}
+                  rows={2}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="customerNotes" className="text-sm">Customer Notes</Label>
+                <Textarea
+                  id="customerNotes"
+                  value={formData.customerNotes}
+                  onChange={(e) => setFormData({ ...formData, customerNotes: e.target.value })}
+                  placeholder="Special requests from customer..."
+                  className="mt-1"
+                  rows={2}
                 />
               </div>
             </div>
@@ -2118,15 +2480,23 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings = [] }: any) 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Customer:</span>
-                    <span className="text-gray-900">{formData.customer}</span>
+                    <span className="text-gray-900">{formData.firstName && formData.lastName ? `${formData.firstName} ${formData.lastName}` : '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Venue:</span>
+                    <span className="text-gray-900">{selectedVenue?.name || '—'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Game:</span>
-                    <span className="text-gray-900">{formData.game}</span>
+                    <span className="text-gray-900">{selectedGame?.name || '—'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Date & Time:</span>
-                    <span className="text-gray-900">{formData.date} at {formData.time}</span>
+                    <span className="text-gray-900">{formData.date || '—'}{formData.time ? ` at ${formData.time}` : ''}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Estimated End:</span>
+                    <span className="text-gray-900">{estimatedEndTime || '—'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Group Size:</span>
@@ -2135,24 +2505,56 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings = [] }: any) 
                   <Separator className="my-2" />
                   <div className="flex justify-between">
                     <span className="text-gray-900">Total Amount:</span>
-                    <span className="text-gray-900">${(formData.adults * 30 + formData.children * 20).toFixed(2)}</span>
+                    <span className="text-gray-900">{formatCurrency(totalAmount)}</span>
                   </div>
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Payment Method</Label>
+                  <Select value={formData.paymentMethod} onValueChange={(value) => setFormData({ ...formData, paymentMethod: value })}>
+                    <SelectTrigger className="mt-1 h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="credit-card">Credit Card</SelectItem>
+                      <SelectItem value="cash">Cash</SelectItem>
+                      <SelectItem value="paypal">PayPal</SelectItem>
+                      <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Payment Status</Label>
+                  <Select value={formData.paymentStatus} onValueChange={(value) => setFormData({ ...formData, paymentStatus: value })}>
+                    <SelectTrigger className="mt-1 h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="partially_paid">Partially Paid</SelectItem>
+                      <SelectItem value="refunded">Refunded</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div>
-                <Label>Payment Method</Label>
-                <Select value={formData.paymentMethod} onValueChange={(value) => setFormData({ ...formData, paymentMethod: value })}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="credit-card">Credit Card</SelectItem>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="paypal">PayPal</SelectItem>
-                    <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="depositAmount" className="text-sm">Deposit Amount (Optional)</Label>
+                <Input
+                  id="depositAmount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.depositAmount}
+                  onChange={(e) => setFormData({ ...formData, depositAmount: parseFloat(e.target.value) || 0 })}
+                  placeholder="0.00"
+                  className="mt-1 h-11"
+                />
+                <p className="text-xs text-gray-500 mt-1">Leave as 0 if no deposit is required</p>
               </div>
             </div>
           )}
@@ -2165,16 +2567,36 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings = [] }: any) 
             </Button>
           )}
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:ml-auto">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto h-11 order-2 sm:order-1">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="w-full sm:w-auto h-11 order-2 sm:order-1"
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             {step < 3 ? (
-              <Button onClick={handleNext} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto h-11 order-1 sm:order-2">
+              <Button
+                onClick={handleNext}
+                className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto h-11 order-1 sm:order-2"
+                disabled={isSubmitting}
+              >
                 Next
               </Button>
             ) : (
-              <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700 w-full sm:w-auto h-11 order-1 sm:order-2">
-                Confirm Booking
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="bg-green-600 hover:bg-green-700 w-full sm:w-auto h-11 order-1 sm:order-2"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </span>
+                ) : (
+                  'Confirm Booking'
+                )}
               </Button>
             )}
           </div>
@@ -2246,7 +2668,7 @@ function BookingDetailsDialog({ open, onOpenChange, booking, onRefund, onResched
                   <SelectItem value="confirmed">Confirmed</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="no-show">No Show</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
@@ -2465,7 +2887,7 @@ function RefundDialog({ open, onOpenChange, booking }: any) {
 }
 
 // Attendee List Dialog Component
-function AttendeeListDialog({ open, onOpenChange, date, bookings }: any) {
+function AttendeeListDialog({ open, onOpenChange, date, bookings, gamesData = [] }: any) {
   if (!date) return null;
 
   const totalAttendees = bookings.reduce((sum: number, b: any) => sum + b.groupSize, 0);

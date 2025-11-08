@@ -18,7 +18,10 @@ export interface CreateAdminBookingParams {
   children: number;
   total_amount: number;
   payment_method: string;
+  payment_status?: string;
+  deposit_amount?: number;
   notes?: string;
+  customer_notes?: string;
 }
 
 export class AdminBookingService {
@@ -32,27 +35,31 @@ export class AdminBookingService {
     phone: string
   ): Promise<string> {
     try {
-      // Try to find existing customer
+      // Try to find existing customer by email
       const { data: existingCustomer, error: findError } = await supabase
         .from('customers')
         .select('id')
-        .eq('organization_id', organizationId)
         .eq('email', email)
-        .single();
+        .maybeSingle();
 
-      if (existingCustomer && !findError) {
+      if (existingCustomer) {
         return existingCustomer.id;
       }
 
       // Create new customer
+      // Split name into first and last name
+      const nameParts = name.trim().split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
       const { data: newCustomer, error: createError } = await supabase
         .from('customers')
         .insert({
-          organization_id: organizationId,
-          full_name: name,
+          first_name: firstName,
+          last_name: lastName,
           email: email,
           phone: phone,
-          segment: 'new',
+          status: 'active',
         })
         .select('id')
         .single();
@@ -72,10 +79,10 @@ export class AdminBookingService {
    */
   static async createAdminBooking(params: CreateAdminBookingParams): Promise<any> {
     try {
-      // Get organization ID from venue
+      // Verify venue exists
       const { data: venue, error: venueError } = await supabase
         .from('venues')
-        .select('organization_id')
+        .select('id')
         .eq('id', params.venue_id)
         .single();
 
@@ -83,9 +90,9 @@ export class AdminBookingService {
         throw new Error('Venue not found');
       }
 
-      // Find or create customer
+      // Find or create customer (no organization_id needed)
       const customerId = await this.findOrCreateCustomer(
-        venue.organization_id,
+        '', // organizationId not used anymore
         params.customer_name,
         params.customer_email,
         params.customer_phone
@@ -113,22 +120,21 @@ export class AdminBookingService {
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
-          organization_id: venue.organization_id,
           venue_id: params.venue_id,
-          booking_number: bookingNumber,
+          confirmation_code: bookingNumber,
           customer_id: customerId,
           game_id: params.game_id,
           booking_date: params.booking_date,
-          start_time: params.start_time,
+          booking_time: params.start_time,
           end_time: params.end_time,
-          party_size: params.adults + params.children,
+          players: params.adults + params.children,
           status: 'confirmed',
           total_amount: params.total_amount,
-          discount_amount: 0,
-          final_amount: params.total_amount,
-          payment_status: 'pending',
+          deposit_amount: params.deposit_amount || 0,
+          payment_status: params.payment_status || 'pending',
           payment_method: params.payment_method,
           notes: params.notes || null,
+          customer_notes: params.customer_notes || null,
           source: 'admin',
           metadata: {
             adults: params.adults,

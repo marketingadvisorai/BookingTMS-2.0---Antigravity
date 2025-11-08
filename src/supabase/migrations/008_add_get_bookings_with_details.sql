@@ -54,9 +54,9 @@ BEGIN
     b.game_id,
     b.customer_id,
     b.booking_date,
-    b.start_time::VARCHAR as booking_time,
+    b.booking_time::VARCHAR,
     b.end_time::VARCHAR,
-    b.party_size as players,
+    b.players,
     b.status::VARCHAR,
     b.total_amount,
     COALESCE(b.deposit_amount, 0) as deposit_amount,
@@ -66,7 +66,7 @@ BEGIN
     b.notes,
     b.customer_notes,
     b.internal_notes,
-    b.booking_number as confirmation_code,
+    b.confirmation_code,
     COALESCE(b.metadata, '{}'::JSONB) as metadata,
     b.created_by,
     b.created_at,
@@ -75,7 +75,7 @@ BEGIN
     v.city::VARCHAR as venue_city,
     g.name::VARCHAR as game_name,
     g.difficulty::VARCHAR as game_difficulty,
-    c.full_name::VARCHAR as customer_name,
+    COALESCE(TRIM(CONCAT(c.first_name, ' ', c.last_name)), c.email)::VARCHAR as customer_name,
     c.email::VARCHAR as customer_email,
     c.phone::VARCHAR as customer_phone
   FROM bookings b
@@ -87,7 +87,7 @@ BEGIN
     AND (p_status IS NULL OR b.status::VARCHAR = p_status)
     AND (p_from_date IS NULL OR b.booking_date >= p_from_date)
     AND (p_to_date IS NULL OR b.booking_date <= p_to_date)
-  ORDER BY b.booking_date DESC, b.start_time DESC;
+  ORDER BY b.booking_date DESC, b.booking_time DESC;
 END;
 $$;
 

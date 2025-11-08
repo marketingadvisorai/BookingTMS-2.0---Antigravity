@@ -14,6 +14,9 @@ export interface GameSchedule {
 
 export interface BlockedDate {
   date: string; // ISO date string 'YYYY-MM-DD'
+  startTime?: string | null; // Optional start time for blocking specific slot
+  endTime?: string | null; // Optional end time for blocking specific slot
+  blockType?: 'full-day' | 'time-slot';
   reason?: string;
 }
 
@@ -51,11 +54,39 @@ function convertTo24Hour(time: string): string {
 }
 
 /**
- * Check if a date is blocked
+ * Check if a date is blocked (full day only)
  */
 export function isDateBlocked(date: Date, blockedDates: BlockedDate[]): boolean {
   const dateStr = date.toISOString().split('T')[0];
-  return blockedDates.some(blocked => blocked.date === dateStr);
+  return blockedDates.some(blocked => 
+    blocked.date === dateStr && blocked.blockType === 'full-day'
+  );
+}
+
+/**
+ * Check if a specific time slot is blocked
+ */
+export function isTimeSlotBlocked(date: Date, time: string, blockedDates: BlockedDate[]): boolean {
+  const dateStr = date.toISOString().split('T')[0];
+  const time24 = convertTo24Hour(time);
+  
+  return blockedDates.some(blocked => {
+    if (blocked.date !== dateStr) return false;
+    
+    // If it's a full day block, all slots are blocked
+    if (blocked.blockType === 'full-day' || (!blocked.startTime && !blocked.endTime)) {
+      return true;
+    }
+    
+    // Check if time falls within blocked time slot
+    if (blocked.startTime && blocked.endTime) {
+      const blockStart = convertTo24Hour(blocked.startTime);
+      const blockEnd = convertTo24Hour(blocked.endTime);
+      return time24 >= blockStart && time24 <= blockEnd;
+    }
+    
+    return false;
+  });
 }
 
 /**
@@ -132,11 +163,14 @@ export function generateTimeSlots(
       booking => booking.date === dateStr && booking.time === timeStr
     );
     
+    // Check if this specific time slot is blocked
+    const isBlocked = isTimeSlotBlocked(date, displayTime, blockedDates);
+    
     slots.push({
       time: displayTime,
-      available: !isBooked,
-      spots: isBooked ? 0 : 8, // Default 8 spots, can be made dynamic
-      reason: isBooked ? 'Fully booked' : undefined
+      available: !isBooked && !isBlocked,
+      spots: (isBooked || isBlocked) ? 0 : 8, // Default 8 spots, can be made dynamic
+      reason: isBlocked ? 'Time slot blocked' : (isBooked ? 'Fully booked' : undefined)
     });
     
     // Add interval

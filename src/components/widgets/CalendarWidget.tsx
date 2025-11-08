@@ -92,7 +92,13 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
       successTips: g?.successTips || [],
       faq: g?.faq || [],
       reviews: g?.reviewsList || [],
-      gameType: g?.gameType || 'physical'
+      gameType: g?.gameType || 'physical',
+      // Schedule & Availability fields
+      operatingDays: g?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      startTime: g?.startTime || '10:00',
+      endTime: g?.endTime || '22:00',
+      slotInterval: g?.slotInterval || 60,
+      advanceBooking: g?.advanceBooking || 30
     };
   });
 
@@ -2052,11 +2058,37 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                   <div className="flex items-center justify-between mb-6 gap-2">
                     <h2 className="text-lg sm:text-xl text-gray-900">Select Date</h2>
                     <div className="flex items-center gap-3">
-                      <Button variant="outline" size="icon" className="h-10 w-10 rounded-lg border-gray-300 hover:bg-gray-50">
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-10 w-10 rounded-lg border-gray-300 hover:bg-gray-50"
+                        onClick={() => {
+                          if (currentMonth === 0) {
+                            setCurrentMonth(11);
+                            setCurrentYear(currentYear - 1);
+                          } else {
+                            setCurrentMonth(currentMonth - 1);
+                          }
+                        }}
+                      >
                         <ChevronLeft className="w-4 h-4" />
                       </Button>
-                      <span className="text-sm sm:text-base text-gray-900 px-2 whitespace-nowrap min-w-[140px] text-center">November 2025</span>
-                      <Button variant="outline" size="icon" className="h-10 w-10 rounded-lg border-gray-300 hover:bg-gray-50">
+                      <span className="text-sm sm:text-base text-gray-900 px-2 whitespace-nowrap min-w-[140px] text-center">
+                        {new Date(currentYear, currentMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      </span>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-10 w-10 rounded-lg border-gray-300 hover:bg-gray-50"
+                        onClick={() => {
+                          if (currentMonth === 11) {
+                            setCurrentMonth(0);
+                            setCurrentYear(currentYear + 1);
+                          } else {
+                            setCurrentMonth(currentMonth + 1);
+                          }
+                        }}
+                      >
                         <ChevronRight className="w-4 h-4" />
                       </Button>
                     </div>
@@ -2067,11 +2099,19 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                         {day}
                       </div>
                     ))}
-                    {Array.from({ length: 30 }).map((_, i) => {
+                    {Array.from({ length: new Date(currentYear, currentMonth + 1, 0).getDate() }).map((_, i) => {
                       const day = i + 1;
+                      const dateObj = new Date(currentYear, currentMonth, day);
                       const isSelected = selectedDate === day;
-                      const isAvailable = day > 0;
-                      const isToday = day === 12; // Example: day 12 is today (filled)
+                      const today = new Date();
+                      const isToday = dateObj.toDateString() === today.toDateString();
+                      const isPast = dateObj < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                      
+                      // Check if date is available based on game schedule and blocked dates
+                      const blockedDates = config?.blockedDates || [];
+                      const isBlockedDate = isDateBlocked(dateObj, blockedDates);
+                      const isOperatingDay = isDayOperating(dateObj, selectedGameData?.operatingDays);
+                      const isAvailable = !isPast && !isBlockedDate && isOperatingDay;
 
                       return (
                         <button
@@ -2079,35 +2119,68 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                           onClick={() => isAvailable && setSelectedDate(day)}
                           disabled={!isAvailable}
                           className={`
-                            aspect-square rounded-xl text-base transition-all flex items-center justify-center
+                            aspect-square rounded-xl text-base transition-all flex items-center justify-center relative
                             ${isToday && !isSelected
                               ? 'text-white shadow-md' 
                               : isSelected 
                                 ? 'text-gray-900 border-2 shadow-sm bg-white hover:bg-gray-50' 
                                 : isAvailable 
-                                  ? 'text-gray-700 hover:bg-gray-50 border border-gray-200' 
-                                  : 'text-gray-300 cursor-not-allowed border border-gray-100'
+                                  ? 'text-gray-700 hover:bg-gray-50 border border-green-300 bg-green-50' 
+                                  : 'text-gray-400 cursor-not-allowed border border-red-200 bg-red-50 opacity-60'
                             }
                           `}
                           style={{
-                            backgroundColor: isToday && !isSelected ? primaryColor : undefined,
-                            borderColor: isSelected ? primaryColor : undefined,
+                            backgroundColor: isToday && !isSelected ? primaryColor : (isSelected ? undefined : (isAvailable ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)')),
+                            borderColor: isSelected ? primaryColor : (isAvailable ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'),
                           }}
+                          title={!isAvailable ? (isBlockedDate ? 'Date blocked by admin' : !isOperatingDay ? 'Not operating on this day' : 'Past date') : 'Available'}
                         >
                           {day}
+                          {isAvailable && !isSelected && !isToday && (
+                            <span className="absolute bottom-1 w-1 h-1 rounded-full bg-green-500"></span>
+                          )}
+                          {!isAvailable && !isPast && (
+                            <span className="absolute bottom-1 w-1 h-1 rounded-full bg-red-500"></span>
+                          )}
                         </button>
                       );
                     })}
+                  </div>
+                  
+                  {/* Calendar Legend */}
+                  <div className="mt-4 flex items-center justify-center gap-4 text-xs text-gray-600">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                      <span>Available</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded-full bg-red-500"></span>
+                      <span>Blocked/Unavailable</span>
+                    </div>
                   </div>
                 </Card>
 
                 {/* Time Slots */}
                 {selectedDate && (
                   <Card className="p-6 sm:p-8 bg-white shadow-sm border border-gray-200 rounded-2xl">
-                    <h2 className="text-lg sm:text-xl text-gray-900 mb-1 sm:mb-2">Available Times - Nov {selectedDate}</h2>
+                    <h2 className="text-lg sm:text-xl text-gray-900 mb-1 sm:mb-2">
+                      Available Times - {new Date(currentYear, currentMonth, selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </h2>
                     <div className="text-xs text-gray-500 mb-4">Timezone: {timezoneLabel}</div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                      {timeSlots.map((slot) => (
+                    
+                    {timeSlots.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
+                          <X className="w-8 h-8 text-red-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Available Times</h3>
+                        <p className="text-gray-600 max-w-md mx-auto">
+                          This date is not available for booking. It may be blocked by the admin or outside operating hours. Please select another date.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                        {timeSlots.map((slot) => (
                         <button
                           key={slot.time}
                           onClick={() => slot.available && setSelectedTime(slot.time)}
@@ -2148,7 +2221,8 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                           </div>
                         </button>
                       ))}
-                    </div>
+                      </div>
+                    )}
                   </Card>
                 )}
               </div>

@@ -7,6 +7,7 @@ import { Switch } from '../ui/switch';
 import { Textarea } from '../ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Separator } from '../ui/separator';
+import { Badge } from '../ui/badge';
 import { Plus, Trash2, Upload, Eye } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ScrollArea } from '../ui/scroll-area';
@@ -248,13 +249,13 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="games">Games</TabsTrigger>
-          <TabsTrigger value="availability">Availability</TabsTrigger>
-          <TabsTrigger value="custom">Custom Settings</TabsTrigger>
-          <TabsTrigger value="seo">SEO & GEO</TabsTrigger>
-          <TabsTrigger value="advanced">Advanced</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 gap-1">
+          <TabsTrigger value="general" className="text-xs sm:text-sm">General</TabsTrigger>
+          <TabsTrigger value="games" className="text-xs sm:text-sm">Games</TabsTrigger>
+          <TabsTrigger value="availability" className="text-xs sm:text-sm">Availability</TabsTrigger>
+          <TabsTrigger value="custom" className="text-xs sm:text-sm">Custom</TabsTrigger>
+          <TabsTrigger value="seo" className="text-xs sm:text-sm">SEO</TabsTrigger>
+          <TabsTrigger value="advanced" className="text-xs sm:text-sm">Advanced</TabsTrigger>
         </TabsList>
 
         {/* General Settings */}
@@ -453,54 +454,86 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="blocked-date">Add Blocked Date</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="blocked-date"
-                    type="date"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const input = e.currentTarget;
-                        const date = input.value;
-                        if (date) {
-                          const blockedDates = config.blockedDates || [];
-                          if (!blockedDates.some((bd: any) => bd.date === date)) {
-                            onConfigChange({
-                              ...config,
-                              blockedDates: [...blockedDates, { date, reason: 'Blocked by admin' }]
-                            });
-                            toast.success(`Date ${date} blocked`);
-                            input.value = '';
-                          } else {
-                            toast.error('Date already blocked');
-                          }
-                        }
-                      }
-                    }}
-                  />
+                <div className="space-y-3 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900">
+                  <div className="space-y-2">
+                    <Label htmlFor="blocked-date" className="text-sm">Select a date</Label>
+                    <Input
+                      id="blocked-date"
+                      type="date"
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="blocked-start-time" className="text-sm">Start Time (Optional)</Label>
+                      <Input
+                        id="blocked-start-time"
+                        type="time"
+                        placeholder="10:00 AM"
+                      />
+                      <p className="text-xs text-gray-500">Leave empty to block entire day</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="blocked-end-time" className="text-sm">End Time (Optional)</Label>
+                      <Input
+                        id="blocked-end-time"
+                        type="time"
+                        placeholder="10:00 PM"
+                      />
+                      <p className="text-xs text-gray-500">Leave empty to block entire day</p>
+                    </div>
+                  </div>
+
                   <Button
+                    className="w-full"
                     onClick={() => {
-                      const input = document.getElementById('blocked-date') as HTMLInputElement;
-                      const date = input?.value;
+                      const dateInput = document.getElementById('blocked-date') as HTMLInputElement;
+                      const startTimeInput = document.getElementById('blocked-start-time') as HTMLInputElement;
+                      const endTimeInput = document.getElementById('blocked-end-time') as HTMLInputElement;
+                      
+                      const date = dateInput?.value;
+                      const startTime = startTimeInput?.value;
+                      const endTime = endTimeInput?.value;
+                      
                       if (date) {
                         const blockedDates = config.blockedDates || [];
-                        if (!blockedDates.some((bd: any) => bd.date === date)) {
-                          onConfigChange({
-                            ...config,
-                            blockedDates: [...blockedDates, { date, reason: 'Blocked by admin' }]
-                          });
-                          toast.success(`Date ${date} blocked`);
-                          input.value = '';
-                        } else {
-                          toast.error('Date already blocked');
-                        }
+                        
+                        // Check if blocking entire day or specific time slot
+                        const blockType = (startTime && endTime) ? 'time-slot' : 'full-day';
+                        const reason = (startTime && endTime) 
+                          ? `Blocked ${startTime} - ${endTime}` 
+                          : 'Blocked by admin';
+                        
+                        onConfigChange({
+                          ...config,
+                          blockedDates: [...blockedDates, { 
+                            date, 
+                            startTime: startTime || null,
+                            endTime: endTime || null,
+                            blockType,
+                            reason 
+                          }]
+                        });
+                        
+                        toast.success(blockType === 'time-slot' 
+                          ? `Time slot ${startTime} - ${endTime} blocked on ${date}` 
+                          : `Date ${date} blocked`
+                        );
+                        
+                        dateInput.value = '';
+                        startTimeInput.value = '';
+                        endTimeInput.value = '';
+                      } else {
+                        toast.error('Please select a date');
                       }
                     }}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Block Date
+                    Add Custom Date
                   </Button>
                 </div>
-                <p className="text-sm text-gray-500">Players will not be able to book on blocked dates</p>
+                <p className="text-sm text-gray-500">Block entire days or specific time slots when bookings should not be allowed</p>
               </div>
 
               <Separator />
@@ -513,15 +546,26 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
                   <div className="space-y-2">
                     {config.blockedDates.map((blocked: any, index: number) => (
                       <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <p className="font-medium">{new Date(blocked.date + 'T00:00:00').toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                          })}</p>
-                          {blocked.reason && (
-                            <p className="text-sm text-gray-500">{blocked.reason}</p>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{new Date(blocked.date + 'T00:00:00').toLocaleDateString('en-US', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}</p>
+                            {blocked.blockType === 'time-slot' && (
+                              <Badge variant="secondary" className="text-xs">
+                                Time Slot
+                              </Badge>
+                            )}
+                          </div>
+                          {blocked.startTime && blocked.endTime ? (
+                            <p className="text-sm text-gray-600 mt-1">
+                              🕒 {blocked.startTime} - {blocked.endTime}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-500 mt-1">Full day blocked</p>
                           )}
                         </div>
                         <Button
@@ -532,7 +576,7 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
                               ...config,
                               blockedDates: config.blockedDates.filter((_: any, i: number) => i !== index)
                             });
-                            toast.success('Date unblocked');
+                            toast.success(blocked.blockType === 'time-slot' ? 'Time slot unblocked' : 'Date unblocked');
                           }}
                         >
                           <Trash2 className="w-4 h-4" />

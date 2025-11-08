@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { PageHeader } from '../components/layout/PageHeader';
+import { PageLoadingScreen } from '../components/layout/PageLoadingScreen';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Info, Users, Clock, DollarSign, ExternalLink } from 'lucide-react';
@@ -33,7 +34,7 @@ const difficultyBadgeClass = (label: string) => {
 
 export function Games() {
   const { games, loading } = useGames();
-  const { venues } = useVenues();
+  const { venues, loading: venuesLoading } = useVenues();
 
   const stats = useMemo(() => {
     const total = games.length;
@@ -56,6 +57,10 @@ export function Games() {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     return `${origin}/embed?widgetId=farebook&widgetKey=${embedKey}`;
   };
+
+  if (loading || venuesLoading) {
+    return <PageLoadingScreen message="Loading games..." />;
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">

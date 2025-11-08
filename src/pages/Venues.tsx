@@ -7,6 +7,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { PageHeader } from '../components/layout/PageHeader';
+import { PageLoadingScreen } from '../components/layout/PageLoadingScreen';
 import { Building2, Plus, Edit, Trash2, Code, Eye, MapPin, Phone, Mail, Settings2, Check, Copy, Save, ExternalLink, Download } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -402,6 +403,10 @@ export default function Venues() {
   const getFreshVenueData = (venueId: string) => {
     return venues.find(v => v.id === venueId);
   };
+
+  if (loading || isLoading) {
+    return <PageLoadingScreen message="Loading venues..." />;
+  }
 
   return (
     <div className="space-y-6">

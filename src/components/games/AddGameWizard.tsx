@@ -42,12 +42,20 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface EmbedContext {
+  embedKey?: string;
+  primaryColor?: string;
+  venueName?: string;
+  baseUrl?: string;
+}
+
 interface AddGameWizardProps {
   onComplete: (gameData: any) => void;
   onCancel: () => void;
   initialData?: GameData;
   mode?: 'create' | 'edit';
   theme?: string;
+  embedContext?: EmbedContext;
 }
 
 interface GameData {
@@ -149,6 +157,7 @@ interface GameData {
   } | null;
   cancellationWindow: number;
   specialInstructions: string;
+  slug?: string;
 }
 
 const STEPS = [
@@ -195,7 +204,17 @@ const EXISTING_WAIVERS = [
   { id: 'waiver-4', name: 'COVID-19 Health Waiver', description: 'Health screening and COVID-19 related acknowledgments' },
 ];
 
-export default function AddGameWizard({ onComplete, onCancel, initialData, mode = 'create', theme }: AddGameWizardProps) {
+const generateSlug = (value: string | undefined) => {
+  if (!value) return 'game';
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+};
+
+export default function AddGameWizard({ onComplete, onCancel, initialData, mode = 'create', theme, embedContext }: AddGameWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [gameData, setGameData] = useState<GameData>({
     name: '',
@@ -210,31 +229,17 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
     maxChildren: 4,
     adultPrice: 30,
     childPrice: 20,
-    customCapacityFields: [],
-    groupDiscount: false,
-    dynamicPricing: false,
-    peakPricing: {
-      enabled: false,
-      weekdayPeakPrice: 35,
-      weekendPeakPrice: 40,
-      peakStartTime: '18:00',
-      peakEndTime: '22:00',
-    },
-    groupTiers: [],
     duration: 60,
     difficulty: 3,
     minAge: 12,
     language: ['English'],
-    successRate: 45,
+    successRate: 75,
     activityDetails: '',
     additionalInformation: '',
     faqs: [],
     cancellationPolicies: [],
-    accessibility: {
-      strollerAccessible: false,
-      wheelchairAccessible: false,
-    },
-    location: '123 Main Street, Los Angeles, CA 90012',
+    accessibility: { strollerAccessible: false, wheelchairAccessible: false },
+    location: '',
     coverImage: '',
     galleryImages: [],
     videos: [],
@@ -242,7 +247,7 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
     operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
     startTime: '10:00',
     endTime: '22:00',
-    slotInterval: 30,
+    slotInterval: 60,
     advanceBooking: 30,
     customHoursEnabled: false,
     customHours: {
@@ -254,13 +259,64 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
       Saturday: { enabled: true, startTime: '10:00', endTime: '22:00' },
       Sunday: { enabled: true, startTime: '10:00', endTime: '22:00' },
     },
+    customCapacityFields: [],
+    groupDiscount: false,
+    groupTiers: [],
+    dynamicPricing: false,
+    peakPricing: { enabled: false, weekdayPeakPrice: 0, weekendPeakPrice: 0, peakStartTime: '', peakEndTime: '' },
     customDates: [],
     blockedDates: [],
     requiresWaiver: true,
     selectedWaiver: null,
     cancellationWindow: 24,
     specialInstructions: '',
+    slug: '',
     ...(initialData || {})
+  });
+
+  const convertGameToWizardData = (game: any) => ({
+    name: game.name,
+    description: game.description,
+    category: game.category || 'escape-room',
+    tagline: game.tagline,
+    eventType: game.eventType || 'public',
+    gameType: game.gameType || 'physical',
+    minAdults: game.minAdults || 2,
+    maxAdults: game.maxAdults || 8,
+    minChildren: game.minChildren || 0,
+    maxChildren: game.maxChildren || 4,
+    adultPrice: game.price || 30,
+    childPrice: game.childPrice || 25,
+    duration: typeof game.duration === 'number' ? game.duration : parseInt(game.duration, 10) || 60,
+    difficulty: typeof game.difficulty === 'number' ? game.difficulty : 3,
+    minAge: parseInt(game.ageRange, 10) || 12,
+    language: Array.isArray(game.language) ? game.language : ['English'],
+    successRate: game.successRate || 75,
+    activityDetails: game.activityDetails || '',
+    additionalInformation: game.additionalInformation || '',
+    faqs: Array.isArray(game.faqs) ? game.faqs : [],
+    cancellationPolicies: Array.isArray(game.cancellationPolicies) ? game.cancellationPolicies : [],
+    accessibility: game.accessibility || { strollerAccessible: false, wheelchairAccessible: false },
+    location: game.location || '',
+    coverImage: game.coverImage || game.imageUrl || game.image || '',
+    galleryImages: Array.isArray(game.galleryImages) ? game.galleryImages : [],
+    videos: Array.isArray(game.videos) ? game.videos : [],
+    selectedWidget: game.selectedWidget || 'calendar-single-event',
+    operatingDays: Array.isArray(game.operatingDays) ? game.operatingDays : ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
+    startTime: game.startTime || '10:00',
+    endTime: game.endTime || '22:00',
+    slotInterval: game.slotInterval || 60,
+    advanceBooking: game.advanceBooking || 30,
+    customHoursEnabled: Boolean(game.customHoursEnabled),
+    customHours: typeof game.customHours === 'object' && game.customHours ? game.customHours : {},
+    customCapacityFields: Array.isArray(game.customCapacityFields) ? game.customCapacityFields : [],
+    customDates: Array.isArray(game.customDates) ? game.customDates : [],
+    blockedDates: Array.isArray(game.blockedDates) ? game.blockedDates : [],
+    requiresWaiver: Boolean(game.requiresWaiver),
+    selectedWaiver: game.selectedWaiver || null,
+    cancellationWindow: game.cancellationWindow || 24,
+    specialInstructions: game.specialInstructions || '',
+    slug: game.slug || generateSlug(game.name),
   });
 
   const progress = (currentStep / STEPS.length) * 100;
@@ -323,7 +379,7 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
       case 5:
         return <Step5Schedule gameData={gameData} updateGameData={updateGameData} />;
       case 6:
-        return <Step6WidgetEmbed gameData={gameData} updateGameData={updateGameData} theme={theme} />;
+        return <Step6WidgetEmbed gameData={gameData} updateGameData={updateGameData} theme={theme} embedContext={embedContext} />;
       case 7:
         return <Step7Review gameData={gameData} />;
       default:
@@ -2409,7 +2465,7 @@ function Step5Schedule({ gameData, updateGameData }: any) {
 }
 
 // Step 6: Widget & Embed
-function Step6WidgetEmbed({ gameData, updateGameData, theme }: any) {
+function Step6WidgetEmbed({ gameData, updateGameData, theme, embedContext }: any) {
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -2418,6 +2474,21 @@ function Step6WidgetEmbed({ gameData, updateGameData, theme }: any) {
     setCopied(false);
     setCopiedLink(false);
   }, [gameData.selectedWidget]);
+
+  const rawEmbedKey = (embedContext?.embedKey ?? '').trim();
+  const hasRealEmbedKey = rawEmbedKey.length > 0;
+  const effectiveEmbedKey = hasRealEmbedKey ? rawEmbedKey : 'demo_preview';
+  const baseUrlRaw = embedContext?.baseUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://bookingtms.com');
+  const cleanedBase = baseUrlRaw.trim().replace(/\/+$/g, '');
+  const baseUrl = cleanedBase || '';
+  const primaryColorHex = (embedContext?.primaryColor || '#2563eb').replace('#', '');
+  const themeParam = theme === 'dark' ? 'dark' : 'light';
+  const gameSlug = generateSlug(gameData.slug || gameData.name);
+  const [showEmbedWarning, setShowEmbedWarning] = useState(!hasRealEmbedKey);
+
+  React.useEffect(() => {
+    setShowEmbedWarning(!hasRealEmbedKey);
+  }, [hasRealEmbedKey]);
 
   // Restrict options if theme is calendar-only
   const widgetOptions = theme === 'calendar'
@@ -2498,71 +2569,61 @@ function Step6WidgetEmbed({ gameData, updateGameData, theme }: any) {
     }
   };
 
-  const generateEmbedCode = () => {
-    const gameId = gameData.name.toLowerCase().replace(/\s+/g, '-');
-    const embedWidgetId = mapWidgetToEmbedId(gameData.selectedWidget);
-    return `<!-- BookingTMS Widget -->
-<div id="bookingtms-widget"></div>
-<script>
-  (function() {
-    var script = document.createElement('script');
-    script.src = 'https://bookingtms.com/widget.js';
-    script.async = true;
-    script.setAttribute('data-game-id', '${gameId}');
-    script.setAttribute('data-widget', '${embedWidgetId}');
-    script.setAttribute('data-primary-color', '#4f46e5');
-    document.getElementById('bookingtms-widget').appendChild(script);
-  })();
-</script>`;
-  };
-
-  const generateReactCode = () => {
-    const gameId = gameData.name.toLowerCase().replace(/\s+/g, '-');
-    const embedWidgetId = mapWidgetToEmbedId(gameData.selectedWidget);
-    return `import { useEffect } from 'react';
-
-export function BookingWidget() {
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://bookingtms.com/widget.js';
-    script.async = true;
-    script.setAttribute('data-game-id', '${gameId}');
-    script.setAttribute('data-widget', '${embedWidgetId}');
-    script.setAttribute('data-primary-color', '#4f46e5');
-    
-    const widgetDiv = document.getElementById('bookingtms-widget');
-    if (widgetDiv) {
-      widgetDiv.appendChild(script);
-    }
-    
-    return () => {
-      if (widgetDiv && script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-    };
-  }, []);
-
-  return <div id="bookingtms-widget" />;
-}`;
-  };
-
-  const generateBookingLink = () => {
-    const base = (typeof window !== 'undefined' ? window.location.origin : 'https://bookingtms.com').replace(/\/+$/, '');
+  const generateEmbedUrl = () => {
     const embedWidgetId = mapWidgetToEmbedId(gameData.selectedWidget);
     const params = new URLSearchParams({
       widget: embedWidgetId,
-      color: '2563eb',
-      key: 'demo_preview',
-      theme: 'light',
+      color: primaryColorHex,
+      key: effectiveEmbedKey,
+      theme: themeParam,
     });
-    // For single-game widget, include helpful preview params
     if (embedWidgetId === 'singlegame') {
       if (gameData.name) params.set('gameName', gameData.name);
       if (gameData.description) params.set('gameDescription', gameData.description);
       if (gameData.adultPrice) params.set('gamePrice', String(gameData.adultPrice));
+      if (gameSlug) params.set('gameSlug', gameSlug);
     }
-    return `${base}/?${params.toString()}`;
+    if (!baseUrl) {
+      return `/?${params.toString()}`;
+    }
+    return `${baseUrl}/?${params.toString()}`;
   };
+
+  const generateEmbedCode = () => {
+    const embedUrl = generateEmbedUrl();
+    const height = mapWidgetToEmbedId(gameData.selectedWidget) === 'singlegame' ? 1200 : 800;
+    return `<!-- BookingTMS Widget Embed -->
+<iframe
+  src="${embedUrl}"
+  width="100%"
+  height="${height}"
+  frameborder="0"
+  allow="payment; camera"
+  allowfullscreen
+  style="border: none; border-radius: 12px;"
+  title="${gameData.name || 'Booking Widget'}"
+></iframe>`;
+  };
+
+  const generateReactCode = () => {
+    const embedUrl = generateEmbedUrl();
+    const height = mapWidgetToEmbedId(gameData.selectedWidget) === 'singlegame' ? 1200 : 800;
+    return `export function BookingWidgetEmbed() {
+  return (
+    <iframe
+      src="${embedUrl}"
+      width="100%"
+      height="${height}"
+      style={{ border: 'none', borderRadius: 12 }}
+      allow="payment; camera"
+      allowFullScreen
+      title="${gameData.name || 'Booking Widget'}"
+    />
+  );
+}`;
+  };
+
+  const generateBookingLink = () => generateEmbedUrl();
 
   // Robust copy to clipboard with fallback
   const copyToClipboard = async (text: string): Promise<boolean> => {
@@ -2621,6 +2682,24 @@ export function BookingWidget() {
 
   return (
     <div className="space-y-6">
+      {showEmbedWarning && (
+        <Card className="border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center flex-shrink-0">
+                <Info className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="space-y-1 text-amber-800 dark:text-amber-200">
+                <p className="text-sm font-semibold">Embed key not configured</p>
+                <p className="text-sm">
+                  This venue doesn't have a live embed key yet. The generated links will use a placeholder key
+                  <span className="font-mono"> demo_preview</span> and won't load real data. Save the venue first to generate a working embed key.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {/* Widget Selection */}
       <Card>
         <CardHeader>

@@ -807,6 +807,12 @@ export function Venues() {
                     setShowWidgetSettings(false);
                     setShowWidgetPreview(true);
                   }}
+                  embedContext={{
+                    embedKey: selectedVenue.embedKey,
+                    primaryColor: selectedVenue.primaryColor,
+                    venueName: selectedVenue.name,
+                    baseUrl: typeof window !== 'undefined' ? window.location.origin : ''
+                  }}
                 />
               )}
             </div>
@@ -869,6 +875,8 @@ export function Venues() {
                   widgetId="calendar"
                   widgetName={selectedVenue.name}
                   primaryColor={selectedVenue.primaryColor}
+                  embedKey={selectedVenue.embedKey}
+                  widgetConfig={selectedVenue.widgetConfig}
                 />
               )}
             </div>

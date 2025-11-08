@@ -3,13 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Monitor, Smartphone, Tablet, RefreshCw } from 'lucide-react';
+import { CalendarWidget } from './CalendarWidget';
 
 interface EmbedTesterProps {
   embedUrl: string;
   widgetName: string;
+  widgetConfig?: any;
 }
 
-export function EmbedTester({ embedUrl, widgetName }: EmbedTesterProps) {
+export function EmbedTester({ embedUrl, widgetName, widgetConfig }: EmbedTesterProps) {
   const [device, setDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [key, setKey] = useState(0); // For iframe refresh
 
@@ -69,17 +71,26 @@ export function EmbedTester({ embedUrl, widgetName }: EmbedTesterProps) {
                 }}
                 className="bg-white rounded-lg shadow-2xl overflow-hidden"
               >
-                <iframe
-                  key={key}
-                  src={embedUrl}
-                  width="100%"
-                  height="100%"
-                  frameBorder="0"
-                  allow="payment; camera"
-                  allowFullScreen
-                  style={{ border: 'none' }}
-                  title={`${widgetName} - ${device} preview`}
-                />
+                {widgetConfig && widgetConfig.games && widgetConfig.games.length > 0 ? (
+                  <div key={key} className="w-full h-full overflow-auto">
+                    <CalendarWidget 
+                      config={widgetConfig}
+                      primaryColor={widgetConfig.primaryColor || '#2563eb'}
+                    />
+                  </div>
+                ) : (
+                  <iframe
+                    key={key}
+                    src={embedUrl}
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    allow="payment; camera"
+                    allowFullScreen
+                    style={{ border: 'none' }}
+                    title={widgetName}
+                  />
+                )}
               </div>
             </div>
             <div className="mt-3 text-center">

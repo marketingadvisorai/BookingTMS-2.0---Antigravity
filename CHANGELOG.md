@@ -1,3 +1,28 @@
+# Venue Update 1.0 — Release Notes
+
+Date: 2025-11-08
+
+## Highlights
+- Dynamic embed widgets now load live venue/game data using Supabase lookups instead of demo keys.
+- Add Game Wizard Step 6 generates single-game booking links and embed codes with real embed keys, colors, and slugs.
+- Venues and widget settings pass a shared `embedContext`, ensuring iframe/script snippets stay in sync with venue configuration.
+- Added guardrails and UI messaging when a venue lacks a generated embed key.
+- Hardened availability engine and data sync models to support new single-game fields.
+
+## Details
+- `src/pages/Embed.tsx` fetches venue configuration via Supabase using the provided embed key and exposes loading/error states.
+- `src/pages/Venues.tsx`, `src/components/widgets/CalendarWidgetSettings.tsx`, and `src/components/games/AddGameWizard.tsx` now share `embedContext` (embed key, base URL, primary color).
+- Step 6 of the Add Game Wizard produces iframe, React, and direct booking link snippets using the venue's embed key, theme, and game slug; includes clipboard UX improvements.
+- Added warnings in the wizard when no real embed key is present and disabled the widget key generator button in `EmbedPreview` to prevent placeholder usage.
+- Updated `DataSyncService.ts` and `availabilityEngine.ts` to include missing game fields (slug, min/max adults, peak pricing, etc.) required for accurate embeds.
+- Refined Calendar Widget styling/options to align with single-game embed defaults and ensure consistent previews.
+
+## Deployment Notes
+- Save each venue after rollout to ensure a real embed key exists before sharing embed codes.
+- Confirm Supabase credentials are available for the `/embed/:key` route to resolve live data.
+
+---
+
 # Waiver v0.1.0 — Release Notes
 
 Date: 2025-11-06

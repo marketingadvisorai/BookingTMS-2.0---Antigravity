@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
-import { generateTimeSlots, getAvailableDatesForMonth, isDateBlocked, isDayOperating } from '../../utils/availabilityEngine';
+import { generateTimeSlots, getAvailableDatesForMonth, isDateBlocked, isDayOperating, isCustomAvailableDate } from '../../utils/availabilityEngine';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
@@ -115,6 +115,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
     
     const selectedDateObj = new Date(currentYear, currentMonth, selectedDate);
     const blockedDates = config?.blockedDates || [];
+    const customAvailableDates = config?.customAvailableDates || [];
     
     return generateTimeSlots(
       selectedDateObj,
@@ -123,13 +124,12 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
         startTime: selectedGameData.startTime,
         endTime: selectedGameData.endTime,
         slotInterval: selectedGameData.slotInterval,
-        duration: typeof selectedGameData.duration === 'string' 
-          ? parseInt(selectedGameData.duration) 
-          : selectedGameData.duration,
+        duration: typeof selectedGameData.duration === 'string' ? parseInt(selectedGameData.duration) : selectedGameData.duration,
         advanceBooking: selectedGameData.advanceBooking
       },
       blockedDates,
-      [] // TODO: Load existing bookings from database
+      [], // TODO: Load existing bookings from database
+      customAvailableDates
     );
   }, [selectedDate, currentMonth, currentYear, selectedGameData, config]);
 
@@ -2109,8 +2109,10 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                       
                       // Check if date is available based on game schedule and blocked dates
                       const blockedDates = config?.blockedDates || [];
+                      const customAvailableDates = config?.customAvailableDates || [];
                       const isBlockedDate = isDateBlocked(dateObj, blockedDates);
-                      const isOperatingDay = isDayOperating(dateObj, selectedGameData?.operatingDays);
+                      const isOperatingDay = isDayOperating(dateObj, selectedGameData?.operatingDays, customAvailableDates);
+                      const customDate = isCustomAvailableDate(dateObj, customAvailableDates);
                       const isAvailable = !isPast && !isBlockedDate && isOperatingDay;
 
                       return (

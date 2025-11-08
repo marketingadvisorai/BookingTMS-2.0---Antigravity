@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -16,13 +16,15 @@ interface EmbedPreviewProps {
   widgetId: string;
   widgetName: string;
   primaryColor: string;
+  embedKey?: string;
+  widgetConfig?: any;
 }
 
-export function EmbedPreview({ widgetId, widgetName, primaryColor }: EmbedPreviewProps) {
+export function EmbedPreview({ widgetId, widgetName, primaryColor, embedKey, widgetConfig }: EmbedPreviewProps) {
   const [copied, setCopied] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [embedType, setEmbedType] = useState<'iframe' | 'script'>('iframe');
-  const [widgetKey, setWidgetKey] = useState('YOUR_WIDGET_KEY_HERE');
+  const [widgetKey, setWidgetKey] = useState(embedKey || 'YOUR_WIDGET_KEY_HERE');
   // Absolute base URL support for localhost/external testing
   const [baseUrl, setBaseUrl] = useState<string>(() => {
     if (typeof window !== 'undefined') {
@@ -31,6 +33,13 @@ export function EmbedPreview({ widgetId, widgetName, primaryColor }: EmbedPrevie
     return '';
   });
   const { theme } = useTheme();
+  
+  // Update widgetKey when embedKey prop changes
+  useEffect(() => {
+    if (embedKey) {
+      setWidgetKey(embedKey);
+    }
+  }, [embedKey]);
   
   // Generate embed URL, preferring absolute URL when baseUrl is set
   // Automatically sync theme with admin dashboard
@@ -197,17 +206,15 @@ add_shortcode('bookingtms', 'bookingtms_widget_shortcode');
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setWidgetKey('demo_' + Math.random().toString(36).substr(2, 9));
-                  toast.info('Generated demo key');
-                }}
-                className="h-10"
+                disabled
+                className="h-10 cursor-not-allowed opacity-70"
+                title="Key generation temporarily disabled. Use the venue's assigned key."
               >
                 Generate
               </Button>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Get your widget key from Settings → API Keys
+              Use the widget key provided on the venue record. Generation controls are disabled for now.
             </p>
           </div>
 
@@ -378,7 +385,7 @@ add_shortcode('bookingtms', 'bookingtms_widget_shortcode');
       </Card>
 
       {/* Device Testing */}
-      <EmbedTester embedUrl={generateEmbedUrl()} widgetName={widgetName} />
+      <EmbedTester embedUrl={generateEmbedUrl()} widgetName={widgetName} widgetConfig={widgetConfig} />
 
       {/* Download Test Page */}
       <DownloadTestPage

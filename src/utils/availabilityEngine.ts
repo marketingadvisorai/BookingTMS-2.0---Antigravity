@@ -20,6 +20,13 @@ export interface BlockedDate {
   reason?: string;
 }
 
+export interface CustomAvailableDate {
+  date: string; // ISO date string 'YYYY-MM-DD'
+  startTime: string; // Start time for custom availability
+  endTime: string; // End time for custom availability
+  reason?: string;
+}
+
 export interface AvailabilityConfig {
   gameSchedule: GameSchedule;
   blockedDates: BlockedDate[];
@@ -90,9 +97,26 @@ export function isTimeSlotBlocked(date: Date, time: string, blockedDates: Blocke
 }
 
 /**
- * Check if a day of week is in operating days
+ * Check if a date is a custom available date
  */
-export function isDayOperating(date: Date, operatingDays?: string[]): boolean {
+export function isCustomAvailableDate(date: Date, customDates?: CustomAvailableDate[]): CustomAvailableDate | null {
+  if (!customDates || customDates.length === 0) return null;
+  
+  const dateStr = date.toISOString().split('T')[0];
+  const customDate = customDates.find(cd => cd.date === dateStr);
+  return customDate || null;
+}
+
+/**
+ * Check if a day of week is in operating days
+ * Returns true if date is in operating days OR is a custom available date
+ */
+export function isDayOperating(date: Date, operatingDays?: string[], customDates?: CustomAvailableDate[]): boolean {
+  // Check if it's a custom available date first (overrides schedule)
+  if (isCustomAvailableDate(date, customDates)) {
+    return true;
+  }
+  
   if (!operatingDays || operatingDays.length === 0) {
     return true; // If no operating days specified, assume all days are available
   }
@@ -112,17 +136,21 @@ export function isDayOperating(date: Date, operatingDays?: string[]): boolean {
 export function generateTimeSlots(
   date: Date,
   gameSchedule: GameSchedule,
-  blockedDates: BlockedDate[],
-  existingBookings: Array<{ date: string; time: string }> = []
+  blockedDates: BlockedDate[] = [],
+  existingBookings: Array<{ date: string; time: string }> = [],
+  customAvailableDates: CustomAvailableDate[] = []
 ): Array<{ time: string; available: boolean; spots: number; reason?: string }> {
-  // Check if date is blocked
+  // Check if date is blocked entirely
   if (isDateBlocked(date, blockedDates)) {
-    return [];
+    return []; // Return empty array for blocked dates
   }
   
-  // Check if day is operating
-  if (!isDayOperating(date, gameSchedule.operatingDays)) {
-    return [];
+  // Check if this is a custom available date (overrides schedule)
+  const customDate = isCustomAvailableDate(date, customAvailableDates);
+  
+  // Check if day is in operating days (or is custom available)
+  if (!isDayOperating(date, gameSchedule.operatingDays, customAvailableDates)) {
+    return []; // Return empty array for non-operating days
   }
   
   // Check advance booking limit
@@ -137,8 +165,13 @@ export function generateTimeSlots(
     }
   }
   
-  const startTime = convertTo24Hour(gameSchedule.startTime || '10:00');
-  const endTime = convertTo24Hour(gameSchedule.endTime || '22:00');
+  // Use custom date times if available, otherwise use schedule times
+  const startTime = customDate 
+    ? convertTo24Hour(customDate.startTime) 
+    : convertTo24Hour(gameSchedule.startTime || '10:00');
+  const endTime = customDate 
+    ? convertTo24Hour(customDate.endTime) 
+    : convertTo24Hour(gameSchedule.endTime || '22:00');
   const interval = gameSchedule.slotInterval || 90;
   
   const [startHour, startMin] = startTime.split(':').map(Number);

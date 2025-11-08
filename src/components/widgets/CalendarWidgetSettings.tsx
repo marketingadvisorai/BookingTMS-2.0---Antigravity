@@ -8,7 +8,7 @@ import { Textarea } from '../ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
-import { Plus, Trash2, Upload, Eye } from 'lucide-react';
+import { Plus, Trash2, Upload, Eye, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ScrollArea } from '../ui/scroll-area';
 import { toast } from 'sonner';
@@ -17,13 +17,31 @@ import CustomSettingsPanel from './CustomSettingsPanel';
 import { Game, GameInput } from '../../services/DataSyncService';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../ui/dialog';
 
+interface EmbedContext {
+  embedKey?: string;
+  primaryColor?: string;
+  venueName?: string;
+  baseUrl?: string;
+}
+
 interface CalendarWidgetSettingsProps {
   config: any;
   onConfigChange: (config: any) => void;
   onPreview: () => void;
+  embedContext?: EmbedContext;
 }
 
-export default function CalendarWidgetSettings({ config, onConfigChange, onPreview }: CalendarWidgetSettingsProps) {
+const generateSlug = (value: string | undefined) => {
+  if (!value) return 'game';
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-') || 'game';
+};
+
+export default function CalendarWidgetSettings({ config, onConfigChange, onPreview, embedContext }: CalendarWidgetSettingsProps) {
   const [activeTab, setActiveTab] = useState('general');
   const [showAddGameWizard, setShowAddGameWizard] = useState(false);
   const [editingGame, setEditingGame] = useState<any>(null);
@@ -58,6 +76,7 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
 
   const handleWizardComplete = (gameData: any) => {
     // Convert wizard data to calendar widget game format
+    const slug = generateSlug(gameData.slug || gameData.name);
     const newGame = {
       id: editingGame?.id ?? `game-${Date.now()}`,
       name: gameData.name,
@@ -71,7 +90,6 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
       tagline: gameData.tagline,
       rating: editingGame?.rating ?? 4.5,
       reviews: editingGame?.reviews ?? 0,
-      players: `${gameData.minAdults}-${gameData.maxAdults} players`,
       featured: false,
       gameType: gameData.gameType || 'physical',
       // Additional fields from wizard
@@ -82,8 +100,6 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
       minChildren: gameData.minChildren,
       maxChildren: gameData.maxChildren,
       childPrice: gameData.childPrice,
-      duration: gameData.duration,
-      difficulty: gameData.difficulty,
       minAge: gameData.minAge,
       language: gameData.language,
       successRate: gameData.successRate,
@@ -103,7 +119,8 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
       requiresWaiver: gameData.requiresWaiver,
       selectedWaiver: gameData.selectedWaiver,
       cancellationWindow: gameData.cancellationWindow,
-      specialInstructions: gameData.specialInstructions
+      specialInstructions: gameData.specialInstructions,
+      slug
     };
     
     if (editingGame) {
@@ -172,7 +189,8 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
       requiresWaiver: game.requiresWaiver || false,
       selectedWaiver: game.selectedWaiver || null,
       cancellationWindow: game.cancellationWindow || 24,
-      specialInstructions: game.specialInstructions || ''
+      specialInstructions: game.specialInstructions || '',
+      slug: game.slug || generateSlug(game.name)
     };
   };
 
@@ -428,7 +446,7 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
                       <p className="text-sm text-gray-600">{game.description}</p>
                       <div className="flex gap-4 mt-2 text-sm text-gray-500">
                         <span>⏱ {game.duration}</span>
-                        <span>👥 {game.players}</span>
+                        <span>👥 {`${game.minAdults ?? '?'}-${game.maxAdults ?? '?'} players`}</span>
                         <span>💰 {game.priceRange}</span>
                         <span>🎯 Difficulty: {game.difficulty}/5</span>
                       </div>
@@ -446,14 +464,140 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
 
         {/* Availability & Blocked Dates */}
         <TabsContent value="availability" className="space-y-6 pb-24">
+          {/* Custom Available Dates */}
           <Card>
             <CardHeader>
-              <CardTitle>Blocked Dates</CardTitle>
-              <CardDescription>Block specific dates when bookings should not be allowed</CardDescription>
+              <CardTitle>Add a custom date</CardTitle>
+              <CardDescription>Add special available dates outside regular schedule (e.g., special events)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="blocked-date">Add Blocked Date</Label>
+                <div className="space-y-3 p-4 border rounded-lg bg-green-50 dark:bg-green-900/20">
+                  <div className="space-y-2">
+                    <Label htmlFor="custom-available-date" className="text-sm">Select a date</Label>
+                    <Input
+                      id="custom-available-date"
+                      type="date"
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="custom-start-time" className="text-sm">Start Time</Label>
+                      <Input
+                        id="custom-start-time"
+                        type="time"
+                        defaultValue="10:00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="custom-end-time" className="text-sm">End Time</Label>
+                      <Input
+                        id="custom-end-time"
+                        type="time"
+                        defaultValue="22:00"
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    onClick={() => {
+                      const dateInput = document.getElementById('custom-available-date') as HTMLInputElement;
+                      const startTimeInput = document.getElementById('custom-start-time') as HTMLInputElement;
+                      const endTimeInput = document.getElementById('custom-end-time') as HTMLInputElement;
+                      
+                      const date = dateInput?.value;
+                      const startTime = startTimeInput?.value;
+                      const endTime = endTimeInput?.value;
+                      
+                      if (date && startTime && endTime) {
+                        const customDates = config.customAvailableDates || [];
+                        
+                        onConfigChange({
+                          ...config,
+                          customAvailableDates: [...customDates, { 
+                            date, 
+                            startTime,
+                            endTime,
+                            reason: `Custom availability ${startTime} - ${endTime}`
+                          }]
+                        });
+                        
+                        toast.success(`Custom date added: ${date} from ${startTime} to ${endTime}`);
+                        
+                        dateInput.value = '';
+                        startTimeInput.value = '10:00';
+                        endTimeInput.value = '22:00';
+                      } else {
+                        toast.error('Please select a date and times');
+                      }
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Custom Date
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-500">Add dates that are normally closed but should be available for booking</p>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label>Custom Available Dates</Label>
+                {(!config.customAvailableDates || config.customAvailableDates.length === 0) ? (
+                  <p className="text-sm text-gray-500">No custom dates added</p>
+                ) : (
+                  <div className="space-y-2">
+                    {config.customAvailableDates.map((custom: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-3 border border-green-200 bg-green-50 rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{new Date(custom.date + 'T00:00:00').toLocaleDateString('en-US', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}</p>
+                            <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                              Custom
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1">
+                            🕒 {custom.startTime} - {custom.endTime}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            onConfigChange({
+                              ...config,
+                              customAvailableDates: config.customAvailableDates.filter((_: any, i: number) => i !== index)
+                            });
+                            toast.success('Custom date removed');
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Blocked Dates */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Blocked Dates</CardTitle>
+              <CardDescription>Mark specific dates as unavailable (holidays, maintenance, etc.)</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="blocked-date">Block a date</Label>
                 <div className="space-y-3 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900">
                   <div className="space-y-2">
                     <Label htmlFor="blocked-date" className="text-sm">Select a date</Label>
@@ -486,7 +630,7 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
                   </div>
 
                   <Button
-                    className="w-full"
+                    className="w-full bg-red-600 hover:bg-red-700"
                     onClick={() => {
                       const dateInput = document.getElementById('blocked-date') as HTMLInputElement;
                       const startTimeInput = document.getElementById('blocked-start-time') as HTMLInputElement;
@@ -529,8 +673,8 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
                       }
                     }}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Custom Date
+                    <X className="w-4 h-4 mr-2" />
+                    Block This Date
                   </Button>
                 </div>
                 <p className="text-sm text-gray-500">Block entire days or specific time slots when bookings should not be allowed</p>
@@ -963,6 +1107,7 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
             initialData={editingGame ? convertGameToWizardData(editingGame) : undefined}
             mode={editingGame ? 'edit' : 'create'}
             theme="calendar"
+            embedContext={embedContext}
           />
         </DialogContent>
       </Dialog>

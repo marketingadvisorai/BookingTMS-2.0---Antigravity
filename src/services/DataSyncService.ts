@@ -90,6 +90,23 @@ export interface Game {
   difficulty: number | GameDifficulty;
   difficultyLabel?: GameDifficulty;
   gameType?: 'physical' | 'virtual' | 'hybrid';
+  minAdults?: number;
+  maxAdults?: number;
+  minChildren?: number;
+  maxChildren?: number;
+  childPrice?: number;
+  minAge?: number;
+  language?: string[];
+  successRate?: number;
+  activityDetails?: string;
+  additionalInformation?: string;
+  faqs?: any[];
+  cancellationPolicies?: any[];
+  accessibility?: {
+    strollerAccessible?: boolean;
+    wheelchairAccessible?: boolean;
+  };
+  location?: string;
   status: 'active' | 'inactive';
   blockedDates: string[];
   availability: {
@@ -104,6 +121,7 @@ export interface Game {
   createdBy?: string;
   updatedBy?: string;
   settings?: GameSettings;
+  slug?: string;
 }
 
 export interface GameInput {

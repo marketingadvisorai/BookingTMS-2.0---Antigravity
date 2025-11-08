@@ -7,14 +7,17 @@ import { ResolvexWidget } from '../components/widgets/ResolvexWidget';
 import { CalendarSingleEventBookingPage } from '../components/widgets/CalendarSingleEventBookingPage';
 import FareBookWidget from '../components/widgets/FareBookWidget';
 import { WidgetThemeProvider } from '../components/widgets/WidgetThemeContext';
+import { supabase } from '../lib/supabase';
 
 export function Embed() {
   const [widgetId, setWidgetId] = useState<string>('farebook');
   const [primaryColor, setPrimaryColor] = useState<string>('#2563eb');
   const [widgetKey, setWidgetKey] = useState<string>('');
   const [widgetTheme, setWidgetTheme] = useState<'light' | 'dark'>('light');
-  // Config used by embedded widgets (loaded from localStorage when available)
+  // Config used by embedded widgets (loaded from Supabase by embedKey)
   const [embedConfig, setEmbedConfig] = useState<any | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   // Single game overrides from URL (optional)
   const [singleGameName, setSingleGameName] = useState<string | undefined>(undefined);
   const [singleGameDescription, setSingleGameDescription] = useState<string | undefined>(undefined);
@@ -183,30 +186,83 @@ export function Embed() {
     cancellationPolicy: 'Cash refunds are not available. If you are unable to keep your scheduled reservation, please contact us. We can rebook you to a different date and/or time or issue a refund in the form of a gift card.'
   };
 
-  // Attempt to load saved config from localStorage for embeds
+  // Fetch venue data from Supabase by embedKey
   useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const widget = params.get('widget') || 'farebook';
-      const storageKeyMap: Record<string, string> = {
-        calendar: 'calendarWidgetConfig',
-        singlegame: 'singleGameWidgetConfig',
-        farebook: 'fareBookConfig'
-      };
-      const key = storageKeyMap[widget];
-      if (key) {
-        const saved = localStorage.getItem(key);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed && typeof parsed === 'object') {
-            setEmbedConfig(parsed);
-          }
+    const fetchVenueData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // If no embedKey provided, use defaults
+        if (!widgetKey) {
+          console.log('⚠️ No embedKey provided, using default config');
+          setIsLoading(false);
+          return;
         }
+
+        console.log('🔍 Fetching venue data for embedKey:', widgetKey);
+
+        // Fetch all venues and filter by embedKey in JavaScript
+        // (JSONB queries can be tricky, so we fetch and filter client-side)
+        const { data: allVenues, error: fetchError } = await supabase
+          .from('venues')
+          .select('*');
+
+        if (fetchError) {
+          console.error('❌ Error fetching venues:', fetchError);
+          setError('Failed to load widget configuration');
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('📦 Fetched venues count:', allVenues?.length || 0);
+        console.log('🔑 Looking for embedKey:', widgetKey);
+
+        // Find venue with matching embedKey
+        const venue = allVenues?.find((v: any) => {
+          const embedKey = v.settings?.embedKey;
+          const matches = embedKey === widgetKey;
+          console.log('🔍 Checking venue:', v.name, '| embedKey:', embedKey, '| matches:', matches);
+          return matches;
+        });
+
+        if (!venue) {
+          console.error('❌ No venue found for embedKey:', widgetKey);
+          console.log('Available embedKeys:', allVenues?.map((v: any) => v.settings?.embedKey));
+          setError('Widget not found. Please check your embed code.');
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('✅ Venue found:', venue.name);
+        console.log('✅ Venue data loaded:', venue);
+
+        // Extract widget config from venue settings
+        const venueConfig = venue.settings?.widgetConfig || {};
+        const venuePrimaryColor = venue.settings?.primaryColor || primaryColor;
+
+        // Set the config and color
+        setEmbedConfig(venueConfig);
+        setPrimaryColor(venuePrimaryColor);
+
+        console.log('✅ Widget config loaded:', venueConfig);
+        console.log('✅ Games count:', venueConfig.games?.length || 0);
+
+        setIsLoading(false);
+      } catch (e) {
+        console.error('❌ Exception fetching venue data:', e);
+        setError('An error occurred loading the widget');
+        setIsLoading(false);
       }
-    } catch (e) {
-      // Silent failures for embed preview; fallback to defaults
+    };
+
+    // Only fetch if widgetKey is set
+    if (widgetKey) {
+      fetchVenueData();
+    } else {
+      setIsLoading(false);
     }
-  }, []);
+  }, [widgetKey]);
 
   const renderWidget = () => {
     const widgetProps = {
@@ -244,6 +300,44 @@ export function Embed() {
         return <FareBookWidget {...widgetProps} />;
     }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <WidgetThemeProvider initialTheme={widgetTheme}>
+        <div className={`w-full min-h-screen flex items-center justify-center ${widgetTheme === 'dark' ? 'dark bg-[#0a0a0a]' : 'bg-white'}`}>
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className={`text-sm ${widgetTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              Loading widget...
+            </p>
+          </div>
+        </div>
+      </WidgetThemeProvider>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <WidgetThemeProvider initialTheme={widgetTheme}>
+        <div className={`w-full min-h-screen flex items-center justify-center ${widgetTheme === 'dark' ? 'dark bg-[#0a0a0a]' : 'bg-white'}`}>
+          <div className="text-center max-w-md p-6">
+            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+            <h2 className={`text-xl font-semibold mb-2 ${widgetTheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Widget Error
+            </h2>
+            <p className={`text-sm ${widgetTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              {error}
+            </p>
+            <p className={`text-xs mt-4 ${widgetTheme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>
+              Please check your embed code and try again.
+            </p>
+          </div>
+        </div>
+      </WidgetThemeProvider>
+    );
+  }
 
   return (
     <WidgetThemeProvider initialTheme={widgetTheme}>

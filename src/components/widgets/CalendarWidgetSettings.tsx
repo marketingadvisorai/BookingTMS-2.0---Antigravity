@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -16,12 +16,14 @@ import AddGameWizard from '../../components/games/AddGameWizard';
 import CustomSettingsPanel from './CustomSettingsPanel';
 import { Game, GameInput } from '../../services/DataSyncService';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../ui/dialog';
+import { useGames } from '../../hooks/useGames';
 
 interface EmbedContext {
   embedKey?: string;
   primaryColor?: string;
   venueName?: string;
   baseUrl?: string;
+  venueId?: string;
 }
 
 interface CalendarWidgetSettingsProps {
@@ -45,6 +47,69 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
   const [activeTab, setActiveTab] = useState('general');
   const [showAddGameWizard, setShowAddGameWizard] = useState(false);
   const [editingGame, setEditingGame] = useState<any>(null);
+  const { games: supabaseGames, createGame, updateGame: updateSupabaseGame, deleteGame: deleteSupabaseGame, loading: gamesLoading } = useGames(embedContext?.venueId);
+
+  const mapSupabaseGameToWidgetGame = (game: any) => {
+    const settings = game.settings || {};
+    return {
+      id: game.id,
+      name: game.name,
+      description: game.description,
+      tagline: game.tagline,
+      difficulty: game.difficulty,
+      duration: game.duration,
+      minPlayers: game.min_players,
+      maxPlayers: game.max_players,
+      min_players: game.min_players, // backwards compatibility for existing UI
+      max_players: game.max_players,
+      price: game.price,
+      childPrice: game.child_price,
+      child_price: game.child_price,
+      status: game.status,
+      image: game.image_url,
+      imageUrl: game.image_url,
+      coverImage: game.image_url,
+      settings,
+      operatingDays: settings.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      startTime: settings.startTime || '10:00',
+      endTime: settings.endTime || '22:00',
+      slotInterval: settings.slotInterval || 60,
+      advanceBooking: settings.advanceBooking || 30,
+      requiresWaiver: settings.requiresWaiver || false,
+      selectedWaiver: settings.selectedWaiver || null,
+      cancellationWindow: settings.cancellationWindow || 24,
+      specialInstructions: settings.specialInstructions || '',
+      galleryImages: settings.galleryImages || [],
+      videos: settings.videos || [],
+      language: settings.language || ['English'],
+      minChildren: settings.minChildren || 0,
+      maxChildren: settings.maxChildren || 0,
+      location: settings.location || '',
+      faqs: settings.faqs || [],
+      cancellationPolicies: settings.cancellationPolicies || [],
+    };
+  };
+
+  const supabaseGamesForWidget = useMemo(() => supabaseGames.map(mapSupabaseGameToWidgetGame), [supabaseGames]);
+
+  useEffect(() => {
+    const currentGames = Array.isArray(config?.games) ? config.games : [];
+
+    const hasDifference =
+      currentGames.length !== supabaseGamesForWidget.length ||
+      currentGames.some((game: any, index: number) => {
+        const supaGame = supabaseGamesForWidget[index];
+        if (!supaGame) return true;
+        return JSON.stringify(game) !== JSON.stringify(supaGame);
+      });
+
+    if (hasDifference) {
+      onConfigChange({
+        ...config,
+        games: supabaseGamesForWidget,
+      });
+    }
+  }, [supabaseGamesForWidget, config, onConfigChange]);
 
   const handleGeneralSettingChange = (key: string, value: any) => {
     onConfigChange({
@@ -74,73 +139,112 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
     });
   };
 
-  const handleWizardComplete = (gameData: any) => {
-    // Convert wizard data to calendar widget game format
-    const slug = generateSlug(gameData.slug || gameData.name);
-    const newGame = {
-      id: editingGame?.id ?? `game-${Date.now()}`,
-      name: gameData.name,
-      image: gameData.coverImage || 'https://images.unsplash.com/photo-1569002925653-ed18f55d7292?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
-      priceRange: `$${gameData.adultPrice} - $${gameData.childPrice || gameData.adultPrice}`,
-      ageRange: `Min ${gameData.minAge}+`,
-      duration: `${gameData.duration} minutes`,
-      difficulty: gameData.difficulty,
-      description: gameData.description,
-      price: gameData.adultPrice,
-      tagline: gameData.tagline,
-      rating: editingGame?.rating ?? 4.5,
-      reviews: editingGame?.reviews ?? 0,
-      featured: false,
-      gameType: gameData.gameType || 'physical',
-      // Additional fields from wizard
-      category: gameData.category,
-      eventType: gameData.eventType,
-      minAdults: gameData.minAdults,
-      maxAdults: gameData.maxAdults,
-      minChildren: gameData.minChildren,
-      maxChildren: gameData.maxChildren,
-      childPrice: gameData.childPrice,
-      minAge: gameData.minAge,
-      language: gameData.language,
-      successRate: gameData.successRate,
-      activityDetails: gameData.activityDetails,
-      additionalInformation: gameData.additionalInformation,
-      faqs: gameData.faqs,
-      cancellationPolicies: gameData.cancellationPolicies,
-      accessibility: gameData.accessibility,
-      location: gameData.location,
-      galleryImages: gameData.galleryImages,
-      videos: gameData.videos,
-      operatingDays: gameData.operatingDays,
-      startTime: gameData.startTime,
-      endTime: gameData.endTime,
-      slotInterval: gameData.slotInterval,
-      advanceBooking: gameData.advanceBooking,
-      requiresWaiver: gameData.requiresWaiver,
-      selectedWaiver: gameData.selectedWaiver,
-      cancellationWindow: gameData.cancellationWindow,
-      specialInstructions: gameData.specialInstructions,
-      slug
-    };
-    
-    if (editingGame) {
-      // Update existing game in-place
-      onConfigChange({
-        ...config,
-        games: (config.games || []).map((g: any) => (g.id === editingGame.id ? { ...g, ...newGame } : g))
-      });
-      toast.success('Experience updated successfully!');
-    } else {
-      // Add as a new game
-      onConfigChange({
-        ...config,
-        games: [...(config.games || []), newGame]
-      });
-      toast.success('Experience added successfully!');
+  const handleWizardComplete = async (gameData: any) => {
+    if (!embedContext?.venueId) {
+      toast.error('Venue ID is required to create games');
+      console.error('Missing venueId in embedContext:', embedContext);
+      return;
     }
-    
-    setShowAddGameWizard(false);
-    setEditingGame(null);
+
+    try {
+      const slug = generateSlug(gameData.slug || gameData.name);
+      
+      console.log('Creating game with data:', {
+        venueId: embedContext.venueId,
+        name: gameData.name,
+        difficulty: gameData.difficulty,
+      });
+      
+      // Map wizard data to Supabase games table schema
+      const supabaseGameData = {
+        venue_id: embedContext.venueId,
+        name: gameData.name,
+        slug: slug,
+        description: gameData.description || '',
+        tagline: gameData.tagline || '',
+        difficulty: mapDifficultyToEnum(gameData.difficulty),
+        duration: gameData.duration || 60,
+        min_players: gameData.minAdults || 2,
+        max_players: gameData.maxAdults || 8,
+        price: gameData.adultPrice || 0,
+        child_price: gameData.childPrice || gameData.adultPrice || 0,
+        min_age: gameData.minAge || 0,
+        success_rate: gameData.successRate || 75,
+        image_url: gameData.coverImage || 'https://images.unsplash.com/photo-1569002925653-ed18f55d7292?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
+        status: 'active' as const,
+        settings: {
+          category: gameData.category,
+          eventType: gameData.eventType,
+          gameType: gameData.gameType || 'physical',
+          minChildren: gameData.minChildren,
+          maxChildren: gameData.maxChildren,
+          language: gameData.language,
+          activityDetails: gameData.activityDetails,
+          additionalInformation: gameData.additionalInformation,
+          faqs: gameData.faqs,
+          cancellationPolicies: gameData.cancellationPolicies,
+          accessibility: gameData.accessibility,
+          location: gameData.location,
+          galleryImages: gameData.galleryImages,
+          videos: gameData.videos,
+          operatingDays: gameData.operatingDays,
+          startTime: gameData.startTime,
+          endTime: gameData.endTime,
+          slotInterval: gameData.slotInterval,
+          advanceBooking: gameData.advanceBooking,
+          requiresWaiver: gameData.requiresWaiver,
+          selectedWaiver: gameData.selectedWaiver,
+          cancellationWindow: gameData.cancellationWindow,
+          specialInstructions: gameData.specialInstructions,
+          availability: {},
+        },
+      };
+
+      console.log('Mapped Supabase game data:', supabaseGameData);
+
+      if (editingGame?.id && !editingGame.id.startsWith('game-')) {
+        // Update existing game in Supabase
+        console.log('Updating game:', editingGame.id);
+        await updateSupabaseGame(editingGame.id, supabaseGameData);
+        toast.success('Experience updated successfully!');
+      } else {
+        // Create new game in Supabase
+        console.log('Creating new game in Supabase');
+        const result = await createGame(supabaseGameData);
+        console.log('Game created successfully:', result);
+        toast.success('Experience created successfully!');
+      }
+      
+      setShowAddGameWizard(false);
+      setEditingGame(null);
+    } catch (error: any) {
+      console.error('Error saving game:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        error: error,
+      });
+      const errorMessage = error?.message || error?.details || error?.hint || 'Failed to save experience';
+      toast.error(errorMessage);
+    }
+  };
+
+  // Helper function to map difficulty values
+  const mapDifficultyToEnum = (difficulty: any): 'Easy' | 'Medium' | 'Hard' | 'Expert' => {
+    if (typeof difficulty === 'string') {
+      const normalized = difficulty.toLowerCase();
+      if (normalized.includes('easy')) return 'Easy';
+      if (normalized.includes('hard') || normalized.includes('expert') || normalized.includes('extreme')) return 'Hard';
+      return 'Medium';
+    }
+    // If it's a number (1-5 scale)
+    if (typeof difficulty === 'number') {
+      if (difficulty <= 2) return 'Easy';
+      if (difficulty >= 4) return 'Hard';
+      return 'Medium';
+    }
+    return 'Medium';
   };
 
   const handleWizardCancel = () => {
@@ -154,43 +258,59 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
   };
 
   const convertGameToWizardData = (game: any) => {
+    // Handle both Supabase game schema and old widget config schema
+    const settings = game.settings || {};
+    
     return {
       name: game.name,
       description: game.description,
-      category: game.category || 'Adventure',
-      tagline: game.tagline,
-      eventType: game.eventType || 'public',
-      gameType: game.gameType || 'physical',
-      minAdults: game.minAdults || 2,
-      maxAdults: game.maxAdults || 8,
-      minChildren: game.minChildren || 0,
-      maxChildren: game.maxChildren || 4,
+      category: settings.category || 'Adventure',
+      tagline: game.tagline || '',
+      eventType: settings.eventType || 'public',
+      gameType: settings.gameType || 'physical',
+      minAdults: game.min_players || 2,
+      maxAdults: game.max_players || 8,
+      minChildren: settings.minChildren || 0,
+      maxChildren: settings.maxChildren || 4,
       adultPrice: game.price || 30,
-      childPrice: game.childPrice || 25,
-      duration: parseInt(game.duration) || 60,
-      difficulty: game.difficulty || 3,
-      minAge: parseInt(game.ageRange) || 12,
-      language: game.language || ['English'],
-      successRate: game.successRate || 75,
-      activityDetails: game.activityDetails || '',
-      additionalInformation: game.additionalInformation || '',
-      faqs: game.faqs || [],
-      cancellationPolicies: game.cancellationPolicies || [],
-      accessibility: game.accessibility || { strollerAccessible: true, wheelchairAccessible: false },
-      location: game.location || '',
-      coverImage: game.image || '',
-      galleryImages: game.galleryImages || [],
-      videos: game.videos || [],
-      operatingDays: game.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      startTime: game.startTime || '09:00',
-      endTime: game.endTime || '21:00',
-      slotInterval: game.slotInterval || 60,
-      advanceBooking: game.advanceBooking || 30,
-      requiresWaiver: game.requiresWaiver || false,
-      selectedWaiver: game.selectedWaiver || null,
-      cancellationWindow: game.cancellationWindow || 24,
-      specialInstructions: game.specialInstructions || '',
-      slug: game.slug || generateSlug(game.name)
+      childPrice: game.child_price || game.price || 25,
+      duration: game.duration || 60,
+      difficulty: game.difficulty || 'Medium',
+      minAge: game.min_age || 12,
+      language: settings.language || ['English'],
+      successRate: game.success_rate || 75,
+      activityDetails: settings.activityDetails || '',
+      additionalInformation: settings.additionalInformation || '',
+      faqs: settings.faqs || [],
+      cancellationPolicies: settings.cancellationPolicies || [],
+      accessibility: settings.accessibility || { strollerAccessible: true, wheelchairAccessible: false },
+      location: settings.location || '',
+      coverImage: game.image_url || '',
+      galleryImages: settings.galleryImages || [],
+      videos: settings.videos || [],
+      operatingDays: settings.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      startTime: settings.startTime || '09:00',
+      endTime: settings.endTime || '21:00',
+      slotInterval: settings.slotInterval || 60,
+      advanceBooking: settings.advanceBooking || 30,
+      requiresWaiver: settings.requiresWaiver || false,
+      selectedWaiver: settings.selectedWaiver || null,
+      cancellationWindow: settings.cancellationWindow || 24,
+      specialInstructions: settings.specialInstructions || '',
+      customCapacityFields: settings.customCapacityFields || [],
+      groupDiscount: settings.groupDiscount || false,
+      dynamicPricing: settings.dynamicPricing || false,
+      peakPricing: settings.peakPricing || {
+        enabled: false,
+        weekdayPeakPrice: 0,
+        weekendPeakPrice: 0,
+        peakStartTime: '',
+        peakEndTime: '',
+      },
+      groupTiers: settings.groupTiers || [],
+      customDates: settings.customDates || [],
+      blockedDates: settings.blockedDates || [],
+      slug: game.slug || generateSlug(game.name),
     };
   };
 
@@ -430,7 +550,7 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Experiences / Games</CardTitle>
-                <CardDescription>Configure your escape room experiences</CardDescription>
+                <CardDescription>Configure your escape room experiences - stored in database</CardDescription>
               </div>
               <Button onClick={handleAddGame} size="sm" className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
@@ -438,26 +558,45 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
-              {config.games.map((game: Game, index: number) => (
-                <div key={index} className="p-4 border rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h4 className="font-semibold">{game.name}</h4>
-                      <p className="text-sm text-gray-600">{game.description}</p>
-                      <div className="flex gap-4 mt-2 text-sm text-gray-500">
-                        <span>⏱ {game.duration}</span>
-                        <span>👥 {`${game.minAdults ?? '?'}-${game.maxAdults ?? '?'} players`}</span>
-                        <span>💰 {game.priceRange}</span>
-                        <span>🎯 Difficulty: {game.difficulty}/5</span>
+              {gamesLoading ? (
+                <p className="text-sm text-gray-500">Loading games...</p>
+              ) : supabaseGames.length === 0 ? (
+                <p className="text-sm text-gray-500">No games configured yet. Click "Add Experience" to create your first game.</p>
+              ) : (
+                supabaseGames.map((game: any) => (
+                  <div key={game.id} className="p-4 border rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="font-semibold">{game.name}</h4>
+                        <p className="text-sm text-gray-600">{game.description}</p>
+                        <div className="flex gap-4 mt-2 text-sm text-gray-500">
+                          <span>⏱ {game.duration} min</span>
+                          <span>👥 {game.min_players}-{game.max_players} players</span>
+                          <span>💰 ${game.price}</span>
+                          <span>🎯 {game.difficulty}</span>
+                          <span className={`px-2 py-0.5 rounded ${game.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                            {game.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditGame(game)}>Edit</Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={async () => {
+                            if (confirm(`Delete "${game.name}"?`)) {
+                              await deleteSupabaseGame(game.id);
+                            }
+                          }}
+                        >
+                          Delete
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditGame(game)}>Edit</Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteGame(game.id)}>Delete</Button>
-                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </TabsContent>

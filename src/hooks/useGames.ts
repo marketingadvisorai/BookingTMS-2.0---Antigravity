@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import { useAuth } from '../lib/auth/AuthContext';
 
 export interface Game {
   id: string;
@@ -26,6 +27,7 @@ export interface Game {
 }
 
 export function useGames(venueId?: string) {
+  const { currentUser } = useAuth();
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,28 +64,61 @@ export function useGames(venueId?: string) {
   // Create game
   const createGame = async (gameData: Omit<Game, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log('useGames.createGame called with:', gameData);
+      console.log('Current user from context:', currentUser);
       
-      if (!user) {
-        throw new Error('User not authenticated');
+      // Validate venue_id is present
+      if (!gameData.venue_id) {
+        throw new Error('Venue ID is required to create a game');
       }
+      
+      // Try to get Supabase session (optional - RLS allows anon access)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      // Use session user ID if available, otherwise null (RLS will handle permissions)
+      const userId = session?.user?.id || null;
+      
+      if (userId) {
+        console.log('Using Supabase user ID:', userId);
+      } else {
+        console.log('No Supabase session - proceeding with anon access');
+      }
+
+      const insertData = {
+        ...gameData,
+        created_by: userId,
+      };
+
+      console.log('Inserting game data:', insertData);
 
       const { data, error: insertError } = await supabase
         .from('games')
-        .insert([{
-          ...gameData,
-          created_by: user.id,
-        }])
+        .insert([insertData])
         .select()
         .single();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Supabase insert error:', {
+          message: insertError.message,
+          code: insertError.code,
+          details: insertError.details,
+          hint: insertError.hint,
+        });
+        throw insertError;
+      }
 
+      console.log('Game created successfully in database:', data);
       toast.success('Game created successfully!');
       await fetchGames(); // Refresh list
       return data;
     } catch (err: any) {
-      console.error('Error creating game:', err);
+      console.error('Error creating game:', {
+        message: err?.message,
+        code: err?.code,
+        details: err?.details,
+        hint: err?.hint,
+        stack: err?.stack,
+      });
       toast.error(err.message || 'Failed to create game');
       throw err;
     }

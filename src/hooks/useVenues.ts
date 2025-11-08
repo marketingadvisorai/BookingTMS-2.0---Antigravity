@@ -20,6 +20,10 @@ export interface Venue {
   capacity: number;
   timezone: string;
   status: 'active' | 'inactive' | 'maintenance';
+  embed_key?: string;
+  slug?: string;
+  primary_color?: string;
+  base_url?: string;
   settings: Record<string, any>;
   created_by: string;
   created_at: string;
@@ -57,19 +61,32 @@ export function useVenues() {
   // Create venue
   const createVenue = async (venueData: Omit<Venue, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
     try {
-      // Get user if authenticated, otherwise use null
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Creating venue with data:', venueData);
+      
+      // Use Supabase session for UUID
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const insertData = {
+        ...venueData,
+        created_by: session?.user?.id || null,
+      };
+
+      console.log('Inserting venue data:', insertData);
 
       const { data, error: insertError } = await supabase
         .from('venues')
-        .insert([{
-          ...venueData,
-          created_by: user?.id || null,
-        }])
+        .insert([insertData])
         .select()
         .single();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Venue insert error:', insertError);
+        throw insertError;
+      }
+
+      console.log('Venue created successfully:', data);
+      console.log('Generated embed_key:', data.embed_key);
+      console.log('Generated slug:', data.slug);
 
       toast.success('Venue created successfully!');
       await fetchVenues(); // Refresh list

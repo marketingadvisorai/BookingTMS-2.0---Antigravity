@@ -21,6 +21,8 @@ import { format } from 'date-fns';
 import { PromoCodeInput } from './PromoCodeInput';
 import { GiftCardInput } from './GiftCardInput';
 import { useWidgetTheme } from './WidgetThemeContext';
+import SupabaseBookingService from '../../services/SupabaseBookingService';
+import { toast } from 'sonner';
 
 interface CalendarSingleEventBookingPageProps {
   primaryColor?: string;
@@ -64,6 +66,8 @@ export function CalendarSingleEventBookingPage({
   const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discount: number; type: 'percentage' | 'fixed' } | null>(null);
   const [showGiftCardInput, setShowGiftCardInput] = useState(false);
   const [appliedGiftCard, setAppliedGiftCard] = useState<{ code: string; amount: number } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bookingNumber, setBookingNumber] = useState<string>('');
 
   const gameData = {
     name: gameName,
@@ -166,18 +170,83 @@ export function CalendarSingleEventBookingPage({
     : 0;
   const giftCardCredit = appliedGiftCard ? appliedGiftCard.amount : 0;
   const totalPrice = Math.max(0, subtotal - promoDiscount - giftCardCredit);
-  
-  const bookingNumber = `BK-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
 
   const canAddToCart = selectedTime !== null;
   const canCheckout = customerData.name && customerData.email && customerData.phone;
   const canCompletePay = customerData.cardNumber && customerData.cardExpiry && customerData.cardCVV && customerData.cardName;
+
+  const handleCompletePayment = async () => {
+    if (!canCompletePay || isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+
+      // Get venue and game IDs from config
+      const venueId = config?.venueId || config?.venue?.id;
+      const gameId = selectedGame?.id || config?.gameId;
+
+      if (!venueId || !gameId) {
+        toast.error('Missing venue or game information');
+        console.error('Missing IDs:', { venueId, gameId, config });
+        return;
+      }
+
+      // Calculate booking time
+      const bookingDate = `2025-11-${String(selectedDate).padStart(2, '0')}`;
+      const [startHour, startMinute] = selectedTime!.split(':');
+      const startTime = `${startHour.padStart(2, '0')}:${startMinute.padStart(2, '0')}:00`;
+      
+      // Calculate end time (assume 60 min duration)
+      const endHour = String((parseInt(startHour) + 1) % 24).padStart(2, '0');
+      const endTime = `${endHour}:${startMinute.padStart(2, '0')}:00`;
+
+      // Prepare ticket types
+      const ticketTypes = [{
+        id: 'standard',
+        name: 'Standard Ticket',
+        price: gameData.price,
+        quantity: partySize,
+        subtotal: subtotal
+      }];
+
+      // Create booking via Supabase
+      const result = await SupabaseBookingService.createWidgetBooking({
+        venue_id: venueId,
+        game_id: gameId,
+        customer_name: customerData.name,
+        customer_email: customerData.email,
+        customer_phone: customerData.phone,
+        booking_date: bookingDate,
+        start_time: startTime,
+        end_time: endTime,
+        party_size: partySize,
+        ticket_types: ticketTypes,
+        total_amount: subtotal,
+        final_amount: totalPrice,
+        promo_code: appliedPromoCode?.code,
+        notes: `Payment: ${customerData.cardNumber.slice(-4)}`
+      });
+
+      if (result) {
+        setBookingNumber(result.confirmation_code);
+        setCurrentStep('success');
+        toast.success('Booking confirmed!');
+        console.log('✅ Booking created:', result);
+      }
+    } catch (error: any) {
+      console.error('❌ Error creating booking:', error);
+      toast.error(error.message || 'Failed to create booking. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const resetBooking = () => {
     setCurrentStep('booking');
     setSelectedDate(15);
     setSelectedTime(null);
     setPartySize(4);
+    setBookingNumber('');
     setAppliedPromoCode(null);
     setAppliedGiftCard(null);
     setCustomerData({
@@ -1232,13 +1301,13 @@ export function CalendarSingleEventBookingPage({
                   </div>
 
                   <Button
-                    onClick={() => setCurrentStep('success')}
-                    disabled={!canCompletePay}
+                    onClick={handleCompletePayment}
+                    disabled={!canCompletePay || isSubmitting}
                     className="w-full text-white h-14 text-lg shadow-lg hover:shadow-xl"
-                    style={{ backgroundColor: canCompletePay ? primaryColor : undefined }}
+                    style={{ backgroundColor: (canCompletePay && !isSubmitting) ? primaryColor : undefined }}
                   >
                     <CreditCard className="w-5 h-5 mr-2" />
-                    Complete Payment ${totalPrice}
+                    {isSubmitting ? 'Processing...' : `Complete Payment $${totalPrice}`}
                   </Button>
                 </Card>
               </div>

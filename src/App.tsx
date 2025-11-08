@@ -17,7 +17,7 @@ import { Reports } from './pages/Reports';
 import { Media } from './pages/Media';
 import { Waivers } from './pages/Waivers';
 import { BookingWidgets } from './pages/BookingWidgets';
-import { Venues } from './pages/Venues';
+import Venues from './pages/Venues';
 import { Settings } from './pages/Settings';
 import { MyAccount } from './pages/MyAccount';
 import { ProfileSettings } from './pages/ProfileSettings';
@@ -170,11 +170,15 @@ export default function App() {
     }
 
     // Check if we're in embed mode
-    if (params.has('widget')) {
+    if (params.has('widget') || params.has('widgetId') || path.startsWith('/embed')) {
       setIsEmbedMode(true);
       // Skip loading screen for embed mode
       setShowLoadingScreen(false);
+      return;
     }
+    
+    // For normal admin panel, loading screen is shown initially
+    // It will be hidden by LoadingScreen component after animation completes
   }, []);
 
   // Show loading screen on initial load

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import DataSyncServiceWithEvents, { DataSyncEvents } from '../../services/DataSyncService';
+import { DataSyncService as DataSyncServiceWithEvents } from '../../services/DataSyncService';
+import SupabaseBookingService from '../../services/SupabaseBookingService';
+import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Card } from '../ui/card';
@@ -227,8 +229,8 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
     setShowGiftCardInput(false);
   };
 
-  // 🎯 Handle payment completion with localStorage save
-  const handleCompletePayment = () => {
+  // 🎯 Handle payment completion with Supabase save
+  const handleCompletePayment = async () => {
     try {
       // Validate form data
       if (!customerInfo.name || !customerInfo.email || !customerInfo.phone) {
@@ -265,14 +267,43 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
         giftCardCredit: appliedGiftCard?.amount
       };
 
-      // Save booking using DataSyncService
-      const savedBooking = DataSyncServiceWithEvents.saveBooking(bookingData);
+      // Get venue and game IDs from config
+      const venueId = config?.venueId || config?.venue?.id;
+      const gameId = selectedExp?.id;
 
-      console.log('✅ ListWidget booking saved:', savedBooking.id);
-      console.log('📊 Total bookings:', DataSyncServiceWithEvents.getAllBookings().length);
+      if (!venueId || !gameId) {
+        toast.error('Missing venue or game information');
+        return;
+      }
 
-      // Show success
-      setCurrentStep('success');
+      // Format time
+      const startTime = selectedTime + ':00';
+      const [hour, minute] = selectedTime!.split(':');
+      const endHour = String((parseInt(hour) + 1) % 24).padStart(2, '0');
+      const endTime = `${endHour}:${minute}:00`;
+
+      // Create booking via Supabase
+      const result = await SupabaseBookingService.createWidgetBooking({
+        venue_id: venueId,
+        game_id: gameId,
+        customer_name: customerInfo.name,
+        customer_email: customerInfo.email,
+        customer_phone: customerInfo.phone,
+        booking_date: selectedDate!.toISOString().split('T')[0],
+        start_time: startTime,
+        end_time: endTime,
+        party_size: partySize,
+        ticket_types: bookingData.ticketTypes,
+        total_amount: totalPrice,
+        final_amount: totalPrice,
+        promo_code: appliedPromoCode?.code
+      });
+
+      if (result) {
+        console.log('✅ Booking created:', result);
+        toast.success('Booking confirmed!');
+        setCurrentStep('success');
+      }
 
     } catch (error) {
       console.error('❌ Error saving booking:', error);

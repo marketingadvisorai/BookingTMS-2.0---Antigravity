@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import DataSyncServiceWithEvents, { DataSyncEvents } from '../../services/DataSyncService';
+import { DataSyncService as DataSyncServiceWithEvents } from '../../services/DataSyncService';
+import SupabaseBookingService from '../../services/SupabaseBookingService';
+import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -206,55 +208,67 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
     }
   };
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     if (canProceed()) {
       try {
         // Find the selected game details
         const selectedGame = games.find(g => g.id === bookingData.game);
 
-        // Calculate add-on prices
-        const addOnsPrice = bookingData.addOns.reduce((sum, id) => {
-          const addOn = availableAddOns.find(a => a.id === id);
-          return sum + (addOn?.price || 0);
-        }, 0);
+        // Get venue and game IDs from config
+        const venueId = config?.venueId || config?.venue?.id;
+        const gameId = bookingData.game;
 
-        // Prepare booking data for localStorage
-        const bookingDataForStorage = {
-          gameName: selectedGame?.name || '',
-          gameId: bookingData.game,
-          date: bookingData.date,
-          time: bookingData.time,
-          customerName: bookingData.name,
-          customerEmail: bookingData.email,
-          customerPhone: bookingData.phone,
-          participants: bookingData.players,
-          ticketTypes: [{
-            id: 'standard',
-            name: 'Standard Ticket',
-            price: selectedGame?.price || 0,
-            quantity: bookingData.players,
-            subtotal: (selectedGame?.price || 0) * bookingData.players
-          }],
-          totalPrice: totalPrice,
-          addOns: bookingData.addOns.map(id => {
-            const addOn = availableAddOns.find(a => a.id === id);
-            return {
-              id: id,
-              name: addOn?.name || '',
-              price: addOn?.price || 0
-            };
-          })
-        };
+        if (!venueId || !gameId) {
+          toast.error('Missing venue or game information');
+          console.error('Missing IDs:', { venueId, gameId, config });
+          return;
+        }
 
-        // Save booking to localStorage using DataSyncService
-        const savedBooking = DataSyncServiceWithEvents.saveBooking(bookingDataForStorage);
-        console.log('✅ MultiStep booking saved:', savedBooking.id);
+        // Format date and time for Supabase
+        const bookingDate = bookingData.date instanceof Date 
+          ? bookingData.date.toISOString().split('T')[0]
+          : bookingData.date;
+        const startTime = bookingData.time + ':00';
+        
+        // Calculate end time (assume 60 min duration)
+        const [hour, minute] = bookingData.time.split(':');
+        const endHour = String((parseInt(hour) + 1) % 24).padStart(2, '0');
+        const endTime = `${endHour}:${minute}:00`;
 
-        // Show success modal
-        setShowSuccess(true);
-      } catch (error) {
-        console.error('❌ Error saving MultiStep booking:', error);
-        alert('Error saving booking. Please try again.');
+        // Prepare ticket types
+        const ticketTypes = [{
+          id: 'standard',
+          name: 'Standard Ticket',
+          price: selectedGame?.price || 0,
+          quantity: bookingData.players,
+          subtotal: (selectedGame?.price || 0) * bookingData.players
+        }];
+
+        // Create booking via Supabase
+        const result = await SupabaseBookingService.createWidgetBooking({
+          venue_id: venueId,
+          game_id: gameId,
+          customer_name: bookingData.name,
+          customer_email: bookingData.email,
+          customer_phone: bookingData.phone,
+          booking_date: bookingDate,
+          start_time: startTime,
+          end_time: endTime,
+          party_size: bookingData.players,
+          ticket_types: ticketTypes,
+          total_amount: totalPrice,
+          final_amount: totalPrice,
+          notes: `Add-ons: ${bookingData.addOns.join(', ')}`
+        });
+
+        if (result) {
+          console.log('✅ Booking created:', result);
+          toast.success('Booking confirmed!');
+          setShowSuccess(true);
+        }
+      } catch (error: any) {
+        console.error('❌ Error creating booking:', error);
+        toast.error(error.message || 'Failed to create booking. Please try again.');
       }
     }
   };

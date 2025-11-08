@@ -136,48 +136,58 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     });
   }, [settings, isQuietHours]);
 
-  // Simulate receiving new notifications (for demo purposes)
+  // Real-time notifications from Supabase
   useEffect(() => {
     // Request desktop notification permission on mount
     requestDesktopPermission();
 
-    // Simulate receiving a new notification every 2 minutes (for demo)
-    const interval = setInterval(() => {
-      const newNotification: Notification = {
-        id: `notif-${Date.now()}`,
-        type: 'booking',
-        priority: 'high',
-        title: 'New Booking Received',
-        message: `Demo booking created at ${new Date().toLocaleTimeString()}`,
-        timestamp: new Date().toISOString(),
-        read: false,
-        actionUrl: '/bookings',
-        actionLabel: 'View Booking',
-        metadata: {
-          bookingId: `BK-${Date.now()}`,
-          amount: 180,
-        },
-      };
-
-      setNotifications(prev => [newNotification, ...prev]);
-
-      // Play sound if enabled and not in quiet hours
-      if (settings.soundEnabled && settings.soundForBookings && !isQuietHours()) {
-        playNotificationSound();
-      }
-
-      // Show desktop notification
-      showDesktopNotification(newNotification);
-
-      // Show toast notification if in-app notifications are enabled
-      if (settings.showInAppNotifications && !isQuietHours()) {
-        toast.success(newNotification.title, {
-          description: newNotification.message,
-        });
-      }
-    }, 120000); // Every 2 minutes
-
-    return () => clearInterval(interval);
+    // TODO: Set up Supabase Realtime subscription for new bookings
+    // This will listen for INSERT events on the bookings table
+    // and create notifications when new bookings arrive
+    
+    // Example implementation (uncomment when ready):
+    // const subscription = supabase
+    //   .channel('bookings-notifications')
+    //   .on('postgres_changes', 
+    //     { event: 'INSERT', schema: 'public', table: 'bookings' },
+    //     (payload) => {
+    //       const booking = payload.new;
+    //       const newNotification: Notification = {
+    //         id: `notif-${Date.now()}`,
+    //         type: 'booking',
+    //         priority: 'high',
+    //         title: 'New Booking Received',
+    //         message: `Booking ${booking.confirmation_code} for ${booking.players} players`,
+    //         timestamp: new Date().toISOString(),
+    //         read: false,
+    //         actionUrl: '/bookings',
+    //         actionLabel: 'View Booking',
+    //         metadata: {
+    //           bookingId: booking.id,
+    //           amount: booking.total_amount,
+    //         },
+    //       };
+    //       
+    //       setNotifications(prev => [newNotification, ...prev]);
+    //       
+    //       if (settings.soundEnabled && settings.soundForBookings && !isQuietHours()) {
+    //         playNotificationSound();
+    //       }
+    //       
+    //       showDesktopNotification(newNotification);
+    //       
+    //       if (settings.showInAppNotifications && !isQuietHours()) {
+    //         toast.success(newNotification.title, {
+    //           description: newNotification.message,
+    //         });
+    //       }
+    //     }
+    //   )
+    //   .subscribe();
+    //
+    // return () => {
+    //   subscription.unsubscribe();
+    // };
   }, [settings, playNotificationSound, showDesktopNotification, isQuietHours, requestDesktopPermission]);
 
   const markAsRead = useCallback((id: string) => {

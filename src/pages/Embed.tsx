@@ -8,6 +8,7 @@ import { CalendarSingleEventBookingPage } from '../components/widgets/CalendarSi
 import FareBookWidget from '../components/widgets/FareBookWidget';
 import { WidgetThemeProvider } from '../components/widgets/WidgetThemeContext';
 import { supabase } from '../lib/supabase';
+import SupabaseBookingService from '../services/SupabaseBookingService';
 
 export function Embed() {
   const [widgetId, setWidgetId] = useState<string>('farebook');
@@ -186,7 +187,10 @@ export function Embed() {
     cancellationPolicy: 'Cash refunds are not available. If you are unable to keep your scheduled reservation, please contact us. We can rebook you to a different date and/or time or issue a refund in the form of a gift card.'
   };
 
-  // Fetch venue data from Supabase by embedKey
+  // Store venue ID for real-time updates
+  const [venueId, setVenueId] = useState<string | null>(null);
+
+  // Fetch venue data from Supabase by embedKey using SupabaseBookingService
   useEffect(() => {
     const fetchVenueData = async () => {
       try {
@@ -202,56 +206,70 @@ export function Embed() {
 
         console.log('🔍 Fetching venue data for embedKey:', widgetKey);
 
-        // Fetch all venues and filter by embedKey in JavaScript
-        // (JSONB queries can be tricky, so we fetch and filter client-side)
-        const { data: allVenues, error: fetchError } = await supabase
-          .from('venues')
-          .select('*');
-
-        if (fetchError) {
-          console.error('❌ Error fetching venues:', fetchError);
-          setError('Failed to load widget configuration');
-          setIsLoading(false);
-          return;
-        }
-
-        console.log('📦 Fetched venues count:', allVenues?.length || 0);
-        console.log('🔑 Looking for embedKey:', widgetKey);
-
-        // Find venue with matching embedKey
-        const venue = allVenues?.find((v: any) => {
-          const embedKey = v.settings?.embedKey;
-          const matches = embedKey === widgetKey;
-          console.log('🔍 Checking venue:', v.name, '| embedKey:', embedKey, '| matches:', matches);
-          return matches;
-        });
+        // Use SupabaseBookingService to fetch venue by embed key
+        const venue = await SupabaseBookingService.getVenueByEmbedKey(widgetKey);
 
         if (!venue) {
           console.error('❌ No venue found for embedKey:', widgetKey);
-          console.log('Available embedKeys:', allVenues?.map((v: any) => v.settings?.embedKey));
-          setError('Widget not found. Please check your embed code.');
+          setError('Widget not found. Please check your embed code or contact the venue.');
           setIsLoading(false);
           return;
         }
 
-        console.log('✅ Venue found:', venue.name);
-        console.log('✅ Venue data loaded:', venue);
+        console.log('✅ Venue found:', venue.name, '(ID:', venue.id, ')');
+        setVenueId(venue.id);
 
-        // Extract widget config from venue settings
-        const venueConfig = venue.settings?.widgetConfig || {};
-        const venuePrimaryColor = venue.settings?.primaryColor || primaryColor;
+        // Fetch games for this venue
+        const games = await SupabaseBookingService.getVenueGames(venue.id);
+        console.log('✅ Games loaded:', games.length);
+
+        if (games.length === 0) {
+          console.warn('⚠️ No active games found for this venue');
+          setError('No experiences available at this time. Please check back later.');
+          setIsLoading(false);
+          return;
+        }
+
+        // Build widget config from venue and games
+        const venueConfig = {
+          venueId: venue.id,
+          venueName: venue.name,
+          ...venue.settings,
+          games: games.map((game: any) => ({
+            id: game.id,
+            name: game.name,
+            slug: game.slug,
+            description: game.description || 'An exciting experience awaits!',
+            tagline: game.tagline || '',
+            difficulty: game.difficulty || 'Medium',
+            duration: game.duration || 60,
+            capacity: game.max_players || 8,
+            basePrice: game.price || 0,
+            priceRange: game.child_price ? `$${game.child_price} - $${game.price}` : `$${game.price}`,
+            ageRange: game.min_age ? `${game.min_age}+` : 'All ages',
+            image: game.image_url || 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=1200&h=800&fit=crop',
+            imageUrl: game.image_url || 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=1200&h=800&fit=crop',
+            minPlayers: game.min_players || 2,
+            maxPlayers: game.max_players || 8,
+            childPrice: game.child_price,
+            minAge: game.min_age,
+            successRate: game.success_rate || 50,
+            status: game.status || 'active',
+            blockedDates: [],
+            availability: game.settings?.availability || {},
+          })),
+        };
 
         // Set the config and color
         setEmbedConfig(venueConfig);
-        setPrimaryColor(venuePrimaryColor);
+        setPrimaryColor(venue.primary_color || primaryColor);
 
-        console.log('✅ Widget config loaded:', venueConfig);
-        console.log('✅ Games count:', venueConfig.games?.length || 0);
+        console.log('✅ Widget config loaded with', games.length, 'games');
 
         setIsLoading(false);
-      } catch (e) {
+      } catch (e: any) {
         console.error('❌ Exception fetching venue data:', e);
-        setError('An error occurred loading the widget');
+        setError(e.message || 'An error occurred loading the widget. Please try again later.');
         setIsLoading(false);
       }
     };
@@ -263,6 +281,58 @@ export function Embed() {
       setIsLoading(false);
     }
   }, [widgetKey]);
+
+  // Set up real-time subscription for game updates
+  useEffect(() => {
+    if (!venueId || !widgetKey) return;
+
+    console.log('🔄 Setting up real-time subscription for venue:', venueId);
+
+    // Subscribe to changes in games table for this venue
+    const gamesSubscription = supabase
+      .channel(`games-${venueId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'games',
+          filter: `venue_id=eq.${venueId}`,
+        },
+        (payload) => {
+          console.log('🔔 Game update detected:', payload.eventType);
+          // Refetch venue data to get updated games
+          window.location.reload();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to venue updates
+    const venueSubscription = supabase
+      .channel(`venue-${venueId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'venues',
+          filter: `id=eq.${venueId}`,
+        },
+        (payload) => {
+          console.log('🔔 Venue update detected');
+          // Refetch venue data to get updated settings
+          window.location.reload();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      console.log('🔌 Cleaning up real-time subscriptions');
+      gamesSubscription.unsubscribe();
+      venueSubscription.unsubscribe();
+    };
+  }, [venueId, widgetKey]);
 
   const renderWidget = () => {
     const widgetProps = {

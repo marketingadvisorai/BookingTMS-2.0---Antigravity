@@ -76,6 +76,7 @@ export interface TimeSlot {
 
 export interface Game {
   id: string;
+  venue_id?: string; // Link to venue - REQUIRED for widgets
   name: string;
   description?: string;
   tagline?: string;
@@ -125,6 +126,7 @@ export interface Game {
 }
 
 export interface GameInput {
+  venue_id?: string; // Link to venue - REQUIRED for widgets
   name: string;
   description?: string;
   tagline?: string;
@@ -491,7 +493,8 @@ export class DataSyncService {
       localStorage.setItem(this.STORAGE_KEYS.BOOKINGS, JSON.stringify(bookings));
     }
 
-    console.log('✅ Booking saved:', booking.id);
+    console.log('✅ Booking saved to localStorage (legacy):', booking.id);
+    console.warn('⚠️ This booking is only stored locally. Use SupabaseBookingService for real persistence.');
     return booking;
   }
 

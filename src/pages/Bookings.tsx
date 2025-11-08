@@ -1783,7 +1783,12 @@ function WeekView({ bookings, onViewDetails, selectedDate, setSelectedDate, game
 
   const getBookingsForTimeSlot = (date: Date, time: string) => {
     const dateStr = date.toISOString().split('T')[0];
-    return bookings.filter((b: any) => b.date === dateStr && b.time === time);
+    return bookings.filter((b: any) => {
+      if (b.date !== dateStr) return false;
+      // Compare just the hour part (HH:MM vs HH:MM:SS)
+      const bookingTime = b.time.substring(0, 5); // Get HH:MM
+      return bookingTime === time;
+    });
   };
 
   const prevWeek = () => {
@@ -1889,7 +1894,12 @@ function DayView({ bookings, onViewDetails, selectedDate, setSelectedDate, games
   
   const getBookingsForTimeSlot = (time: string) => {
     const dateStr = selectedDate.toISOString().split('T')[0];
-    return bookings.filter((b: any) => b.date === dateStr && b.time === time);
+    return bookings.filter((b: any) => {
+      if (b.date !== dateStr) return false;
+      // Compare just the hour part (HH:MM vs HH:MM:SS)
+      const bookingTime = b.time.substring(0, 5); // Get HH:MM
+      return bookingTime === time;
+    });
   };
 
   const prevDay = () => {
@@ -2003,7 +2013,12 @@ function ScheduleView({ bookings, onViewDetails, selectedDate, setSelectedDate, 
   
   const getBookingsForGameAndTime = (game: string, time: string) => {
     const dateStr = selectedDate.toISOString().split('T')[0];
-    return bookings.filter((b: any) => b.date === dateStr && b.time === time && b.game === game);
+    return bookings.filter((b: any) => {
+      if (b.date !== dateStr || b.game !== game) return false;
+      // Compare just the hour part (HH:MM vs HH:MM:SS)
+      const bookingTime = b.time.substring(0, 5); // Get HH:MM
+      return bookingTime === time;
+    });
   };
 
   const prevDay = () => {
@@ -2705,29 +2720,29 @@ function BookingDetailsDialog({ open, onOpenChange, booking, onRefund, onResched
           {/* Booking Information */}
           <div>
             <h3 className="text-sm text-gray-600 dark:text-[#737373] mb-3">Booking Information</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-3 sm:p-4">
-                <p className="text-xs text-gray-500 dark:text-[#737373] mb-1">Venue</p>
-                <p className="text-sm sm:text-base text-gray-900 dark:text-white">{booking.venueName || 'N/A'}</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-4">
+                <p className="text-xs text-gray-500 dark:text-[#737373] mb-2">Venue</p>
+                <p className="text-base text-gray-900 dark:text-white font-medium">{booking.venueName || 'N/A'}</p>
               </div>
-              <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-3 sm:p-4">
-                <p className="text-xs text-gray-500 dark:text-[#737373] mb-1">Game</p>
-                <p className="text-sm sm:text-base text-gray-900 dark:text-white">{booking.game}</p>
+              <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-4">
+                <p className="text-xs text-gray-500 dark:text-[#737373] mb-2">Game</p>
+                <p className="text-base text-gray-900 dark:text-white font-medium">{booking.game}</p>
               </div>
-              <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-3 sm:p-4">
-                <p className="text-xs text-gray-500 dark:text-[#737373] mb-1">Date & Time</p>
-                <p className="text-sm sm:text-base text-gray-900 dark:text-white">{formatDate(booking.date)}</p>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-[#737373]">{booking.time}</p>
+              <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-4">
+                <p className="text-xs text-gray-500 dark:text-[#737373] mb-2">Date & Time</p>
+                <p className="text-base text-gray-900 dark:text-white font-medium">{formatDate(booking.date)}</p>
+                <p className="text-sm text-gray-600 dark:text-[#737373] mt-1">{booking.time}</p>
               </div>
-              <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-3 sm:p-4">
-                <p className="text-xs text-gray-500 dark:text-[#737373] mb-1">Group Size</p>
-                <p className="text-sm sm:text-base text-gray-900 dark:text-white">{booking.groupSize} people</p>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-[#737373]">{booking.adults} adults, {booking.children} children</p>
+              <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-4">
+                <p className="text-xs text-gray-500 dark:text-[#737373] mb-2">Group Size</p>
+                <p className="text-base text-gray-900 dark:text-white font-medium">{booking.groupSize} people</p>
+                <p className="text-sm text-gray-600 dark:text-[#737373] mt-1">{booking.adults} adults, {booking.children} children</p>
               </div>
-              <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-3 sm:p-4">
-                <p className="text-xs text-gray-500 dark:text-[#737373] mb-1">Payment</p>
-                <p className="text-sm sm:text-base text-gray-900 dark:text-white">${booking.amount}</p>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-[#737373]">{booking.paymentMethod}</p>
+              <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-4 lg:col-span-2">
+                <p className="text-xs text-gray-500 dark:text-[#737373] mb-2">Payment</p>
+                <p className="text-base text-gray-900 dark:text-white font-medium">${booking.amount}</p>
+                <p className="text-sm text-gray-600 dark:text-[#737373] mt-1">{booking.paymentMethod}</p>
               </div>
             </div>
           </div>

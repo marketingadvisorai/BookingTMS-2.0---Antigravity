@@ -29,13 +29,11 @@ export interface Game {
 export function useGames(venueId?: string) {
   const { currentUser } = useAuth();
   const [games, setGames] = useState<Game[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch games
-  const fetchGames = async () => {
+  const fetchGames = async (showToast = false) => {
     try {
-      setLoading(true);
       setError(null);
 
       let query = supabase
@@ -55,9 +53,9 @@ export function useGames(venueId?: string) {
     } catch (err: any) {
       console.error('Error fetching games:', err);
       setError(err.message);
-      toast.error('Failed to load games');
-    } finally {
-      setLoading(false);
+      if (showToast) {
+        toast.error('Failed to load games');
+      }
     }
   };
 
@@ -226,7 +224,7 @@ export function useGames(venueId?: string) {
 
   return {
     games,
-    loading,
+    loading: false,
     error,
     createGame,
     updateGame,

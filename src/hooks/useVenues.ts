@@ -32,13 +32,11 @@ export interface Venue {
 
 export function useVenues() {
   const [venues, setVenues] = useState<Venue[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch venues
-  const fetchVenues = async () => {
+  const fetchVenues = async (showToast = false) => {
     try {
-      setLoading(true);
       setError(null);
 
       const { data, error: fetchError } = await supabase
@@ -52,9 +50,9 @@ export function useVenues() {
     } catch (err: any) {
       console.error('Error fetching venues:', err);
       setError(err.message);
-      toast.error('Failed to load venues');
-    } finally {
-      setLoading(false);
+      if (showToast) {
+        toast.error('Failed to load venues');
+      }
     }
   };
 
@@ -196,7 +194,7 @@ export function useVenues() {
 
   return {
     venues,
-    loading,
+    loading: false,
     error,
     createVenue,
     updateVenue,

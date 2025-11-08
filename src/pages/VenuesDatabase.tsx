@@ -11,13 +11,14 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { PageHeader } from '../components/layout/PageHeader';
-import { Building2, Plus, Edit, Trash2, MapPin, Phone, Mail, Settings2, Check, Loader2 } from 'lucide-react';
+import { Building2, Plus, Edit, Trash2, MapPin, Phone, Mail, Settings2, Check, Loader2, RefreshCcw } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Separator } from '../components/ui/separator';
 import { useVenues } from '../hooks/useVenues';
+import { toast } from 'sonner';
 
 const venueTypes = [
   { value: 'escape-room', label: 'Escape Room', icon: '🔐' },
@@ -30,7 +31,20 @@ const venueTypes = [
 ];
 
 export function VenuesDatabase() {
-  const { venues, loading, createVenue, updateVenue, deleteVenue } = useVenues();
+  const { venues, loading, createVenue, updateVenue, deleteVenue, refreshVenues } = useVenues();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshVenues();
+      toast.success('Venues refreshed successfully');
+    } catch (error) {
+      toast.error('Failed to refresh venues');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -154,6 +168,26 @@ export function VenuesDatabase() {
         title="Venue Management"
         description="Create and manage your venues with real-time database sync"
         sticky
+        action={
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              className="h-11"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCcw className={`w-4 h-4 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            <Button 
+              className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] h-11"
+              onClick={() => setShowCreateDialog(true)}
+            >
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Add Venue</span>
+            </Button>
+          </div>
+        }
       />
 
       {/* Stats Cards */}

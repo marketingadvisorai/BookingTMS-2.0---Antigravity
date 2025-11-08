@@ -44,13 +44,11 @@ export interface BookingWithDetails extends Booking {
 
 export function useBookings(venueId?: string) {
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch bookings with details
-  const fetchBookings = async () => {
+  const fetchBookings = async (showToast = false) => {
     try {
-      setLoading(true);
       setError(null);
 
       const { data, error: fetchError } = await supabase
@@ -67,9 +65,9 @@ export function useBookings(venueId?: string) {
     } catch (err: any) {
       console.error('Error fetching bookings:', err);
       setError(err.message);
-      toast.error('Failed to load bookings');
-    } finally {
-      setLoading(false);
+      if (showToast) {
+        toast.error('Failed to load bookings');
+      }
     }
   };
 
@@ -213,7 +211,7 @@ export function useBookings(venueId?: string) {
 
   return {
     bookings,
-    loading,
+    loading: false,
     error,
     createBooking,
     updateBooking,

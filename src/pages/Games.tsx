@@ -1,12 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { PageHeader } from '../components/layout/PageHeader';
 import { PageLoadingScreen } from '../components/layout/PageLoadingScreen';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { Info, Users, Clock, DollarSign, ExternalLink } from 'lucide-react';
+import { Info, Users, Clock, DollarSign, ExternalLink, RefreshCcw } from 'lucide-react';
 import { useGames } from '../hooks/useGames';
 import { useVenues } from '../hooks/useVenues';
+import { toast } from 'sonner';
 
 const formatDifficulty = (value?: string | null) => {
   if (!value) return 'Unknown';
@@ -33,8 +34,21 @@ const difficultyBadgeClass = (label: string) => {
 };
 
 export function Games() {
-  const { games, loading } = useGames();
-  const { venues, loading: venuesLoading } = useVenues();
+  const { games, loading, refreshGames } = useGames();
+  const { venues, loading: venuesLoading, refreshVenues } = useVenues();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([refreshGames(), refreshVenues()]);
+      toast.success('Games refreshed successfully');
+    } catch (error) {
+      toast.error('Failed to refresh games');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const stats = useMemo(() => {
     const total = games.length;
@@ -68,6 +82,17 @@ export function Games() {
         title="Events / Rooms"
         description="Games and experiences are now managed from within each venue so that embed keys stay in sync. Use this page to review everything that's live."
         sticky
+        action={
+          <Button 
+            variant="outline"
+            className="h-11"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCcw className={`w-4 h-4 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+        }
       />
 
       <Card className="border-dashed border-2">

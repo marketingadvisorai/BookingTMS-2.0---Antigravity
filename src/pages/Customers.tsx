@@ -25,7 +25,8 @@ import {
   Filter,
   Eye,
   Edit,
-  MoreVertical
+  MoreVertical,
+  RefreshCcw
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -38,6 +39,8 @@ import { CustomerSegments } from '../components/customers/CustomerSegments';
 import { AddCustomerDialog } from '../components/customers/AddCustomerDialog';
 import { CustomerDetailDialog } from '../components/customers/CustomerDetailDialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { useCustomers } from '../hooks/useCustomers';
+import { toast } from 'sonner';
 
 // Mock customer data
 const mockCustomers = [
@@ -151,6 +154,20 @@ export default function Customers() {
   const { theme } = useTheme();
   const { hasPermission } = useAuth();
   const isDark = theme === 'dark';
+  const { refreshCustomers } = useCustomers();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshCustomers();
+      toast.success('Customers refreshed successfully');
+    } catch (error) {
+      toast.error('Failed to refresh customers');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSegment, setSelectedSegment] = useState<string>('all');
@@ -334,7 +351,28 @@ export default function Customers() {
     <>
       <PageHeader 
         title="Customers / Guests" 
-        subtitle="Manage customer database, profiles, and segments"
+        description="Manage customer database, profiles, and segments"
+        sticky
+        action={
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              className="h-11"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCcw className={`w-4 h-4 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            <Button 
+              className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] h-11"
+              onClick={() => setShowAddDialog(true)}
+            >
+              <UserPlus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Add Customer</span>
+            </Button>
+          </div>
+        }
       />
 
       <div className="space-y-6">

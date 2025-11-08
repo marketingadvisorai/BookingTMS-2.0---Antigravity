@@ -8,7 +8,7 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { PageHeader } from '../components/layout/PageHeader';
 import { PageLoadingScreen } from '../components/layout/PageLoadingScreen';
-import { Building2, Plus, Edit, Trash2, Code, Eye, MapPin, Phone, Mail, Settings2, Check, Copy, Save, ExternalLink, Download } from 'lucide-react';
+import { Building2, Plus, Edit, Trash2, Code, Eye, MapPin, Phone, Mail, Settings2, Check, Copy, Save, ExternalLink, Download, RefreshCcw } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
@@ -103,7 +103,20 @@ const mapUIVenueToDB = (uiVenue: any): any => ({
 
 export default function Venues() {
   const { currentUser, hasPermission } = useAuth();
-  const { venues: dbVenues, loading: dbLoading, createVenue: createVenueDB, updateVenue: updateVenueDB, deleteVenue: deleteVenueDB } = useVenuesDB();
+  const { venues: dbVenues, loading: dbLoading, createVenue: createVenueDB, updateVenue: updateVenueDB, deleteVenue: deleteVenueDB, refreshVenues } = useVenuesDB();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshVenues();
+      toast.success('All venue data refreshed successfully');
+    } catch (error) {
+      toast.error('Failed to refresh venue data');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -414,6 +427,28 @@ export default function Venues() {
         title="Venue Management"
         description="Create and manage multiple venues with individual booking widgets"
         sticky
+        action={
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              className="h-11"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCcw className={`w-4 h-4 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            {canCreateVenue && (
+              <Button 
+                className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] h-11"
+                onClick={() => setShowCreateDialog(true)}
+              >
+                <Plus className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Add Venue</span>
+              </Button>
+            )}
+          </div>
+        }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

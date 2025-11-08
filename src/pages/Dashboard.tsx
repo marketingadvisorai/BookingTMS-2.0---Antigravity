@@ -1,4 +1,4 @@
-import { Calendar, DollarSign, TrendingUp, Users, Clock, MapPin, UserCheck, Activity, ArrowRight, Sparkles } from 'lucide-react';
+import { Calendar, DollarSign, TrendingUp, Users, Clock, MapPin, UserCheck, Activity, ArrowRight, Sparkles, RefreshCcw } from 'lucide-react';
 import { KPICard } from '../components/dashboard/KPICard';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button';
 import { useTheme } from '../components/layout/ThemeContext';
 import { useEffect, useState } from 'react';
 import DataSyncService, { DataSyncEvents } from '../services/DataSyncService';
+import { toast } from 'sonner';
 
 // State-driven data populated from localStorage via DataSyncService
 const recentActivity: any[] = [];
@@ -15,6 +16,7 @@ const recentActivity: any[] = [];
 export function Dashboard() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [bookingsTrend, setBookingsTrend] = useState<any[]>([]);
   const [todayHourly, setTodayHourly] = useState<any[]>([]);
   const [upcoming, setUpcoming] = useState<any[]>([]);
@@ -145,6 +147,25 @@ export function Dashboard() {
         title="Dashboard"
         description={`Welcome back! Here's what's happening today - ${today}`}
         sticky
+        action={
+          <Button 
+            variant="outline"
+            className="h-11"
+            onClick={() => {
+              setIsRefreshing(true);
+              try {
+                window.location.reload();
+              } catch (error) {
+                toast.error('Failed to refresh dashboard');
+                setIsRefreshing(false);
+              }
+            }}
+            disabled={isRefreshing}
+          >
+            <RefreshCcw className={`w-4 h-4 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+        }
       />
 
       {/* KPI Cards */}

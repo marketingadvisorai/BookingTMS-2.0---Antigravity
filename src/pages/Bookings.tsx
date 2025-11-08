@@ -375,6 +375,30 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
     setShowBookingDetails(true);
   };
 
+  // Persist current details of the selected booking (status + assigned staff)
+  const saveDetails = async () => {
+    try {
+      if (!selectedBooking) return;
+      const sbBooking = (supabaseBookings || []).find(b =>
+        b.confirmation_code === selectedBooking.id || b.id === selectedBooking.id
+      );
+      if (sbBooking) {
+        await updateBooking(sbBooking.id, {
+          status: selectedBooking.status,
+          metadata: {
+            ...sbBooking.metadata,
+            assigned_staff_id: selectedBooking.assignedStaffId || sbBooking.metadata?.assigned_staff_id
+          }
+        });
+      }
+      await refreshBookings();
+      toast.success('Changes saved');
+    } catch (error) {
+      console.error('Failed to save booking changes:', error);
+      toast.error('Failed to save changes');
+    }
+  };
+
   const handleRefund = (booking: any) => {
     setSelectedBooking(booking);
     setShowRefundDialog(true);
@@ -1477,6 +1501,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
         onCheckIn={() => selectedBooking && checkIn(selectedBooking.id)}
         onCheckOut={() => selectedBooking && checkOut(selectedBooking.id)}
         onSendConfirmation={() => selectedBooking && handleSendConfirmation(selectedBooking)}
+        onSave={saveDetails}
       />
 
       {/* Refund Dialog */}
@@ -2622,7 +2647,7 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings, gamesData, v
 }
 
 // Booking Details Dialog Component
-function BookingDetailsDialog({ open, onOpenChange, booking, onRefund, onReschedule, staffList, onAssignStaff, onUpdateStatus, onCheckIn, onCheckOut, onSendConfirmation }: any) {
+function BookingDetailsDialog({ open, onOpenChange, booking, onRefund, onReschedule, staffList, onAssignStaff, onUpdateStatus, onCheckIn, onCheckOut, onSendConfirmation, onSave }: any) {
   if (!booking) return null;
 
   const formatDate = (dateStr: string) => {
@@ -2630,15 +2655,17 @@ function BookingDetailsDialog({ open, onOpenChange, booking, onRefund, onResched
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[92vw] lg:w-[66.666vw] max-w-screen-xl max-h-[90vh] max-lg:w-full max-lg:h-full max-lg:max-h-full max-lg:rounded-none overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="!w-screen !h-screen !max-w-none !max-h-none sm:!w-[90vw] sm:!h-[90vh] sm:!max-w-[1200px] sm:!max-h-[90vh] !rounded-none sm:!rounded-lg overflow-hidden p-0 flex flex-col">
+        <DialogHeader className="bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-[#2a2a2a] p-4 sm:p-6 shrink-0">
           <DialogTitle>Booking Details</DialogTitle>
           <DialogDescription>Complete information for booking {booking.id}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 overflow-y-auto overflow-x-hidden max-h-[calc(90vh-180px)] px-4 sm:px-6">
+        <div className="space-y-6 overflow-y-auto overflow-x-hidden px-4 sm:px-6 flex-1">
           {/* Status Badge */}
           <div className="flex items-center justify-between">
             <Badge
@@ -2759,6 +2786,28 @@ function BookingDetailsDialog({ open, onOpenChange, booking, onRefund, onResched
         </div>
 
         <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <Button
+            onClick={async () => {
+              if (!onSave) return;
+              try {
+                setIsSaving(true);
+                await onSave();
+              } finally {
+                setIsSaving(false);
+              }
+            }}
+            className="w-full sm:w-auto h-11"
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Changes'
+            )}
+          </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto h-11">
             Close
           </Button>

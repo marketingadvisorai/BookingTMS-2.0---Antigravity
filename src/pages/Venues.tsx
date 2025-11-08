@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { useVenues as useVenuesDB } from '../hooks/useVenues';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
@@ -46,8 +47,62 @@ interface Venue {
 
 const STORAGE_KEY = 'venues_data';
 
+// Helper function to map database venue to UI venue
+const mapDBVenueToUI = (dbVenue: any): Venue => ({
+  id: dbVenue.id,
+  name: dbVenue.name,
+  type: dbVenue.settings?.type || 'other',
+  description: dbVenue.settings?.description || '',
+  address: dbVenue.address || '',
+  phone: dbVenue.phone || '',
+  email: dbVenue.email || '',
+  website: dbVenue.settings?.website || '',
+  primaryColor: dbVenue.settings?.primaryColor || '#2563eb',
+  widgetConfig: dbVenue.settings?.widgetConfig || {
+    showSecuredBadge: true,
+    showHealthSafety: true,
+    enableVeteranDiscount: false,
+    games: [],
+    ticketTypes: [{ id: 'player', name: 'Players', description: 'Ages 6 & Up', price: 30 }],
+    additionalQuestions: [],
+    cancellationPolicy: 'Cash refunds are not available. If you are unable to keep your scheduled reservation, please contact us.'
+  },
+  embedKey: dbVenue.settings?.embedKey || '',
+  isActive: dbVenue.status === 'active',
+  createdAt: dbVenue.created_at,
+  updatedAt: dbVenue.updated_at,
+});
+
+// Helper function to map UI venue to database venue
+const mapUIVenueToDB = (uiVenue: any): any => ({
+  name: uiVenue.name,
+  address: uiVenue.address || '',
+  city: '', // Extract from address if needed
+  state: '',
+  zip: '',
+  country: 'United States',
+  phone: uiVenue.phone || '',
+  email: uiVenue.email || '',
+  capacity: 100,
+  timezone: 'America/New_York',
+  status: (uiVenue.isActive ? 'active' : 'inactive') as 'active' | 'inactive' | 'maintenance',
+  settings: {
+    type: uiVenue.type,
+    description: uiVenue.description,
+    website: uiVenue.website,
+    primaryColor: uiVenue.primaryColor,
+    widgetConfig: uiVenue.widgetConfig,
+    embedKey: uiVenue.embedKey,
+  },
+});
+
 export function Venues() {
-  const [venues, setVenues] = useState<Venue[]>([]);
+  // Use database hook
+  const { venues: dbVenues, loading: dbLoading, createVenue: createVenueDB, updateVenue: updateVenueDB, deleteVenue: deleteVenueDB } = useVenuesDB();
+  
+  // Map database venues to UI format
+  const venues = dbVenues.map(mapDBVenueToUI);
+  const [isLoading, setIsLoading] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -67,100 +122,100 @@ export function Venues() {
     primaryColor: '#2563eb',
   });
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setVenues(JSON.parse(stored));
-      } catch (e) {
-        console.error('Error loading venues:', e);
-      }
-    }
-  }, []);
-
-  const saveVenues = (updatedVenues: Venue[]) => {
-    setVenues(updatedVenues);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedVenues));
-  };
+  // No longer need localStorage - data comes from database hook
 
   const generateEmbedKey = () => {
     return 'venue_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
   };
 
-  const handleCreateVenue = () => {
-    const newVenue: Venue = {
-      id: Date.now().toString(),
-      ...formData,
-      widgetConfig: {
-        showSecuredBadge: true,
-        showHealthSafety: true,
-        enableVeteranDiscount: false,
-        games: [],
-        ticketTypes: [{ id: 'player', name: 'Players', description: 'Ages 6 & Up', price: 30 }],
-        additionalQuestions: [],
-        cancellationPolicy: 'Cash refunds are not available. If you are unable to keep your scheduled reservation, please contact us.'
-      },
-      embedKey: generateEmbedKey(),
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    saveVenues([...venues, newVenue]);
-    setShowCreateDialog(false);
-    resetForm();
-    toast.success('Venue created successfully!');
+  const handleCreateVenue = async () => {
+    setIsLoading(true);
+    try {
+      const newVenue = {
+        ...formData,
+        widgetConfig: {
+          showSecuredBadge: true,
+          showHealthSafety: true,
+          enableVeteranDiscount: false,
+          games: [],
+          ticketTypes: [{ id: 'player', name: 'Players', description: 'Ages 6 & Up', price: 30 }],
+          additionalQuestions: [],
+          cancellationPolicy: 'Cash refunds are not available. If you are unable to keep your scheduled reservation, please contact us.'
+        },
+        embedKey: generateEmbedKey(),
+        isActive: true,
+      };
+      
+      await createVenueDB(mapUIVenueToDB(newVenue));
+      setShowCreateDialog(false);
+      resetForm();
+    } catch (error) {
+      console.error('Error creating venue:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleUpdateVenue = () => {
+  const handleUpdateVenue = async () => {
     if (!selectedVenue) return;
-    const updatedVenues = venues.map(v =>
-      v.id === selectedVenue.id ? { ...v, ...formData, updatedAt: new Date().toISOString() } : v
-    );
-    saveVenues(updatedVenues);
-    setShowEditDialog(false);
-    setSelectedVenue(null);
-    resetForm();
-    toast.success('Venue updated successfully!');
+    setIsLoading(true);
+    try {
+      const updatedVenue = { ...selectedVenue, ...formData };
+      await updateVenueDB(selectedVenue.id, mapUIVenueToDB(updatedVenue));
+      setShowEditDialog(false);
+      setSelectedVenue(null);
+      resetForm();
+    } catch (error) {
+      console.error('Error updating venue:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDeleteVenue = () => {
+  const handleDeleteVenue = async () => {
     if (!selectedVenue) return;
-    const updatedVenues = venues.filter(v => v.id !== selectedVenue.id);
-    saveVenues(updatedVenues);
-    setShowDeleteDialog(false);
-    setSelectedVenue(null);
-    toast.success('Venue deleted successfully!');
+    setIsLoading(true);
+    try {
+      await deleteVenueDB(selectedVenue.id);
+      setShowDeleteDialog(false);
+      setSelectedVenue(null);
+    } catch (error) {
+      console.error('Error deleting venue:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const toggleVenueStatus = (venueId: string) => {
-    const updatedVenues = venues.map(v =>
-      v.id === venueId ? { ...v, isActive: !v.isActive, updatedAt: new Date().toISOString() } : v
-    );
-    saveVenues(updatedVenues);
-    toast.success('Venue status updated!');
+  const toggleVenueStatus = async (venueId: string) => {
+    const venue = venues.find(v => v.id === venueId);
+    if (!venue) return;
+    
+    try {
+      const updatedVenue = { ...venue, isActive: !venue.isActive };
+      await updateVenueDB(venueId, mapUIVenueToDB(updatedVenue));
+    } catch (error) {
+      console.error('Error toggling venue status:', error);
+    }
   };
 
-  const handleUpdateWidgetConfig = (config: any) => {
+  const handleUpdateWidgetConfig = async (config: any) => {
     if (!selectedVenue) return;
     
-    // Create updated venue with new config
-    const updatedVenue = { 
-      ...selectedVenue, 
-      widgetConfig: config, 
-      updatedAt: new Date().toISOString() 
-    };
-    
-    // Update venues array
-    const updatedVenues = venues.map(v =>
-      v.id === selectedVenue.id ? updatedVenue : v
-    );
-    
-    // Save to localStorage and update state
-    saveVenues(updatedVenues);
-    setVenues(updatedVenues);
-    setSelectedVenue(updatedVenue);
-    
-    console.log('Widget config updated for venue:', updatedVenue.name, 'Games:', config.games?.length || 0);
+    try {
+      // Create updated venue with new config
+      const updatedVenue = { 
+        ...selectedVenue, 
+        widgetConfig: config,
+      };
+      
+      // Update in database
+      await updateVenueDB(selectedVenue.id, mapUIVenueToDB(updatedVenue));
+      setSelectedVenue(updatedVenue);
+      
+      console.log('Widget config updated for venue:', updatedVenue.name, 'Games:', config.games?.length || 0);
+    } catch (error) {
+      console.error('Error updating widget config:', error);
+    }
   };
 
   const resetForm = () => {
@@ -706,10 +761,10 @@ export function Venues() {
             </Button>
             <Button
               onClick={showEditDialog ? handleUpdateVenue : handleCreateVenue}
-              disabled={!formData.name}
+              disabled={!formData.name || isLoading || dbLoading}
               className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] w-full sm:w-auto order-1 sm:order-2"
             >
-              {showEditDialog ? 'Update Venue' : 'Create Venue'}
+              {(isLoading || dbLoading) ? 'Saving...' : (showEditDialog ? 'Update Venue' : 'Create Venue')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -57,17 +57,14 @@ export function useVenues() {
   // Create venue
   const createVenue = async (venueData: Omit<Venue, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
     try {
+      // Get user if authenticated, otherwise use null
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
 
       const { data, error: insertError } = await supabase
         .from('venues')
         .insert([{
           ...venueData,
-          created_by: user.id,
+          created_by: user?.id || null,
         }])
         .select()
         .single();

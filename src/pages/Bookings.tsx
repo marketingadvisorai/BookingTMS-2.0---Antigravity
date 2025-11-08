@@ -2632,13 +2632,13 @@ function BookingDetailsDialog({ open, onOpenChange, booking, onRefund, onResched
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl w-[95vw] max-lg:w-full max-lg:h-full max-lg:max-h-full max-lg:rounded-none overflow-y-auto max-h-[90vh]">
+      <DialogContent className="max-w-6xl w-[95vw] max-lg:w-full max-lg:h-full max-lg:max-h-full max-lg:rounded-none max-h-[95vh]">
         <DialogHeader>
           <DialogTitle>Booking Details</DialogTitle>
           <DialogDescription>Complete information for booking {booking.id}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-y-auto overflow-x-hidden max-h-[calc(95vh-200px)] pr-2">
           {/* Status Badge */}
           <div className="flex items-center justify-between">
             <Badge

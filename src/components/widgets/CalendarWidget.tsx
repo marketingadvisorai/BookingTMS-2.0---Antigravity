@@ -22,6 +22,7 @@ import {
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { PromoCodeInput } from './PromoCodeInput';
 import { GiftCardInput } from './GiftCardInput';
+import SupabaseBookingService from '../../services/SupabaseBookingService';
 
 interface CalendarWidgetProps {
   primaryColor?: string;
@@ -47,6 +48,7 @@ export function CalendarWidget({ primaryColor = '#2563eb', config }: CalendarWid
     cardName: '',
   });
   const [bookingsCount, setBookingsCount] = useState(0);
+  const [confirmationCode, setConfirmationCode] = useState<string>('');
   
   // Promo code and gift card state
   const [showPromoCodeInput, setShowPromoCodeInput] = useState(false);
@@ -315,63 +317,119 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
     setShowGiftCardInput(false);
   };
 
-  // Save booking to localStorage and move to success step
-  const handleCompleteBooking = () => {
+  // Save booking to Supabase database and move to success step
+  const handleCompleteBooking = async () => {
     if (!canCompletePay) {
       alert('Please complete checkout details');
       return;
     }
 
     try {
+      // Validate required data
+      if (!config?.venueId) {
+        toast.error('Venue configuration is missing');
+        console.error('Missing venueId in config:', config);
+        return;
+      }
+
+      if (!selectedGameData?.id) {
+        toast.error('Please select a game');
+        return;
+      }
+
+      if (!selectedTime) {
+        toast.error('Please select a time');
+        return;
+      }
+
+      if (!customerData.name || !customerData.email) {
+        toast.error('Please fill in customer details');
+        return;
+      }
+
       const isoDate = new Date(new Date().getFullYear(), 10, Number(selectedDate)).toISOString().slice(0, 10); // Nov index = 10
-      const bookingData = {
-        id: `booking_${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        reference: bookingNumber,
-        status: 'confirmed',
-        widget: 'calendar',
-        customer: {
-          name: customerData.name,
-          email: customerData.email,
-          phone: customerData.phone,
-        },
-        game: {
-          id: selectedGameData?.id,
-          name: selectedGameData?.name,
-          duration: selectedGameData?.duration,
-        },
-        schedule: {
-          dateLabel: `Nov ${selectedDate}, 2025`,
-          isoDate,
-          time: selectedTime,
-        },
-        participants: partySize,
-        pricing: {
-          subtotal: calculateSubtotal(),
-          promoDiscount: calculateDiscount(),
-          giftCardDiscount: calculateGiftCardDiscount(),
-          total: totalPrice,
-          currency: 'USD',
-        },
-        promoCode: appliedPromoCode ? { code: appliedPromoCode.code, discount: appliedPromoCode.discount } : null,
-        giftCard: appliedGiftCard ? { code: appliedGiftCard.code, amount: appliedGiftCard.amount } : null,
-        source: 'CalendarWidget',
-      };
+      
+      // Parse and validate time
+      let startTime = selectedTime;
+      let endTime = '';
+      
+      // Handle different time formats (HH:MM AM/PM or HH:MM)
+      const timeMatch = selectedTime.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+      if (timeMatch) {
+        let hours = parseInt(timeMatch[1]);
+        const minutes = parseInt(timeMatch[2]);
+        const period = timeMatch[3];
+        
+        // Convert to 24-hour format if needed
+        if (period) {
+          if (period.toUpperCase() === 'PM' && hours !== 12) {
+            hours += 12;
+          } else if (period.toUpperCase() === 'AM' && hours === 12) {
+            hours = 0;
+          }
+        }
+        
+        // Format as HH:MM for database
+        startTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        
+        // Calculate end time
+        const startDate = new Date();
+        startDate.setHours(hours, minutes, 0, 0);
+        const endDate = new Date(startDate.getTime() + (selectedGameData?.duration || 60) * 60000);
+        endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
+      } else {
+        toast.error('Invalid time format');
+        console.error('Could not parse time:', selectedTime);
+        return;
+      }
 
-      const existing = localStorage.getItem('bookings');
-      const all = existing ? JSON.parse(existing) : [];
-      all.push(bookingData);
-      localStorage.setItem('bookings', JSON.stringify(all));
-      setBookingsCount(all.length);
+      // Prepare ticket types
+      const ticketTypes = [{
+        id: 'standard',
+        name: 'Standard Ticket',
+        price: selectedGameData?.price || 0,
+        quantity: partySize,
+        subtotal: calculateSubtotal()
+      }];
 
-      toast.success('Booking saved');
-      console.log('✅ Saved booking:', bookingData);
-      console.log('✅ Total bookings:', all.length);
+      console.log('Creating booking with:', {
+        venue_id: config.venueId,
+        game_id: selectedGameData.id,
+        booking_date: isoDate,
+        start_time: startTime,
+        end_time: endTime,
+        original_selected_time: selectedTime
+      });
 
-      setCurrentStep('success');
-    } catch (error) {
-      console.error('❌ Error saving booking:', error);
-      toast.error('Failed to save booking');
+      // Create booking via Supabase
+      const result = await SupabaseBookingService.createWidgetBooking({
+        venue_id: config.venueId,
+        game_id: selectedGameData.id,
+        customer_name: customerData.name,
+        customer_email: customerData.email,
+        customer_phone: customerData.phone || '',
+        booking_date: isoDate,
+        start_time: startTime,
+        end_time: endTime,
+        party_size: partySize,
+        ticket_types: ticketTypes,
+        total_amount: calculateSubtotal(),
+        final_amount: totalPrice,
+        promo_code: appliedPromoCode?.code,
+        notes: `Calendar Widget Booking - ${selectedGameData?.name}`
+      });
+
+      if (result) {
+        // Update confirmation code from database
+        setConfirmationCode(result.confirmation_code);
+        
+        toast.success('Booking confirmed!');
+        console.log('✅ Booking created:', result);
+        setCurrentStep('success');
+      }
+    } catch (error: any) {
+      console.error('❌ Error creating booking:', error);
+      toast.error(error.message || 'Failed to create booking');
     }
   };
 
@@ -2694,7 +2752,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
               <div className="space-y-4">
                 <div className="flex justify-between items-center pb-4 border-b">
                   <span className="text-gray-600">Booking Number</span>
-                  <span className="text-gray-900">{bookingNumber}</span>
+                  <span className="text-gray-900">{confirmationCode || bookingNumber}</span>
                 </div>
                 <div className="flex justify-between items-center pb-4 border-b">
                   <span className="text-gray-600">Game</span>

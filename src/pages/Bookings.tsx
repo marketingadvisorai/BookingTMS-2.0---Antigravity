@@ -2617,7 +2617,7 @@ function BookingDetailsDialog({ open, onOpenChange, booking, onRefund, onResched
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-lg:w-full max-lg:h-full max-lg:max-h-full max-lg:rounded-none overflow-y-auto max-h-[90vh]">
+      <DialogContent className="max-w-4xl max-lg:w-full max-lg:h-full max-lg:max-h-full max-lg:rounded-none overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Booking Details</DialogTitle>
           <DialogDescription>Complete information for booking {booking.id}</DialogDescription>
@@ -2706,6 +2706,10 @@ function BookingDetailsDialog({ open, onOpenChange, booking, onRefund, onResched
           <div>
             <h3 className="text-sm text-gray-600 dark:text-[#737373] mb-3">Booking Information</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-3 sm:p-4">
+                <p className="text-xs text-gray-500 dark:text-[#737373] mb-1">Venue</p>
+                <p className="text-sm sm:text-base text-gray-900 dark:text-white">{booking.venueName || 'N/A'}</p>
+              </div>
               <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-3 sm:p-4">
                 <p className="text-xs text-gray-500 dark:text-[#737373] mb-1">Game</p>
                 <p className="text-sm sm:text-base text-gray-900 dark:text-white">{booking.game}</p>

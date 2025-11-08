@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
+import { generateTimeSlots, getAvailableDatesForMonth, isDateBlocked, isDayOperating } from '../../utils/availabilityEngine';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
@@ -95,19 +96,36 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
     };
   });
 
-  const timeSlots = [
-    { time: '10:00 AM', available: true, spots: 6 },
-    { time: '11:30 AM', available: true, spots: 3 },
-    { time: '1:00 PM', available: false, spots: 0 },
-    { time: '2:30 PM', available: true, spots: 8 },
-    { time: '4:00 PM', available: true, spots: 5 },
-    { time: '5:30 PM', available: true, spots: 2 },
-    { time: '7:00 PM', available: false, spots: 0 },
-    { time: '8:30 PM', available: true, spots: 4 },
-  ];
-
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const selectedGameData = selectedGame ? (games.find(g => g.id === selectedGame) || games[0]) : games[0];
+
+  // Get current month and year for calendar
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  
+  // Calculate time slots dynamically based on selected game's schedule
+  const timeSlots = useMemo(() => {
+    if (!selectedGameData) return [];
+    
+    const selectedDateObj = new Date(currentYear, currentMonth, selectedDate);
+    const blockedDates = config?.blockedDates || [];
+    
+    return generateTimeSlots(
+      selectedDateObj,
+      {
+        operatingDays: selectedGameData.operatingDays,
+        startTime: selectedGameData.startTime,
+        endTime: selectedGameData.endTime,
+        slotInterval: selectedGameData.slotInterval,
+        duration: typeof selectedGameData.duration === 'string' 
+          ? parseInt(selectedGameData.duration) 
+          : selectedGameData.duration,
+        advanceBooking: selectedGameData.advanceBooking
+      },
+      blockedDates,
+      [] // TODO: Load existing bookings from database
+    );
+  }, [selectedDate, currentMonth, currentYear, selectedGameData, config]);
 
   // Compute address details from config with sensible fallbacks (parity with single-game page)
   const streetAddress = (config?.streetAddress || config?.address || (selectedGameData as any)?.location?.address) as string | undefined;

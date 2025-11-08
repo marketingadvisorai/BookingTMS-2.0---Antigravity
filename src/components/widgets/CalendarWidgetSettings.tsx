@@ -248,9 +248,10 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="games">Games</TabsTrigger>
+          <TabsTrigger value="availability">Availability</TabsTrigger>
           <TabsTrigger value="custom">Custom Settings</TabsTrigger>
           <TabsTrigger value="seo">SEO & GEO</TabsTrigger>
           <TabsTrigger value="advanced">Advanced</TabsTrigger>
@@ -438,6 +439,164 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
                   </div>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Availability & Blocked Dates */}
+        <TabsContent value="availability" className="space-y-6 pb-24">
+          <Card>
+            <CardHeader>
+              <CardTitle>Blocked Dates</CardTitle>
+              <CardDescription>Block specific dates when bookings should not be allowed</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="blocked-date">Add Blocked Date</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="blocked-date"
+                    type="date"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const input = e.currentTarget;
+                        const date = input.value;
+                        if (date) {
+                          const blockedDates = config.blockedDates || [];
+                          if (!blockedDates.some((bd: any) => bd.date === date)) {
+                            onConfigChange({
+                              ...config,
+                              blockedDates: [...blockedDates, { date, reason: 'Blocked by admin' }]
+                            });
+                            toast.success(`Date ${date} blocked`);
+                            input.value = '';
+                          } else {
+                            toast.error('Date already blocked');
+                          }
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    onClick={() => {
+                      const input = document.getElementById('blocked-date') as HTMLInputElement;
+                      const date = input?.value;
+                      if (date) {
+                        const blockedDates = config.blockedDates || [];
+                        if (!blockedDates.some((bd: any) => bd.date === date)) {
+                          onConfigChange({
+                            ...config,
+                            blockedDates: [...blockedDates, { date, reason: 'Blocked by admin' }]
+                          });
+                          toast.success(`Date ${date} blocked`);
+                          input.value = '';
+                        } else {
+                          toast.error('Date already blocked');
+                        }
+                      }
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Block Date
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-500">Players will not be able to book on blocked dates</p>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label>Currently Blocked Dates</Label>
+                {(!config.blockedDates || config.blockedDates.length === 0) ? (
+                  <p className="text-sm text-gray-500">No dates blocked</p>
+                ) : (
+                  <div className="space-y-2">
+                    {config.blockedDates.map((blocked: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium">{new Date(blocked.date + 'T00:00:00').toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })}</p>
+                          {blocked.reason && (
+                            <p className="text-sm text-gray-500">{blocked.reason}</p>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            onConfigChange({
+                              ...config,
+                              blockedDates: config.blockedDates.filter((_: any, i: number) => i !== index)
+                            });
+                            toast.success('Date unblocked');
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Game Schedules</CardTitle>
+              <CardDescription>Each game's operating schedule is configured in the game settings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {config.games && config.games.length > 0 ? (
+                  config.games.map((game: any) => (
+                    <div key={game.id} className="p-4 border rounded-lg">
+                      <h4 className="font-semibold mb-2">{game.name}</h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-600">Operating Days:</p>
+                          <p className="font-medium">
+                            {game.operatingDays && game.operatingDays.length > 0 
+                              ? game.operatingDays.join(', ') 
+                              : 'All days'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600">Hours:</p>
+                          <p className="font-medium">
+                            {game.startTime || '9:00 AM'} - {game.endTime || '9:00 PM'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600">Slot Interval:</p>
+                          <p className="font-medium">{game.slotInterval || 60} minutes</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600">Advance Booking:</p>
+                          <p className="font-medium">{game.advanceBooking || 30} days</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => {
+                          handleEditGame(game);
+                          setActiveTab('games');
+                        }}
+                      >
+                        Edit Schedule
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">No games configured yet. Add games in the Games tab.</p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

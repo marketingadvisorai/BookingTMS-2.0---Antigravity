@@ -2632,13 +2632,13 @@ function BookingDetailsDialog({ open, onOpenChange, booking, onRefund, onResched
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl w-[95vw] max-lg:w-full max-lg:h-full max-lg:max-h-full max-lg:rounded-none max-h-[95vh]">
+      <DialogContent className="w-[92vw] lg:w-[66.666vw] max-w-screen-xl max-h-[90vh] max-lg:w-full max-lg:h-full max-lg:max-h-full max-lg:rounded-none overflow-hidden">
         <DialogHeader>
           <DialogTitle>Booking Details</DialogTitle>
           <DialogDescription>Complete information for booking {booking.id}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 overflow-y-auto overflow-x-hidden max-h-[calc(95vh-200px)] pr-2">
+        <div className="space-y-6 overflow-y-auto overflow-x-hidden max-h-[calc(90vh-180px)] px-4 sm:px-6">
           {/* Status Badge */}
           <div className="flex items-center justify-between">
             <Badge
@@ -2657,11 +2657,11 @@ function BookingDetailsDialog({ open, onOpenChange, booking, onRefund, onResched
           </div>
 
           {/* Assignment & Status Controls */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 min-w-0">
             <div>
               <Label className="text-sm">Assigned Staff</Label>
               <Select value={booking.assignedStaffId || ''} onValueChange={(val) => onAssignStaff && onAssignStaff(val)}>
-                <SelectTrigger className="mt-1 h-11">
+                <SelectTrigger className="mt-1 h-11 w-full">
                   <SelectValue placeholder={booking.assignedStaffId ? (staffList?.find((s: any) => s.id === booking.assignedStaffId)?.name || 'Assigned') : 'Assign staff'} />
                 </SelectTrigger>
                 <SelectContent>
@@ -2676,7 +2676,7 @@ function BookingDetailsDialog({ open, onOpenChange, booking, onRefund, onResched
             <div>
               <Label className="text-sm">Status</Label>
               <Select value={booking.status} onValueChange={(val) => onUpdateStatus && onUpdateStatus(val)}>
-                <SelectTrigger className="mt-1 h-11">
+                <SelectTrigger className="mt-1 h-11 w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2720,7 +2720,7 @@ function BookingDetailsDialog({ open, onOpenChange, booking, onRefund, onResched
           {/* Booking Information */}
           <div>
             <h3 className="text-sm text-gray-600 dark:text-[#737373] mb-3">Booking Information</h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
               <div className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-4">
                 <p className="text-xs text-gray-500 dark:text-[#737373] mb-2">Venue</p>
                 <p className="text-base text-gray-900 dark:text-white font-medium">{booking.venueName || 'N/A'}</p>

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTheme } from '../components/layout/ThemeContext';
+import { useStaff, StaffMember as StaffMemberType } from '../hooks/useStaff';
 import { 
   Plus, 
   Search, 
@@ -67,6 +68,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { toast } from 'sonner';
 import { PageHeader } from '../components/layout/PageHeader';
 
+// Legacy interface for UI compatibility
 interface StaffMember {
   id: string;
   name: string;
@@ -81,6 +83,22 @@ interface StaffMember {
   lastLogin?: string;
   hoursWorked?: number;
 }
+
+// Helper to convert DB staff to UI format
+const convertStaffToUI = (dbStaff: StaffMemberType): StaffMember => ({
+  id: dbStaff.id,
+  name: `${dbStaff.first_name} ${dbStaff.last_name}`.trim(),
+  email: dbStaff.email,
+  phone: dbStaff.phone || '',
+  role: (dbStaff.role.charAt(0).toUpperCase() + dbStaff.role.slice(1)) as 'Admin' | 'Manager' | 'Staff',
+  joinDate: new Date(dbStaff.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+  status: dbStaff.status === 'active' ? 'Active' : 'Inactive',
+  avatar: dbStaff.metadata?.avatar,
+  department: dbStaff.metadata?.department,
+  permissions: dbStaff.metadata?.permissions,
+  lastLogin: dbStaff.metadata?.lastLogin,
+  hoursWorked: dbStaff.metadata?.hoursWorked
+});
 
 const initialStaffData: StaffMember[] = [
   {
@@ -170,35 +188,15 @@ export function Staff() {
   const hoverBgClass = isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50';
   const hoverShadowClass = isDark ? 'hover:shadow-[0_0_15px_rgba(79,70,229,0.1)]' : 'hover:shadow-md';
   
-  const [staffMembers, setStaffMembers] = useState<StaffMember[]>(initialStaffData);
+  // Use Supabase staff hook
+  const { staff: dbStaff, loading, updateStaff, deleteStaff, toggleStaffStatus } = useStaff();
+  
+  // Convert DB staff to UI format
+  const staffMembers = dbStaff.map(convertStaffToUI);
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const STAFF_STORAGE_KEY = 'bookingtms_staff';
-
-  // Load from localStorage on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STAFF_STORAGE_KEY);
-      if (saved) {
-        const parsed: StaffMember[] = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setStaffMembers(parsed);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load staff from localStorage', err);
-    }
-  }, []);
-
-  // Persist to localStorage whenever staff changes
-  useEffect(() => {
-    try {
-      localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(staffMembers));
-    } catch (err) {
-      console.error('Failed to save staff to localStorage', err);
-    }
-  }, [staffMembers]);
   
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -235,79 +233,107 @@ export function Staff() {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const handleAddStaff = () => {
+  const handleAddStaff = async () => {
     if (!formData.name || !formData.email || !formData.phone) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    const newStaff: StaffMember = {
-      id: Date.now().toString(),
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      role: formData.role as 'Admin' | 'Manager' | 'Staff',
-      joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      status: 'Active',
-      department: formData.department || 'Unassigned',
-      lastLogin: 'Never',
-      hoursWorked: 0,
-      avatar: formData.avatar
-    };
+    try {
+      // Split name into first and last
+      const nameParts = formData.name.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
 
-    setStaffMembers([...staffMembers, newStaff]);
-    setIsAddDialogOpen(false);
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      role: 'Staff',
-      department: '',
-      status: 'Active',
-      avatar: undefined
-    });
-    toast.success('Staff member added successfully');
+      // Note: Creating staff requires auth user creation
+      // For now, we'll show a message that this needs backend support
+      toast.error('Staff creation requires backend API integration. Please contact administrator.');
+      
+      // TODO: Implement via backend API that creates auth user + profile
+      // await createStaff({
+      //   first_name: firstName,
+      //   last_name: lastName,
+      //   email: formData.email,
+      //   phone: formData.phone,
+      //   role: formData.role?.toLowerCase() as 'admin' | 'manager' | 'staff',
+      //   department: formData.department,
+      // }, 'temporary-password');
+      
+      setIsAddDialogOpen(false);
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        role: 'Staff',
+        department: '',
+        status: 'Active',
+        avatar: undefined
+      });
+    } catch (err) {
+      console.error('Error adding staff:', err);
+    }
   };
 
-  const handleEditStaff = () => {
+  const handleEditStaff = async () => {
     if (!selectedStaff) return;
 
-    setStaffMembers(staffMembers.map(staff => 
-      staff.id === selectedStaff.id 
-        ? { ...staff, ...formData }
-        : staff
-    ));
-    setIsEditDialogOpen(false);
-    setSelectedStaff(null);
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      role: 'Staff',
-      department: '',
-      status: 'Active',
-      avatar: undefined
-    });
-    toast.success('Staff member updated successfully');
+    try {
+      // Split name into first and last
+      const nameParts = formData.name?.split(' ') || [];
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      await updateStaff(selectedStaff.id, {
+        first_name: firstName,
+        last_name: lastName,
+        phone: formData.phone || '',
+        role: formData.role?.toLowerCase() as 'admin' | 'manager' | 'staff',
+        status: formData.status?.toLowerCase() || 'active',
+        metadata: {
+          department: formData.department,
+          avatar: formData.avatar,
+          permissions: formData.permissions,
+          hoursWorked: formData.hoursWorked
+        }
+      } as any);
+      
+      setIsEditDialogOpen(false);
+      setSelectedStaff(null);
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        role: 'Staff',
+        department: '',
+        status: 'Active',
+        avatar: undefined
+      });
+    } catch (err) {
+      console.error('Error updating staff:', err);
+    }
   };
 
-  const handleDeleteStaff = () => {
+  const handleDeleteStaff = async () => {
     if (!selectedStaff) return;
 
-    setStaffMembers(staffMembers.filter(staff => staff.id !== selectedStaff.id));
-    setIsDeleteDialogOpen(false);
-    setSelectedStaff(null);
-    toast.success('Staff member deleted successfully');
+    try {
+      await deleteStaff(selectedStaff.id);
+      setIsDeleteDialogOpen(false);
+      setSelectedStaff(null);
+    } catch (err) {
+      console.error('Error deleting staff:', err);
+    }
   };
 
-  const handleToggleStatus = (id: string) => {
-    setStaffMembers(staffMembers.map(staff => 
-      staff.id === id 
-        ? { ...staff, status: staff.status === 'Active' ? 'Inactive' : 'Active' }
-        : staff
-    ));
-    const staff = staffMembers.find(s => s.id === id);
-    toast.success(`${staff?.name} is now ${staff?.status === 'Active' ? 'inactive' : 'active'}`);
+  const handleToggleStatus = async (id: string) => {
+    try {
+      const staff = staffMembers.find(s => s.id === id);
+      if (!staff) return;
+      
+      await toggleStaffStatus(id, staff.status.toLowerCase());
+    } catch (err) {
+      console.error('Error toggling staff status:', err);
+    }
   };
 
   const openEditDialog = (staff: StaffMember) => {
@@ -530,6 +556,13 @@ export function Staff() {
           <CardTitle className={textClass}>Team Members</CardTitle>
         </CardHeader>
         <CardContent className="p-0 sm:p-6 sm:pt-0">
+          {loading ? (
+            <div className={`text-center py-12 ${textMutedClass}`}>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
+              Loading staff members...
+            </div>
+          ) : (
+            <>
           {/* Mobile Card View */}
           <div className="sm:hidden space-y-3 p-4">
             {filteredStaff.length === 0 ? (
@@ -732,6 +765,8 @@ export function Staff() {
               </tbody>
             </table>
           </div>
+          </>
+          )}
         </CardContent>
       </Card>
 

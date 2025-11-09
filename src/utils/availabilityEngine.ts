@@ -39,13 +39,16 @@ export interface AvailabilityConfig {
 function convertTo24Hour(time: string): string {
   if (!time) return '00:00';
   
+  // Clean up time string - remove extra spaces and colons
+  const cleanedTime = time.trim().replace(/\s+/g, ' ');
+  
   // Already in 24-hour format
-  if (time.match(/^\d{1,2}:\d{2}$/)) {
-    return time;
+  if (cleanedTime.match(/^\d{1,2}:\d{2}$/)) {
+    return cleanedTime;
   }
   
-  // Convert from 12-hour format
-  const match = time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  // Convert from 12-hour format - strict regex to avoid malformed times
+  const match = cleanedTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
   if (!match) return '00:00';
   
   let [, hours, minutes, period] = match;

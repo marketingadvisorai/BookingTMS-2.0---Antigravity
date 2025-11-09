@@ -353,8 +353,12 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
       let startTime = selectedTime;
       let endTime = '';
       
+      // Clean up time string - remove any extra colons or formatting
+      const cleanedTime = selectedTime.trim().replace(/\s+/g, ' ');
+      
       // Handle different time formats (HH:MM AM/PM or HH:MM)
-      const timeMatch = selectedTime.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+      // More strict regex to avoid matching malformed times like "11:30 AM:00"
+      const timeMatch = cleanedTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
       if (timeMatch) {
         let hours = parseInt(timeMatch[1]);
         const minutes = parseInt(timeMatch[2]);

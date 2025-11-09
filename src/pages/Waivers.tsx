@@ -336,18 +336,110 @@ export function Waivers() {
     setShowPreview(true);
   };
 
-  const handleDuplicateTemplate = (template: WaiverTemplate) => {
-    const newTemplate: WaiverTemplate = {
-      ...template,
-      id: `TPL-${String(templates.length + 1).padStart(3, '0')}`,
-      name: `${template.name} (Copy)`,
-      status: 'draft',
-      createdDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      lastModified: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      usageCount: 0,
-    };
-    setTemplates([...templates, newTemplate]);
-    toast.success('Template duplicated successfully!');
+  const handleSaveTemplate = async (templateData: any) => {
+    try {
+      const isEdit = !!templateData.id && templates.some(t => t.id === templateData.id);
+      
+      // Prepare data for Supabase
+      const dbData = {
+        name: templateData.name,
+        description: templateData.description,
+        type: templateData.type,
+        content: templateData.content,
+        status: templateData.status,
+        required_fields: templateData.requiredFields || templateData.required_fields || [],
+        assigned_games: templateData.assignedGames || templateData.assigned_games || [],
+        usage_count: templateData.usageCount || templateData.usage_count || 0,
+      };
+
+      if (isEdit) {
+        // Update existing template
+        const { error } = await supabase
+          .from('waiver_templates')
+          .update({ ...dbData, updated_at: new Date().toISOString() })
+          .eq('id', templateData.id);
+
+        if (error) throw error;
+
+        // Update local state
+        setTemplates(templates.map(t => 
+          t.id === templateData.id 
+            ? {
+                ...templateData,
+                requiredFields: dbData.required_fields,
+                assignedGames: dbData.assigned_games,
+                usageCount: dbData.usage_count,
+                lastModified: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              }
+            : t
+        ));
+        toast.success('Template updated successfully!');
+      } else {
+        // Create new template
+        const { data, error } = await supabase
+          .from('waiver_templates')
+          .insert([dbData])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Add to local state
+        const newTemplate = {
+          ...data,
+          requiredFields: data.required_fields,
+          assignedGames: data.assigned_games,
+          usageCount: data.usage_count,
+          createdDate: new Date(data.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          lastModified: new Date(data.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        };
+        setTemplates([newTemplate, ...templates]);
+        toast.success('Template created successfully!');
+      }
+
+      setShowTemplateEditor(false);
+      setSelectedTemplate(null);
+    } catch (error) {
+      console.error('Error saving template:', error);
+      toast.error('Failed to save template');
+    }
+  };
+
+  const handleDuplicateTemplate = async (template: WaiverTemplate) => {
+    try {
+      const dbData = {
+        name: `${template.name} (Copy)`,
+        description: template.description,
+        type: template.type,
+        content: template.content,
+        status: 'draft' as const,
+        required_fields: template.required_fields || template.requiredFields || [],
+        assigned_games: template.assigned_games || template.assignedGames || [],
+        usage_count: 0,
+      };
+
+      const { data, error } = await supabase
+        .from('waiver_templates')
+        .insert([dbData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newTemplate = {
+        ...data,
+        requiredFields: data.required_fields,
+        assignedGames: data.assigned_games,
+        usageCount: 0,
+        createdDate: new Date(data.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        lastModified: new Date(data.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      };
+      setTemplates([newTemplate, ...templates]);
+      toast.success('Template duplicated successfully!');
+    } catch (error) {
+      console.error('Error duplicating template:', error);
+      toast.error('Failed to duplicate template');
+    }
   };
 
   const handleDeleteTemplate = async (templateId: string) => {
@@ -1114,18 +1206,7 @@ export function Waivers() {
             setShowTemplateEditor(false);
             setSelectedTemplate(null);
           }}
-          onSave={(template) => {
-            const nowStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            if (editMode && selectedTemplate) {
-              setTemplates(templates.map(t => t.id === template.id ? { ...template, lastModified: nowStr } : t));
-              toast.success('Template updated successfully!');
-            } else {
-              setTemplates([...templates, { ...template, createdDate: template.createdDate || nowStr, lastModified: nowStr }]);
-              toast.success('Template created successfully!');
-            }
-            setShowTemplateEditor(false);
-            setSelectedTemplate(null);
-          }}
+          onSave={handleSaveTemplate}
         />
       )}
 

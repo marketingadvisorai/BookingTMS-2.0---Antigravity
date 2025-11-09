@@ -925,12 +925,12 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                         </div>
 
                         {/* Age Recommendation */}
-                        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
-                          <div className="flex items-start gap-3">
-                            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-sm text-gray-700">
-                                <strong className="text-amber-900">Age Requirement:</strong> Recommended for ages {selectedGameData.ageRecommendation}. Children under 16 must be accompanied by an adult.
+                        <div className="bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 dark:border-amber-600 p-3 sm:p-4 rounded-r-lg">
+                          <div className="flex items-start gap-2 sm:gap-3">
+                            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 break-words">
+                                <strong className="text-amber-900 dark:text-amber-200">Age Requirement:</strong> Recommended for ages {selectedGameData.ageRecommendation}. Children under 16 must be accompanied by an adult.
                               </p>
                             </div>
                           </div>
@@ -1221,12 +1221,12 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                               </div>
                             </div>
 
-                            <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
-                              <div className="flex items-start gap-3">
-                                <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                                <div>
-                                  <h4 className="text-sm text-amber-900 mb-1">24-48 Hours Before</h4>
-                                  <p className="text-sm text-gray-700">
+                            <div className="bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 dark:border-amber-600 p-3 sm:p-4 rounded-r-lg">
+                              <div className="flex items-start gap-2 sm:gap-3">
+                                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="text-xs sm:text-sm text-amber-900 dark:text-amber-200 mb-1 font-semibold">24-48 Hours Before</h4>
+                                  <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 break-words">
                                     <strong>50% refund</strong> or <strong>free rescheduling</strong> - Your choice of partial refund or move to another available date/time
                                   </p>
                                 </div>

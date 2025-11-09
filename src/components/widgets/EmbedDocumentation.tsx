@@ -12,7 +12,7 @@ interface EmbedDocumentationProps {
 
 export function EmbedDocumentation({ widgetId, widgetName, embedUrl }: EmbedDocumentationProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       {/* Quick Start */}
       <Card className="border-gray-200">
         <CardHeader className="p-4">
@@ -227,18 +227,18 @@ export function EmbedDocumentation({ widgetId, widgetName, embedUrl }: EmbedDocu
       </Card>
 
       {/* Security Note */}
-      <Alert className="border-amber-200 bg-amber-50">
+      <div className="border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 rounded-lg p-4">
         <div className="flex gap-3">
-          <div className="text-amber-600 flex-shrink-0">⚠️</div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-amber-900">Security Notice</p>
-            <p className="text-xs text-amber-700">
+          <div className="text-amber-600 dark:text-amber-500 flex-shrink-0 text-lg">⚠️</div>
+          <div className="space-y-1 flex-1">
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Security Notice</p>
+            <p className="text-sm text-amber-700 dark:text-amber-300 leading-relaxed">
               Keep your widget key confidential. Do not share it publicly or commit it to public repositories.
               If you believe your key has been compromised, regenerate it immediately in your account settings.
             </p>
           </div>
         </div>
-      </Alert>
+      </div>
     </div>
   );
 }

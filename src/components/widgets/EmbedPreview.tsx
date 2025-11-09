@@ -5,7 +5,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Copy, Check, ExternalLink, Code, BookOpen } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { useTheme } from '../layout/ThemeContext';
 import { EmbedDocumentation } from './EmbedDocumentation';
 import { EmbedTester } from './EmbedTester';
@@ -186,28 +186,28 @@ add_shortcode('bookingtms', 'bookingtms_widget_shortcode');
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       {/* Widget Key Configuration */}
       <Card className="border-gray-200 dark:border-[#2a2a2a]">
-        <CardHeader className="p-4">
-          <CardTitle className="text-base">Widget Configuration</CardTitle>
+        <CardHeader className="p-3 sm:p-4">
+          <CardTitle className="text-sm sm:text-base">Widget Configuration</CardTitle>
         </CardHeader>
-        <CardContent className="p-4 pt-0 space-y-4">
+        <CardContent className="p-3 sm:p-4 pt-0 space-y-3 sm:space-y-4">
           <div>
-            <Label htmlFor="widget-key" className="text-sm text-gray-700 dark:text-gray-300">Widget Key</Label>
-            <div className="flex gap-2 mt-1">
+            <Label htmlFor="widget-key" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Widget Key</Label>
+            <div className="flex flex-col sm:flex-row gap-2 mt-1">
               <Input
                 id="widget-key"
                 value={widgetKey}
                 onChange={(e) => setWidgetKey(e.target.value)}
                 placeholder="Enter your widget key"
-                className="h-10 text-sm bg-gray-100 dark:bg-[#1e1e1e] border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                className="h-9 sm:h-10 text-xs sm:text-sm bg-gray-100 dark:bg-[#1e1e1e] border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
               <Button
                 variant="outline"
                 size="sm"
                 disabled
-                className="h-10 cursor-not-allowed opacity-70"
+                className="h-9 sm:h-10 w-full sm:w-auto cursor-not-allowed opacity-70"
                 title="Key generation temporarily disabled. Use the venue's assigned key."
               >
                 Generate
@@ -219,43 +219,45 @@ add_shortcode('bookingtms', 'bookingtms_widget_shortcode');
           </div>
 
           <div>
-            <Label className="text-sm text-gray-700 dark:text-gray-300">Base URL</Label>
+            <Label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Base URL</Label>
             <div className="flex gap-2 mt-1">
               <Input
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 placeholder="http://localhost:3002"
-                className="h-10 text-sm bg-gray-50 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300"
+                className="h-9 sm:h-10 text-xs sm:text-sm bg-gray-50 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300"
               />
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Use your site origin for testing (e.g., http://localhost:3002).
             </p>
 
-            <Label className="text-sm text-gray-700 dark:text-gray-300">Embed URL</Label>
-            <div className="flex gap-2 mt-1">
+            <Label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Embed URL</Label>
+            <div className="flex flex-col sm:flex-row gap-2 mt-1">
               <Input
                 value={generateEmbedUrl()}
                 readOnly
-                className="h-10 text-sm bg-gray-50 dark:bg-[#0a0a0a] font-mono text-xs border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300"
+                className="h-9 sm:h-10 text-xs sm:text-sm bg-gray-50 dark:bg-[#0a0a0a] font-mono border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300"
               />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyUrl}
-                className="h-10 flex-shrink-0"
-              >
-                {copiedUrl ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(generateEmbedUrl(), '_blank')}
-                className="h-10 flex-shrink-0"
-                title="Open in new tab"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyUrl}
+                  className="h-9 sm:h-10 flex-1 sm:flex-initial flex-shrink-0"
+                >
+                  {copiedUrl ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(generateEmbedUrl(), '_blank')}
+                  className="h-9 sm:h-10 flex-1 sm:flex-initial flex-shrink-0"
+                  title="Open in new tab"
+                >
+                  <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
+                </Button>
+              </div>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Generates an absolute URL when Base URL is set; otherwise relative.
@@ -263,7 +265,7 @@ add_shortcode('bookingtms', 'bookingtms_widget_shortcode');
           </div>
 
           {/* Theme Sync Notice */}
-          <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3">
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-2 sm:p-3">
             <p className="text-xs text-indigo-900 dark:text-indigo-200 font-medium mb-1">
               🎨 Auto Theme Sync
             </p>
@@ -276,15 +278,15 @@ add_shortcode('bookingtms', 'bookingtms_widget_shortcode');
 
       {/* Embed Code Tabs */}
       <Card className="border-gray-200 dark:border-[#2a2a2a]">
-        <CardHeader className="p-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Embed Code</CardTitle>
-            <div className="flex gap-2">
+        <CardHeader className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+            <CardTitle className="text-sm sm:text-base">Embed Code</CardTitle>
+            <div className="flex gap-2 w-full sm:w-auto">
               <Button
                 variant={embedType === 'iframe' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setEmbedType('iframe')}
-                className="h-8 text-xs"
+                className="h-8 text-xs flex-1 sm:flex-initial"
               >
                 <Code className="w-3 h-3 mr-1" />
                 iFrame
@@ -293,7 +295,7 @@ add_shortcode('bookingtms', 'bookingtms_widget_shortcode');
                 variant={embedType === 'script' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setEmbedType('script')}
-                className="h-8 text-xs"
+                className="h-8 text-xs flex-1 sm:flex-initial"
               >
                 <Code className="w-3 h-3 mr-1" />
                 Script
@@ -301,9 +303,9 @@ add_shortcode('bookingtms', 'bookingtms_widget_shortcode');
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 pt-0">
+        <CardContent className="p-3 sm:p-4 pt-0">
           <Tabs defaultValue="html" className="w-full">
-            <TabsList className="w-full grid grid-cols-3 h-9">
+            <TabsList className="w-full grid grid-cols-3 h-8 sm:h-9">
               <TabsTrigger value="html" className="text-xs">HTML</TabsTrigger>
               <TabsTrigger value="react" className="text-xs">React</TabsTrigger>
               <TabsTrigger value="wordpress" className="text-xs">WordPress</TabsTrigger>

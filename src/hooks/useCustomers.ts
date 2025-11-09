@@ -115,6 +115,17 @@ export interface VenueAudienceMember {
   avg_booking_value: number;
 }
 
+export interface CustomerMetrics {
+  total_customers: number;
+  total_customers_previous: number;
+  active_customers: number;
+  active_customers_previous: number;
+  avg_lifetime_value: number;
+  avg_lifetime_value_previous: number;
+  new_customers_current: number;
+  total_customers_for_growth: number;
+}
+
 export function useCustomers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -369,6 +380,21 @@ export function useCustomers() {
     }
   };
 
+  // Get customer metrics for dashboard
+  const getCustomerMetrics = async (organizationId: string): Promise<CustomerMetrics | null> => {
+    try {
+      const { data, error: metricsError } = await supabase
+        .rpc('get_customer_metrics', { org_id: organizationId });
+
+      if (metricsError) throw metricsError;
+
+      return data && data.length > 0 ? data[0] : null;
+    } catch (err: any) {
+      console.error('Error fetching customer metrics:', err);
+      return null;
+    }
+  };
+
   // Real-time subscription
   useEffect(() => {
     fetchCustomers();
@@ -407,6 +433,7 @@ export function useCustomers() {
     getGameAudience,
     getVenueSegments,
     getVenueAudience,
+    getCustomerMetrics,
     refreshCustomers: fetchCustomers,
   };
 }

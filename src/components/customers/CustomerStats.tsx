@@ -1,6 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useTheme } from '../layout/ThemeContext';
+import { useCustomers } from '../../hooks/useCustomers';
 import { Users, TrendingUp, DollarSign, UserCheck } from 'lucide-react';
 
 interface StatCardProps {
@@ -44,37 +46,98 @@ function StatCard({ title, value, change, trend, icon }: StatCardProps) {
 export function CustomerStats() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { customers, getCustomerMetrics } = useCustomers();
+  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState<any>(null);
 
   const iconColor = isDark ? '#4f46e5' : '#4f46e5';
+
+  useEffect(() => {
+    fetchMetrics();
+  }, [customers]);
+
+  const fetchMetrics = async () => {
+    if (customers.length > 0) {
+      const orgId = (customers[0] as any).organization_id;
+      if (orgId) {
+        const data = await getCustomerMetrics(orgId);
+        setMetrics(data);
+        setLoading(false);
+      }
+    }
+  };
+
+  const calculateChange = (current: number, previous: number): { value: string; trend: 'up' | 'down' } => {
+    if (previous === 0) return { value: '+0%', trend: 'up' };
+    const change = ((current - previous) / previous) * 100;
+    return {
+      value: `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`,
+      trend: change >= 0 ? 'up' : 'down'
+    };
+  };
+
+  const formatNumber = (num: number): string => {
+    return num.toLocaleString('en-US');
+  };
+
+  const formatCurrency = (num: number): string => {
+    return `$${Math.round(num).toLocaleString('en-US')}`;
+  };
+
+  if (loading || !metrics) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className={`${isDark ? 'bg-[#161616] border-[#1e1e1e]' : 'bg-white border-gray-200'} border rounded-lg p-6 shadow-sm animate-pulse`}>
+            <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
+            <div className="h-8 bg-gray-300 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+            <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  const totalChange = calculateChange(metrics.total_customers, metrics.total_customers_previous);
+  const activeChange = calculateChange(metrics.active_customers, metrics.active_customers_previous);
+  const avgLtvChange = calculateChange(metrics.avg_lifetime_value, metrics.avg_lifetime_value_previous);
+  
+  const growthRate = metrics.total_customers_for_growth > 0
+    ? (metrics.new_customers_current / metrics.total_customers_for_growth) * 100
+    : 0;
+  const previousGrowthRate = metrics.total_customers_previous > 0
+    ? ((metrics.total_customers_for_growth - metrics.total_customers_previous) / metrics.total_customers_previous) * 100
+    : 0;
+  const growthChange = calculateChange(growthRate, previousGrowthRate);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <StatCard
         title="Total Customers"
-        value="2,847"
-        change="+12.5%"
-        trend="up"
+        value={formatNumber(metrics.total_customers)}
+        change={totalChange.value}
+        trend={totalChange.trend}
         icon={<Users className="w-6 h-6" style={{ color: iconColor }} />}
       />
       <StatCard
         title="Active Customers"
-        value="1,243"
-        change="+8.2%"
-        trend="up"
+        value={formatNumber(metrics.active_customers)}
+        change={activeChange.value}
+        trend={activeChange.trend}
         icon={<UserCheck className="w-6 h-6" style={{ color: iconColor }} />}
       />
       <StatCard
         title="Avg. Lifetime Value"
-        value="$487"
-        change="+15.3%"
-        trend="up"
+        value={formatCurrency(metrics.avg_lifetime_value)}
+        change={avgLtvChange.value}
+        trend={avgLtvChange.trend}
         icon={<DollarSign className="w-6 h-6" style={{ color: iconColor }} />}
       />
       <StatCard
         title="Growth Rate"
-        value="23.4%"
-        change="+5.1%"
-        trend="up"
+        value={`${growthRate.toFixed(1)}%`}
+        change={growthChange.value}
+        trend={growthChange.trend}
         icon={<TrendingUp className="w-6 h-6" style={{ color: iconColor }} />}
       />
     </div>

@@ -73,7 +73,7 @@ export function Games({ onNavigate }: GamesProps = {}) {
   const buildEmbedUrl = (embedKey?: string | null) => {
     if (!embedKey) return null;
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${origin}/embed?widgetId=farebook&widgetKey=${embedKey}`;
+    return `${origin}/embed?widgetId=venues&widgetKey=${embedKey}`;
   };
 
   if (loading || venuesLoading) {

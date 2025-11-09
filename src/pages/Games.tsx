@@ -70,12 +70,6 @@ export function Games({ onNavigate }: GamesProps = {}) {
 
   const findVenue = (venueId?: string | null) => venues.find((venue) => venue.id === venueId);
 
-  const buildEmbedUrl = (embedKey?: string | null) => {
-    if (!embedKey) return null;
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${origin}/embed?widgetId=venues&widgetKey=${embedKey}`;
-  };
-
   if (loading || venuesLoading) {
     return <PageLoadingScreen message="Loading games..." />;
   }
@@ -166,7 +160,6 @@ export function Games({ onNavigate }: GamesProps = {}) {
           {games.map((game) => {
             const venue = findVenue(game.venue_id);
             const difficultyLabel = formatDifficulty(game.difficulty);
-            const embedUrl = buildEmbedUrl(venue?.embed_key);
             const minPlayers = game.min_players ?? 0;
             const maxPlayers = game.max_players ?? 0;
             const durationLabel = game.duration ? `${game.duration} min` : 'No duration set';
@@ -216,19 +209,19 @@ export function Games({ onNavigate }: GamesProps = {}) {
                     </Badge>
                   </div>
 
-                  {embedUrl ? (
+                  {venue ? (
                     <Button
                       variant="outline"
                       size="sm"
                       className="flex items-center gap-2"
-                      onClick={() => window.open(embedUrl, '_blank')}
+                      onClick={() => onNavigate?.('venues')}
                     >
                       <ExternalLink className="w-4 h-4" />
-                      Open Venue Widget
+                      Go to Venue
                     </Button>
                   ) : (
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      No embed key available for this venue yet.
+                      No venue assigned yet.
                     </p>
                   )}
                 </CardContent>

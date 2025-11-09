@@ -218,18 +218,6 @@ const Login = () => {
                 </div>
               </div>
 
-              {/* Demo Login Info */}
-              <div className={`p-4 rounded-lg border ${borderColor} ${isDark ? 'bg-[#161616]' : 'bg-gray-50'}`}>
-                <p className={`text-sm ${textSecondary} mb-2`}>
-                  <strong className={textPrimary}>Testing Mode:</strong> Click any role to auto-fill demo credentials
-                </p>
-                <div className="space-y-1 text-xs">
-                  <p className={textSecondary}>• Super Admin: superadmin / demo123</p>
-                  <p className={textSecondary}>• Admin: admin / demo123</p>
-                  <p className={textSecondary}>• Manager: manager / demo123</p>
-                  <p className={textSecondary}>• Staff: staff / demo123</p>
-                </div>
-              </div>
             </div>
           ) : (
             // Login Form View

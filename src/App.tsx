@@ -21,6 +21,7 @@ import Venues from './pages/Venues';
 import { Settings } from './pages/Settings';
 import { MyAccount } from './pages/MyAccount';
 import { ProfileSettings } from './pages/ProfileSettings';
+import { Account } from './pages/Account';
 import { Billing } from './pages/Billing';
 import { Team } from './pages/Team';
 import { Embed } from './pages/Embed';
@@ -63,13 +64,13 @@ function AppContent() {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onNavigate={setCurrentPage} />;
       case 'inbox':
         return <Inbox />;
       case 'bookings':
         return <Bookings />;
       case 'games':
-        return <Games />;
+        return <Games onNavigate={setCurrentPage} />;
       case 'customers':
         return <Customers />;
       case 'payment-history':
@@ -97,7 +98,9 @@ function AppContent() {
       case 'settings':
         return <Settings />;
       case 'myaccount':
-        return <MyAccount />;
+        return <MyAccount onNavigate={setCurrentPage} />;
+      case 'account':
+        return <Account />;
       case 'profile':
         return <ProfileSettings />;
       case 'billing':

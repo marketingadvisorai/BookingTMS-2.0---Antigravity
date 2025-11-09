@@ -90,7 +90,7 @@ const loadSupabase = async () => {
 
 const MOCK_USERS: User[] = [
   {
-    id: '1',
+    id: '00000000-0000-0000-0000-000000000001',
     email: 'superadmin@bookingtms.com',
     name: 'Super Admin User',
     role: 'super-admin',
@@ -100,7 +100,7 @@ const MOCK_USERS: User[] = [
     organizationId: '00000000-0000-0000-0000-000000000001',
   },
   {
-    id: '2',
+    id: '00000000-0000-0000-0000-000000000002',
     email: 'admin@bookingtms.com',
     name: 'Admin User',
     role: 'admin',
@@ -110,7 +110,7 @@ const MOCK_USERS: User[] = [
     organizationId: '00000000-0000-0000-0000-000000000001',
   },
   {
-    id: '5',
+    id: '00000000-0000-0000-0000-000000000005',
     email: 'betaadmin@bookingtms.com',
     name: 'Beta Admin',
     role: 'beta-owner',
@@ -120,7 +120,7 @@ const MOCK_USERS: User[] = [
     organizationId: '00000000-0000-0000-0000-000000000001',
   },
   {
-    id: '3',
+    id: '00000000-0000-0000-0000-000000000003',
     email: 'manager@bookingtms.com',
     name: 'Manager User',
     role: 'manager',
@@ -130,7 +130,7 @@ const MOCK_USERS: User[] = [
     organizationId: '00000000-0000-0000-0000-000000000001',
   },
   {
-    id: '4',
+    id: '00000000-0000-0000-0000-000000000004',
     email: 'staff@bookingtms.com',
     name: 'Staff User',
     role: 'staff',

@@ -33,7 +33,11 @@ const difficultyBadgeClass = (label: string) => {
   }
 };
 
-export function Games() {
+interface GamesProps {
+  onNavigate?: (page: string) => void;
+}
+
+export function Games({ onNavigate }: GamesProps = {}) {
   const { games, loading, refreshGames } = useGames();
   const { venues, loading: venuesLoading, refreshVenues } = useVenues();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -108,8 +112,12 @@ export function Games() {
               </p>
             </div>
           </div>
-          <Button asChild variant="outline" className="sm:ml-auto">
-            <a href="/venues">Go to Venues</a>
+          <Button 
+            variant="outline" 
+            className="sm:ml-auto"
+            onClick={() => onNavigate?.('venues')}
+          >
+            Go to Venues
           </Button>
         </CardContent>
       </Card>

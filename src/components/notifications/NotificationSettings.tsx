@@ -40,7 +40,7 @@ import {
   Check,
 } from 'lucide-react';
 import { Separator } from '../ui/separator';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export function NotificationSettings() {
   const { theme } = useTheme();

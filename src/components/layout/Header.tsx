@@ -27,6 +27,7 @@ export function Header({ onNavigate, onMobileMenuToggle }: HeaderProps) {
   const { currentUser, logout } = useAuth();
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [desktopSearchQuery, setDesktopSearchQuery] = useState('');
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogout = async () => {
@@ -44,6 +45,122 @@ export function Header({ onNavigate, onMobileMenuToggle }: HeaderProps) {
     setShowMobileSearch(!showMobileSearch);
   };
 
+  // Handle search functionality with comprehensive keyword matching
+  const performSearch = (query: string) => {
+    if (!query.trim()) return;
+    
+    const lowerQuery = query.toLowerCase().trim();
+    
+    // Define search mappings with keywords
+    const searchMappings = [
+      // Bookings
+      {
+        keywords: ['booking', 'reservation', 'appointment', 'schedule', 'calendar', 'book'],
+        page: 'bookings',
+        message: 'Navigating to Bookings...'
+      },
+      // Games
+      {
+        keywords: ['game', 'escape room', 'activity', 'experience', 'room', 'puzzle'],
+        page: 'games',
+        message: 'Navigating to Games...'
+      },
+      // Customers
+      {
+        keywords: ['customer', 'client', 'guest', 'visitor', 'player', 'participant'],
+        page: 'customers',
+        message: 'Navigating to Customers...'
+      },
+      // Staff
+      {
+        keywords: ['staff', 'employee', 'team', 'user', 'member', 'personnel', 'game master', 'gm'],
+        page: 'staff',
+        message: 'Navigating to Staff...'
+      },
+      // Venues
+      {
+        keywords: ['venue', 'location', 'branch', 'site', 'facility', 'place'],
+        page: 'venues',
+        message: 'Navigating to Venues...'
+      },
+      // Reports & Analytics
+      {
+        keywords: ['report', 'analytics', 'statistics', 'stats', 'insights', 'data', 'metrics', 'performance', 'revenue', 'sales'],
+        page: 'reports',
+        message: 'Navigating to Reports & Analytics...'
+      },
+      // Marketing
+      {
+        keywords: ['marketing', 'promotion', 'campaign', 'discount', 'coupon', 'promo', 'gift card', 'voucher', 'email'],
+        page: 'marketing',
+        message: 'Navigating to Marketing...'
+      },
+      // Settings
+      {
+        keywords: ['setting', 'settings', 'configuration', 'config', 'preference', 'option', 'setup', 'account', 'profile', 'password', 'security'],
+        page: 'settings',
+        message: 'Navigating to Settings...'
+      },
+      // Waivers
+      {
+        keywords: ['waiver', 'form', 'consent', 'agreement', 'liability', 'sign', 'signature'],
+        page: 'waivers',
+        message: 'Navigating to Waivers...'
+      },
+      // AI Agents
+      {
+        keywords: ['ai', 'agent', 'bot', 'chatbot', 'assistant', 'automation', 'artificial intelligence'],
+        page: 'ai-agents',
+        message: 'Navigating to AI Agents...'
+      },
+      // Widgets
+      {
+        keywords: ['widget', 'embed', 'integration', 'booking widget', 'calendar widget'],
+        page: 'booking-widgets',
+        message: 'Navigating to Booking Widgets...'
+      },
+      // Backend
+      {
+        keywords: ['backend', 'api', 'database', 'server', 'supabase', 'auth', 'authentication'],
+        page: 'backend',
+        message: 'Navigating to Backend...'
+      },
+      // Dashboard
+      {
+        keywords: ['dashboard', 'home', 'overview', 'summary', 'main'],
+        page: 'dashboard',
+        message: 'Navigating to Dashboard...'
+      },
+      // Help & Support
+      {
+        keywords: ['help', 'support', 'documentation', 'docs', 'guide', 'tutorial', 'faq', 'how to', 'manual'],
+        page: 'settings', // Navigate to settings where help might be
+        message: 'Opening Help & Support...'
+      }
+    ];
+
+    // Search for matching keywords
+    for (const mapping of searchMappings) {
+      if (mapping.keywords.some(keyword => lowerQuery.includes(keyword))) {
+        onNavigate(mapping.page);
+        toast.success(mapping.message);
+        return;
+      }
+    }
+
+    // If no match found, default to bookings with search query
+    onNavigate('bookings');
+    toast.info(`Searching for "${query}" in Bookings...`);
+  };
+
+  // Handle Enter key press for desktop search
+  const handleDesktopKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      performSearch(desktopSearchQuery);
+      setDesktopSearchQuery('');
+    }
+  };
+
   // Auto-focus input when mobile search opens
   useEffect(() => {
     if (showMobileSearch && mobileSearchInputRef.current) {
@@ -58,8 +175,7 @@ export function Header({ onNavigate, onMobileMenuToggle }: HeaderProps) {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      toast.success(`Searching for: ${searchQuery}`);
-      // TODO: Implement actual search functionality
+      performSearch(searchQuery);
       setShowMobileSearch(false);
       setSearchQuery('');
     }
@@ -131,6 +247,9 @@ export function Header({ onNavigate, onMobileMenuToggle }: HeaderProps) {
             <Input
               type="search"
               placeholder="Search bookings, games, staff..."
+              value={desktopSearchQuery}
+              onChange={(e) => setDesktopSearchQuery(e.target.value)}
+              onKeyPress={handleDesktopKeyPress}
               className="h-10 pl-10 bg-gray-100 border-gray-300 placeholder:text-gray-500 dark:bg-[#161616] dark:border-[#2a2a2a] dark:text-white dark:placeholder:text-[#737373]"
             />
           </div>

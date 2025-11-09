@@ -247,16 +247,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
                 variant="ghost" 
                 size="sm" 
                 className="text-[#4f46e5] dark:text-[#6366f1] hover:text-[#4338ca] dark:hover:text-[#818cf8] hover:bg-blue-50 dark:hover:bg-[#4f46e5]/10 text-xs sm:text-sm"
-                onClick={() => {
-                  if (onNavigate) {
-                    // Store the preferred view BEFORE navigating
-                    localStorage.setItem('bookingsDefaultView', 'day');
-                    // Small delay to ensure localStorage is set
-                    setTimeout(() => {
-                      onNavigate('bookings');
-                    }, 10);
-                  }
-                }}
+                onClick={() => onNavigate?.('bookings')}
               >
                 View All
                 <ArrowRight className="w-3 h-3 ml-1" />

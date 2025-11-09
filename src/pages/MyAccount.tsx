@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../components/layout/ThemeContext';
+import { useAuth } from '../lib/auth/AuthContext';
+import { supabase } from '../lib/supabase/client';
+import { toast } from 'sonner';
 import {
   User,
   Mail,
@@ -28,9 +31,15 @@ import { Progress } from '../components/ui/progress';
 import { PageHeader } from '../components/layout/PageHeader';
 import avatarImage from 'figma:asset/00e8f72492f468a73fc822a8f3b89537848df6aa.png';
 
-export function MyAccount() {
+interface MyAccountProps {
+  onNavigate?: (page: string) => void;
+}
+
+export function MyAccount({ onNavigate }: MyAccountProps = {}) {
   const { theme } = useTheme();
+  const { currentUser } = useAuth();
   const isDark = theme === 'dark';
+  const [loading, setLoading] = useState(true);
 
   // Semantic class variables
   const textClass = isDark ? 'text-white' : 'text-gray-900';
@@ -41,26 +50,134 @@ export function MyAccount() {
   const hoverBgClass = isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50';
   const hoverShadowClass = isDark ? 'hover:shadow-[0_0_15px_rgba(79,70,229,0.1)]' : 'hover:shadow-md';
 
-  const [accountData] = useState({
-    name: 'John Doe',
-    email: 'john.doe@bookingtms.com',
-    phone: '+1 (555) 123-4567',
-    role: 'Owner',
-    company: 'Escape Quest Adventures',
-    location: 'San Francisco, CA',
-    joinDate: 'January 15, 2024',
+  const [accountData, setAccountData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    role: '',
+    company: '',
+    location: '',
+    joinDate: '',
     plan: 'Professional',
     status: 'Active',
     avatar: avatarImage
   });
 
-  const [usageStats] = useState({
-    bookings: { current: 45, limit: 60 },
-    games: { current: 8, limit: 15 },
-    staff: { current: 12, limit: 25 },
-    aiConversations: { current: 52, limit: 60 },
-    credits: { current: 140, limit: 200 }
+  const [usageStats, setUsageStats] = useState({
+    bookings: { current: 0, limit: 60 },
+    games: { current: 0, limit: 15 },
+    staff: { current: 0, limit: 25 },
+    aiConversations: { current: 0, limit: 60 },
+    credits: { current: 0, limit: 200 }
   });
+
+  // Load user data from Supabase
+  useEffect(() => {
+    loadAccountData();
+  }, [currentUser]);
+
+  const loadAccountData = async () => {
+    if (!currentUser) return;
+
+    try {
+      setLoading(true);
+
+      // Get user profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        throw profileError;
+      }
+
+      // Get email from auth
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (profileData) {
+        const firstName = profileData.first_name || '';
+        const lastName = profileData.last_name || '';
+        const fullName = `${firstName} ${lastName}`.trim() || 'User';
+        
+        const city = profileData.metadata?.city || '';
+        const state = profileData.metadata?.state || '';
+        const location = city && state ? `${city}, ${state}` : city || state || 'Not set';
+
+        const createdDate = profileData.created_at 
+          ? new Date(profileData.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+          : 'Recently';
+
+        setAccountData({
+          name: fullName,
+          email: user?.email || '',
+          phone: profileData.phone || 'Not set',
+          role: getRoleDisplay(profileData.role),
+          company: profileData.company || 'Not set',
+          location,
+          joinDate: createdDate,
+          plan: 'Professional',
+          status: profileData.status === 'active' ? 'Active' : 'Inactive',
+          avatar: profileData.metadata?.avatar || avatarImage
+        });
+      }
+
+      // Load usage stats
+      await loadUsageStats();
+    } catch (error: any) {
+      console.error('Error loading account data:', error);
+      toast.error('Failed to load account data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getRoleDisplay = (role: string) => {
+    const roleMap: Record<string, string> = {
+      'super-admin': 'Super Admin',
+      'admin': 'Admin',
+      'beta-owner': 'Beta Owner',
+      'manager': 'Manager',
+      'staff': 'Staff'
+    };
+    return roleMap[role] || role;
+  };
+
+  const loadUsageStats = async () => {
+    try {
+      // Get bookings count for current month
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { count: bookingsCount } = await supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startOfMonth.toISOString());
+
+      // Get active games count
+      const { count: gamesCount } = await supabase
+        .from('games')
+        .select('*', { count: 'exact', head: true });
+
+      // Get staff count
+      const { count: staffCount } = await supabase
+        .from('user_profiles')
+        .select('*', { count: 'exact', head: true })
+        .in('role', ['staff', 'manager', 'admin']);
+
+      setUsageStats({
+        bookings: { current: bookingsCount || 0, limit: 60 },
+        games: { current: gamesCount || 0, limit: 15 },
+        staff: { current: staffCount || 0, limit: 25 },
+        aiConversations: { current: 0, limit: 60 },
+        credits: { current: 0, limit: 200 }
+      });
+    } catch (error) {
+      console.error('Error loading usage stats:', error);
+    }
+  };
 
   const [recentActivity] = useState([
     { action: 'Created new game', details: 'The Haunted Manor', time: '2 hours ago', icon: Activity },
@@ -79,6 +196,17 @@ export function MyAccount() {
     if (percentage >= 70) return isDark ? 'bg-yellow-500' : 'bg-yellow-600';
     return isDark ? '#4f46e5' : 'bg-blue-600';
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>Loading account...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -140,7 +268,11 @@ export function MyAccount() {
                 </div>
               </div>
             </div>
-            <Button variant="outline" className="w-full sm:w-auto h-11">
+            <Button 
+              variant="outline" 
+              className="w-full sm:w-auto h-11"
+              onClick={() => onNavigate?.('profile')}
+            >
               <Edit className="w-4 h-4 mr-2" />
               Edit Profile
             </Button>

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../components/layout/ThemeContext';
+import { supabase } from '../lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { PageHeader } from '../components/layout/PageHeader';
@@ -56,37 +57,8 @@ import {
   Legend,
 } from 'recharts';
 
-const revenueData = [
-  { month: 'Jan', revenue: 12400, bookings: 42 },
-  { month: 'Feb', revenue: 15600, bookings: 52 },
-  { month: 'Mar', revenue: 18900, bookings: 63 },
-  { month: 'Apr', revenue: 16200, bookings: 54 },
-  { month: 'May', revenue: 21300, bookings: 71 },
-  { month: 'Jun', revenue: 24800, bookings: 83 },
-  { month: 'Jul', revenue: 28400, bookings: 95 },
-  { month: 'Aug', revenue: 26100, bookings: 87 },
-  { month: 'Sep', revenue: 23700, bookings: 79 },
-  { month: 'Oct', revenue: 27500, bookings: 92 },
-];
-
-const gamePopularityData = [
-  { name: 'Mystery Manor', bookings: 245, fill: '#4f46e5' },
-  { name: 'Space Odyssey', bookings: 189, fill: '#7c3aed' },
-  { name: 'Zombie Outbreak', bookings: 178, fill: '#10b981' },
-  { name: 'Treasure Hunt', bookings: 156, fill: '#f59e0b' },
-  { name: 'Prison Break', bookings: 134, fill: '#ef4444' },
-  { name: 'Wizards Quest', bookings: 98, fill: '#06b6d4' },
-];
-
-const occupancyData = [
-  { day: 'Mon', rate: 68 },
-  { day: 'Tue', rate: 52 },
-  { day: 'Wed', rate: 58 },
-  { day: 'Thu', rate: 72 },
-  { day: 'Fri', rate: 88 },
-  { day: 'Sat', rate: 95 },
-  { day: 'Sun', rate: 82 },
-];
+// Chart colors for game popularity
+const CHART_COLORS = ['#4f46e5', '#7c3aed', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316'];
 
 export function Reports() {
   const { theme } = useTheme();
@@ -109,6 +81,216 @@ export function Reports() {
   const [isExporting, setIsExporting] = useState(false);
   const [selectedReports, setSelectedReports] = useState<string[]>(['revenue', 'games', 'occupancy', 'summary']);
   const [dateRange, setDateRange] = useState('last-30');
+  const [loading, setLoading] = useState(true);
+  
+  // Real data state
+  const [reportData, setReportData] = useState({
+    stats: {
+      totalRevenue: 0,
+      totalBookings: 0,
+      avgBookingValue: 0,
+      avgOccupancy: 0,
+      revenueTrend: 0,
+      bookingsTrend: 0,
+      occupancyTrend: 0
+    },
+    revenueData: [] as Array<{ month: string; revenue: number; bookings: number }>,
+    gamePopularityData: [] as Array<{ name: string; bookings: number; fill: string }>,
+    occupancyData: [] as Array<{ day: string; rate: number }>
+  });
+
+  // Load data when component mounts or date range changes
+  useEffect(() => {
+    loadReportData();
+  }, [dateRange]);
+
+  // Get date range based on selection
+  const getDateRange = (range: string) => {
+    const endDate = new Date();
+    let startDate = new Date();
+    
+    switch(range) {
+      case 'last-7':
+        startDate.setDate(endDate.getDate() - 7);
+        break;
+      case 'last-30':
+        startDate.setDate(endDate.getDate() - 30);
+        break;
+      case 'last-90':
+        startDate.setDate(endDate.getDate() - 90);
+        break;
+      case 'year':
+        startDate = new Date(endDate.getFullYear(), 0, 1);
+        break;
+      case 'all':
+        startDate = new Date(2020, 0, 1);
+        break;
+    }
+    
+    return { startDate, endDate };
+  };
+
+  // Load all report data
+  const loadReportData = async () => {
+    try {
+      setLoading(true);
+      const { startDate, endDate } = getDateRange(dateRange);
+      
+      // Fetch all data in parallel
+      const [stats, revenueTrend, gamePopularity, occupancy] = await Promise.all([
+        fetchSummaryStats(startDate, endDate),
+        fetchRevenueTrend(startDate, endDate),
+        fetchGamePopularity(startDate, endDate),
+        fetchOccupancyData(startDate, endDate)
+      ]);
+      
+      setReportData({
+        stats,
+        revenueData: revenueTrend,
+        gamePopularityData: gamePopularity,
+        occupancyData: occupancy
+      });
+    } catch (error) {
+      console.error('Error loading report data:', error);
+      toast.error('Failed to load report data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch summary statistics
+  const fetchSummaryStats = async (startDate: Date, endDate: Date) => {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('id, total_amount, status, created_at')
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString());
+
+    if (error) throw error;
+
+    const activeBookings = data?.filter(b => b.status !== 'cancelled') || [];
+    const totalRevenue = activeBookings.reduce((sum, b) => sum + parseFloat(b.total_amount || '0'), 0);
+    const totalBookings = activeBookings.length;
+    const avgBookingValue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
+
+    // Calculate previous period for trends
+    const duration = endDate.getTime() - startDate.getTime();
+    const prevStartDate = new Date(startDate.getTime() - duration);
+    const prevEndDate = new Date(startDate);
+
+    const { data: prevData } = await supabase
+      .from('bookings')
+      .select('id, total_amount, status')
+      .gte('created_at', prevStartDate.toISOString())
+      .lte('created_at', prevEndDate.toISOString());
+
+    const prevActiveBookings = prevData?.filter(b => b.status !== 'cancelled') || [];
+    const prevRevenue = prevActiveBookings.reduce((sum, b) => sum + parseFloat(b.total_amount || '0'), 0);
+    const prevBookings = prevActiveBookings.length;
+
+    const revenueTrend = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0;
+    const bookingsTrend = prevBookings > 0 ? ((totalBookings - prevBookings) / prevBookings) * 100 : 0;
+
+    return {
+      totalRevenue,
+      totalBookings,
+      avgBookingValue,
+      avgOccupancy: 73.6, // Placeholder - would need slot data
+      revenueTrend,
+      bookingsTrend,
+      occupancyTrend: -2.1 // Placeholder
+    };
+  };
+
+  // Fetch revenue trend by month
+  const fetchRevenueTrend = async (startDate: Date, endDate: Date) => {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('booking_date, total_amount, status')
+      .gte('booking_date', startDate.toISOString().split('T')[0])
+      .lte('booking_date', endDate.toISOString().split('T')[0]);
+
+    if (error) throw error;
+
+    const monthlyData = new Map<string, { revenue: number; bookings: number }>();
+    
+    data?.filter(b => b.status !== 'cancelled').forEach(booking => {
+      const date = new Date(booking.booking_date);
+      const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
+      
+      if (!monthlyData.has(monthKey)) {
+        monthlyData.set(monthKey, { revenue: 0, bookings: 0 });
+      }
+      
+      const current = monthlyData.get(monthKey)!;
+      current.revenue += parseFloat(booking.total_amount || '0');
+      current.bookings += 1;
+    });
+
+    return Array.from(monthlyData.entries()).map(([month, data]) => ({
+      month,
+      revenue: Math.round(data.revenue),
+      bookings: data.bookings
+    }));
+  };
+
+  // Fetch game popularity
+  const fetchGamePopularity = async (startDate: Date, endDate: Date) => {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(`
+        game_id,
+        status,
+        games (name)
+      `)
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString());
+
+    if (error) throw error;
+
+    const gameStats = new Map<string, number>();
+    
+    data?.filter(b => b.status !== 'cancelled').forEach(booking => {
+      const gameName = (booking.games as any)?.name || 'Unknown';
+      gameStats.set(gameName, (gameStats.get(gameName) || 0) + 1);
+    });
+
+    return Array.from(gameStats.entries())
+      .map(([name, bookings], index) => ({
+        name,
+        bookings,
+        fill: CHART_COLORS[index % CHART_COLORS.length]
+      }))
+      .sort((a, b) => b.bookings - a.bookings)
+      .slice(0, 6);
+  };
+
+  // Fetch occupancy data
+  const fetchOccupancyData = async (startDate: Date, endDate: Date) => {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('booking_date, status')
+      .gte('booking_date', startDate.toISOString().split('T')[0])
+      .lte('booking_date', endDate.toISOString().split('T')[0]);
+
+    if (error) throw error;
+
+    const dayStats = new Map<string, number>();
+    const dayCounts = new Map<string, number>();
+    
+    data?.filter(b => b.status !== 'cancelled').forEach(booking => {
+      const date = new Date(booking.booking_date);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      dayStats.set(dayName, (dayStats.get(dayName) || 0) + 1);
+      dayCounts.set(dayName, (dayCounts.get(dayName) || 0) + 1);
+    });
+
+    const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return daysOfWeek.map(day => ({
+      day,
+      rate: Math.round((dayStats.get(day) || 0) * 10) // Simplified calculation
+    }));
+  };
 
   const handleExport = () => {
     setIsExporting(true);
@@ -120,12 +302,20 @@ export function Reports() {
         dateRange === 'year' ? 'This year' : 'All time';
 
       const summary = (() => {
-        const totalRevenue = revenueData.reduce((sum, r) => sum + r.revenue, 0);
-        const totalBookings = revenueData.reduce((sum, r) => sum + r.bookings, 0);
-        const avgValue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
-        const topGame = gamePopularityData.reduce((prev, cur) => cur.bookings > prev.bookings ? cur : prev, gamePopularityData[0]);
-        const avgOccupancy = Math.round(occupancyData.reduce((sum, o) => sum + o.rate, 0) / occupancyData.length);
-        return { totalRevenue, totalBookings, avgValue, topGame: topGame.name, avgOccupancy };
+        const { stats, revenueData, gamePopularityData, occupancyData } = reportData;
+        const topGame = gamePopularityData.length > 0 
+          ? gamePopularityData.reduce((prev, cur) => cur.bookings > prev.bookings ? cur : prev, gamePopularityData[0])
+          : { name: 'N/A', bookings: 0 };
+        const avgOccupancy = occupancyData.length > 0
+          ? Math.round(occupancyData.reduce((sum, o) => sum + o.rate, 0) / occupancyData.length)
+          : 0;
+        return { 
+          totalRevenue: stats.totalRevenue, 
+          totalBookings: stats.totalBookings, 
+          avgValue: stats.avgBookingValue, 
+          topGame: topGame.name, 
+          avgOccupancy 
+        };
       })();
 
       if (exportFormat === 'csv') {
@@ -144,19 +334,19 @@ export function Reports() {
         if (selectedReports.includes('revenue')) {
           sections.push('', 'Section: Revenue & Bookings Trend');
           sections.push('Month,Revenue,Bookings');
-          revenueData.forEach(r => sections.push(`${r.month},${r.revenue},${r.bookings}`));
+          reportData.revenueData.forEach(r => sections.push(`${r.month},${r.revenue},${r.bookings}`));
         }
 
         if (selectedReports.includes('games')) {
           sections.push('', 'Section: Game Popularity');
           sections.push('Game,Bookings');
-          gamePopularityData.forEach(g => sections.push(`${g.name},${g.bookings}`));
+          reportData.gamePopularityData.forEach(g => sections.push(`${g.name},${g.bookings}`));
         }
 
         if (selectedReports.includes('occupancy')) {
           sections.push('', 'Section: Weekly Occupancy');
           sections.push('Day,Rate (%)');
-          occupancyData.forEach(o => sections.push(`${o.day},${o.rate}`));
+          reportData.occupancyData.forEach(o => sections.push(`${o.day},${o.rate}`));
         }
 
         const csvContent = sections.join('\n');
@@ -205,19 +395,19 @@ export function Reports() {
 
         if (selectedReports.includes('revenue')) {
           addHeading('Revenue & Bookings Trend');
-          revenueData.forEach(r => addLine(`${r.month}: $${r.revenue} revenue, ${r.bookings} bookings`));
+          reportData.revenueData.forEach(r => addLine(`${r.month}: $${r.revenue} revenue, ${r.bookings} bookings`));
           y += 4;
         }
 
         if (selectedReports.includes('games')) {
           addHeading('Game Popularity');
-          gamePopularityData.forEach(g => addLine(`${g.name}: ${g.bookings} bookings`));
+          reportData.gamePopularityData.forEach(g => addLine(`${g.name}: ${g.bookings} bookings`));
           y += 4;
         }
 
         if (selectedReports.includes('occupancy')) {
           addHeading('Weekly Occupancy');
-          occupancyData.forEach(o => addLine(`${o.day}: ${o.rate}%`));
+          reportData.occupancyData.forEach(o => addLine(`${o.day}: ${o.rate}%`));
         }
 
         doc.save(`reports_${new Date().toISOString().slice(0,10)}.pdf`);
@@ -284,15 +474,15 @@ export function Reports() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex-1">
                 <p className={`text-sm ${textMutedClass}`}>Total Revenue</p>
-                <p className={`text-2xl mt-2 ${textClass}`}>$212,400</p>
+                <p className={`text-2xl mt-2 ${textClass}`}>${reportData.stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-emerald-500/20' : 'bg-green-100'}`}>
                 <DollarSign className={`w-6 h-6 ${isDark ? 'text-emerald-400' : 'text-green-600'}`} />
               </div>
             </div>
-            <div className={`flex items-center gap-1 text-sm ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>
-              <TrendingUp className="w-4 h-4 flex-shrink-0" />
-              <span>+15.3% from last period</span>
+            <div className={`flex items-center gap-1 text-sm ${reportData.stats.revenueTrend >= 0 ? (isDark ? 'text-emerald-400' : 'text-green-600') : (isDark ? 'text-red-400' : 'text-red-600')}`}>
+              {reportData.stats.revenueTrend >= 0 ? <TrendingUp className="w-4 h-4 flex-shrink-0" /> : <TrendingDown className="w-4 h-4 flex-shrink-0" />}
+              <span>{reportData.stats.revenueTrend >= 0 ? '+' : ''}{reportData.stats.revenueTrend.toFixed(1)}% from last period</span>
             </div>
           </CardContent>
         </Card>
@@ -302,15 +492,15 @@ export function Reports() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex-1">
                 <p className={`text-sm ${textMutedClass}`}>Total Bookings</p>
-                <p className={`text-2xl mt-2 ${textClass}`}>818</p>
+                <p className={`text-2xl mt-2 ${textClass}`}>{reportData.stats.totalBookings.toLocaleString()}</p>
               </div>
               <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-[#4f46e5]/20' : 'bg-blue-100'}`}>
                 <Users className={`w-6 h-6 ${isDark ? 'text-[#6366f1]' : 'text-blue-600'}`} />
               </div>
             </div>
-            <div className={`flex items-center gap-1 text-sm ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>
-              <TrendingUp className="w-4 h-4 flex-shrink-0" />
-              <span>+12.7% from last period</span>
+            <div className={`flex items-center gap-1 text-sm ${reportData.stats.bookingsTrend >= 0 ? (isDark ? 'text-emerald-400' : 'text-green-600') : (isDark ? 'text-red-400' : 'text-red-600')}`}>
+              {reportData.stats.bookingsTrend >= 0 ? <TrendingUp className="w-4 h-4 flex-shrink-0" /> : <TrendingDown className="w-4 h-4 flex-shrink-0" />}
+              <span>{reportData.stats.bookingsTrend >= 0 ? '+' : ''}{reportData.stats.bookingsTrend.toFixed(1)}% from last period</span>
             </div>
           </CardContent>
         </Card>
@@ -319,16 +509,16 @@ export function Reports() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex-1">
-                <p className={`text-sm ${textMutedClass}`}>Avg. Occupancy</p>
-                <p className={`text-2xl mt-2 ${textClass}`}>73.6%</p>
+                <p className={`text-sm ${textMutedClass}`}>Avg. Booking Value</p>
+                <p className={`text-2xl mt-2 ${textClass}`}>${reportData.stats.avgBookingValue.toFixed(2)}</p>
               </div>
               <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-purple-500/20' : 'bg-purple-100'}`}>
                 <Percent className={`w-6 h-6 ${isDark ? 'text-purple-400' : 'text-purple-600'}`} />
               </div>
             </div>
-            <div className={`flex items-center gap-1 text-sm ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-              <TrendingDown className="w-4 h-4 flex-shrink-0" />
-              <span>-2.1% from last period</span>
+            <div className={`flex items-center gap-1 text-sm ${isDark ? 'text-[#a3a3a3]' : 'text-gray-600'}`}>
+              <Activity className="w-4 h-4 flex-shrink-0" />
+              <span>Per booking average</span>
             </div>
           </CardContent>
         </Card>
@@ -348,15 +538,25 @@ export function Reports() {
               </CardDescription>
             </div>
             <Badge variant="secondary" className={isDark ? 'bg-[#1e1e1e] text-[#a3a3a3]' : 'bg-gray-100 text-gray-700'}>
-              Last 10 months
+              {dateRange === 'last-7' ? 'Last 7 days' : dateRange === 'last-30' ? 'Last 30 days' : dateRange === 'last-90' ? 'Last 90 days' : dateRange === 'year' ? 'This year' : 'All time'}
             </Badge>
           </div>
         </CardHeader>
         <CardContent className="p-6 pt-0">
+          {loading ? (
+            <div className="flex items-center justify-center h-[300px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : reportData.revenueData.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-[300px] text-center">
+              <BarChart3 className={`w-12 h-12 mb-3 ${textMutedClass}`} />
+              <p className={textMutedClass}>No revenue data available for this period</p>
+            </div>
+          ) : (
           <div className="overflow-x-auto -mx-6 px-6">
             <div className="min-w-[500px]">
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={revenueData}>
+                <BarChart data={reportData.revenueData}>
                   <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
                   <XAxis 
                     dataKey="month" 
@@ -412,6 +612,7 @@ export function Reports() {
               </ResponsiveContainer>
             </div>
           </div>
+          )}
         </CardContent>
       </Card>
 
@@ -429,10 +630,20 @@ export function Reports() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-0">
+            {loading ? (
+              <div className="flex items-center justify-center h-[260px]">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : reportData.gamePopularityData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-[260px] text-center">
+                <PieChartIcon className={`w-12 h-12 mb-3 ${textMutedClass}`} />
+                <p className={textMutedClass}>No game data available</p>
+              </div>
+            ) : (
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
-                  data={gamePopularityData}
+                  data={reportData.gamePopularityData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -440,7 +651,7 @@ export function Reports() {
                   outerRadius={100}
                   dataKey="bookings"
                 >
-                  {gamePopularityData.map((entry, index) => (
+                  {reportData.gamePopularityData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
                 </Pie>
@@ -455,8 +666,10 @@ export function Reports() {
                 />
               </PieChart>
             </ResponsiveContainer>
+            )}
+            {!loading && reportData.gamePopularityData.length > 0 && (
             <div className="mt-4 grid grid-cols-2 gap-3">
-              {gamePopularityData.map((game) => (
+              {reportData.gamePopularityData.map((game) => (
                 <div key={game.name} className="flex items-center gap-2">
                   <div 
                     className="w-3 h-3 rounded-full flex-shrink-0" 
@@ -473,6 +686,7 @@ export function Reports() {
                 </div>
               ))}
             </div>
+            )}
           </CardContent>
         </Card>
 
@@ -488,8 +702,18 @@ export function Reports() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-0">
+            {loading ? (
+              <div className="flex items-center justify-center h-[260px]">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : reportData.occupancyData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-[260px] text-center">
+                <Activity className={`w-12 h-12 mb-3 ${textMutedClass}`} />
+                <p className={textMutedClass}>No occupancy data available</p>
+              </div>
+            ) : (
             <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={occupancyData}>
+              <LineChart data={reportData.occupancyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
                 <XAxis 
                   dataKey="day" 
@@ -524,6 +748,7 @@ export function Reports() {
                 />
               </LineChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>

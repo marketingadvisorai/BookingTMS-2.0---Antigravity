@@ -18,6 +18,7 @@ import {
   TableRow 
 } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
+import { Checkbox } from '../components/ui/checkbox';
 import { 
   Search, 
   UserPlus, 
@@ -154,32 +155,47 @@ export default function Customers() {
   const { theme } = useTheme();
   const { hasPermission } = useAuth();
   const isDark = theme === 'dark';
-  const { refreshCustomers } = useCustomers();
+  const { customers: dbCustomers, loading, refreshCustomers, createCustomer, updateCustomer } = useCustomers();
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    try {
-      await refreshCustomers();
-      toast.success('Customers refreshed successfully');
-    } catch (error) {
-      toast.error('Failed to refresh customers');
-    } finally {
-      setIsRefreshing(false);
-    }
+    await refreshCustomers();
+    setTimeout(() => setIsRefreshing(false), 500);
   };
 
+  const canEdit = hasPermission('customers.edit');
+  const canExport = hasPermission('customers.export');
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSegment, setSelectedSegment] = useState<string>('all');
+  const [selectedSegment, setSelectedSegment] = useState('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [customers, setCustomers] = useState(mockCustomers);
+  const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
+  
+  // Convert DB customers to UI format
+  const customers = dbCustomers.map(c => ({
+    id: c.id,
+    firstName: c.first_name,
+    lastName: c.last_name,
+    email: c.email,
+    phone: c.phone,
+    totalBookings: c.total_bookings,
+    totalSpent: c.total_spent,
+    lastBooking: c.updated_at ? new Date(c.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never',
+    segment: c.metadata?.lifecycle_stage || 'new',
+    status: c.status === 'active' ? 'Active' : 'Inactive',
+    communicationPreference: 'Email',
+    notes: c.notes,
+    favoriteGame: c.metadata?.favorite_game_name || null,
+    preferredVenue: c.metadata?.preferred_venue_name || null
+  }));
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportFormat, setExportFormat] = useState<'csv' | 'pdf'>('csv');
   const [isExporting, setIsExporting] = useState(false);
 
-  const canEdit = hasPermission('customers.edit');
 
   const bgClass = isDark ? 'bg-[#161616]' : 'bg-white';
   const borderClass = isDark ? 'border-[#1e1e1e]' : 'border-gray-200';
@@ -187,11 +203,23 @@ export default function Customers() {
   const subtextClass = isDark ? 'text-[#a3a3a3]' : 'text-gray-600';
 
   const getSegmentColor = (segment: string) => {
-    switch (segment) {
-      case 'VIP': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
-      case 'Regular': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'New': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-      case 'Inactive': return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
+    const lowerSegment = segment?.toLowerCase();
+    switch (lowerSegment) {
+      // Lifecycle stages
+      case 'new': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+      case 'active': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'at-risk': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'churned': return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
+      // Spending tiers
+      case 'vip': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'high': return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400';
+      // Frequency tiers
+      case 'frequent': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'regular': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'occasional': return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400';
+      case 'one-time': return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
+      // Legacy support
+      case 'inactive': return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
       default: return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
     }
   };
@@ -213,6 +241,32 @@ export default function Customers() {
     return matchesSearch && matchesSegment;
   });
 
+  // Selection handlers
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedCustomers(new Set());
+      setSelectAll(false);
+    } else {
+      const allIds = new Set(filteredCustomers.map(c => c.id));
+      setSelectedCustomers(allIds);
+      setSelectAll(true);
+    }
+  };
+
+  const handleSelectCustomer = (customerId: string) => {
+    const newSelected = new Set(selectedCustomers);
+    if (newSelected.has(customerId)) {
+      newSelected.delete(customerId);
+      setSelectAll(false);
+    } else {
+      newSelected.add(customerId);
+      if (newSelected.size === filteredCustomers.length) {
+        setSelectAll(true);
+      }
+    }
+    setSelectedCustomers(newSelected);
+  };
+
   const handleViewCustomer = (customer: any) => {
     setSelectedCustomer(customer);
     setShowDetailDialog(true);
@@ -223,28 +277,36 @@ export default function Customers() {
     setShowAddDialog(true);
   };
 
-  const handleSaveCustomer = (customerData: any) => {
-    if (selectedCustomer) {
-      // Edit existing
-      setCustomers(customers.map(c => 
-        c.id === selectedCustomer.id 
-          ? { ...c, ...customerData }
-          : c
-      ));
-    } else {
-      // Add new
-      const newCustomer = {
-        id: `CUST-${String(customers.length + 1).padStart(3, '0')}`,
-        ...customerData,
-        totalBookings: 0,
-        totalSpent: 0,
-        lastBooking: 'Never',
-        segment: customerData.segment || 'New',
-        status: 'Active'
-      };
-      setCustomers([...customers, newCustomer]);
+  const handleSaveCustomer = async (customerData: any) => {
+    try {
+      if (selectedCustomer) {
+        // Edit existing
+        await updateCustomer(selectedCustomer.id, {
+          first_name: customerData.firstName,
+          last_name: customerData.lastName,
+          email: customerData.email,
+          phone: customerData.phone,
+          notes: customerData.notes,
+          status: customerData.status?.toLowerCase() || 'active'
+        });
+      } else {
+        // Add new
+        await createCustomer({
+          first_name: customerData.firstName,
+          last_name: customerData.lastName,
+          email: customerData.email,
+          phone: customerData.phone,
+          country: 'United States',
+          status: 'active',
+          metadata: {},
+          notes: customerData.notes || ''
+        });
+      }
+      setSelectedCustomer(null);
+      await refreshCustomers();
+    } catch (error) {
+      console.error('Error saving customer:', error);
     }
-    setSelectedCustomer(null);
   };
 
   const handleExport = async () => {
@@ -460,11 +522,60 @@ export default function Customers() {
                 </div>
               </div>
 
+              {/* Bulk Actions Bar */}
+              {selectedCustomers.size > 0 && (
+                <div className={`${bgClass} ${borderClass} border rounded-lg p-4 mb-4`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <p className={textClass}>
+                        <span className="font-semibold">{selectedCustomers.size}</span> customer{selectedCustomers.size !== 1 ? 's' : ''} selected
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedCustomers(new Set());
+                          setSelectAll(false);
+                        }}
+                        className={isDark ? 'text-[#a3a3a3] hover:text-white' : ''}
+                      >
+                        Clear selection
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          toast.info(`Exporting ${selectedCustomers.size} customers...`);
+                        }}
+                        className={isDark ? 'border-[#2a2a2a] text-[#a3a3a3]' : ''}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Export Selected
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Table */}
+              {loading ? (
+                <div className={`${bgClass} ${borderClass} border rounded-lg p-12 text-center`}>
+                  <p className={subtextClass}>Loading customers...</p>
+                </div>
+              ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className={isDark ? 'border-[#1e1e1e] hover:bg-transparent' : 'hover:bg-transparent'}>
+                      <TableHead className={`${textClass} w-12`}>
+                        <Checkbox
+                          checked={selectAll}
+                          onCheckedChange={handleSelectAll}
+                          aria-label="Select all customers"
+                        />
+                      </TableHead>
                       <TableHead className={textClass}>Customer</TableHead>
                       <TableHead className={textClass}>Contact</TableHead>
                       <TableHead className={textClass}>Bookings</TableHead>
@@ -481,6 +592,13 @@ export default function Customers() {
                         key={customer.id}
                         className={`${isDark ? 'border-[#1e1e1e] hover:bg-[#1a1a1a]' : 'hover:bg-gray-50'}`}
                       >
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedCustomers.has(customer.id)}
+                            onCheckedChange={() => handleSelectCustomer(customer.id)}
+                            aria-label={`Select ${customer.firstName} ${customer.lastName}`}
+                          />
+                        </TableCell>
                         <TableCell>
                           <div>
                             <p className={textClass}>
@@ -538,8 +656,9 @@ export default function Customers() {
                   </TableBody>
                 </Table>
               </div>
+              )}
 
-              {filteredCustomers.length === 0 && (
+              {!loading && filteredCustomers.length === 0 && (
                 <div className="p-8 text-center">
                   <p className={subtextClass}>No customers found matching your search.</p>
                 </div>

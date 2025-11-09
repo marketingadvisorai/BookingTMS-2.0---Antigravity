@@ -29,6 +29,47 @@ export interface Customer {
   updated_at: string;
 }
 
+export interface CustomerGame {
+  game_id: string;
+  game_name: string;
+  game_image: string;
+  booking_count: number;
+  total_spent: number;
+  last_played: string;
+}
+
+export interface CustomerVenue {
+  venue_id: string;
+  venue_name: string;
+  visit_count: number;
+  total_spent: number;
+  last_visit: string;
+}
+
+export interface CustomerInsights {
+  customer: Customer;
+  favorite_game: {
+    id: string;
+    name: string;
+    image_url: string;
+    booking_count: number;
+    total_spent: number;
+  } | null;
+  preferred_venue: {
+    id: string;
+    name: string;
+    visit_count: number;
+    total_spent: number;
+  } | null;
+  lifecycle_stage: 'new' | 'active' | 'at-risk' | 'churned';
+  spending_tier: 'vip' | 'high' | 'medium' | 'low';
+  frequency_tier: 'frequent' | 'regular' | 'occasional' | 'one-time';
+  last_booking_date: string | null;
+  days_since_last_visit: number;
+  average_booking_value: number;
+  booking_frequency_per_month: number;
+}
+
 export function useCustomers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -177,6 +218,52 @@ export function useCustomers() {
     }
   };
 
+  // Get customer insights with analytics
+  const getCustomerInsights = async (customerId: string): Promise<CustomerInsights | null> => {
+    try {
+      const { data, error: insightsError } = await supabase
+        .rpc('get_customer_with_insights', { p_customer_id: customerId });
+
+      if (insightsError) throw insightsError;
+
+      return data || null;
+    } catch (err: any) {
+      console.error('Error fetching customer insights:', err);
+      toast.error('Failed to load customer insights');
+      return null;
+    }
+  };
+
+  // Get customer games
+  const getCustomerGames = async (customerId: string): Promise<CustomerGame[]> => {
+    try {
+      const { data, error: gamesError } = await supabase
+        .rpc('get_customer_games', { p_customer_id: customerId });
+
+      if (gamesError) throw gamesError;
+
+      return data || [];
+    } catch (err: any) {
+      console.error('Error fetching customer games:', err);
+      return [];
+    }
+  };
+
+  // Get customer venues
+  const getCustomerVenues = async (customerId: string): Promise<CustomerVenue[]> => {
+    try {
+      const { data, error: venuesError } = await supabase
+        .rpc('get_customer_venues', { p_customer_id: customerId });
+
+      if (venuesError) throw venuesError;
+
+      return data || [];
+    } catch (err: any) {
+      console.error('Error fetching customer venues:', err);
+      return [];
+    }
+  };
+
   // Real-time subscription
   useEffect(() => {
     fetchCustomers();
@@ -208,6 +295,9 @@ export function useCustomers() {
     getCustomerById,
     searchCustomers,
     getCustomerHistory,
+    getCustomerInsights,
+    getCustomerGames,
+    getCustomerVenues,
     refreshCustomers: fetchCustomers,
   };
 }

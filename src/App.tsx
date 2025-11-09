@@ -111,7 +111,7 @@ function AppContent() {
       case 'gift-vouchers':
         return <GiftVouchers />;
       default:
-        return <Dashboard />;
+        return <Dashboard onNavigate={setCurrentPage} />;
     }
   };
 

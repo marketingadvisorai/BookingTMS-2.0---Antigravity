@@ -145,10 +145,10 @@ export default function Venues() {
   const venues = dbVenues.map(mapDBVenueToUI);
   const loading = dbLoading;
   
-  // Permission checks (allow admins and beta-owners, not staff)
-  const canCreateVenue = currentUser?.role === 'admin' || currentUser?.role === 'beta-owner' || currentUser?.role === 'manager';
-  const canEditVenue = currentUser?.role === 'admin' || currentUser?.role === 'beta-owner' || currentUser?.role === 'manager';
-  const canDeleteVenue = currentUser?.role === 'admin' || currentUser?.role === 'beta-owner';
+  // Permission checks (allow super-admin, beta-owner, admin, and manager)
+  const canCreateVenue = currentUser?.role === 'super-admin' || currentUser?.role === 'beta-owner' || currentUser?.role === 'admin' || currentUser?.role === 'manager';
+  const canEditVenue = currentUser?.role === 'super-admin' || currentUser?.role === 'beta-owner' || currentUser?.role === 'admin' || currentUser?.role === 'manager';
+  const canDeleteVenue = currentUser?.role === 'super-admin' || currentUser?.role === 'beta-owner' || currentUser?.role === 'admin';
 
   const handleCreateVenue = async () => {
     if (!canCreateVenue) {
@@ -706,15 +706,19 @@ export default function Venues() {
           setSelectedVenue(null);
         }
       }}>
-        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] sm:max-h-[85vh]">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">{showEditDialog ? 'Edit Venue' : 'Create New Venue'}</DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm">
-              {showEditDialog ? 'Update your venue information' : 'Add a new venue with its own booking widget'}
-            </DialogDescription>
+        <DialogContent className="!w-screen !h-screen !max-w-none !max-h-none sm:!w-[90vw] sm:!h-[90vh] sm:!max-w-[1200px] sm:!max-h-[90vh] !rounded-none sm:!rounded-lg overflow-hidden p-0 flex flex-col">
+          <DialogHeader className="bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-[#2a2a2a] p-4 sm:p-6 shrink-0">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <DialogTitle className="text-base sm:text-lg truncate">{showEditDialog ? 'Edit Venue' : 'Create New Venue'}</DialogTitle>
+                <DialogDescription className="text-xs sm:text-sm">
+                  {showEditDialog ? 'Update venue information and widget settings' : 'Add a new venue with its own booking widget'}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
-          <ScrollArea className="max-h-[55vh] sm:max-h-[60vh] pr-2 sm:pr-4">
-            <div className="space-y-4 py-4">
+          <ScrollArea className="flex-1 overflow-auto">
+            <div className="space-y-4 p-4 sm:p-6">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm">Venue Name *</Label>
                 <Input
@@ -818,18 +822,18 @@ export default function Venues() {
               </div>
             </div>
           </ScrollArea>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DialogFooter className="bg-white dark:bg-[#1e1e1e] border-t border-gray-200 dark:border-[#2a2a2a] p-4 sm:p-6 shrink-0 flex-col-reverse sm:flex-row gap-2">
             <Button variant="outline" onClick={() => {
               setShowCreateDialog(false);
               setShowEditDialog(false);
               resetForm();
-            }} className="w-full sm:w-auto order-2 sm:order-1">
+            }} className="w-full sm:w-auto h-10 sm:h-11">
               Cancel
             </Button>
             <Button
               onClick={showEditDialog ? handleUpdateVenue : handleCreateVenue}
               disabled={!formData.name || isLoading || dbLoading}
-              className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] w-full sm:w-auto order-1 sm:order-2"
+              className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] w-full sm:w-auto h-10 sm:h-11"
             >
               {(isLoading || dbLoading) ? 'Saving...' : (showEditDialog ? 'Update Venue' : 'Create Venue')}
             </Button>

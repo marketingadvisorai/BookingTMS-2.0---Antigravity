@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../layout/ThemeContext';
 import { useCustomers } from '../../hooks/useCustomers';
+import { Users, Crown, Sparkles, UserX, TrendingUp, Clock, Gamepad2, Building2, RefreshCw, Mail, Gift, AlertCircle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
-import { Crown, Users, Sparkles, UserX, Gamepad2, Building2, TrendingUp, Clock } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface SegmentCardProps {
   name: string;
@@ -14,9 +15,10 @@ interface SegmentCardProps {
   color: string;
   icon: React.ReactNode;
   description: string;
+  onClick?: () => void;
 }
 
-function SegmentCard({ name, count, percentage, color, icon, description }: SegmentCardProps) {
+function SegmentCard({ name, count, percentage, color, icon, description, onClick }: SegmentCardProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -26,7 +28,12 @@ function SegmentCard({ name, count, percentage, color, icon, description }: Segm
   const subtextClass = isDark ? 'text-[#a3a3a3]' : 'text-gray-600';
 
   return (
-    <div className={`${bgClass} ${borderClass} border rounded-lg p-6`}>
+    <div 
+      onClick={onClick}
+      className={`${bgClass} ${borderClass} border rounded-lg p-6 transition-all ${
+        onClick ? 'cursor-pointer hover:shadow-lg hover:scale-105' : ''
+      }`}
+    >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className={`p-3 rounded-lg`} style={{ backgroundColor: `${color}20` }}>
@@ -48,6 +55,11 @@ function SegmentCard({ name, count, percentage, color, icon, description }: Segm
         </div>
         <Progress value={percentage} className="h-2" />
       </div>
+      {onClick && count > 0 && (
+        <div className={`mt-3 text-xs ${subtextClass} text-center`}>
+          Click to view customers
+        </div>
+      )}
     </div>
   );
 }
@@ -55,11 +67,12 @@ function SegmentCard({ name, count, percentage, color, icon, description }: Segm
 export function CustomerSegments() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const { customers, loading, getGameSegments, getVenueSegments } = useCustomers();
+  const { customers, loading, getGameSegments, getVenueSegments, refreshCustomers } = useCustomers();
   const [segmentData, setSegmentData] = useState<any[]>([]);
   const [gameSegments, setGameSegments] = useState<any[]>([]);
   const [venueSegments, setVenueSegments] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'lifecycle' | 'games' | 'venues'>('lifecycle');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (customers.length > 0) {
@@ -95,11 +108,72 @@ export function CustomerSegments() {
     })));
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshCustomers();
+    toast.success('Segments refreshed successfully');
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const handleMarketingAction = (action: string, count: number) => {
+    if (count === 0) {
+      toast.error(`No customers in this segment`);
+      return;
+    }
+    toast.success(`Marketing action: ${action} for ${count} customers`);
+    // In production, this would trigger email campaigns, etc.
+  };
+
+  const handleSegmentClick = (segmentName: string, count: number) => {
+    if (count === 0) {
+      toast.info(`No customers in ${segmentName} segment yet`);
+      return;
+    }
+    
+    // Get customers for this segment
+    const segmentCustomers = customers.filter(c => {
+      switch(segmentName) {
+        case 'New Customers':
+          return c.metadata?.is_new === true;
+        case 'Active Customers':
+          return c.metadata?.lifecycle_stage === 'active';
+        case 'At-Risk Customers':
+          return c.metadata?.lifecycle_stage === 'at-risk';
+        case 'Churned Customers':
+          return c.metadata?.lifecycle_stage === 'churned';
+        case 'VIP Customers':
+          return c.metadata?.spending_tier === 'vip';
+        case 'High Spenders':
+          return c.metadata?.spending_tier === 'high';
+        case 'Game Players':
+          return c.total_bookings > 0;
+        case 'Venue Visitors':
+          return c.total_bookings > 0;
+        default:
+          return false;
+      }
+    });
+
+    const customerNames = segmentCustomers
+      .map(c => `${c.first_name} ${c.last_name}`)
+      .slice(0, 5)
+      .join(', ');
+    
+    const moreCount = segmentCustomers.length > 5 ? ` and ${segmentCustomers.length - 5} more` : '';
+    
+    toast.success(
+      `${segmentName}: ${customerNames}${moreCount}`,
+      { duration: 5000 }
+    );
+  };
+
   const calculateSegments = () => {
     const total = customers.length;
     
     // Lifecycle stages
-    const newCustomers = customers.filter(c => c.metadata?.lifecycle_stage === 'new').length;
+    // New customers: created within 30 days (uses is_new flag)
+    const newCustomers = customers.filter(c => c.metadata?.is_new === true).length;
+    // Active customers: booked within 30 days (uses lifecycle_stage)
     const activeCustomers = customers.filter(c => c.metadata?.lifecycle_stage === 'active').length;
     const atRiskCustomers = customers.filter(c => c.metadata?.lifecycle_stage === 'at-risk').length;
     const churnedCustomers = customers.filter(c => c.metadata?.lifecycle_stage === 'churned').length;
@@ -207,7 +281,19 @@ export function CustomerSegments() {
   return (
     <div className="space-y-6">
       <div className={`${bgClass} ${borderClass} border rounded-lg p-6`}>
-        <h3 className={`text-lg ${textClass} mb-2`}>About Customer Segments</h3>
+        <div className="flex items-start justify-between mb-2">
+          <h3 className={`text-lg ${textClass}`}>About Customer Segments</h3>
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors ${
+              isDark ? 'bg-[#1e1e1e] hover:bg-[#2a2a2a]' : 'bg-gray-100 hover:bg-gray-200'
+            } ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className={`text-sm ${textClass}`}>Refresh</span>
+          </button>
+        </div>
         <p className={`${subtextClass}`}>
           Customer segments help you target marketing campaigns and understand customer behavior. 
           Segments are automatically updated based on booking history, spending patterns, games played, and venues visited.
@@ -270,7 +356,11 @@ export function CustomerSegments() {
       {activeTab === 'lifecycle' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {segmentData.map((segment) => (
-            <SegmentCard key={segment.name} {...segment} />
+            <SegmentCard 
+              key={segment.name} 
+              {...segment} 
+              onClick={() => handleSegmentClick(segment.name, segment.count)}
+            />
           ))}
         </div>
       )}
@@ -280,7 +370,11 @@ export function CustomerSegments() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {gameSegments.length > 0 ? (
             gameSegments.map((segment) => (
-              <SegmentCard key={segment.gameId || segment.name} {...segment} />
+              <SegmentCard 
+                key={segment.gameId || segment.name} 
+                {...segment}
+                onClick={() => toast.info(`Game: ${segment.name} - ${segment.count} customers have played this game`)}
+              />
             ))
           ) : (
             <div className={`${bgClass} ${borderClass} border rounded-lg p-8 col-span-full text-center`}>
@@ -297,7 +391,11 @@ export function CustomerSegments() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {venueSegments.length > 0 ? (
             venueSegments.map((segment) => (
-              <SegmentCard key={segment.venueId || segment.name} {...segment} />
+              <SegmentCard 
+                key={segment.venueId || segment.name} 
+                {...segment}
+                onClick={() => toast.info(`Venue: ${segment.name} - ${segment.count} customers have visited this venue`)}
+              />
             ))
           ) : (
             <div className={`${bgClass} ${borderClass} border rounded-lg p-8 col-span-full text-center`}>
@@ -315,14 +413,18 @@ export function CustomerSegments() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {segmentData.find(s => s.name === 'VIP Customers') && (
             <button 
-              className="px-4 py-3 text-left rounded-lg border transition-colors hover:bg-opacity-80"
+              onClick={() => handleMarketingAction('Email VIP Customers', segmentData.find(s => s.name === 'VIP Customers')?.count || 0)}
+              className="px-4 py-3 text-left rounded-lg border transition-colors hover:bg-opacity-80 hover:shadow-md"
               style={{ 
                 backgroundColor: isDark ? '#1e1e1e' : '#f9fafb',
                 borderColor: isDark ? '#2a2a2a' : '#e5e7eb'
               }}
             >
-              <p className={textClass}>Email VIP Customers</p>
-              <p className={`text-sm ${subtextClass}`}>
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                <p className={textClass}>Email VIP Customers</p>
+              </div>
+              <p className={`text-sm ${subtextClass} mt-1`}>
                 Send exclusive offers to {segmentData.find(s => s.name === 'VIP Customers')?.count || 0} VIPs
               </p>
             </button>
@@ -330,14 +432,18 @@ export function CustomerSegments() {
 
           {segmentData.find(s => s.name === 'Churned Customers') && (
             <button 
-              className="px-4 py-3 text-left rounded-lg border transition-colors hover:bg-opacity-80"
+              onClick={() => handleMarketingAction('Re-engage Churned Customers', segmentData.find(s => s.name === 'Churned Customers')?.count || 0)}
+              className="px-4 py-3 text-left rounded-lg border transition-colors hover:bg-opacity-80 hover:shadow-md"
               style={{ 
                 backgroundColor: isDark ? '#1e1e1e' : '#f9fafb',
                 borderColor: isDark ? '#2a2a2a' : '#e5e7eb'
               }}
             >
-              <p className={textClass}>Re-engage Churned</p>
-              <p className={`text-sm ${subtextClass}`}>
+              <div className="flex items-center gap-2">
+                <Gift className="w-4 h-4" />
+                <p className={textClass}>Re-engage Churned</p>
+              </div>
+              <p className={`text-sm ${subtextClass} mt-1`}>
                 Win back {segmentData.find(s => s.name === 'Churned Customers')?.count || 0} churned customers
               </p>
             </button>
@@ -345,14 +451,18 @@ export function CustomerSegments() {
 
           {segmentData.find(s => s.name === 'New Customers') && (
             <button 
-              className="px-4 py-3 text-left rounded-lg border transition-colors hover:bg-opacity-80"
+              onClick={() => handleMarketingAction('Welcome New Customers', segmentData.find(s => s.name === 'New Customers')?.count || 0)}
+              className="px-4 py-3 text-left rounded-lg border transition-colors hover:bg-opacity-80 hover:shadow-md"
               style={{ 
                 backgroundColor: isDark ? '#1e1e1e' : '#f9fafb',
                 borderColor: isDark ? '#2a2a2a' : '#e5e7eb'
               }}
             >
-              <p className={textClass}>Welcome New Customers</p>
-              <p className={`text-sm ${subtextClass}`}>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                <p className={textClass}>Welcome New Customers</p>
+              </div>
+              <p className={`text-sm ${subtextClass} mt-1`}>
                 Send onboarding to {segmentData.find(s => s.name === 'New Customers')?.count || 0} new customers
               </p>
             </button>
@@ -360,14 +470,18 @@ export function CustomerSegments() {
 
           {segmentData.find(s => s.name === 'At-Risk Customers') && (
             <button 
-              className="px-4 py-3 text-left rounded-lg border transition-colors hover:bg-opacity-80"
+              onClick={() => handleMarketingAction('Prevent Churn', segmentData.find(s => s.name === 'At-Risk Customers')?.count || 0)}
+              className="px-4 py-3 text-left rounded-lg border transition-colors hover:bg-opacity-80 hover:shadow-md"
               style={{ 
                 backgroundColor: isDark ? '#1e1e1e' : '#f9fafb',
                 borderColor: isDark ? '#2a2a2a' : '#e5e7eb'
               }}
             >
-              <p className={textClass}>Prevent Churn</p>
-              <p className={`text-sm ${subtextClass}`}>
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                <p className={textClass}>Prevent Churn</p>
+              </div>
+              <p className={`text-sm ${subtextClass} mt-1`}>
                 Re-engage {segmentData.find(s => s.name === 'At-Risk Customers')?.count || 0} at-risk customers
               </p>
             </button>

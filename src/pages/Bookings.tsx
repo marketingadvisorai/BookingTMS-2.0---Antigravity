@@ -332,7 +332,15 @@ export function Bookings() {
   const bgElevatedClass = isDark ? 'bg-[#1e1e1e]' : 'bg-gray-50';
   const codeBgClass = isDark ? 'bg-[#1e1e1e]' : 'bg-gray-100';
   
-  const [view, setView] = useState<'table' | 'month' | 'week' | 'day' | 'schedule'>('month');
+  const [view, setView] = useState<'table' | 'month' | 'week' | 'day' | 'schedule'>(() => {
+    // Check if there's a preferred view from Dashboard navigation
+    const savedView = localStorage.getItem('bookingsDefaultView');
+    if (savedView) {
+      localStorage.removeItem('bookingsDefaultView'); // Clear after reading
+      return savedView as 'table' | 'month' | 'week' | 'day' | 'schedule';
+    }
+    return 'month';
+  });
   const [isCreatingBooking, setIsCreatingBooking] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAddBooking, setShowAddBooking] = useState(false);
@@ -348,6 +356,15 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
   const [exportFormat, setExportFormat] = useState('csv');
   const [exportDateRange, setExportDateRange] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
+
+  // Check for default view from Dashboard navigation
+  useEffect(() => {
+    const savedView = localStorage.getItem('bookingsDefaultView');
+    if (savedView) {
+      setView(savedView as 'table' | 'month' | 'week' | 'day' | 'schedule');
+      localStorage.removeItem('bookingsDefaultView');
+    }
+  }, []);
 
   // Convert Supabase bookings to UI format
   const bookings = useMemo(() => 

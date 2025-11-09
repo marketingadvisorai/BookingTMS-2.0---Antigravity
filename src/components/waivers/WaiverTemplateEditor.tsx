@@ -29,7 +29,9 @@ import {
   ListOrdered,
   Heading1,
   Heading2,
-  Save
+  Save,
+  QrCode,
+  Mail
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -88,7 +90,13 @@ export default function WaiverTemplateEditor({ template, isOpen, onClose, onSave
     assignedGames: template?.assignedGames || [],
     createdDate: template?.createdDate || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     lastModified: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    usageCount: template?.usageCount || 0
+    usageCount: template?.usageCount || 0,
+    qrCodeEnabled: template?.qrCodeEnabled !== undefined ? template.qrCodeEnabled : true,
+    qrCodeSettings: template?.qrCodeSettings || {
+      includeInEmail: true,
+      includeBookingLink: true,
+      customMessage: 'Scan this QR code to complete your waiver'
+    }
   });
 
   const [activeTab, setActiveTab] = useState('basic');
@@ -202,6 +210,87 @@ export default function WaiverTemplateEditor({ template, isOpen, onClose, onSave
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <Separator className={borderClass} />
+
+              {/* QR Code Settings */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <QrCode className={`w-5 h-5 ${isDark ? 'text-[#6366f1]' : 'text-blue-600'}`} />
+                  <Label className={`text-base ${textClass}`}>QR Code Settings</Label>
+                </div>
+
+                <div className={`p-4 rounded-lg border ${isDark ? 'bg-[#4f46e5]/10 border-[#4f46e5]/30' : 'bg-blue-50 border-blue-200'}`}>
+                  <div className="flex items-start gap-2">
+                    <Info className={`w-5 h-5 mt-0.5 flex-shrink-0 ${isDark ? 'text-[#6366f1]' : 'text-blue-600'}`} />
+                    <div>
+                      <p className={`text-sm ${isDark ? 'text-[#e0e7ff]' : 'text-blue-900'}`}>QR Code for Waiver Forms</p>
+                      <p className={`text-xs mt-1 ${isDark ? 'text-[#c7d2fe]' : 'text-blue-700'}`}>
+                        When enabled, customers will receive a QR code in their booking confirmation email that links directly to this waiver form.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`flex items-center justify-between p-4 rounded-lg border ${borderClass} ${bgElevatedClass}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${formData.qrCodeEnabled ? (isDark ? 'bg-emerald-500/20' : 'bg-green-100') : (isDark ? 'bg-[#2a2a2a]' : 'bg-gray-100')}`}>
+                      <QrCode className={`w-5 h-5 ${formData.qrCodeEnabled ? (isDark ? 'text-emerald-400' : 'text-green-600') : (isDark ? 'text-[#737373]' : 'text-gray-400')}`} />
+                    </div>
+                    <div>
+                      <Label htmlFor="qr-enabled" className={`text-sm ${textClass} cursor-pointer`}>
+                        Enable QR Code
+                      </Label>
+                      <p className={`text-xs ${textMutedClass}`}>
+                        Include QR code in booking confirmation emails
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="qr-enabled"
+                    checked={formData.qrCodeEnabled}
+                    onCheckedChange={(checked) => setFormData({ ...formData, qrCodeEnabled: checked })}
+                  />
+                </div>
+
+                {formData.qrCodeEnabled && (
+                  <div className="space-y-3 pl-4 border-l-2 border-blue-500">
+                    <div className={`flex items-center justify-between p-3 rounded-lg border ${borderClass} ${bgElevatedClass}`}>
+                      <div className="flex items-center gap-2">
+                        <Mail className={`w-4 h-4 ${textMutedClass}`} />
+                        <Label htmlFor="include-email" className={`text-sm ${textClass} cursor-pointer`}>
+                          Include in Email
+                        </Label>
+                      </div>
+                      <Switch
+                        id="include-email"
+                        checked={formData.qrCodeSettings.includeInEmail}
+                        onCheckedChange={(checked) => setFormData({ 
+                          ...formData, 
+                          qrCodeSettings: { ...formData.qrCodeSettings, includeInEmail: checked }
+                        })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="qr-message" className={textClass}>Custom Message</Label>
+                      <Input
+                        id="qr-message"
+                        value={formData.qrCodeSettings.customMessage}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          qrCodeSettings: { ...formData.qrCodeSettings, customMessage: e.target.value }
+                        })}
+                        placeholder="Scan this QR code to complete your waiver"
+                        className="h-11"
+                      />
+                      <p className={`text-xs ${textMutedClass}`}>
+                        This message will appear above the QR code in the email
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>

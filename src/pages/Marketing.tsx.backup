@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -8,7 +8,6 @@ import { Separator } from '../components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
-import { ScrollArea } from '../components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -66,149 +65,11 @@ import {
   Pause,
   Facebook,
   CreditCard,
-  Save,
-  Calendar
+  Save
 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { useTheme } from '../components/layout/ThemeContext';
-import { EmailTemplateEditor } from '../components/email/EmailTemplateEditor';
-
-// Email Template Interface
-interface EmailTemplate {
-  id: string;
-  name: string;
-  category: 'transactional' | 'marketing' | 'engagement';
-  subject: string;
-  preheader: string;
-  body: string;
-  variables: string[];
-  icon: any;
-  description: string;
-  isActive: boolean;
-  lastModified: string;
-}
-
-// Default Email Templates
-const getDefaultTemplates = (): EmailTemplate[] => [
-  {
-    id: 'booking-confirmation',
-    name: 'Booking Confirmation',
-    category: 'transactional',
-    subject: '🎉 Confirmed! Your {{escaperoomName}} Adventure',
-    preheader: 'Your adventure is confirmed!',
-    body: 'Hi {{customerName}},\n\n🎊 Your booking is CONFIRMED!\n\n🎯 DETAILS\n🎮 Room: {{escaperoomName}}\n📅 Date: {{bookingDate}}\n⏰ Time: {{bookingTime}}\n👥 Players: {{playerCount}}\n🎫 ID: #{{bookingId}}',
-    variables: ['customerName', 'escaperoomName', 'bookingDate', 'bookingTime', 'playerCount', 'bookingId'],
-    icon: CheckCircle,
-    description: 'Sent after successful booking',
-    isActive: true,
-    lastModified: new Date().toISOString()
-  },
-  {
-    id: 'booking-reminder',
-    name: 'Booking Reminder (24hr)',
-    category: 'transactional',
-    subject: '⏰ Tomorrow! Your {{escaperoomName}} Adventure',
-    preheader: 'Your adventure is tomorrow!',
-    body: 'Hi {{customerName}},\n\n⏰ REMINDER: Your adventure is TOMORROW!\n\n📅 Date: {{bookingDate}}\n⏰ Time: {{bookingTime}}\n📍 Location: {{businessAddress}}',
-    variables: ['customerName', 'escaperoomName', 'bookingDate', 'bookingTime', 'businessAddress'],
-    icon: Clock,
-    description: '24-hour booking reminder',
-    isActive: true,
-    lastModified: new Date().toISOString()
-  },
-  {
-    id: 'digital-waiver',
-    name: 'Digital Waiver Request',
-    category: 'transactional',
-    subject: '📝 Complete Your Waiver - {{escaperoomName}}',
-    preheader: 'Quick waiver before your visit',
-    body: 'Hi {{customerName}},\n\n📝 Please complete your digital waiver:\n{{waiverLink}}\n\n⏱️ Takes 2 minutes\n✅ Required before arrival',
-    variables: ['customerName', 'escaperoomName', 'waiverLink'],
-    icon: MessageSquare,
-    description: 'Waiver completion request',
-    isActive: true,
-    lastModified: new Date().toISOString()
-  },
-  {
-    id: 'referral-program',
-    name: 'Referral Rewards Program',
-    category: 'engagement',
-    subject: '💰 Give $20, Get $20 - Share the Fun!',
-    preheader: 'Earn rewards by sharing',
-    body: 'Hi {{customerName}},\n\n💰 Share your referral code: {{referralCode}}\n\n🎁 They get $20 off\n💵 You earn $20 credit\n\nShare now: {{referralLink}}',
-    variables: ['customerName', 'referralCode', 'referralLink'],
-    icon: Gift,
-    description: 'Referral program invitation',
-    isActive: true,
-    lastModified: new Date().toISOString()
-  },
-  {
-    id: 'welcome-email',
-    name: 'Welcome Email',
-    category: 'engagement',
-    subject: '👋 Welcome to {{businessName}}!',
-    preheader: 'Start your adventure today',
-    body: 'Hi {{customerName}},\n\n👋 Welcome to {{businessName}}!\n\n🎮 Explore our rooms\n🎁 Get 10% off first booking\nCode: WELCOME10',
-    variables: ['customerName', 'businessName'],
-    icon: UserPlus,
-    description: 'New customer welcome',
-    isActive: true,
-    lastModified: new Date().toISOString()
-  },
-  {
-    id: 'review-request',
-    name: 'Review Request',
-    category: 'engagement',
-    subject: '⭐ How Was Your {{escaperoomName}} Experience?',
-    preheader: 'Share your feedback',
-    body: 'Hi {{customerName}},\n\n⭐ Please review your experience:\n\n📍 Google: {{googleReviewLink}}\n📘 Facebook: {{facebookReviewLink}}\n\n🎁 Get 20% off next booking (code: REVIEW20)',
-    variables: ['customerName', 'escaperoomName', 'googleReviewLink', 'facebookReviewLink'],
-    icon: Star,
-    description: 'Post-visit review request',
-    isActive: true,
-    lastModified: new Date().toISOString()
-  },
-  {
-    id: 'post-visit-survey',
-    name: 'Post-Visit Survey',
-    category: 'engagement',
-    subject: '📊 Quick Survey + 15% OFF Your Next Visit',
-    preheader: '2 minutes = 15% discount',
-    body: 'Hi {{customerName}},\n\n📊 Take our 2-minute survey:\n{{surveyLink}}\n\n🎁 Get 15% OFF (code: SURVEY15)\n🏆 Enter prize draw',
-    variables: ['customerName', 'surveyLink'],
-    icon: MessageSquare,
-    description: 'Feedback survey with incentive',
-    isActive: true,
-    lastModified: new Date().toISOString()
-  },
-  {
-    id: 'cancellation-confirmation',
-    name: 'Cancellation Confirmation',
-    category: 'transactional',
-    subject: 'Booking Cancelled - We Hope to See You Soon',
-    preheader: 'Your cancellation has been processed',
-    body: 'Hi {{customerName}},\n\n❌ CANCELLED\nBooking ID: #{{bookingId}}\n\n💰 Refund: ${{refundAmount}}\nExpected: {{expectedRefundDate}}\n\n🎯 Rebook with COMEBACK10 for 10% off',
-    variables: ['customerName', 'bookingId', 'refundAmount', 'expectedRefundDate'],
-    icon: XCircle,
-    description: 'Cancellation confirmation',
-    isActive: true,
-    lastModified: new Date().toISOString()
-  },
-  {
-    id: 'win-back-campaign',
-    name: 'Win-Back Campaign',
-    category: 'marketing',
-    subject: 'We Miss You! Come Back for 25% Off 💙',
-    preheader: 'Special offer just for you',
-    body: 'Hi {{customerName}},\n\n💙 We miss you! It\'s been {{daysSinceLastVisit}} days.\n\n🎁 Come back for 25% OFF\nCode: WELCOME25\nValid: {{offerValidDays}} days\n\nBook now: {{bookingLink}}',
-    variables: ['customerName', 'daysSinceLastVisit', 'offerValidDays', 'bookingLink'],
-    icon: TrendingUp,
-    description: 'Re-engage inactive customers',
-    isActive: true,
-    lastModified: new Date().toISOString()
-  }
-];
 
 export function Marketing() {
   const { theme } = useTheme();
@@ -226,38 +87,6 @@ export function Marketing() {
   const [showCreateGiftCardDialog, setShowCreateGiftCardDialog] = useState(false);
   const [showEmailCampaignDialog, setShowEmailCampaignDialog] = useState(false);
   const [showAffiliateDialog, setShowAffiliateDialog] = useState(false);
-  const [showCreateWorkflowDialog, setShowCreateWorkflowDialog] = useState(false);
-  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
-  const [showTemplatePreview, setShowTemplatePreview] = useState(false);
-  const [workflowStates, setWorkflowStates] = useState<Record<string, boolean>>({});
-  const [showEditTemplateDialog, setShowEditTemplateDialog] = useState(false);
-  const [templateToEdit, setTemplateToEdit] = useState<EmailTemplate | null>(null);
-
-  // Load email templates from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('emailTemplates');
-    if (saved) {
-      try {
-        setEmailTemplates(JSON.parse(saved));
-      } catch (error) {
-        console.error('Error loading templates:', error);
-        setEmailTemplates(getDefaultTemplates());
-      }
-    } else {
-      setEmailTemplates(getDefaultTemplates());
-    }
-    
-    // Load workflow states
-    const savedWorkflows = localStorage.getItem('workflowStates');
-    if (savedWorkflows) {
-      try {
-        setWorkflowStates(JSON.parse(savedWorkflows));
-      } catch (error) {
-        console.error('Error loading workflows:', error);
-      }
-    }
-  }, []);
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -266,65 +95,6 @@ export function Marketing() {
 
   const handleSaveSettings = () => {
     toast.success('Settings saved successfully!');
-  };
-
-  const handleUseTemplate = (template: EmailTemplate) => {
-    const updatedTemplates = emailTemplates.map(t =>
-      t.id === template.id ? { ...t, isActive: true } : t
-    );
-    localStorage.setItem('emailTemplates', JSON.stringify(updatedTemplates));
-    setEmailTemplates(updatedTemplates);
-    toast.success(`"${template.name}" is now active and ready to use!`);
-  };
-
-  const handlePreviewTemplate = (template: EmailTemplate) => {
-    setSelectedTemplate(template);
-    setShowTemplatePreview(true);
-  };
-
-  const handleEditTemplate = (template: EmailTemplate) => {
-    setTemplateToEdit(template);
-    setShowEditTemplateDialog(true);
-  };
-
-  const handleSaveEditedTemplate = (editedTemplate: EmailTemplate) => {
-    const updatedTemplates = emailTemplates.map(t =>
-      t.id === editedTemplate.id ? { ...editedTemplate, lastModified: new Date().toISOString() } : t
-    );
-    localStorage.setItem('emailTemplates', JSON.stringify(updatedTemplates));
-    setEmailTemplates(updatedTemplates);
-    setShowEditTemplateDialog(false);
-    setTemplateToEdit(null);
-    toast.success(`\"${editedTemplate.name}\" has been updated successfully!`);
-  };
-
-  const handleCancelEdit = () => {
-    setShowEditTemplateDialog(false);
-    setTemplateToEdit(null);
-  };
-
-  const handleToggleWorkflow = (templateId: string, enabled: boolean) => {
-    const newStates = { ...workflowStates, [templateId]: enabled };
-    setWorkflowStates(newStates);
-    localStorage.setItem('workflowStates', JSON.stringify(newStates));
-    
-    const template = emailTemplates.find(t => t.id === templateId);
-    if (template) {
-      toast.success(
-        enabled 
-          ? `"${template.name}" workflow activated!` 
-          : `"${template.name}" workflow deactivated`
-      );
-    }
-  };
-
-  const handleCreateNewTemplate = () => {
-    window.location.href = '/email-templates';
-    toast.info('Opening Email Templates page to create new template...');
-  };
-
-  const handleCreateWorkflow = () => {
-    setShowCreateWorkflowDialog(true);
   };
 
   return (
@@ -1544,184 +1314,63 @@ export function Marketing() {
             <Card className={`${cardBgClass} border ${borderClass} shadow-sm`}>
               <CardHeader>
                 <CardTitle className={textClass}>Email Templates</CardTitle>
-                <p className={`text-sm ${textMutedClass}`}>Pre-built email templates ({emailTemplates.length} available)</p>
+                <p className={`text-sm ${textMutedClass}`}>Pre-built email templates</p>
               </CardHeader>
-              <CardContent className="space-y-3 max-h-[600px] overflow-y-auto">
-                {emailTemplates.map((template) => {
-                  const Icon = template.icon;
-                  return (
-                    <div key={template.id} className={`flex items-center justify-between p-3 border rounded-lg ${borderClass} ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50'} transition-colors`}>
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className={`w-8 h-8 rounded-lg ${isDark ? 'bg-indigo-900/30' : 'bg-indigo-100'} flex items-center justify-center flex-shrink-0`}>
-                          <Icon className={`w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-sm ${textClass} truncate`}>{template.name}</span>
-                            {template.isActive && (
-                              <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-300 dark:border-green-800">
-                                Active
-                              </Badge>
-                            )}
-                          </div>
-                          <p className={`text-xs ${textMutedClass} truncate`}>{template.description}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => handlePreviewTemplate(template)}
-                          className="h-8 px-2"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => handleEditTemplate(template)}
-                          className="h-8 px-2"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleUseTemplate(template)}
-                          disabled={template.isActive}
-                          className={`h-8 ${isDark ? 'bg-[#4f46e5] hover:bg-[#4338ca] text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'} ${template.isActive ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          {template.isActive ? 'In Use' : 'Use'}
-                        </Button>
-                      </div>
+              <CardContent className="space-y-3">
+                {['Welcome Email', 'Booking Confirmation', 'Post-Visit Survey', 'Win-Back Campaign'].map((template) => (
+                  <div key={template} className={`flex items-center justify-between p-3 border rounded-lg ${borderClass}`}>
+                    <div className="flex items-center gap-3">
+                      <Mail className={`w-5 h-5 ${isDark ? 'text-[#6366f1]' : 'text-blue-600'}`} />
+                      <span className={`text-sm ${textClass}`}>{template}</span>
                     </div>
-                  );
-                })}
+                    <Button size="sm" variant="outline">Use Template</Button>
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
             <Card className={`${cardBgClass} border ${borderClass} shadow-sm`}>
               <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div>
-                    <CardTitle className={textClass}>Automated Workflows</CardTitle>
-                    <p className={`text-sm ${textMutedClass} mt-1`}>
-                      Enable/disable email automation ({emailTemplates.length} templates available)
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleCreateNewTemplate}
-                      className={isDark ? 'border-[#2a2a2a] text-white hover:bg-[#1e1e1e]' : ''}
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      New Template
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleCreateWorkflow}
-                      className={isDark ? 'bg-[#4f46e5] hover:bg-[#4338ca] text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      New Workflow
-                    </Button>
-                  </div>
-                </div>
+                <CardTitle className={textClass}>Automated Workflows</CardTitle>
+                <p className={`text-sm ${textMutedClass}`}>Set up email automation</p>
               </CardHeader>
-              <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
-                {emailTemplates.length === 0 ? (
-                  <div className={`text-center py-8 ${textMutedClass}`}>
-                    <Mail className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                    <p>No email templates available</p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleCreateNewTemplate}
-                      className="mt-3"
-                    >
-                      Create Your First Template
-                    </Button>
+              <CardContent className="space-y-3">
+                <div className={`flex items-center justify-between p-3 border rounded-lg ${borderClass}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? 'bg-emerald-500/20' : 'bg-green-100'}`}>
+                      <CheckCircle className={`w-4 h-4 ${isDark ? 'text-emerald-400' : 'text-green-600'}`} />
+                    </div>
+                    <div>
+                      <p className={`text-sm ${textClass}`}>Welcome Series</p>
+                      <p className={`text-xs ${textMutedClass}`}>3 emails • Active</p>
+                    </div>
                   </div>
-                ) : (
-                  emailTemplates.map((template) => {
-                    const Icon = template.icon;
-                    const isEnabled = workflowStates[template.id] ?? false;
-                    
-                    return (
-                      <div 
-                        key={template.id} 
-                        className={`flex items-center justify-between p-3 border rounded-lg transition-all ${borderClass} ${
-                          isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50'
-                        } ${isEnabled ? (isDark ? 'bg-emerald-900/10 border-emerald-800/40' : 'bg-green-50 border-green-200') : ''}`}
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            isEnabled 
-                              ? (isDark ? 'bg-emerald-500/20' : 'bg-green-100')
-                              : (isDark ? 'bg-[#2a2a2a]' : 'bg-gray-100')
-                          }`}>
-                            <Icon className={`w-4 h-4 ${
-                              isEnabled
-                                ? (isDark ? 'text-emerald-400' : 'text-green-600')
-                                : (isDark ? 'text-[#a3a3a3]' : 'text-gray-600')
-                            }`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className={`text-sm truncate ${textClass}`}>{template.name}</p>
-                              {isEnabled && (
-                                <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-300 dark:border-green-800">
-                                  Active
-                                </Badge>
-                              )}
-                              <Badge 
-                                variant="outline"
-                                className={`text-xs ${
-                                  template.category === 'transactional'
-                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-300 dark:border-blue-800'
-                                    : template.category === 'marketing'
-                                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-purple-300 dark:border-purple-800'
-                                    : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-orange-300 dark:border-orange-800'
-                                }`}
-                              >
-                                {template.category}
-                              </Badge>
-                            </div>
-                            <p className={`text-xs ${textMutedClass} truncate mt-0.5`}>
-                              {template.description}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handlePreviewTemplate(template)}
-                            className={`h-8 px-2 ${isDark ? 'hover:bg-[#1e1e1e] text-white' : 'hover:bg-gray-100'}`}
-                            title="Preview template"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEditTemplate(template)}
-                            className={`h-8 px-2 ${isDark ? 'hover:bg-[#1e1e1e] text-white' : 'hover:bg-gray-100'}`}
-                            title="Edit template"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Switch
-                            checked={isEnabled}
-                            onCheckedChange={(checked) => handleToggleWorkflow(template.id, checked)}
-                            className={isEnabled ? 'data-[state=checked]:bg-green-600' : ''}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
+                  <Switch checked={true} />
+                </div>
+                <div className={`flex items-center justify-between p-3 border rounded-lg ${borderClass}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? 'bg-emerald-500/20' : 'bg-green-100'}`}>
+                      <CheckCircle className={`w-4 h-4 ${isDark ? 'text-emerald-400' : 'text-green-600'}`} />
+                    </div>
+                    <div>
+                      <p className={`text-sm ${textClass}`}>Post-Booking</p>
+                      <p className={`text-xs ${textMutedClass}`}>2 emails • Active</p>
+                    </div>
+                  </div>
+                  <Switch checked={true} />
+                </div>
+                <div className={`flex items-center justify-between p-3 border rounded-lg ${borderClass}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-100'}`}>
+                      <Clock className={`w-4 h-4 ${isDark ? 'text-[#a3a3a3]' : 'text-gray-600'}`} />
+                    </div>
+                    <div>
+                      <p className={`text-sm ${textClass}`}>Cart Abandonment</p>
+                      <p className={`text-xs ${textMutedClass}`}>1 email • Inactive</p>
+                    </div>
+                  </div>
+                  <Switch checked={false} />
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -2359,313 +2008,6 @@ export function Marketing() {
               Add Affiliate
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Email Template Preview Dialog */}
-      <Dialog open={showTemplatePreview} onOpenChange={setShowTemplatePreview}>
-        <DialogContent className={`max-w-3xl max-h-[90vh] ${cardBgClass} border ${borderClass}`}>
-          <DialogHeader className={`border-b pb-4 ${borderClass}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {selectedTemplate && (
-                  <>
-                    <div className={`w-10 h-10 rounded-lg ${isDark ? 'bg-indigo-900/30' : 'bg-indigo-100'} flex items-center justify-center`}>
-                      {(() => {
-                        const Icon = selectedTemplate.icon;
-                        return <Icon className={`w-5 h-5 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />;
-                      })()}
-                    </div>
-                    <div>
-                      <DialogTitle className={textClass}>{selectedTemplate.name}</DialogTitle>
-                      <DialogDescription className={textMutedClass}>
-                        {selectedTemplate.description}
-                      </DialogDescription>
-                    </div>
-                  </>
-                )}
-              </div>
-              <Badge className={`${selectedTemplate?.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-300 dark:border-green-800' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'}`}>
-                {selectedTemplate?.isActive ? 'Active' : 'Inactive'}
-              </Badge>
-            </div>
-          </DialogHeader>
-
-          <ScrollArea className="max-h-[60vh]">
-            <div className="space-y-6 p-6">
-              {/* Category Badge */}
-              <div>
-                <Label className={`text-xs ${textMutedClass} uppercase tracking-wide mb-2 block`}>Category</Label>
-                <Badge className={`${
-                  selectedTemplate?.category === 'transactional' 
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-300 dark:border-blue-800'
-                    : selectedTemplate?.category === 'marketing'
-                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-purple-300 dark:border-purple-800'
-                    : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-300 dark:border-green-800'
-                }`}>
-                  {selectedTemplate?.category}
-                </Badge>
-              </div>
-
-              {/* Subject Line */}
-              <div>
-                <Label className={`text-sm ${textMutedClass} mb-2 block`}>Subject Line</Label>
-                <div className={`p-4 rounded-lg ${isDark ? 'bg-[#1e1e1e]' : 'bg-gray-50'} border ${borderClass}`}>
-                  <p className={`text-sm ${textClass}`}>{selectedTemplate?.subject}</p>
-                </div>
-              </div>
-
-              {/* Preheader */}
-              <div>
-                <Label className={`text-sm ${textMutedClass} mb-2 block`}>Preheader Text</Label>
-                <div className={`p-4 rounded-lg ${isDark ? 'bg-[#1e1e1e]' : 'bg-gray-50'} border ${borderClass}`}>
-                  <p className={`text-sm ${textClass}`}>{selectedTemplate?.preheader}</p>
-                </div>
-              </div>
-
-              {/* Email Body */}
-              <div>
-                <Label className={`text-sm ${textMutedClass} mb-2 block`}>Email Body</Label>
-                <div className={`p-4 rounded-lg ${isDark ? 'bg-[#1e1e1e]' : 'bg-gray-50'} border ${borderClass}`}>
-                  <pre className={`text-sm ${textClass} whitespace-pre-wrap font-sans`}>
-                    {selectedTemplate?.body}
-                  </pre>
-                </div>
-              </div>
-
-              {/* Dynamic Variables */}
-              <div>
-                <Label className={`text-sm ${textMutedClass} mb-2 block`}>
-                  Dynamic Variables ({selectedTemplate?.variables.length})
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  {selectedTemplate?.variables.map((variable, index) => (
-                    <Badge
-                      key={index}
-                      variant="outline"
-                      className={`text-xs ${isDark ? 'bg-[#1e1e1e] border-[#2a2a2a] text-gray-400' : 'bg-white border-gray-200 text-gray-600'}`}
-                    >
-                      {`{{${variable}}}`}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Last Modified */}
-              <div>
-                <Label className={`text-xs ${textMutedClass} block`}>
-                  Last modified: {selectedTemplate && new Date(selectedTemplate.lastModified).toLocaleString()}
-                </Label>
-              </div>
-            </div>
-          </ScrollArea>
-
-          <DialogFooter className={`border-t pt-4 ${borderClass}`}>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowTemplatePreview(false)}
-              className={isDark ? 'border-[#2a2a2a] text-white hover:bg-[#1e1e1e]' : ''}
-            >
-              Close
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => {
-                if (selectedTemplate) {
-                  handleEditTemplate(selectedTemplate);
-                  setShowTemplatePreview(false);
-                }
-              }}
-              className={isDark ? 'border-[#2a2a2a] text-white hover:bg-[#1e1e1e]' : ''}
-            >
-              <Pencil className="w-4 h-4 mr-2" />
-              Edit Template
-            </Button>
-            {selectedTemplate && !selectedTemplate.isActive && (
-              <Button 
-                onClick={() => {
-                  handleUseTemplate(selectedTemplate);
-                  setShowTemplatePreview(false);
-                }}
-                className={isDark ? 'bg-[#4f46e5] hover:bg-[#4338ca] text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}
-              >
-                Use Template
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Workflow Dialog */}
-      <Dialog open={showCreateWorkflowDialog} onOpenChange={setShowCreateWorkflowDialog}>
-        <DialogContent className={`max-w-2xl ${cardBgClass} border ${borderClass}`}>
-          <DialogHeader>
-            <DialogTitle className={textClass}>Create New Automated Workflow</DialogTitle>
-            <DialogDescription className={textMutedClass}>
-              Set up automated email sequences based on triggers and conditions
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-5 py-4">
-            {/* Workflow Name */}
-            <div className="space-y-2">
-              <Label className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Workflow Name
-              </Label>
-              <Input
-                placeholder="e.g., Post-Booking Follow-up Series"
-                className={`h-12 ${isDark ? 'bg-[#1e1e1e] border-[#2a2a2a] text-white placeholder:text-gray-500' : 'bg-gray-100 border-gray-300 placeholder:text-gray-500'}`}
-              />
-            </div>
-
-            {/* Trigger Event */}
-            <div className="space-y-2">
-              <Label className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Trigger Event
-              </Label>
-              <Select defaultValue="booking-confirmed">
-                <SelectTrigger className={`h-12 ${isDark ? 'bg-[#1e1e1e] border-[#2a2a2a] text-white' : 'bg-gray-100 border-gray-300'}`}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className={isDark ? 'bg-[#1e1e1e] border-[#2a2a2a]' : ''}>
-                  <SelectItem value="booking-confirmed">Booking Confirmed</SelectItem>
-                  <SelectItem value="booking-cancelled">Booking Cancelled</SelectItem>
-                  <SelectItem value="customer-signup">New Customer Signup</SelectItem>
-                  <SelectItem value="visit-completed">Visit Completed</SelectItem>
-                  <SelectItem value="abandoned-cart">Cart Abandoned</SelectItem>
-                  <SelectItem value="payment-received">Payment Received</SelectItem>
-                  <SelectItem value="review-requested">Review Requested</SelectItem>
-                  <SelectItem value="custom-date">Custom Date/Time</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Email Template Selection */}
-            <div className="space-y-2">
-              <Label className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Email Template
-              </Label>
-              <Select>
-                <SelectTrigger className={`h-12 ${isDark ? 'bg-[#1e1e1e] border-[#2a2a2a] text-white' : 'bg-gray-100 border-gray-300'}`}>
-                  <SelectValue placeholder="Select an email template" />
-                </SelectTrigger>
-                <SelectContent className={isDark ? 'bg-[#1e1e1e] border-[#2a2a2a]' : ''}>
-                  {emailTemplates.map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
-                      {template.name} ({template.category})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Delay Settings */}
-            <div className="space-y-2">
-              <Label className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Send Delay
-              </Label>
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  type="number"
-                  placeholder="0"
-                  defaultValue="0"
-                  min="0"
-                  className={`h-12 ${isDark ? 'bg-[#1e1e1e] border-[#2a2a2a] text-white placeholder:text-gray-500' : 'bg-gray-100 border-gray-300 placeholder:text-gray-500'}`}
-                />
-                <Select defaultValue="minutes">
-                  <SelectTrigger className={`h-12 ${isDark ? 'bg-[#1e1e1e] border-[#2a2a2a] text-white' : 'bg-gray-100 border-gray-300'}`}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className={isDark ? 'bg-[#1e1e1e] border-[#2a2a2a]' : ''}>
-                    <SelectItem value="minutes">Minutes</SelectItem>
-                    <SelectItem value="hours">Hours</SelectItem>
-                    <SelectItem value="days">Days</SelectItem>
-                    <SelectItem value="weeks">Weeks</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <p className={`text-xs ${textMutedClass}`}>
-                Email will be sent after this delay from the trigger event
-              </p>
-            </div>
-
-            {/* Conditions */}
-            <div className="space-y-2">
-              <Label className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Conditions (Optional)
-              </Label>
-              <Textarea
-                placeholder="e.g., Only send if booking value > $100"
-                rows={3}
-                className={`${isDark ? 'bg-[#1e1e1e] border-[#2a2a2a] text-white placeholder:text-gray-500' : 'bg-gray-100 border-gray-300 placeholder:text-gray-500'}`}
-              />
-            </div>
-
-            {/* Active Toggle */}
-            <div className={`flex items-center justify-between p-4 rounded-lg border ${borderClass} ${isDark ? 'bg-[#1e1e1e]' : 'bg-gray-50'}`}>
-              <div>
-                <Label className={`text-sm ${textClass}`}>Activate Immediately</Label>
-                <p className={`text-xs ${textMutedClass} mt-1`}>Start sending emails as soon as workflow is created</p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-
-            {/* Workflow Preview */}
-            <div className={`p-4 rounded-lg border ${borderClass} ${isDark ? 'bg-[#1e1e1e]' : 'bg-blue-50'}`}>
-              <div className="flex items-start gap-3">
-                <div className={`w-8 h-8 rounded-lg ${isDark ? 'bg-indigo-900/30' : 'bg-indigo-100'} flex items-center justify-center flex-shrink-0`}>
-                  <Send className={`w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                </div>
-                <div className="flex-1">
-                  <p className={`text-sm ${textClass}`}>Workflow Preview</p>
-                  <p className={`text-xs ${textMutedClass} mt-1`}>
-                    When <strong>booking is confirmed</strong>, send <strong>selected template</strong> after <strong>0 minutes</strong>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className={`border-t pt-4 ${borderClass}`}>
-            <Button
-              variant="outline"
-              onClick={() => setShowCreateWorkflowDialog(false)}
-              className={isDark ? 'border-[#2a2a2a] text-white hover:bg-[#1e1e1e]' : ''}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                setShowCreateWorkflowDialog(false);
-                toast.success('Workflow created successfully! Enable it in the list to activate.');
-              }}
-              className={isDark ? 'bg-[#4f46e5] hover:bg-[#4338ca] text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Create Workflow
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Template Dialog */}
-      <Dialog open={showEditTemplateDialog} onOpenChange={setShowEditTemplateDialog}>
-        <DialogContent 
-          className={`max-w-7xl max-h-[90vh] overflow-y-auto p-0 ${isDark ? 'bg-[#161616] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}
-        >
-          <DialogHeader className="sr-only">
-            <DialogTitle>Edit Email Template</DialogTitle>
-            <DialogDescription>
-              Customize the email template content, subject, and settings
-            </DialogDescription>
-          </DialogHeader>
-          {templateToEdit && (
-            <EmailTemplateEditor
-              template={templateToEdit}
-              onSave={handleSaveEditedTemplate}
-              onCancel={handleCancelEdit}
-            />
-          )}
         </DialogContent>
       </Dialog>
     </div>

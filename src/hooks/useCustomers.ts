@@ -70,6 +70,51 @@ export interface CustomerInsights {
   booking_frequency_per_month: number;
 }
 
+export interface GameSegment {
+  game_id: string;
+  game_name: string;
+  game_image_url: string;
+  customer_count: number;
+  total_bookings: number;
+  total_revenue: number;
+  avg_booking_value: number;
+  last_booking_date: string;
+}
+
+export interface VenueSegment {
+  venue_id: string;
+  venue_name: string;
+  customer_count: number;
+  total_bookings: number;
+  total_revenue: number;
+  avg_booking_value: number;
+  last_booking_date: string;
+}
+
+export interface GameAudienceMember {
+  customer_id: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  total_bookings: number;
+  total_spent: number;
+  last_booking_date: string;
+  first_booking_date: string;
+  avg_booking_value: number;
+}
+
+export interface VenueAudienceMember {
+  customer_id: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  total_bookings: number;
+  total_spent: number;
+  last_booking_date: string;
+  first_booking_date: string;
+  avg_booking_value: number;
+}
+
 export function useCustomers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -264,6 +309,66 @@ export function useCustomers() {
     }
   };
 
+  // Get game-based segments (each game as an audience segment)
+  const getGameSegments = async (organizationId: string): Promise<GameSegment[]> => {
+    try {
+      const { data, error: segmentsError } = await supabase
+        .rpc('get_game_segments', { org_id: organizationId });
+
+      if (segmentsError) throw segmentsError;
+
+      return data || [];
+    } catch (err: any) {
+      console.error('Error fetching game segments:', err);
+      return [];
+    }
+  };
+
+  // Get audience for a specific game
+  const getGameAudience = async (gameId: string): Promise<GameAudienceMember[]> => {
+    try {
+      const { data, error: audienceError } = await supabase
+        .rpc('get_game_audience', { p_game_id: gameId });
+
+      if (audienceError) throw audienceError;
+
+      return data || [];
+    } catch (err: any) {
+      console.error('Error fetching game audience:', err);
+      return [];
+    }
+  };
+
+  // Get venue-based segments (each venue as an audience segment)
+  const getVenueSegments = async (organizationId: string): Promise<VenueSegment[]> => {
+    try {
+      const { data, error: segmentsError } = await supabase
+        .rpc('get_venue_segments', { org_id: organizationId });
+
+      if (segmentsError) throw segmentsError;
+
+      return data || [];
+    } catch (err: any) {
+      console.error('Error fetching venue segments:', err);
+      return [];
+    }
+  };
+
+  // Get audience for a specific venue
+  const getVenueAudience = async (venueId: string): Promise<VenueAudienceMember[]> => {
+    try {
+      const { data, error: audienceError } = await supabase
+        .rpc('get_venue_audience', { p_venue_id: venueId });
+
+      if (audienceError) throw audienceError;
+
+      return data || [];
+    } catch (err: any) {
+      console.error('Error fetching venue audience:', err);
+      return [];
+    }
+  };
+
   // Real-time subscription
   useEffect(() => {
     fetchCustomers();
@@ -298,6 +403,10 @@ export function useCustomers() {
     getCustomerInsights,
     getCustomerGames,
     getCustomerVenues,
+    getGameSegments,
+    getGameAudience,
+    getVenueSegments,
+    getVenueAudience,
     refreshCustomers: fetchCustomers,
   };
 }

@@ -55,14 +55,50 @@ function SegmentCard({ name, count, percentage, color, icon, description }: Segm
 export function CustomerSegments() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const { customers, loading } = useCustomers();
+  const { customers, loading, getGameSegments, getVenueSegments } = useCustomers();
   const [segmentData, setSegmentData] = useState<any[]>([]);
+  const [gameSegments, setGameSegments] = useState<any[]>([]);
+  const [venueSegments, setVenueSegments] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'lifecycle' | 'games' | 'venues'>('lifecycle');
 
   useEffect(() => {
     if (customers.length > 0) {
       calculateSegments();
+      fetchGameAndVenueSegments();
     }
   }, [customers]);
+
+  const fetchGameAndVenueSegments = async () => {
+    // Get organization ID from first customer (they all belong to same org)
+    if (customers.length > 0) {
+      const orgId = (customers[0] as any).organization_id;
+      
+      // Fetch game segments
+      const games = await getGameSegments(orgId);
+      setGameSegments(games.map(g => ({
+        name: g.game_name,
+        count: g.customer_count,
+        percentage: customers.length > 0 ? Math.round((g.customer_count / customers.length) * 100) : 0,
+        color: '#ec4899',
+        icon: <Gamepad2 className="w-5 h-5" style={{ color: '#ec4899' }} />,
+        description: `${g.total_bookings} bookings • $${g.total_revenue.toFixed(0)} revenue`,
+        gameId: g.game_id,
+        imageUrl: g.game_image_url
+      })));
+
+      // Fetch venue segments
+      const venues = await getVenueSegments(orgId);
+      setVenueSegments(venues.map(v => ({
+        name: v.venue_name,
+        count: v.customer_count,
+        percentage: customers.length > 0 ? Math.round((v.customer_count / customers.length) * 100) : 0,
+        color: '#14b8a6',
+        icon: <Building2 className="w-5 h-5" style={{ color: '#14b8a6' }} />,
+        description: `${v.total_bookings} bookings • $${v.total_revenue.toFixed(0)} revenue`,
+        venueId: v.venue_id
+      })));
+    }
+  };
 
   const calculateSegments = () => {
     const total = customers.length;
@@ -188,14 +224,95 @@ export function CustomerSegments() {
           <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
             Real-time Data
           </Badge>
+          <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
+            {gameSegments.length} Games
+          </Badge>
+          <Badge className="bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">
+            {venueSegments.length} Venues
+          </Badge>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {segmentData.map((segment) => (
-          <SegmentCard key={segment.name} {...segment} />
-        ))}
+      {/* Segment Type Tabs */}
+      <div className={`${bgClass} ${borderClass} border rounded-lg p-4`}>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveTab('lifecycle')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              activeTab === 'lifecycle'
+                ? 'bg-blue-500 text-white'
+                : isDark ? 'bg-[#1e1e1e] text-[#a3a3a3] hover:bg-[#2a2a2a]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Lifecycle & Spending ({segmentData.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('games')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              activeTab === 'games'
+                ? 'bg-pink-500 text-white'
+                : isDark ? 'bg-[#1e1e1e] text-[#a3a3a3] hover:bg-[#2a2a2a]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <Gamepad2 className="w-4 h-4 inline mr-1" />
+            Game Audiences ({gameSegments.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('venues')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              activeTab === 'venues'
+                ? 'bg-teal-500 text-white'
+                : isDark ? 'bg-[#1e1e1e] text-[#a3a3a3] hover:bg-[#2a2a2a]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <Building2 className="w-4 h-4 inline mr-1" />
+            Venue Audiences ({venueSegments.length})
+          </button>
+        </div>
       </div>
+
+      {/* Lifecycle & Spending Segments */}
+      {activeTab === 'lifecycle' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {segmentData.map((segment) => (
+            <SegmentCard key={segment.name} {...segment} />
+          ))}
+        </div>
+      )}
+
+      {/* Game-Based Segments */}
+      {activeTab === 'games' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {gameSegments.length > 0 ? (
+            gameSegments.map((segment) => (
+              <SegmentCard key={segment.gameId || segment.name} {...segment} />
+            ))
+          ) : (
+            <div className={`${bgClass} ${borderClass} border rounded-lg p-8 col-span-full text-center`}>
+              <Gamepad2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p className={textClass}>No game segments yet</p>
+              <p className={`text-sm ${subtextClass}`}>Game segments will appear once customers start booking games</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Venue-Based Segments */}
+      {activeTab === 'venues' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {venueSegments.length > 0 ? (
+            venueSegments.map((segment) => (
+              <SegmentCard key={segment.venueId || segment.name} {...segment} />
+            ))
+          ) : (
+            <div className={`${bgClass} ${borderClass} border rounded-lg p-8 col-span-full text-center`}>
+              <Building2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p className={textClass}>No venue segments yet</p>
+              <p className={`text-sm ${subtextClass}`}>Venue segments will appear once customers start visiting venues</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Marketing Actions */}
       <div className={`${bgClass} ${borderClass} border rounded-lg p-6`}>

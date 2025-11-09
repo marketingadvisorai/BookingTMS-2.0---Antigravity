@@ -57,14 +57,10 @@ export function CustomerStats() {
   }, [customers]);
 
   const fetchMetrics = async () => {
-    if (customers.length > 0) {
-      const orgId = (customers[0] as any).organization_id;
-      if (orgId) {
-        const data = await getCustomerMetrics(orgId);
-        setMetrics(data);
-        setLoading(false);
-      }
-    }
+    // Fetch metrics (no org_id needed - single tenant)
+    const data = await getCustomerMetrics();
+    setMetrics(data);
+    setLoading(false);
   };
 
   const calculateChange = (current: number, previous: number): { value: string; trend: 'up' | 'down' } => {

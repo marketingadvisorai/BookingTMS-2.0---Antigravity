@@ -69,35 +69,30 @@ export function CustomerSegments() {
   }, [customers]);
 
   const fetchGameAndVenueSegments = async () => {
-    // Get organization ID from first customer (they all belong to same org)
-    if (customers.length > 0) {
-      const orgId = (customers[0] as any).organization_id;
-      
-      // Fetch game segments
-      const games = await getGameSegments(orgId);
-      setGameSegments(games.map(g => ({
-        name: g.game_name,
-        count: g.customer_count,
-        percentage: customers.length > 0 ? Math.round((g.customer_count / customers.length) * 100) : 0,
-        color: '#ec4899',
-        icon: <Gamepad2 className="w-5 h-5" style={{ color: '#ec4899' }} />,
-        description: `${g.total_bookings} bookings • $${g.total_revenue.toFixed(0)} revenue`,
-        gameId: g.game_id,
-        imageUrl: g.game_image_url
-      })));
+    // Fetch game segments (no org_id needed - single tenant)
+    const games = await getGameSegments();
+    setGameSegments(games.map(g => ({
+      name: g.game_name,
+      count: g.customer_count,
+      percentage: customers.length > 0 ? Math.round((g.customer_count / customers.length) * 100) : 0,
+      color: '#ec4899',
+      icon: <Gamepad2 className="w-5 h-5" style={{ color: '#ec4899' }} />,
+      description: `${g.total_bookings} bookings • $${Number(g.total_revenue).toFixed(0)} revenue`,
+      gameId: g.game_id,
+      imageUrl: g.game_image_url
+    })));
 
-      // Fetch venue segments
-      const venues = await getVenueSegments(orgId);
-      setVenueSegments(venues.map(v => ({
-        name: v.venue_name,
-        count: v.customer_count,
-        percentage: customers.length > 0 ? Math.round((v.customer_count / customers.length) * 100) : 0,
-        color: '#14b8a6',
-        icon: <Building2 className="w-5 h-5" style={{ color: '#14b8a6' }} />,
-        description: `${v.total_bookings} bookings • $${v.total_revenue.toFixed(0)} revenue`,
-        venueId: v.venue_id
-      })));
-    }
+    // Fetch venue segments (no org_id needed - single tenant)
+    const venues = await getVenueSegments();
+    setVenueSegments(venues.map(v => ({
+      name: v.venue_name,
+      count: v.customer_count,
+      percentage: customers.length > 0 ? Math.round((v.customer_count / customers.length) * 100) : 0,
+      color: '#14b8a6',
+      icon: <Building2 className="w-5 h-5" style={{ color: '#14b8a6' }} />,
+      description: `${v.total_bookings} bookings • $${Number(v.total_revenue).toFixed(0)} revenue`,
+      venueId: v.venue_id
+    })));
   };
 
   const calculateSegments = () => {

@@ -321,10 +321,10 @@ export function useCustomers() {
   };
 
   // Get game-based segments (each game as an audience segment)
-  const getGameSegments = async (organizationId: string): Promise<GameSegment[]> => {
+  const getGameSegments = async (): Promise<GameSegment[]> => {
     try {
       const { data, error: segmentsError } = await supabase
-        .rpc('get_game_segments', { org_id: organizationId });
+        .rpc('get_game_segments');
 
       if (segmentsError) throw segmentsError;
 
@@ -351,10 +351,10 @@ export function useCustomers() {
   };
 
   // Get venue-based segments (each venue as an audience segment)
-  const getVenueSegments = async (organizationId: string): Promise<VenueSegment[]> => {
+  const getVenueSegments = async (): Promise<VenueSegment[]> => {
     try {
       const { data, error: segmentsError } = await supabase
-        .rpc('get_venue_segments', { org_id: organizationId });
+        .rpc('get_venue_segments');
 
       if (segmentsError) throw segmentsError;
 
@@ -381,10 +381,10 @@ export function useCustomers() {
   };
 
   // Get customer metrics for dashboard
-  const getCustomerMetrics = async (organizationId: string): Promise<CustomerMetrics | null> => {
+  const getCustomerMetrics = async (): Promise<CustomerMetrics | null> => {
     try {
       const { data, error: metricsError } = await supabase
-        .rpc('get_customer_metrics', { org_id: organizationId });
+        .rpc('get_customer_metrics');
 
       if (metricsError) throw metricsError;
 

@@ -64,7 +64,7 @@ export function useStaff() {
     }
   };
 
-  // Create staff member (requires creating auth user first)
+  // Create staff member (creates auth user and profile)
   const createStaff = async (staffData: StaffFormData, password: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -73,28 +73,23 @@ export function useStaff() {
         throw new Error('User not authenticated');
       }
 
-      // Note: Creating auth users requires admin privileges
-      // This should typically be done via a backend API or Supabase Admin API
-      // For now, we'll create the profile assuming the auth user exists
-      
-      const { data, error: insertError } = await supabase
-        .from('user_profiles')
-        .insert([{
-          first_name: staffData.first_name,
-          last_name: staffData.last_name,
-          phone: staffData.phone,
-          role: staffData.role,
-          company: staffData.company,
-          status: 'active',
-          metadata: {
+      // Call RPC function to create staff member with auth user
+      const { data, error: rpcError } = await supabase
+        .rpc('create_staff_member', {
+          p_email: staffData.email,
+          p_password: password,
+          p_first_name: staffData.first_name,
+          p_last_name: staffData.last_name,
+          p_phone: staffData.phone,
+          p_role: staffData.role,
+          p_company: staffData.company || null,
+          p_metadata: {
             department: staffData.department,
             permissions: staffData.permissions || [],
           }
-        }])
-        .select()
-        .single();
+        });
 
-      if (insertError) throw insertError;
+      if (rpcError) throw rpcError;
 
       toast.success('Staff member created successfully!');
       await fetchStaff(); // Refresh list

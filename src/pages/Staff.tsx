@@ -67,6 +67,7 @@ import { Separator } from '../components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
 import { PageHeader } from '../components/layout/PageHeader';
+import { PermissionGuard } from '../components/auth/PermissionGuard';
 
 // Legacy interface for UI compatibility
 interface StaffMember {
@@ -189,7 +190,7 @@ export function Staff() {
   const hoverShadowClass = isDark ? 'hover:shadow-[0_0_15px_rgba(79,70,229,0.1)]' : 'hover:shadow-md';
   
   // Use Supabase staff hook
-  const { staff: dbStaff, loading, updateStaff, deleteStaff, toggleStaffStatus } = useStaff();
+  const { staff: dbStaff, loading, createStaff, updateStaff, deleteStaff, toggleStaffStatus } = useStaff();
   
   // Convert DB staff to UI format
   const staffMembers = dbStaff.map(convertStaffToUI);
@@ -214,6 +215,7 @@ export function Staff() {
     department: '',
     status: 'Active'
   });
+  const [password, setPassword] = useState('');
 
   // Calculate stats
   const stats = {
@@ -234,8 +236,13 @@ export function Staff() {
   });
 
   const handleAddStaff = async () => {
-    if (!formData.name || !formData.email || !formData.phone) {
-      toast.error('Please fill in all required fields');
+    if (!formData.name || !formData.email || !formData.phone || !password) {
+      toast.error('Please fill in all required fields including password');
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters');
       return;
     }
 
@@ -245,19 +252,14 @@ export function Staff() {
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
 
-      // Note: Creating staff requires auth user creation
-      // For now, we'll show a message that this needs backend support
-      toast.error('Staff creation requires backend API integration. Please contact administrator.');
-      
-      // TODO: Implement via backend API that creates auth user + profile
-      // await createStaff({
-      //   first_name: firstName,
-      //   last_name: lastName,
-      //   email: formData.email,
-      //   phone: formData.phone,
-      //   role: formData.role?.toLowerCase() as 'admin' | 'manager' | 'staff',
-      //   department: formData.department,
-      // }, 'temporary-password');
+      await createStaff({
+        first_name: firstName,
+        last_name: lastName,
+        email: formData.email,
+        phone: formData.phone,
+        role: formData.role?.toLowerCase() as 'admin' | 'manager' | 'staff',
+        department: formData.department,
+      }, password);
       
       setIsAddDialogOpen(false);
       setFormData({
@@ -269,6 +271,7 @@ export function Staff() {
         status: 'Active',
         avatar: undefined
       });
+      setPassword('');
     } catch (err) {
       console.error('Error adding staff:', err);
     }
@@ -428,14 +431,16 @@ export function Staff() {
         description="Manage your team members and their roles"
         sticky
         action={
-          <Button 
-            style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
-            className={isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}
-            onClick={() => setIsAddDialogOpen(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Staff Member
-          </Button>
+          <PermissionGuard permissions={['staff.create']}>
+            <Button 
+              style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
+              className={isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}
+              onClick={() => setIsAddDialogOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Staff Member
+            </Button>
+          </PermissionGuard>
         }
       />
 
@@ -842,21 +847,33 @@ export function Staff() {
                 </Select>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="department" className={textClass}>Department</Label>
-              <Select value={formData.department} onValueChange={(value) => setFormData({ ...formData, department: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Operations">Operations</SelectItem>
-                  <SelectItem value="Customer Service">Customer Service</SelectItem>
-                  <SelectItem value="Game Master">Game Master</SelectItem>
-                  <SelectItem value="Maintenance">Maintenance</SelectItem>
-                  <SelectItem value="Sales & Marketing">Sales & Marketing</SelectItem>
-                  <SelectItem value="IT">IT</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="password" className={textClass}>Password *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Minimum 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="department" className={textClass}>Department</Label>
+                <Select value={formData.department} onValueChange={(value) => setFormData({ ...formData, department: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Operations">Operations</SelectItem>
+                    <SelectItem value="Customer Service">Customer Service</SelectItem>
+                    <SelectItem value="Game Master">Game Master</SelectItem>
+                    <SelectItem value="Maintenance">Maintenance</SelectItem>
+                    <SelectItem value="Sales & Marketing">Sales & Marketing</SelectItem>
+                    <SelectItem value="IT">IT</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter className="gap-2">

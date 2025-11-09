@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTheme } from '../components/layout/ThemeContext';
+import { supabase } from '../lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -68,27 +69,69 @@ export default function WaiverForm() {
   }, []);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(WAIVER_TEMPLATES_STORAGE_KEY);
-      const templates: WaiverTemplate[] = raw ? JSON.parse(raw) : [];
-      const found = templates.find(t => t.id === templateId);
-      if (found) {
-        setTemplate(found);
-        // Initialize form with empty strings for required fields
-        const initial: Record<string, string> = {};
-        found.requiredFields?.forEach(field => {
-          initial[field] = '';
-        });
-        // Optional extras for record display
-        initial['Booking ID'] = '';
-        initial['Game'] = '';
-        setFormData(initial);
-      } else {
+    const loadTemplate = async () => {
+      try {
+        // Try to load from Supabase first
+        const { data, error } = await supabase
+          .from('waiver_templates')
+          .select('*')
+          .eq('id', templateId)
+          .single();
+
+        if (error) {
+          console.error('Supabase error loading template:', error);
+          // Fallback to localStorage
+          const raw = localStorage.getItem(WAIVER_TEMPLATES_STORAGE_KEY);
+          const templates: WaiverTemplate[] = raw ? JSON.parse(raw) : [];
+          const found = templates.find(t => t.id === templateId);
+          if (found) {
+            setTemplate(found);
+            initializeForm(found);
+          } else {
+            setNotFound(true);
+          }
+          return;
+        }
+
+        if (data) {
+          // Transform database template to UI format
+          const dbTemplate: WaiverTemplate = {
+            id: data.id,
+            name: data.name,
+            description: data.description || '',
+            type: data.type,
+            content: data.content,
+            status: data.status as 'active' | 'inactive' | 'draft',
+            requiredFields: Array.isArray(data.required_fields) ? data.required_fields : [],
+            assignedGames: Array.isArray(data.assigned_games) ? data.assigned_games : [],
+            createdDate: data.created_at ? formatDisplayDate(new Date(data.created_at)) : '',
+            lastModified: data.updated_at ? formatDisplayDate(new Date(data.updated_at)) : '',
+            usageCount: data.usage_count || 0
+          };
+          setTemplate(dbTemplate);
+          initializeForm(dbTemplate);
+        } else {
+          setNotFound(true);
+        }
+      } catch (err) {
+        console.error('Failed to load template for WaiverForm', err);
         setNotFound(true);
       }
-    } catch (err) {
-      console.error('Failed to load templates for WaiverForm', err);
-      setNotFound(true);
+    };
+
+    const initializeForm = (tmpl: WaiverTemplate) => {
+      const initial: Record<string, string> = {};
+      tmpl.requiredFields?.forEach(field => {
+        initial[field] = '';
+      });
+      // Optional extras for record display
+      initial['Booking ID'] = '';
+      initial['Game'] = '';
+      setFormData(initial);
+    };
+
+    if (templateId) {
+      loadTemplate();
     }
   }, [templateId]);
 
@@ -136,7 +179,7 @@ export default function WaiverForm() {
     return formData['Email'] || formData['Parent Email'] || '-';
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!template) return;
 
     // Validate required fields
@@ -151,31 +194,73 @@ export default function WaiverForm() {
     }
 
     const now = new Date();
-    const newRecord = {
-      id: `WV-${String(now.getTime()).slice(-6)}`,
-      customer: getCustomerName(),
-      email: getEmail(),
-      booking: formData['Booking ID'] || '-',
-      game: formData['Game'] || (template.assignedGames?.[0] || 'Unknown'),
-      signedDate: formatDisplayDate(now),
-      status: 'signed' as const,
-      templateName: template.name,
-      content: filledContent,
-    };
-
+    const waiverCode = `WV-${String(now.getTime()).slice(-6)}`;
+    
     try {
-      const rawWaivers = localStorage.getItem(WAIVERS_STORAGE_KEY);
-      const waivers = rawWaivers ? JSON.parse(rawWaivers) : [];
-      waivers.unshift(newRecord);
-      localStorage.setItem(WAIVERS_STORAGE_KEY, JSON.stringify(waivers));
+      // Create waiver record in Supabase
+      const { data: waiverData, error: waiverError } = await supabase
+        .from('waivers')
+        .insert({
+          waiver_code: waiverCode,
+          template_id: template.id,
+          participant_name: getCustomerName(),
+          participant_email: getEmail(),
+          participant_phone: formData['Phone'] || formData['Parent Phone'] || '',
+          booking_id: formData['Booking ID'] || null,
+          game_name: formData['Game'] || (template.assignedGames?.[0] || 'Unknown'),
+          status: 'signed',
+          signed_at: now.toISOString(),
+          waiver_content: filledContent,
+          form_data: formData,
+          is_minor: !!(formData['Minor Name'] || formData['Parent/Guardian Name']),
+          attendee_name: getCustomerName(),
+          attendee_email: getEmail(),
+          attendee_phone: formData['Phone'] || formData['Parent Phone'] || '',
+          check_in_status: 'pending'
+        } as any)
+        .select()
+        .single();
+
+      if (waiverError) {
+        console.error('Supabase waiver error:', waiverError);
+        throw waiverError;
+      }
 
       // Increment usage count for template
-      const rawTemplates = localStorage.getItem(WAIVER_TEMPLATES_STORAGE_KEY);
-      const templates: WaiverTemplate[] = rawTemplates ? JSON.parse(rawTemplates) : [];
-      const updated = templates.map(t => t.id === template.id ? { ...t, usageCount: (t.usageCount || 0) + 1, lastModified: formatDisplayDate(now) } : t);
-      localStorage.setItem(WAIVER_TEMPLATES_STORAGE_KEY, JSON.stringify(updated));
+      const { error: templateError } = await supabase
+        .from('waiver_templates')
+        .update({ 
+          usage_count: (template.usageCount || 0) + 1,
+          updated_at: now.toISOString()
+        } as any)
+        .eq('id', template.id);
 
-      toast.success('Waiver signed and saved!');
+      if (templateError) {
+        console.error('Template update error:', templateError);
+      }
+
+      // Also save to localStorage as backup
+      try {
+        const newRecord = {
+          id: waiverCode,
+          customer: getCustomerName(),
+          email: getEmail(),
+          booking: formData['Booking ID'] || '-',
+          game: formData['Game'] || (template.assignedGames?.[0] || 'Unknown'),
+          signedDate: formatDisplayDate(now),
+          status: 'signed' as const,
+          templateName: template.name,
+          content: filledContent,
+        };
+        const rawWaivers = localStorage.getItem(WAIVERS_STORAGE_KEY);
+        const waivers = rawWaivers ? JSON.parse(rawWaivers) : [];
+        waivers.unshift(newRecord);
+        localStorage.setItem(WAIVERS_STORAGE_KEY, JSON.stringify(waivers));
+      } catch (localErr) {
+        console.error('localStorage backup failed:', localErr);
+      }
+
+      toast.success('Waiver signed and saved to database!');
       setShowPreview(true);
     } catch (err) {
       console.error('Failed to save waiver record', err);
@@ -365,8 +450,8 @@ export default function WaiverForm() {
                 </div>
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => window.location.href = '/'}>Go to Admin</Button>
-                <Button onClick={() => window.close()}>Close</Button>
+                <Button variant="outline" onClick={() => window.location.href = '/waivers'}>Go to Admin</Button>
+                <Button onClick={() => setShowPreview(false)}>Close</Button>
               </div>
             </DialogContent>
           </Dialog>

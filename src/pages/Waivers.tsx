@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import { useTheme } from '../components/layout/ThemeContext';
-import { supabase } from '../lib/supabase';
+import { supabase, handleSupabaseError } from '../lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -44,7 +44,8 @@ import {
   Scan,
   Search,
   Filter,
-  X
+  X,
+  Code
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -72,24 +73,178 @@ import { PageHeader } from '../components/layout/PageHeader';
 
 interface WaiverRecord {
   id: string;
-  waiver_code: string;
-  participant_name: string;
-  participant_email: string;
-  booking_id: string | null;
-  customer_id: string | null;
-  template_name: string;
-  signed_at: string | null;
-  status: 'signed' | 'pending' | 'expired' | 'revoked';
-  // For display purposes
-  customer?: string;
-  email?: string;
-  booking?: string;
-  game?: string;
-  signedDate?: string;
-  templateName?: string;
+  customer: string;
+  email: string;
+  booking: string;
+  game: string;
+  signedDate: string;
+  status: 'signed' | 'pending';
+  templateName: string;
 }
 
-// Mock data removed - now using Supabase
+const waiversData: WaiverRecord[] = [
+  {
+    id: 'WV-1001',
+    customer: 'Sarah Johnson',
+    email: 'sarah.j@email.com',
+    booking: 'BK-1001',
+    game: 'Mystery Manor',
+    signedDate: 'Oct 29, 2025',
+    status: 'signed',
+    templateName: 'Standard Liability Waiver',
+  },
+  {
+    id: 'WV-1002',
+    customer: 'Mike Chen',
+    email: 'mike.c@email.com',
+    booking: 'BK-1002',
+    game: 'Space Odyssey',
+    signedDate: 'Oct 29, 2025',
+    status: 'signed',
+    templateName: 'Standard Liability Waiver',
+  },
+  {
+    id: 'WV-1003',
+    customer: 'Emily Davis',
+    email: 'emily.d@email.com',
+    booking: 'BK-1003',
+    game: 'Zombie Outbreak',
+    signedDate: 'Oct 28, 2025',
+    status: 'signed',
+    templateName: 'Standard Liability Waiver',
+  },
+  {
+    id: 'WV-1004',
+    customer: 'Alex Thompson',
+    email: 'alex.t@email.com',
+    booking: 'BK-1004',
+    game: 'Treasure Hunt',
+    signedDate: 'Oct 28, 2025',
+    status: 'signed',
+    templateName: 'Minor Participant Waiver',
+  },
+  {
+    id: 'WV-1005',
+    customer: 'David Kim',
+    email: 'david.k@email.com',
+    booking: 'BK-1006',
+    game: 'Prison Break',
+    signedDate: '-',
+    status: 'pending',
+    templateName: 'Standard Liability Waiver',
+  },
+  {
+    id: 'WV-1006',
+    customer: 'Jessica Brown',
+    email: 'jessica.b@email.com',
+    booking: 'BK-1007',
+    game: 'Wizards Quest',
+    signedDate: 'Oct 27, 2025',
+    status: 'signed',
+    templateName: 'Photo Release Waiver',
+  },
+];
+
+const emailTemplatesData: EmailTemplate[] = [
+  {
+    id: 'EMAIL-001',
+    name: 'Waiver Request Email',
+    description: 'Sent to customers after booking to request waiver signature',
+    subject: 'Sign Your Waiver - {GAME_NAME} on {BOOKING_DATE}',
+    body: `Hi {CUSTOMER_NAME},
+
+Thank you for booking with us! You have an upcoming experience:
+
+📅 Game: {GAME_NAME}
+📍 Date: {BOOKING_DATE} at {BOOKING_TIME}
+🎫 Booking ID: {BOOKING_NUMBER}
+
+Before your visit, please sign your waiver:
+
+{QR_CODE}
+
+👉 Or click here: {WAIVER_LINK}
+
+This will only take 2 minutes and helps us ensure a smooth check-in process.
+
+See you soon!
+{BUSINESS_NAME}
+
+---
+Questions? Reply to this email or call us at {BUSINESS_PHONE}`,
+    type: 'waiver_request',
+    status: 'active',
+    variables: ['{CUSTOMER_NAME}', '{GAME_NAME}', '{BOOKING_DATE}', '{BOOKING_TIME}', '{BOOKING_NUMBER}', '{QR_CODE}', '{WAIVER_LINK}', '{BUSINESS_NAME}', '{BUSINESS_PHONE}'],
+    lastModified: 'Nov 9, 2025',
+  },
+  {
+    id: 'EMAIL-002',
+    name: 'Waiver Confirmation Email',
+    description: 'Sent after customer signs the waiver successfully',
+    subject: 'Waiver Signed ✓ - Ready for Your Visit',
+    body: `Hi {CUSTOMER_NAME},
+
+Great news! Your waiver has been signed successfully.
+
+✅ Waiver Code: {WAIVER_CODE}
+
+{QR_CODE}
+
+Show this QR code when you arrive for quick check-in.
+
+📋 Booking Details:
+• Game: {GAME_NAME}
+• Date: {BOOKING_DATE} at {BOOKING_TIME}
+• Location: {VENUE_ADDRESS}
+• Booking ID: {BOOKING_NUMBER}
+
+💡 Pro tip: Save this email or take a screenshot of the QR code for easy access.
+
+We're excited to see you!
+{BUSINESS_NAME}
+
+---
+Need to make changes? Contact us at {BUSINESS_EMAIL}`,
+    type: 'waiver_confirmation',
+    status: 'active',
+    variables: ['{CUSTOMER_NAME}', '{WAIVER_CODE}', '{QR_CODE}', '{GAME_NAME}', '{BOOKING_DATE}', '{BOOKING_TIME}', '{VENUE_ADDRESS}', '{BOOKING_NUMBER}', '{BUSINESS_NAME}', '{BUSINESS_EMAIL}'],
+    lastModified: 'Nov 9, 2025',
+  },
+  {
+    id: 'EMAIL-003',
+    name: 'Waiver Reminder Email',
+    description: 'Sent as a reminder if waiver is not signed before the booking',
+    subject: '⏰ Reminder: Sign Your Waiver - Visit Tomorrow',
+    body: `Hi {CUSTOMER_NAME},
+
+This is a friendly reminder that your waiver is still pending.
+
+⚠️ Your visit is coming up:
+• Game: {GAME_NAME}
+• Date: {BOOKING_DATE} at {BOOKING_TIME}
+• Booking ID: {BOOKING_NUMBER}
+
+Please sign your waiver now to avoid delays at check-in:
+
+{QR_CODE}
+
+👉 Quick sign: {WAIVER_LINK}
+
+It only takes 2 minutes!
+
+If you've already signed, please disregard this message.
+
+See you soon!
+{BUSINESS_NAME}
+
+---
+Questions? Contact us at {BUSINESS_PHONE} or {BUSINESS_EMAIL}`,
+    type: 'waiver_reminder',
+    status: 'active',
+    variables: ['{CUSTOMER_NAME}', '{GAME_NAME}', '{BOOKING_DATE}', '{BOOKING_TIME}', '{BOOKING_NUMBER}', '{QR_CODE}', '{WAIVER_LINK}', '{BUSINESS_NAME}', '{BUSINESS_PHONE}', '{BUSINESS_EMAIL}'],
+    lastModified: 'Nov 9, 2025',
+  },
+];
 
 interface WaiverTemplate {
   id: string;
@@ -98,20 +253,112 @@ interface WaiverTemplate {
   type: string;
   content: string;
   status: 'active' | 'inactive' | 'draft';
-  required_fields: string[];
-  assigned_games: string[];
-  created_at: string;
-  updated_at: string;
-  usage_count: number;
-  // For display purposes
-  requiredFields?: string[];
-  assignedGames?: string[];
-  createdDate?: string;
-  lastModified?: string;
-  usageCount?: number;
+  requiredFields: string[];
+  assignedGames: string[];
+  createdDate: string;
+  lastModified: string;
+  usageCount: number;
 }
 
-// Mock template data removed - now using Supabase
+interface EmailTemplate {
+  id: string;
+  name: string;
+  description: string;
+  subject: string;
+  body: string;
+  type: 'waiver_request' | 'waiver_confirmation' | 'waiver_reminder';
+  status: 'active' | 'inactive';
+  variables: string[];
+  lastModified: string;
+}
+
+const templatesData: WaiverTemplate[] = [
+  {
+    id: 'TPL-001',
+    name: 'Standard Liability Waiver',
+    description: 'General release and indemnity agreement for all participants',
+    type: 'Liability',
+    content: [
+      'I, {FULL_NAME}, born on {DATE_OF_BIRTH}, agree to participate in the activity.',
+      'I acknowledge the risks involved and release the organizer from liability.',
+      'Contact: {EMAIL} | {PHONE}. Emergency Contact: {EMERGENCY_CONTACT}.',
+      'Signed on {DATE}.',
+    ].join('\n'),
+    status: 'active',
+    requiredFields: ['Full Name', 'Date of Birth', 'Email', 'Phone', 'Emergency Contact'],
+    assignedGames: ['All Games'],
+    createdDate: 'Oct 1, 2025',
+    lastModified: 'Oct 15, 2025',
+    usageCount: 234,
+  },
+  {
+    id: 'TPL-002',
+    name: 'Minor Participant Waiver',
+    description: 'Waiver for participants under 18 years old - requires parent/guardian signature',
+    type: 'Minor Consent',
+    content: [
+      'Minor: {MINOR_NAME}, DOB {DATE_OF_BIRTH}.',
+      'Parent/Guardian: {PARENT_GUARDIAN_NAME}. Email: {PARENT_EMAIL}. Phone: {PARENT_PHONE}.',
+      'I consent to my minor participating and accept the terms.',
+      'Signed on {DATE}.',
+    ].join('\n'),
+    status: 'active',
+    requiredFields: ['Minor Name', 'Date of Birth', 'Parent/Guardian Name', 'Parent Email', 'Parent Phone'],
+    assignedGames: ['All Games'],
+    createdDate: 'Oct 1, 2025',
+    lastModified: 'Oct 10, 2025',
+    usageCount: 87,
+  },
+  {
+    id: 'TPL-003',
+    name: 'Photo Release Waiver',
+    description: 'Permission to use photos and videos for marketing purposes',
+    type: 'Photo/Video Release',
+    content: [
+      'I, {FULL_NAME}, grant permission to use photos/videos for marketing.',
+      'Contact: {EMAIL}. Signature: {SIGNATURE}. Date: {DATE}.',
+    ].join('\n'),
+    status: 'active',
+    requiredFields: ['Full Name', 'Email', 'Signature'],
+    assignedGames: ['All Games'],
+    createdDate: 'Oct 5, 2025',
+    lastModified: 'Oct 20, 2025',
+    usageCount: 156,
+  },
+  {
+    id: 'TPL-004',
+    name: 'Medical Disclosure Form',
+    description: 'Health conditions and medical information disclosure',
+    type: 'Medical',
+    content: [
+      'Medical Conditions: {MEDICAL_CONDITIONS}.',
+      'Allergies: {ALLERGIES}. Medications: {MEDICATIONS}.',
+      'Emergency Contact: {EMERGENCY_CONTACT}. Date: {DATE}.',
+    ].join('\n'),
+    status: 'active',
+    requiredFields: ['Full Name', 'Medical Conditions', 'Allergies', 'Medications', 'Emergency Contact'],
+    assignedGames: ['Zombie Outbreak', 'Prison Break'],
+    createdDate: 'Oct 8, 2025',
+    lastModified: 'Oct 18, 2025',
+    usageCount: 45,
+  },
+  {
+    id: 'TPL-005',
+    name: 'COVID-19 Health Screening',
+    description: 'Health screening questionnaire for COVID-19 symptoms',
+    type: 'Health Screening',
+    content: [
+      'Name: {FULL_NAME}. Temperature: {TEMPERATURE_CHECK}.',
+      'Symptoms: {SYMPTOM_CHECKLIST}. Date: {DATE}.',
+    ].join('\n'),
+    status: 'inactive',
+    requiredFields: ['Full Name', 'Temperature Check', 'Symptom Checklist'],
+    assignedGames: [],
+    createdDate: 'Sep 20, 2025',
+    lastModified: 'Sep 25, 2025',
+    usageCount: 312,
+  },
+];
 
 export function Waivers() {
   const { theme } = useTheme();
@@ -126,108 +373,132 @@ export function Waivers() {
   const hoverBgClass = isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50';
   const hoverShadowClass = isDark ? 'hover:shadow-[0_0_15px_rgba(79,70,229,0.1)]' : 'hover:shadow-md';
   
-  const [activeTab, setActiveTab] = useState<'records' | 'templates'>('records');
+  const [activeTab, setActiveTab] = useState<'records' | 'templates' | 'emails'>('records');
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<WaiverTemplate | null>(null);
   const [selectedWaiver, setSelectedWaiver] = useState<WaiverRecord | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [templates, setTemplates] = useState<WaiverTemplate[]>([]);
-  const [waivers, setWaivers] = useState<WaiverRecord[]>([]);
+  const [waivers, setWaivers] = useState<WaiverRecord[]>(waiversData);
   const [showAttendeeList, setShowAttendeeList] = useState(false);
   const [showScanDialog, setShowScanDialog] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [loading, setLoading] = useState(true);
   
   // Bulk selection state
   const [selectedWaiverIds, setSelectedWaiverIds] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  
+  // Loading states
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [loadingWaivers, setLoadingWaivers] = useState(true);
+  
+  // Email templates state
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>(emailTemplatesData);
+  const [selectedEmailTemplate, setSelectedEmailTemplate] = useState<EmailTemplate | null>(null);
+  const [showEmailEditor, setShowEmailEditor] = useState(false);
 
-  // Load templates from Supabase
-  const loadTemplates = async () => {
+  // Helper: Transform database template to UI format
+  const dbToUITemplate = (dbTemplate: any): WaiverTemplate => ({
+    id: dbTemplate.id,
+    name: dbTemplate.name,
+    description: dbTemplate.description || '',
+    type: dbTemplate.type,
+    content: dbTemplate.content,
+    status: dbTemplate.status as 'active' | 'inactive' | 'draft',
+    requiredFields: Array.isArray(dbTemplate.required_fields) ? dbTemplate.required_fields : [],
+    assignedGames: Array.isArray(dbTemplate.assigned_games) ? dbTemplate.assigned_games : [],
+    createdDate: new Date(dbTemplate.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    lastModified: new Date(dbTemplate.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    usageCount: dbTemplate.usage_count || 0,
+  });
+
+  // Helper: Transform UI template to database format
+  const uiToDBTemplate = (uiTemplate: WaiverTemplate) => ({
+    name: uiTemplate.name,
+    description: uiTemplate.description,
+    type: uiTemplate.type.toLowerCase(),
+    content: uiTemplate.content,
+    status: uiTemplate.status,
+    required_fields: uiTemplate.requiredFields,
+    assigned_games: uiTemplate.assignedGames,
+    usage_count: uiTemplate.usageCount || 0,
+  });
+
+  // Fetch templates from Supabase
+  const fetchTemplates = async () => {
     try {
+      setLoadingTemplates(true);
       const { data, error } = await supabase
         .from('waiver_templates')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-
-      if (data) {
-        // Transform data to match display format
-        const transformedTemplates = data.map(t => ({
-          ...t,
-          requiredFields: t.required_fields || [],
-          assignedGames: t.assigned_games || [],
-          createdDate: new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          lastModified: new Date(t.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          usageCount: t.usage_count || 0
-        }));
-        setTemplates(transformedTemplates);
+      if (error) {
+        console.error('Supabase error:', error);
+        // Fallback to local data if database fails
+        setTemplates(templatesData);
+        toast.info('Using local templates (database connection issue)');
+        return;
       }
-    } catch (error) {
-      console.error('Error loading templates:', error);
-      toast.error('Failed to load waiver templates');
-    }
-  };
 
-  // Load waivers from Supabase
-  const loadWaivers = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('waivers')
-        .select(`
-          *,
-          bookings (
-            booking_number,
-            game_id
-          ),
-          customers (
-            first_name,
-            last_name,
-            email
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      if (data) {
-        // Transform data to match display format
-        const transformedWaivers = data.map(w => ({
-          ...w,
-          customer: w.participant_name || `${w.customers?.first_name || ''} ${w.customers?.last_name || ''}`.trim(),
-          email: w.participant_email || w.customers?.email || '',
-          booking: w.bookings?.booking_number || w.booking_id || '-',
-          game: '-', // TODO: Get game name from booking
-          signedDate: w.signed_at ? new Date(w.signed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-',
-          templateName: w.template_name || '-'
-        }));
-        setWaivers(transformedWaivers);
+      if (data && data.length > 0) {
+        setTemplates(data.map(dbToUITemplate));
+      } else {
+        // Seed with initial data if empty
+        console.log('Database empty, seeding templates...');
+        await seedInitialTemplates();
       }
-    } catch (error) {
-      console.error('Error loading waivers:', error);
-      toast.error('Failed to load waivers');
+    } catch (err) {
+      console.error('Failed to load templates:', err);
+      // Fallback to local data
+      setTemplates(templatesData);
+      toast.info('Using local templates');
     } finally {
-      setLoading(false);
+      setLoadingTemplates(false);
     }
   };
 
-  // Load data on mount
+  // Seed initial templates
+  const seedInitialTemplates = async () => {
+    try {
+      const initialTemplates = templatesData.map(uiToDBTemplate);
+      const { error } = await supabase
+        .from('waiver_templates')
+        .insert(initialTemplates as any);
+
+      if (error) {
+        console.error('Seed error:', error);
+        // If seeding fails, use local data
+        setTemplates(templatesData);
+        toast.info('Using local templates (5 templates loaded)');
+        return;
+      }
+      
+      console.log('Templates seeded successfully');
+      toast.success('Waiver templates loaded successfully');
+      await fetchTemplates();
+    } catch (err) {
+      console.error('Failed to seed templates:', err);
+      // Fallback to local data
+      setTemplates(templatesData);
+      toast.info('Using local templates (5 templates loaded)');
+    }
+  };
+
+  // Load templates on mount
   useEffect(() => {
-    loadTemplates();
-    loadWaivers();
+    fetchTemplates();
+    setLoadingWaivers(false); // Waivers still use localStorage for now
   }, []);
 
   // Filter waivers
   const filteredWaivers = waivers.filter(waiver => {
-    const matchesSearch = (waiver.customer || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (waiver.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         waiver.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         waiver.waiver_code.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = waiver.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         waiver.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         waiver.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterStatus === 'all' || waiver.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -276,29 +547,17 @@ export function Waivers() {
   };
 
   // Bulk delete selected waivers
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedWaiverIds.length === 0) {
       toast.error('Please select waivers to delete');
       return;
     }
     
     if (confirm(`Are you sure you want to delete ${selectedWaiverIds.length} waiver(s)?`)) {
-      try {
-        const { error } = await supabase
-          .from('waivers')
-          .delete()
-          .in('id', selectedWaiverIds);
-
-        if (error) throw error;
-
-        setWaivers(prev => prev.filter(w => !selectedWaiverIds.includes(w.id)));
-        setSelectedWaiverIds([]);
-        setSelectAll(false);
-        toast.success(`Deleted ${selectedWaiverIds.length} waiver(s)`);
-      } catch (error) {
-        console.error('Error deleting waivers:', error);
-        toast.error('Failed to delete waivers');
-      }
+      setWaivers(prev => prev.filter(w => !selectedWaiverIds.includes(w.id)));
+      setSelectedWaiverIds([]);
+      setSelectAll(false);
+      toast.success(`Deleted ${selectedWaiverIds.length} waiver(s)`);
     }
   };
 
@@ -336,109 +595,26 @@ export function Waivers() {
     setShowPreview(true);
   };
 
-  const handleSaveTemplate = async (templateData: any) => {
-    try {
-      const isEdit = !!templateData.id && templates.some(t => t.id === templateData.id);
-      
-      // Prepare data for Supabase
-      const dbData = {
-        name: templateData.name,
-        description: templateData.description,
-        type: templateData.type,
-        content: templateData.content,
-        status: templateData.status,
-        required_fields: templateData.requiredFields || templateData.required_fields || [],
-        assigned_games: templateData.assignedGames || templateData.assigned_games || [],
-        usage_count: templateData.usageCount || templateData.usage_count || 0,
-      };
-
-      if (isEdit) {
-        // Update existing template
-        const { error } = await supabase
-          .from('waiver_templates')
-          .update({ ...dbData, updated_at: new Date().toISOString() })
-          .eq('id', templateData.id);
-
-        if (error) throw error;
-
-        // Update local state
-        setTemplates(templates.map(t => 
-          t.id === templateData.id 
-            ? {
-                ...templateData,
-                requiredFields: dbData.required_fields,
-                assignedGames: dbData.assigned_games,
-                usageCount: dbData.usage_count,
-                lastModified: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-              }
-            : t
-        ));
-        toast.success('Template updated successfully!');
-      } else {
-        // Create new template
-        const { data, error } = await supabase
-          .from('waiver_templates')
-          .insert([dbData])
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        // Add to local state
-        const newTemplate = {
-          ...data,
-          requiredFields: data.required_fields,
-          assignedGames: data.assigned_games,
-          usageCount: data.usage_count,
-          createdDate: new Date(data.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          lastModified: new Date(data.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-        };
-        setTemplates([newTemplate, ...templates]);
-        toast.success('Template created successfully!');
-      }
-
-      setShowTemplateEditor(false);
-      setSelectedTemplate(null);
-    } catch (error) {
-      console.error('Error saving template:', error);
-      toast.error('Failed to save template');
-    }
-  };
-
   const handleDuplicateTemplate = async (template: WaiverTemplate) => {
     try {
-      const dbData = {
+      const duplicateData = {
+        ...uiToDBTemplate(template),
         name: `${template.name} (Copy)`,
-        description: template.description,
-        type: template.type,
-        content: template.content,
-        status: 'draft' as const,
-        required_fields: template.required_fields || template.requiredFields || [],
-        assigned_games: template.assigned_games || template.assignedGames || [],
+        status: 'draft',
         usage_count: 0,
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('waiver_templates')
-        .insert([dbData])
-        .select()
-        .single();
+        .insert([duplicateData]);
 
       if (error) throw error;
 
-      const newTemplate = {
-        ...data,
-        requiredFields: data.required_fields,
-        assignedGames: data.assigned_games,
-        usageCount: 0,
-        createdDate: new Date(data.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        lastModified: new Date(data.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      };
-      setTemplates([newTemplate, ...templates]);
+      await fetchTemplates();
       toast.success('Template duplicated successfully!');
-    } catch (error) {
-      console.error('Error duplicating template:', error);
-      toast.error('Failed to duplicate template');
+    } catch (err) {
+      console.error('Failed to duplicate template:', err);
+      toast.error(handleSupabaseError(err));
     }
   };
 
@@ -451,11 +627,11 @@ export function Waivers() {
 
       if (error) throw error;
 
-      setTemplates(templates.filter(t => t.id !== templateId));
+      await fetchTemplates();
       toast.success('Template deleted successfully!');
-    } catch (error) {
-      console.error('Error deleting template:', error);
-      toast.error('Failed to delete template');
+    } catch (err) {
+      console.error('Failed to delete template:', err);
+      toast.error(handleSupabaseError(err));
     }
   };
 
@@ -465,23 +641,19 @@ export function Waivers() {
       if (!template) return;
 
       const newStatus = template.status === 'active' ? 'inactive' : 'active';
+
       const { error } = await supabase
         .from('waiver_templates')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .update({ status: newStatus })
         .eq('id', templateId);
 
       if (error) throw error;
 
-      const nowStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      setTemplates(templates.map(t => 
-        t.id === templateId 
-          ? { ...t, status: newStatus as 'active' | 'inactive', lastModified: nowStr }
-          : t
-      ));
+      await fetchTemplates();
       toast.success('Template status updated!');
-    } catch (error) {
-      console.error('Error updating template status:', error);
-      toast.error('Failed to update template status');
+    } catch (err) {
+      console.error('Failed to update template status:', err);
+      toast.error(handleSupabaseError(err));
     }
   };
 
@@ -499,9 +671,27 @@ export function Waivers() {
     setShowScanDialog(true);
   };
 
-  const handleOpenWaiverForm = (template: WaiverTemplate) => {
-    window.open(`/waiver-form/${template.id}`, '_blank');
-    toast.success('Opening waiver form...');
+  const handleOpenWaiverForm = async (template: WaiverTemplate) => {
+    try {
+      // Increment usage count in database
+      const { error } = await supabase
+        .from('waiver_templates')
+        .update({ usage_count: (template.usageCount || 0) + 1 })
+        .eq('id', template.id);
+
+      if (error) console.error('Failed to update usage count:', error);
+
+      // Open the waiver form in new tab
+      window.open(`/waiver-form/${template.id}`, '_blank');
+      toast.success('Opening waiver form...');
+      
+      // Refresh templates to show updated count
+      await fetchTemplates();
+    } catch (err) {
+      console.error('Error opening waiver form:', err);
+      // Still open the form even if tracking fails
+      window.open(`/waiver-form/${template.id}`, '_blank');
+    }
   };
 
   const buildFormUrl = (template: WaiverTemplate) => {
@@ -513,6 +703,14 @@ export function Waivers() {
       const url = buildFormUrl(template);
       await navigator.clipboard.writeText(url);
       toast.success('Copied waiver form link to clipboard');
+      
+      // Track usage in database
+      const { error } = await supabase
+        .from('waiver_templates')
+        .update({ usage_count: (template.usageCount || 0) + 1 })
+        .eq('id', template.id);
+
+      if (!error) await fetchTemplates();
     } catch (err) {
       console.error('Failed to copy link', err);
       toast.error('Failed to copy link');
@@ -525,13 +723,21 @@ export function Waivers() {
       const embed = `<iframe src="${url}" width="100%" height="800" style="border:0"></iframe>`;
       await navigator.clipboard.writeText(embed);
       toast.success('Copied embed code');
+      
+      // Track usage in database
+      const { error } = await supabase
+        .from('waiver_templates')
+        .update({ usage_count: (template.usageCount || 0) + 1 })
+        .eq('id', template.id);
+
+      if (!error) await fetchTemplates();
     } catch (err) {
       console.error('Failed to copy embed code', err);
       toast.error('Failed to copy embed code');
     }
   };
 
-  const handleDownloadFormLink = (template: WaiverTemplate) => {
+  const handleDownloadFormLink = async (template: WaiverTemplate) => {
     try {
       const url = buildFormUrl(template);
       const text = `Waiver Form Link for ${template.name}\n\n${url}\n\nEmbed:\n<iframe src="${url}" width="100%" height="800" style="border:0"></iframe>\n`;
@@ -542,6 +748,14 @@ export function Waivers() {
       a.click();
       URL.revokeObjectURL(a.href);
       toast.success('Downloaded waiver form link');
+      
+      // Track usage in database
+      const { error } = await supabase
+        .from('waiver_templates')
+        .update({ usage_count: (template.usageCount || 0) + 1 })
+        .eq('id', template.id);
+
+      if (!error) await fetchTemplates();
     } catch (err) {
       console.error('Failed to download link file', err);
       toast.error('Failed to download link file');
@@ -685,21 +899,9 @@ export function Waivers() {
     toast.success(`Reminder sent to ${waiver.email}`);
   };
 
-  const handleDeleteWaiver = async (waiverId: string) => {
-    try {
-      const { error } = await supabase
-        .from('waivers')
-        .delete()
-        .eq('id', waiverId);
-
-      if (error) throw error;
-
-      setWaivers(prev => prev.filter(w => w.id !== waiverId));
-      toast.success('Waiver deleted');
-    } catch (error) {
-      console.error('Error deleting waiver:', error);
-      toast.error('Failed to delete waiver');
-    }
+  const handleDeleteWaiver = (waiverId: string) => {
+    setWaivers(prev => prev.filter(w => w.id !== waiverId));
+    toast.success('Waiver deleted');
   };
 
   const stats = {
@@ -806,7 +1008,7 @@ export function Waivers() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'records' | 'templates')}>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'records' | 'templates' | 'emails')}>
         <div className="overflow-x-auto">
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="records" className="gap-2 flex-1 sm:flex-initial">
@@ -816,6 +1018,10 @@ export function Waivers() {
             <TabsTrigger value="templates" className="gap-2 flex-1 sm:flex-initial">
               <FilePlus className="w-4 h-4" />
               Templates ({templates.length})
+            </TabsTrigger>
+            <TabsTrigger value="emails" className="gap-2 flex-1 sm:flex-initial">
+              <Mail className="w-4 h-4" />
+              Email Templates ({emailTemplates.length})
             </TabsTrigger>
           </TabsList>
         </div>
@@ -1050,8 +1256,28 @@ export function Waivers() {
 
         {/* Templates Tab */}
         <TabsContent value="templates" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {templates.map((template) => (
+          {loadingTemplates ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className={textMutedClass}>Loading templates...</p>
+              </div>
+            </div>
+          ) : templates.length === 0 ? (
+            <Card className={`${cardBgClass} border ${borderClass}`}>
+              <CardContent className="p-12 text-center">
+                <FileText className={`w-12 h-12 mx-auto mb-4 ${textMutedClass}`} />
+                <h3 className={`text-lg font-medium mb-2 ${textClass}`}>No templates yet</h3>
+                <p className={`mb-4 ${textMutedClass}`}>Create your first waiver template to get started</p>
+                <Button onClick={handleCreateTemplate}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Template
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {templates.map((template) => (
               <Card key={template.id} className={`${cardBgClass} border ${borderClass} shadow-sm ${hoverShadowClass} transition-all`}>
                 <CardHeader className="p-6 pb-3">
                   <div className="flex items-start justify-between">
@@ -1126,7 +1352,7 @@ export function Waivers() {
                     </div>
                     <div className={`flex items-center gap-2 ${textMutedClass}`}>
                       <Globe className="w-3 h-3" />
-                      <span className="truncate">{(template.assignedGames || []).join(', ') || 'None'}</span>
+                      <span className="truncate">{template.assignedGames.join(', ')}</span>
                     </div>
                     <div className={`flex items-center gap-2 ${textMutedClass}`}>
                       <Clock className="w-3 h-3" />
@@ -1193,6 +1419,148 @@ export function Waivers() {
                 </CardContent>
               </Card>
             ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Email Templates Tab */}
+        <TabsContent value="emails" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {emailTemplates.map((template) => (
+              <Card key={template.id} className={`${cardBgClass} border ${borderClass} shadow-sm ${hoverShadowClass} transition-all`}>
+                <CardHeader className="p-6 pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Mail className={`w-4 h-4 ${isDark ? 'text-[#6366f1]' : 'text-blue-600'}`} />
+                        <h3 className={`truncate ${textClass}`}>{template.name}</h3>
+                      </div>
+                      <p className={`text-xs line-clamp-2 ${textMutedClass}`}>{template.description}</p>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedEmailTemplate(template);
+                          setShowEmailEditor(true);
+                        }}>
+                          <Edit2 className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedEmailTemplate(template);
+                          setShowPreview(true);
+                        }}>
+                          <Eye className="w-4 h-4 mr-2" />
+                          Preview
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          const newStatus = template.status === 'active' ? 'inactive' : 'active';
+                          setEmailTemplates(prev => prev.map(t => 
+                            t.id === template.id ? { ...t, status: newStatus } : t
+                          ));
+                          toast.success('Email template status updated!');
+                        }}>
+                          {template.status === 'active' ? (
+                            <>
+                              <XSquare className="w-4 h-4 mr-2" />
+                              Deactivate
+                            </>
+                          ) : (
+                            <>
+                              <CheckSquare className="w-4 h-4 mr-2" />
+                              Activate
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3 p-6 pt-0">
+                  <div className="flex items-center justify-between text-xs">
+                    <Badge 
+                      variant="secondary" 
+                      className={
+                        template.status === 'active'
+                          ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-700'
+                          : isDark ? 'bg-[#2a2a2a] text-[#737373]' : 'bg-gray-100 text-gray-600'
+                      }
+                    >
+                      {template.status === 'active' ? 'Active' : 'Inactive'}
+                    </Badge>
+                    <span className={textMutedClass}>
+                      {template.type === 'waiver_request' ? '📧 Request' : 
+                       template.type === 'waiver_confirmation' ? '✅ Confirmation' : 
+                       '⏰ Reminder'}
+                    </span>
+                  </div>
+                  
+                  <div className={`text-xs ${textMutedClass} space-y-1`}>
+                    <div className="flex items-center gap-1">
+                      <Mail className="w-3 h-3" />
+                      <span className="font-medium">Subject:</span>
+                    </div>
+                    <p className="line-clamp-2 pl-4">{template.subject}</p>
+                  </div>
+
+                  <div className={`text-xs ${textMutedClass}`}>
+                    <div className="flex items-center gap-1 mb-1">
+                      <Code className="w-3 h-3" />
+                      <span>Variables: {template.variables.length}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {template.variables.slice(0, 3).map((v, i) => (
+                        <Badge key={i} variant="outline" className="text-xs px-1 py-0">
+                          {v}
+                        </Badge>
+                      ))}
+                      {template.variables.length > 3 && (
+                        <Badge variant="outline" className="text-xs px-1 py-0">
+                          +{template.variables.length - 3}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={`text-xs ${textMutedClass} flex items-center gap-1`}>
+                    <Clock className="w-3 h-3" />
+                    <span>Updated {template.lastModified}</span>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedEmailTemplate(template);
+                        setShowPreview(true);
+                      }}
+                      className="flex-1"
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Preview
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedEmailTemplate(template);
+                        setShowEmailEditor(true);
+                      }}
+                      className="flex-1"
+                    >
+                      <Edit2 className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </TabsContent>
       </Tabs>
@@ -1206,7 +1574,37 @@ export function Waivers() {
             setShowTemplateEditor(false);
             setSelectedTemplate(null);
           }}
-          onSave={handleSaveTemplate}
+          onSave={async (template) => {
+            try {
+              const dbTemplate = uiToDBTemplate(template);
+              
+              if (editMode && selectedTemplate) {
+                // Update existing template
+                const { error } = await supabase
+                  .from('waiver_templates')
+                  .update(dbTemplate as any)
+                  .eq('id', template.id);
+
+                if (error) throw error;
+                toast.success('Template updated successfully!');
+              } else {
+                // Create new template
+                const { error } = await supabase
+                  .from('waiver_templates')
+                  .insert([dbTemplate as any]);
+
+                if (error) throw error;
+                toast.success('Template created successfully!');
+              }
+
+              await fetchTemplates();
+              setShowTemplateEditor(false);
+              setSelectedTemplate(null);
+            } catch (err) {
+              console.error('Failed to save template:', err);
+              toast.error(handleSupabaseError(err));
+            }
+          }}
         />
       )}
 

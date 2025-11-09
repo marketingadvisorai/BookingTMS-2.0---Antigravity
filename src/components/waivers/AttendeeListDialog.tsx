@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../layout/ThemeContext';
+import { supabase } from '../../lib/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -49,9 +50,11 @@ type Attendee = {
   waiverStatus: 'signed' | 'pending';
   waiverDate: string;
   isMinor: boolean;
+  waiverId?: string;
+  checkInStatus?: string;
 };
 
-// Mock attendee data
+// Fallback mock attendee data (used if database is empty)
 const mockAttendees: Attendee[] = [
   {
     id: 'ATT-001',
@@ -112,8 +115,61 @@ export default function AttendeeListDialog({ booking, isOpen, onClose }: Attende
   const hoverBgClass = isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50';
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [attendees] = useState<Attendee[]>(mockAttendees);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'signed' | 'pending'>('all');
+  const [attendees, setAttendees] = useState<Attendee[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch attendees from Supabase
+  useEffect(() => {
+    if (isOpen) {
+      fetchAttendees();
+    }
+  }, [isOpen, booking]);
+
+  const fetchAttendees = async () => {
+    try {
+      setLoading(true);
+      
+      // Query waivers table for attendees
+      const { data, error } = await supabase
+        .from('waivers')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching attendees:', error);
+        // Fallback to mock data
+        setAttendees(mockAttendees);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        // Transform database data to attendee format
+        const transformedAttendees: Attendee[] = data.map(waiver => ({
+          id: waiver.waiver_code || waiver.id,
+          name: waiver.participant_name || 'Unknown',
+          email: waiver.participant_email || '',
+          phone: waiver.participant_phone || '',
+          waiverStatus: waiver.status === 'signed' ? 'signed' : 'pending',
+          waiverDate: waiver.signed_at 
+            ? new Date(waiver.signed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : '-',
+          isMinor: waiver.is_minor || false,
+          waiverId: waiver.id,
+          checkInStatus: waiver.check_in_status || 'pending'
+        }));
+        setAttendees(transformedAttendees);
+      } else {
+        // Use mock data if database is empty
+        setAttendees(mockAttendees);
+      }
+    } catch (err) {
+      console.error('Failed to fetch attendees:', err);
+      setAttendees(mockAttendees);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredAttendees = attendees.filter(attendee => {
     const matchesSearch = attendee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -129,9 +185,50 @@ export default function AttendeeListDialog({ booking, isOpen, onClose }: Attende
     minors: attendees.filter(a => a.isMinor).length
   };
 
-  const handleSendReminders = () => {
-    const pendingCount = stats.pending;
-    toast.success(`Sending reminders to ${pendingCount} attendees...`);
+  const handleSendReminders = async () => {
+    const pendingAttendees = attendees.filter(a => a.waiverStatus === 'pending');
+    
+    if (pendingAttendees.length === 0) {
+      toast.info('No pending waivers to send reminders for');
+      return;
+    }
+
+    try {
+      // Update reminder count in database for each pending waiver
+      const updates = pendingAttendees.map(async (attendee) => {
+        if (attendee.waiverId) {
+          // First get current count
+          const { data: currentData } = await supabase
+            .from('waivers')
+            .select('reminder_sent_count')
+            .eq('id', attendee.waiverId)
+            .single();
+          
+          const currentCount = (currentData as any)?.reminder_sent_count || 0;
+          
+          // Then update with incremented value
+          const { error } = await supabase
+            .from('waivers')
+            .update({ 
+              reminder_sent_count: currentCount + 1,
+              last_reminder_sent_at: new Date().toISOString()
+            } as any)
+            .eq('id', attendee.waiverId);
+          
+          if (error) console.error('Error updating reminder:', error);
+        }
+      });
+
+      await Promise.all(updates);
+      
+      toast.success(`Reminders queued for ${pendingAttendees.length} attendee(s) - Email system pending`);
+      
+      // Refresh attendee list
+      await fetchAttendees();
+    } catch (err) {
+      console.error('Error sending reminders:', err);
+      toast.error('Failed to send reminders');
+    }
   };
 
   // CSV export helpers

@@ -33,11 +33,17 @@ export interface Venue {
 export function useVenues() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   // Fetch venues
   const fetchVenues = async (showToast = false) => {
     try {
       setError(null);
+      // Only show loading spinner on first load, not on refreshes
+      if (isFirstLoad) {
+        setLoading(true);
+      }
 
       const { data, error: fetchError } = await supabase
         .from('venues')
@@ -52,6 +58,11 @@ export function useVenues() {
       setError(err.message);
       if (showToast) {
         toast.error('Failed to load venues');
+      }
+    } finally {
+      if (isFirstLoad) {
+        setLoading(false);
+        setIsFirstLoad(false);
       }
     }
   };
@@ -194,7 +205,7 @@ export function useVenues() {
 
   return {
     venues,
-    loading: false,
+    loading,
     error,
     createVenue,
     updateVenue,

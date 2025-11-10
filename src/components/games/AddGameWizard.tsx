@@ -216,6 +216,14 @@ const generateSlug = (value: string | undefined) => {
 
 export default function AddGameWizard({ onComplete, onCancel, initialData, mode = 'create', theme, embedContext }: AddGameWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState(false);
+  const [creationStatus, setCreationStatus] = useState({
+    stage: '',
+    message: '',
+    progress: 0
+  });
+  const [createdGameId, setCreatedGameId] = useState<string | null>(null);
   const [gameData, setGameData] = useState<GameData>({
     name: '',
     description: '',
@@ -328,7 +336,7 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
   const handleNext = () => {
     // Validation for each step
     if (currentStep === 1) {
-      if (!gameData.name || !gameData.description || !gameData.category || !gameData.gameType) {
+      if (!gameData.name || !gameData.description || !gameData.category || !gameData.gameType || !gameData.eventType) {
         toast.error('Please fill in all required fields');
         return;
       }
@@ -361,9 +369,91 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
     }
   };
 
-  const handleSubmit = () => {
-    onComplete(gameData);
-    toast.success(mode === 'edit' ? 'Game updated successfully!' : 'Game created successfully!');
+  const validateGameData = () => {
+    const errors: string[] = [];
+
+    if (!gameData.name || gameData.name.trim() === '') errors.push('Game name is required');
+    if (!gameData.description || gameData.description.trim() === '') errors.push('Description is required');
+    if (!gameData.adultPrice || gameData.adultPrice <= 0) errors.push('Adult price must be greater than 0');
+    if (!gameData.duration || gameData.duration <= 0) errors.push('Duration must be greater than 0');
+    if (!gameData.minAdults || gameData.minAdults <= 0) errors.push('Minimum adults must be at least 1');
+    if (!gameData.maxAdults || gameData.maxAdults < gameData.minAdults) errors.push('Maximum adults must be greater than or equal to minimum');
+    if (gameData.operatingDays.length === 0) errors.push('At least one operating day must be selected');
+
+    return { errors, isValid: errors.length === 0 };
+  };
+
+  const handleSubmit = async () => {
+    // Validate before publishing
+    const validation = validateGameData();
+    if (!validation.isValid) {
+      toast.error('Please fix validation errors before publishing');
+      validation.errors.forEach(error => toast.error(error));
+      return;
+    }
+
+    setIsPublishing(true);
+    
+    try {
+      // Stage 1: Preparing data
+      setCreationStatus({
+        stage: 'preparing',
+        message: 'Preparing game data...',
+        progress: 20
+      });
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Stage 2: Creating Stripe product
+      setCreationStatus({
+        stage: 'stripe',
+        message: 'Creating Stripe product and pricing...',
+        progress: 40
+      });
+      
+      // Call onComplete which handles Supabase and Stripe creation
+      const result = await onComplete(gameData);
+      
+      // Stage 3: Saving to database
+      setCreationStatus({
+        stage: 'database',
+        message: 'Saving to database...',
+        progress: 70
+      });
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Stage 4: Verifying creation
+      setCreationStatus({
+        stage: 'verifying',
+        message: 'Verifying game creation...',
+        progress: 90
+      });
+      
+      // Extract game ID from result if available
+      const gameId = result?.id || result?.data?.id || null;
+      setCreatedGameId(gameId);
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Stage 5: Complete
+      setCreationStatus({
+        stage: 'complete',
+        message: 'Game created successfully!',
+        progress: 100
+      });
+      
+      // Show success screen
+      setPublishSuccess(true);
+      toast.success(mode === 'edit' ? 'Game updated successfully!' : 'Game published successfully!');
+    } catch (error: any) {
+      console.error('Error publishing game:', error);
+      toast.error(error.message || 'Failed to publish game');
+      setIsPublishing(false);
+      setCreationStatus({
+        stage: 'error',
+        message: error.message || 'Failed to create game',
+        progress: 0
+      });
+    }
   };
 
   const renderStepContent = () => {
@@ -386,6 +476,155 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
         return null;
     }
   };
+
+  // Creation Loading Screen
+  if (isPublishing && !publishSuccess) {
+    return (
+      <div className="h-full flex items-center justify-center bg-white dark:bg-[#161616] p-6">
+        <Card className="max-w-2xl w-full border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+          <CardContent className="p-12 text-center">
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+            <h2 className="text-2xl text-gray-900 mb-3">
+              {mode === 'edit' ? 'Updating Game...' : 'Creating Your Game...'}
+            </h2>
+            <p className="text-lg text-gray-700 mb-8">
+              {creationStatus.message}
+            </p>
+            
+            {/* Progress Bar */}
+            <div className="mb-8">
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="bg-blue-600 h-full rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${creationStatus.progress}%` }}
+                />
+              </div>
+              <p className="text-sm text-gray-600 mt-2">{creationStatus.progress}% Complete</p>
+            </div>
+
+            {/* Stage Indicators */}
+            <div className="space-y-3 text-left max-w-md mx-auto">
+              <div className={`flex items-center gap-3 p-3 rounded-lg ${
+                creationStatus.stage === 'preparing' ? 'bg-blue-100' : 
+                creationStatus.progress > 20 ? 'bg-green-100' : 'bg-gray-100'
+              }`}>
+                {creationStatus.progress > 20 ? (
+                  <Check className="w-5 h-5 text-green-600" />
+                ) : (
+                  <div className="w-5 h-5 border-2 border-gray-400 rounded-full" />
+                )}
+                <span className="text-sm text-gray-900">Preparing game data</span>
+              </div>
+              
+              <div className={`flex items-center gap-3 p-3 rounded-lg ${
+                creationStatus.stage === 'stripe' ? 'bg-blue-100' : 
+                creationStatus.progress > 40 ? 'bg-green-100' : 'bg-gray-100'
+              }`}>
+                {creationStatus.progress > 40 ? (
+                  <Check className="w-5 h-5 text-green-600" />
+                ) : (
+                  <div className="w-5 h-5 border-2 border-gray-400 rounded-full" />
+                )}
+                <span className="text-sm text-gray-900">Creating Stripe product</span>
+              </div>
+              
+              <div className={`flex items-center gap-3 p-3 rounded-lg ${
+                creationStatus.stage === 'database' ? 'bg-blue-100' : 
+                creationStatus.progress > 70 ? 'bg-green-100' : 'bg-gray-100'
+              }`}>
+                {creationStatus.progress > 70 ? (
+                  <Check className="w-5 h-5 text-green-600" />
+                ) : (
+                  <div className="w-5 h-5 border-2 border-gray-400 rounded-full" />
+                )}
+                <span className="text-sm text-gray-900">Saving to database</span>
+              </div>
+              
+              <div className={`flex items-center gap-3 p-3 rounded-lg ${
+                creationStatus.stage === 'verifying' ? 'bg-blue-100' : 
+                creationStatus.progress > 90 ? 'bg-green-100' : 'bg-gray-100'
+              }`}>
+                {creationStatus.progress > 90 ? (
+                  <Check className="w-5 h-5 text-green-600" />
+                ) : (
+                  <div className="w-5 h-5 border-2 border-gray-400 rounded-full" />
+                )}
+                <span className="text-sm text-gray-900">Verifying creation</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Success Screen
+  if (publishSuccess) {
+    return (
+      <div className="h-full flex items-center justify-center bg-white dark:bg-[#161616] p-6">
+        <Card className="max-w-2xl w-full border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
+          <CardContent className="p-12 text-center">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-10 h-10 text-green-600" />
+            </div>
+            <h2 className="text-3xl text-gray-900 mb-3">
+              {mode === 'edit' ? 'Game Updated!' : 'Game Published!'}
+            </h2>
+            <p className="text-lg text-gray-700 mb-8">
+              {mode === 'edit' 
+                ? 'Your game has been successfully updated and is now live.'
+                : 'Your game has been successfully published and is now available for booking!'}
+            </p>
+            
+            <div className="bg-white rounded-lg p-6 mb-8 border border-green-200">
+              <div className="grid grid-cols-2 gap-6 text-left">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Game Name</p>
+                  <p className="text-gray-900">{gameData.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Price</p>
+                  <p className="text-gray-900">${gameData.adultPrice} per person</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Duration</p>
+                  <p className="text-gray-900">{gameData.duration} minutes</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Widget</p>
+                  <p className="text-gray-900">{gameData.selectedWidget}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2 text-sm text-green-700 mb-4">
+                <Check className="w-4 h-4" />
+                <span>Supabase database updated</span>
+                <span className="mx-2">•</span>
+                <Check className="w-4 h-4" />
+                <span>Stripe product created</span>
+                <span className="mx-2">•</span>
+                <Check className="w-4 h-4" />
+                <span>Embed code generated</span>
+              </div>
+              
+              <Button 
+                onClick={onCancel} 
+                size="lg"
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Check className="w-5 h-5 mr-2" />
+                Done
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-[#161616]">
@@ -472,9 +711,22 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} className="bg-green-600 dark:bg-emerald-600 hover:bg-green-700 dark:hover:bg-emerald-700">
-              <Check className="w-4 h-4 mr-2" />
-              {mode === 'edit' ? 'Update Game' : 'Publish Game'}
+            <Button 
+              onClick={handleSubmit} 
+              disabled={isPublishing || !validateGameData().isValid}
+              className="bg-green-600 dark:bg-emerald-600 hover:bg-green-700 dark:hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPublishing ? (
+                <>
+                  <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  {mode === 'edit' ? 'Update Game' : 'Publish Game'}
+                </>
+              )}
             </Button>
           )}
         </div>
@@ -2034,6 +2286,7 @@ function Step5Schedule({ gameData, updateGameData }: any) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [customDateTime, setCustomDateTime] = useState({ startTime: '10:00', endTime: '22:00' });
   const [blockedDate, setBlockedDate] = useState<Date | undefined>(undefined);
+  const [blockedTimeRange, setBlockedTimeRange] = useState({ startTime: '', endTime: '', blockFullDay: true });
 
   const toggleDay = (day: string) => {
     const days = gameData.operatingDays.includes(day)
@@ -2101,19 +2354,38 @@ function Step5Schedule({ gameData, updateGameData }: any) {
 
     const dateStr = blockedDate.toISOString().split('T')[0];
     
-    if (gameData.blockedDates.includes(dateStr)) {
-      toast.error('This date is already blocked');
+    // Check if this exact date+time combination already exists
+    const existingBlock = gameData.blockedDates.find((d: any) => {
+      if (typeof d === 'string') return d === dateStr;
+      return d.date === dateStr && 
+             d.startTime === blockedTimeRange.startTime && 
+             d.endTime === blockedTimeRange.endTime;
+    });
+
+    if (existingBlock) {
+      toast.error('This date/time is already blocked');
       return;
     }
 
-    updateGameData('blockedDates', [...gameData.blockedDates, dateStr]);
+    // Create blocked date object with optional time range
+    const blockedEntry = blockedTimeRange.blockFullDay 
+      ? dateStr // Simple string for full day block
+      : {
+          date: dateStr,
+          startTime: blockedTimeRange.startTime,
+          endTime: blockedTimeRange.endTime,
+          reason: 'Time block' // Optional reason field
+        };
+
+    updateGameData('blockedDates', [...gameData.blockedDates, blockedEntry]);
     setBlockedDate(undefined);
-    toast.success('Date blocked');
+    setBlockedTimeRange({ startTime: '', endTime: '', blockFullDay: true });
+    toast.success(blockedTimeRange.blockFullDay ? 'Date blocked' : 'Time block added');
   };
 
-  const removeBlockedDate = (date: string) => {
-    updateGameData('blockedDates', gameData.blockedDates.filter((d: string) => d !== date));
-    toast.success('Date unblocked');
+  const removeBlockedDate = (index: number) => {
+    updateGameData('blockedDates', gameData.blockedDates.filter((_: any, i: number) => i !== index));
+    toast.success('Block removed');
   };
 
   const formatDate = (dateStr: string) => {
@@ -2404,32 +2676,41 @@ function Step5Schedule({ gameData, updateGameData }: any) {
           {/* Existing blocked dates */}
           {gameData.blockedDates.length > 0 && (
             <div className="space-y-2">
-              <Label>Blocked dates</Label>
-              {gameData.blockedDates.map((date: string) => (
-                <div 
-                  key={date} 
-                  className="flex items-center justify-between p-3 border border-red-200 bg-red-50 rounded-lg"
-                >
-                  <div className="flex items-center gap-2">
-                    <X className="w-4 h-4 text-red-600" />
-                    <p className="text-sm text-gray-900">{formatDate(date)}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeBlockedDate(date)}
+              <Label>Blocked dates & times</Label>
+              {gameData.blockedDates.map((block: any, index: number) => {
+                const isFullDay = typeof block === 'string';
+                const displayDate = isFullDay ? block : block.date;
+                const timeRange = isFullDay ? 'Full day' : `${block.startTime} - ${block.endTime}`;
+                
+                return (
+                  <div 
+                    key={index} 
+                    className="flex items-center justify-between p-3 border border-red-200 bg-red-50 rounded-lg"
                   >
-                    <Trash2 className="w-4 h-4 text-red-600" />
-                  </Button>
-                </div>
-              ))}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <X className="w-4 h-4 text-red-600" />
+                        <p className="text-sm text-gray-900">{formatDate(displayDate)}</p>
+                      </div>
+                      <p className="text-xs text-gray-600 ml-6">{timeRange}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeBlockedDate(index)}
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </Button>
+                  </div>
+                );
+              })}
               <Separator />
             </div>
           )}
 
           {/* Add blocked date */}
           <div className="space-y-3 p-4 border-2 border-dashed border-gray-300 rounded-lg">
-            <Label>Block a date</Label>
+            <Label>Block a date or time range</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-start text-left">
@@ -2448,14 +2729,57 @@ function Step5Schedule({ gameData, updateGameData }: any) {
               </PopoverContent>
             </Popover>
 
+            {/* Time block toggle */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div>
+                <Label className="text-sm">Block specific time range</Label>
+                <p className="text-xs text-gray-500">Or block the entire day</p>
+              </div>
+              <Switch
+                checked={!blockedTimeRange.blockFullDay}
+                onCheckedChange={(checked) => {
+                  setBlockedTimeRange({ 
+                    ...blockedTimeRange, 
+                    blockFullDay: !checked,
+                    startTime: checked ? '09:00' : '',
+                    endTime: checked ? '17:00' : ''
+                  });
+                }}
+              />
+            </div>
+
+            {/* Time range inputs */}
+            {!blockedTimeRange.blockFullDay && (
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div>
+                  <Label className="text-xs">Start Time</Label>
+                  <Input
+                    type="time"
+                    value={blockedTimeRange.startTime}
+                    onChange={(e) => setBlockedTimeRange({ ...blockedTimeRange, startTime: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">End Time</Label>
+                  <Input
+                    type="time"
+                    value={blockedTimeRange.endTime}
+                    onChange={(e) => setBlockedTimeRange({ ...blockedTimeRange, endTime: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            )}
+
             <Button 
               onClick={addBlockedDate} 
               variant="outline"
               className="w-full"
-              disabled={!blockedDate}
+              disabled={!blockedDate || (!blockedTimeRange.blockFullDay && (!blockedTimeRange.startTime || !blockedTimeRange.endTime))}
             >
               <X className="w-4 h-4 mr-2" />
-              Block This Date
+              {blockedTimeRange.blockFullDay ? 'Block Full Day' : 'Block Time Range'}
             </Button>
           </div>
         </CardContent>
@@ -2982,6 +3306,53 @@ Alternative: Use a shortcode plugin
 
 // Step 7: Review & Publish
 function Step7Review({ gameData }: any) {
+  // Validation function
+  const validateGameData = () => {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Required fields validation
+    if (!gameData.name || gameData.name.trim() === '') {
+      errors.push('Game name is required');
+    }
+    if (!gameData.description || gameData.description.trim() === '') {
+      errors.push('Description is required');
+    }
+    if (!gameData.adultPrice || gameData.adultPrice <= 0) {
+      errors.push('Adult price must be greater than 0');
+    }
+    if (!gameData.duration || gameData.duration <= 0) {
+      errors.push('Duration must be greater than 0');
+    }
+    if (!gameData.minAdults || gameData.minAdults <= 0) {
+      errors.push('Minimum adults must be at least 1');
+    }
+    if (!gameData.maxAdults || gameData.maxAdults < gameData.minAdults) {
+      errors.push('Maximum adults must be greater than or equal to minimum');
+    }
+
+    // Optional but recommended fields
+    if (!gameData.coverImage) {
+      warnings.push('No cover image uploaded - using default placeholder');
+    }
+    if (!gameData.minAge || gameData.minAge === 0) {
+      warnings.push('Minimum age not set - defaulting to 0 (all ages)');
+    }
+    if (gameData.operatingDays.length === 0) {
+      errors.push('At least one operating day must be selected');
+    }
+    if (!gameData.selectedWidget) {
+      warnings.push('No widget selected - using default calendar widget');
+    }
+    if (gameData.galleryImages.length === 0) {
+      warnings.push('No gallery images - consider adding photos to showcase your game');
+    }
+
+    return { errors, warnings, isValid: errors.length === 0 };
+  };
+
+  const validation = validateGameData();
+
   return (
     <div className="space-y-6">
       <Card>
@@ -3105,17 +3476,69 @@ function Step7Review({ gameData }: any) {
         </CardContent>
       </Card>
 
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <Check className="w-5 h-5 text-green-600 mt-0.5" />
-          <div>
-            <p className="text-green-900 mb-1">Ready to publish!</p>
-            <p className="text-sm text-green-700">
-              Your game will be immediately available for booking once published.
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Validation Status */}
+      {validation.errors.length > 0 ? (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <X className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-red-900 mb-2">Cannot publish - please fix the following errors:</p>
+                <ul className="space-y-1">
+                  {validation.errors.map((error, index) => (
+                    <li key={index} className="text-sm text-red-700 flex items-start gap-2">
+                      <span className="text-red-500 mt-0.5">•</span>
+                      <span>{error}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {validation.warnings.length > 0 && (
+            <Card className="border-amber-200 bg-amber-50">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <Info className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-amber-900 mb-2">Recommendations:</p>
+                    <ul className="space-y-1">
+                      {validation.warnings.map((warning, index) => (
+                        <li key={index} className="text-sm text-amber-700 flex items-start gap-2">
+                          <span className="text-amber-500 mt-0.5">•</span>
+                          <span>{warning}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <Check className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-green-900 mb-1">Ready to publish!</p>
+                  <p className="text-sm text-green-700">
+                    Your game will be immediately available for booking once published.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

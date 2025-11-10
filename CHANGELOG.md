@@ -23,6 +23,136 @@ Date: 2025-11-08
 
 ---
 
+# Stripe Integration 0.1.0 — Release Notes
+
+Date: 2025-11-11
+
+## Highlights
+- **Complete Game Wizard with Stripe Integration**: Full 7-step wizard for creating games with automatic Stripe product and price creation
+- **Payment Processing**: Integrated Stripe Checkout Sessions, Payment Intents, and Payment Links
+- **Non-blocking Stripe Creation**: Games can be created even if Stripe temporarily fails, with background sync capability
+- **Enhanced Loading States**: Optimized loading behavior - shows only on first load, background updates are seamless
+- **Comprehensive Game Data**: All wizard steps (Basic Info, Pricing, Details, Media, Schedule, Widget, Review) fully functional
+- **Real-time Data Sync**: Games and venues update in real-time without continuous loading screens
+
+## New Features
+
+### Game Creation Wizard
+- **Step 1 - Basic Info**: Game name, description, category, tagline, event type, game type
+- **Step 2 - Capacity & Pricing**: Adult/child pricing, custom capacity fields, group discounts, dynamic pricing
+- **Step 3 - Game Details**: Duration, difficulty, languages, success rate, FAQs, cancellation policies, accessibility
+- **Step 4 - Media Upload**: Cover image, gallery images, video uploads
+- **Step 5 - Schedule & Availability**: Operating days/hours, slot intervals, advance booking, custom dates, blocked dates with time blocks
+- **Step 6 - Widget & Embed**: Widget selection, direct booking links, iframe embed codes (HTML, React, WordPress)
+- **Step 7 - Review & Publish**: Validation, creation progress tracking, success confirmation
+
+### Stripe Integration
+- **Automatic Product Creation**: Creates Stripe products with comprehensive metadata
+- **Price Management**: Handles adult pricing, child pricing, custom capacity pricing, and group discounts
+- **Metadata Enrichment**: Stores game ID, venue ID, duration, difficulty, pricing summary in Stripe
+- **Edge Function**: `stripe-manage-product` function for server-side Stripe operations
+- **Non-blocking Fallback**: Games save to database even if Stripe temporarily fails
+- **Sync Status Tracking**: Tracks Stripe sync status (`synced`, `pending`) for each game
+
+### Performance Improvements
+- **Optimized Loading**: Loading screens only show on first page load
+- **Background Updates**: Real-time database changes update UI without loading screens
+- **Smooth Transitions**: No UI blocking during data refreshes
+- **Efficient Polling**: Reduced unnecessary re-renders
+
+### Payment Widget Integration
+- **Stripe Fields in Widgets**: Calendar and booking widgets now include `stripe_price_id` and `stripe_product_id`
+- **Payment Validation**: Validates Stripe integration before allowing bookings
+- **Error Handling**: Clear error messages when payment configuration is missing
+- **Multiple Payment Methods**: Supports Checkout Sessions, embedded payments, and payment links
+
+## Technical Changes
+
+### Modified Files
+1. **`src/components/games/AddGameWizard.tsx`**
+   - Added 7-step wizard with validation
+   - Creation progress tracking with stages
+   - Success screen with game summary
+   - Loading states for publishing
+
+2. **`src/components/widgets/CalendarWidgetSettings.tsx`**
+   - Maps all wizard data to Supabase schema
+   - Includes Stripe fields in game mapping
+   - Handles create/update flows with Stripe sync
+   - Real-time game list updates
+
+3. **`src/hooks/useGames.ts`**
+   - Non-blocking Stripe product creation
+   - Optimized loading states (first load only)
+   - Background refresh without loading screens
+   - Error handling for Stripe failures
+
+4. **`src/hooks/useVenues.ts`**
+   - Optimized loading states (first load only)
+   - Background refresh without loading screens
+   - Real-time venue updates
+
+5. **`src/components/widgets/CalendarWidget.tsx`**
+   - Added Stripe fields (`stripe_price_id`, `stripe_product_id`, `stripe_sync_status`)
+   - Payment validation before checkout
+   - Enhanced game data mapping
+
+6. **`src/lib/stripe/stripeProductService.ts`**
+   - Comprehensive metadata support
+   - Child pricing, custom capacity, group discounts
+   - Edge Function integration
+   - Retry logic for reliability
+
+### Database Schema
+- **Games Table**: Added `stripe_product_id`, `stripe_price_id`, `stripe_sync_status`, `stripe_last_sync`
+- **Settings JSONB**: Stores all wizard data (schedule, media, widget preferences, custom fields)
+
+### API Integration
+- **Supabase Edge Functions**: `stripe-manage-product` for Stripe operations
+- **MCP Integration**: Stripe MCP server for product/price management
+- **Real-time Subscriptions**: Automatic UI updates on database changes
+
+## Bug Fixes
+- Fixed continuous "Loading venues..." screen issue
+- Fixed continuous "Loading games..." message in widget settings
+- Fixed missing Stripe fields causing "Game pricing not configured" error
+- Fixed hardcoded `loading: false` in useGames hook
+- Resolved TypeScript type errors in game creation flow
+
+## Breaking Changes
+None - all changes are backward compatible
+
+## Migration Notes
+- Existing games without Stripe integration will have `stripe_sync_status: 'pending'`
+- Games can be retroactively synced with Stripe using bulk update functions
+- No manual intervention required for existing venues
+
+## Known Limitations
+- Stripe Edge Function requires proper API key configuration
+- Some older games may not have Stripe products created (marked as 'pending')
+- Group discount metadata is stored but requires booking flow integration
+
+## Next Steps
+- Add bulk Stripe sync for existing games
+- Implement webhook handlers for Stripe events
+- Add payment method management for venues
+- Create Stripe dashboard integration for revenue tracking
+- Add refund and cancellation handling
+
+## Testing
+- Created test game "Complete Wizard Test - Haunted Library" with full Stripe integration
+- Verified all 7 wizard steps save data correctly
+- Confirmed Stripe product/price creation works
+- Validated payment flow with test cards
+- Tested real-time updates and loading states
+
+## Credits
+- Developed using Supabase, Stripe, and React
+- MCP integration for Stripe operations
+- shadcn/ui components for UI
+
+---
+
 # Waiver v0.1.0 — Release Notes
 
 Date: 2025-11-06

@@ -87,6 +87,10 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
       location: settings.location || '',
       faqs: settings.faqs || [],
       cancellationPolicies: settings.cancellationPolicies || [],
+      // Stripe integration fields
+      stripe_price_id: game.stripe_price_id || null,
+      stripe_product_id: game.stripe_product_id || null,
+      stripe_sync_status: game.stripe_sync_status || 'pending',
     };
   };
 
@@ -192,6 +196,11 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
           endTime: gameData.endTime,
           slotInterval: gameData.slotInterval,
           advanceBooking: gameData.advanceBooking,
+          customDates: gameData.customDates || [],
+          blockedDates: gameData.blockedDates || [],
+          customHours: gameData.customHours || {},
+          customHoursEnabled: gameData.customHoursEnabled || false,
+          selectedWidget: gameData.selectedWidget || 'calendar-single-event',
           requiresWaiver: gameData.requiresWaiver,
           selectedWaiver: gameData.selectedWaiver,
           cancellationWindow: gameData.cancellationWindow,
@@ -310,6 +319,9 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
       groupTiers: settings.groupTiers || [],
       customDates: settings.customDates || [],
       blockedDates: settings.blockedDates || [],
+      customHours: settings.customHours || {},
+      customHoursEnabled: settings.customHoursEnabled || false,
+      selectedWidget: settings.selectedWidget || 'calendar-single-event',
       slug: game.slug || generateSlug(game.name),
     };
   };

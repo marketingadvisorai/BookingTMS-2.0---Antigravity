@@ -37,11 +37,17 @@ export function useGames(venueId?: string) {
   const { currentUser } = useAuth();
   const [games, setGames] = useState<Game[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   // Fetch games
   const fetchGames = async (showToast = false) => {
     try {
       setError(null);
+      // Only show loading spinner on first load, not on refreshes
+      if (isFirstLoad) {
+        setLoading(true);
+      }
 
       let query = supabase
         .from('games')
@@ -63,12 +69,18 @@ export function useGames(venueId?: string) {
       if (showToast) {
         toast.error('Failed to load games');
       }
+    } finally {
+      if (isFirstLoad) {
+        setLoading(false);
+        setIsFirstLoad(false);
+      }
     }
   };
 
-  // Create game with automatic Stripe product/price creation
+  // Create game with optional Stripe product/price creation
   const createGame = async (gameData: Omit<Game, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
     let stripeProductId: string | null = null;
+    let stripePriceId: string | null = null;
     
     try {
       console.log('useGames.createGame called with:', gameData);
@@ -79,25 +91,34 @@ export function useGames(venueId?: string) {
         throw new Error('Venue ID is required to create a game');
       }
       
-      // Step 1: Create Stripe Product and Price FIRST
-      console.log('Creating Stripe product and price for game...');
-      toast.loading('Creating payment product...', { id: 'stripe-create' });
-      
-      const { productId, priceId } = await StripeProductService.createProductAndPrice({
-        name: gameData.name,
-        description: gameData.description || `${gameData.name} - ${gameData.duration} minutes`,
-        price: gameData.price,
-        currency: 'usd',
-        metadata: {
-          venue_id: gameData.venue_id,
-          duration: gameData.duration.toString(),
-          difficulty: gameData.difficulty,
-        },
-      });
-      
-      stripeProductId = productId;
-      console.log('Stripe product created:', productId, 'price:', priceId);
-      toast.success('Payment product created!', { id: 'stripe-create' });
+      // Step 1: Try to create Stripe Product and Price (non-blocking)
+      try {
+        console.log('Attempting to create Stripe product and price...');
+        toast.loading('Creating payment product...', { id: 'stripe-create' });
+        
+        const { productId, priceId } = await StripeProductService.createProductAndPrice({
+          name: gameData.name,
+          description: gameData.description || `${gameData.name} - ${gameData.duration} minutes`,
+          price: gameData.price,
+          currency: 'usd',
+          metadata: {
+            venue_id: gameData.venue_id,
+            duration: gameData.duration.toString(),
+            difficulty: gameData.difficulty,
+            image_url: gameData.image_url || '',
+          },
+        });
+        
+        stripeProductId = productId;
+        stripePriceId = priceId;
+        console.log('Stripe product created:', productId, 'price:', priceId);
+        toast.success('Payment product created!', { id: 'stripe-create' });
+      } catch (stripeError: any) {
+        console.warn('Stripe product creation failed (non-blocking):', stripeError);
+        toast.dismiss('stripe-create');
+        toast.warning('Game will be created without payment integration. You can add it later.');
+        // Continue without Stripe - not critical for game creation
+      }
       
       // Step 2: Get Supabase session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -109,17 +130,17 @@ export function useGames(venueId?: string) {
         console.log('No Supabase session - proceeding with anon access');
       }
 
-      // Step 3: Save game to database WITH Stripe IDs
+      // Step 3: Save game to database (with or without Stripe IDs)
       const insertData = {
         ...gameData,
         created_by: userId,
-        stripe_product_id: productId,
-        stripe_price_id: priceId,
-        stripe_sync_status: 'synced',
-        stripe_last_sync: new Date().toISOString(),
+        stripe_product_id: stripeProductId,
+        stripe_price_id: stripePriceId,
+        stripe_sync_status: stripeProductId ? 'synced' : 'pending',
+        stripe_last_sync: stripeProductId ? new Date().toISOString() : null,
       };
 
-      console.log('Inserting game data with Stripe IDs:', insertData);
+      console.log('Inserting game data:', insertData);
 
       const { data, error: insertError } = await supabase
         .from('games')
@@ -137,14 +158,20 @@ export function useGames(venueId?: string) {
         throw insertError;
       }
 
-      // Step 4: Update Stripe product metadata with game ID
-      console.log('Updating Stripe product with game ID:', data.id);
-      await StripeProductService.updateProductMetadata(productId, {
-        game_id: data.id,
-      });
+      // Step 4: Update Stripe product metadata with game ID (if Stripe was created)
+      if (stripeProductId) {
+        try {
+          console.log('Updating Stripe product with game ID:', data.id);
+          await StripeProductService.updateProductMetadata(stripeProductId, {
+            game_id: data.id,
+          });
+        } catch (updateError) {
+          console.warn('Failed to update Stripe metadata (non-critical):', updateError);
+        }
+      }
 
-      console.log('Game created successfully in database with Stripe integration:', data);
-      toast.success('Game created and ready for payments!');
+      console.log('Game created successfully in database:', data);
+      toast.success(stripeProductId ? 'Game created and ready for payments!' : 'Game created successfully!');
       await fetchGames(); // Refresh list
       return data;
     } catch (err: any) {
@@ -319,7 +346,7 @@ export function useGames(venueId?: string) {
 
   return {
     games,
-    loading: false,
+    loading,
     error,
     createGame,
     updateGame,

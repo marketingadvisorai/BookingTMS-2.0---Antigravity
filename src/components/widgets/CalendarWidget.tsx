@@ -24,6 +24,7 @@ import { PromoCodeInput } from './PromoCodeInput';
 import { GiftCardInput } from './GiftCardInput';
 import SupabaseBookingService from '../../services/SupabaseBookingService';
 import { BookingService } from '../../lib/bookings/bookingService';
+import { CheckoutService } from '../../lib/payments/checkoutService';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -31,6 +32,8 @@ import { validateCheckoutForm, sanitizeEmail, sanitizeName, sanitizePhone, valid
 import { validatePromoCode as validatePromoCodeService, validateGiftCard as validateGiftCardService, recordPromoCodeUsage, recordGiftCardUsage, applyPromoDiscount, applyGiftCardBalance } from '../../lib/validation/codeValidation';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+
+type PaymentMethod = 'checkout' | 'embedded' | 'payment-link';
 
 interface CalendarWidgetProps {
   primaryColor?: string;
@@ -61,12 +64,13 @@ export function CalendarWidget({ primaryColor = '#2563eb', config }: CalendarWid
   // Payment and validation state
   const [clientSecret, setClientSecret] = useState<string>('');
   const [bookingId, setBookingId] = useState<string>('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('checkout'); // Default to Checkout Sessions
   const [validationErrors, setValidationErrors] = useState<{
     name?: string;
     email?: string;
     phone?: string;
   }>({});
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // Promo code and gift card state
   const [showPromoCodeInput, setShowPromoCodeInput] = useState(false);
@@ -79,7 +83,6 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
   // Derived preview/config values
   const previewRole = String(config?.previewRole || 'customer').toLowerCase();
   const timezoneLabel = config?.timezoneLabel || 'Local Time';
-  const slotDurationMinutes = typeof config?.slotDurationMinutes === 'number' ? config.slotDurationMinutes : 90;
   const allowPromoSection = (config?.showPromoCodeInput ?? true) && previewRole !== 'staff';
   const allowGiftSection = config?.showGiftCardInput ?? true;
   const cs = config?.customSettings || {};
@@ -110,20 +113,39 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
       whatToExpect: g?.whatToExpect || [],
       requirements: g?.requirements || [],
       successTips: g?.successTips || [],
-      faq: g?.faq || [],
+      faq: g?.faq || g?.faqs || [],
       reviews: g?.reviewsList || [],
       gameType: g?.gameType || 'physical',
+      // Step 3: Game Details fields
+      language: g?.language || ['English'],
+      successRate: g?.successRate || 75,
+      activityDetails: g?.activityDetails || '',
+      additionalInformation: g?.additionalInformation || '',
+      cancellationPolicies: g?.cancellationPolicies || [],
+      accessibility: g?.accessibility || { strollerAccessible: false, wheelchairAccessible: false },
+      location: g?.location || '',
       // Schedule & Availability fields
       operatingDays: g?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
       startTime: g?.startTime || '10:00',
       endTime: g?.endTime || '22:00',
       slotInterval: g?.slotInterval || 60,
-      advanceBooking: g?.advanceBooking || 30
+      advanceBooking: g?.advanceBooking || 30,
+      // Stripe integration fields
+      stripe_price_id: g?.stripe_price_id || null,
+      stripe_product_id: g?.stripe_product_id || null,
+      stripe_sync_status: g?.stripe_sync_status || 'pending'
     };
   });
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const selectedGameData = selectedGame ? (games.find(g => g.id === selectedGame) || games[0]) : games[0];
+  
+  // Use actual game duration for slot display, not config
+  const slotDurationMinutes = selectedGameData?.duration 
+    ? (typeof selectedGameData.duration === 'string' 
+        ? parseInt(selectedGameData.duration) 
+        : selectedGameData.duration)
+    : (typeof config?.slotDurationMinutes === 'number' ? config.slotDurationMinutes : 90);
 
   // Get current month and year for calendar
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
@@ -311,8 +333,12 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
   
   const canCheckout = customerData.name !== '' && customerData.email !== '' && customerData.phone !== '';
   
-  const canCompletePay = customerData.cardNumber !== '' && customerData.cardExpiry !== '' && 
-                         customerData.cardCVV !== '' && customerData.cardName !== '';
+  // For "Pay Here" (embedded), require card details. For other methods, only require contact info.
+  const canCompletePay = paymentMethod === 'embedded'
+    ? customerData.name !== '' && customerData.email !== '' && customerData.phone !== '' &&
+      customerData.cardNumber !== '' && customerData.cardExpiry !== '' && 
+      customerData.cardCVV !== '' && customerData.cardName !== ''
+    : customerData.name !== '' && customerData.email !== '' && customerData.phone !== '';
 
   const resetBooking = () => {
     setCurrentStep('booking');
@@ -337,10 +363,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
 
   // Enhanced booking with validation and real payment processing
   const handleCompleteBooking = async () => {
-    if (!canCompletePay) {
-      toast.error('Please complete checkout details');
-      return;
-    }
+    if (isProcessing) return;
 
     try {
       // Step 1: Validate all form inputs
@@ -359,7 +382,6 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
       // Step 2: Validate required data
       if (!config?.venueId) {
         toast.error('Venue configuration is missing');
-        console.error('Missing venueId in config:', config);
         return;
       }
 
@@ -374,7 +396,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
       }
 
       setIsProcessing(true);
-      toast.loading('Creating your booking...', { id: 'booking-process' });
+      toast.loading('Processing your booking...', { id: 'booking-process' });
 
       // Step 3: Calculate final amount with discounts
       let finalAmount = totalPrice;
@@ -406,7 +428,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
         }
       }
 
-      // Step 4: Sanitize customer data for Stripe
+      // Step 4: Sanitize customer data
       const nameParts = customerData.name.trim().split(/\s+/);
       const firstName = sanitizeName(nameParts[0] || '');
       const lastName = sanitizeName(nameParts.slice(1).join(' ') || 'Customer');
@@ -418,7 +440,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
         phone: sanitizePhone(customerData.phone),
       };
 
-      // Step 5: Prepare booking date (use current year and month from calendar state)
+      // Step 5: Prepare booking date
       const bookingDate = new Date(currentYear, currentMonth, selectedDate);
       const isoDate = bookingDate.toISOString().split('T')[0];
 
@@ -457,8 +479,14 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
         return;
       }
 
-      // Step 7: Create booking with payment using BookingService
-      console.log('Creating booking with payment:', {
+      // Validate priceId before proceeding
+      if (!selectedGameData.stripe_price_id) {
+        toast.error('Game pricing not configured. Please contact support.', { id: 'booking-process' });
+        setIsProcessing(false);
+        return;
+      }
+
+      const baseParams = {
         venueId: config.venueId,
         gameId: selectedGameData.id,
         bookingDate: isoDate,
@@ -466,29 +494,83 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
         endTime,
         partySize,
         customer: cleanCustomerData,
-        totalPrice: finalAmount,
-      });
+        totalPrice: parseFloat(finalAmount.toFixed(2)),
+        priceId: selectedGameData.stripe_price_id,
+      };
 
-      const bookingResult = await BookingService.createBookingWithPayment({
-        venueId: config.venueId,
-        gameId: selectedGameData.id,
-        bookingDate: isoDate,
-        startTime,
-        endTime,
-        partySize,
-        customer: cleanCustomerData,
-        totalPrice: finalAmount,
-      });
+      // Step 7: Choose payment method and process
+      if (paymentMethod === 'checkout') {
+        // OPTION 1: Checkout Sessions (Stripe-hosted) ⭐
+        try {
+          toast.loading('Creating secure checkout...', { id: 'booking-process' });
+          
+          console.log('Creating checkout with params:', {
+            ...baseParams,
+            priceId: baseParams.priceId // Log priceId
+          });
 
-      // Step 7: Store booking ID and client secret
-      setBookingId(bookingResult.bookingId);
-      setClientSecret(bookingResult.clientSecret);
-      
-      toast.success('Booking created! Proceeding to payment...', { id: 'booking-process' });
-      
-      // Step 8: Move to payment step
-      setCurrentStep('payment');
-      setIsProcessing(false);
+          const result = await CheckoutService.createBookingWithCheckout({
+            ...baseParams,
+            successUrl: `${window.location.origin}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+            cancelUrl: `${window.location.origin}/booking-cancelled`,
+          });
+
+          setBookingId(result.booking.id);
+          toast.success('Redirecting to secure checkout...', { id: 'booking-process' });
+          
+          // Redirect to Stripe Checkout
+          setTimeout(() => {
+            window.location.href = result.checkoutUrl;
+          }, 500);
+        } catch (error: any) {
+          console.error('Checkout error:', error);
+          toast.error(`Checkout failed: ${error.message}`, { id: 'booking-process' });
+          setIsProcessing(false);
+          return;
+        }
+        
+      } else if (paymentMethod === 'payment-link') {
+        // OPTION 2: Payment Link (Email/SMS)
+        try {
+          toast.loading('Creating payment link...', { id: 'booking-process' });
+          
+          const result = await CheckoutService.createBookingWithPaymentLink(baseParams);
+          
+          setBookingId(result.booking.id);
+          setConfirmationCode(`BK-${result.booking.id.substring(0, 8).toUpperCase()}`);
+          
+          toast.success('Booking created! Payment link sent to your email.', { id: 'booking-process' });
+          setCurrentStep('success');
+          setIsProcessing(false);
+          
+          // TODO: Send email with payment link
+          console.log('Payment Link:', result.paymentLink);
+        } catch (error: any) {
+          console.error('Payment link error:', error);
+          toast.error(`Payment link failed: ${error.message}`, { id: 'booking-process' });
+          setIsProcessing(false);
+          return;
+        }
+        
+      } else {
+        // OPTION 3: Embedded Payment Element (fallback)
+        try {
+          toast.loading('Creating payment intent...', { id: 'booking-process' });
+          
+          const bookingResult = await BookingService.createBookingWithPayment(baseParams);
+          
+          setBookingId(bookingResult.bookingId);
+          setClientSecret(bookingResult.clientSecret);
+          toast.success('Proceeding to payment...', { id: 'booking-process' });
+          setCurrentStep('payment');
+          setIsProcessing(false);
+        } catch (error: any) {
+          console.error('Payment intent error:', error);
+          toast.error(`Payment setup failed: ${error.message}`, { id: 'booking-process' });
+          setIsProcessing(false);
+          return;
+        }
+      }
 
     } catch (error: any) {
       console.error('❌ Error creating booking:', error);
@@ -540,41 +622,110 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
     const stripe = useStripe();
     const elements = useElements();
     const [processing, setProcessing] = useState(false);
+    const [paymentError, setPaymentError] = useState<string>('');
 
     const handlePaymentSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
 
       if (!stripe || !elements) {
-        toast.error('Stripe is not loaded');
+        toast.error('Stripe is not loaded. Please refresh the page.');
         return;
       }
 
       setProcessing(true);
+      setPaymentError('');
 
       try {
+        // Validate payment element before submission
+        const { error: submitError } = await elements.submit();
+        if (submitError) {
+          setPaymentError(getHelpfulErrorMessage(submitError));
+          toast.error(getHelpfulErrorMessage(submitError));
+          setProcessing(false);
+          return;
+        }
+
         const { error, paymentIntent } = await stripe.confirmPayment({
           elements,
           redirect: 'if_required',
         });
 
         if (error) {
-          toast.error(error.message || 'Payment failed');
+          const helpfulMessage = getHelpfulErrorMessage(error);
+          setPaymentError(helpfulMessage);
+          toast.error(helpfulMessage);
           handlePaymentError(error);
         } else if (paymentIntent && paymentIntent.status === 'succeeded') {
           await handlePaymentSuccess(paymentIntent);
         }
       } catch (err: any) {
         console.error('Payment error:', err);
-        toast.error('Payment failed. Please try again.');
+        const errorMsg = err.message || 'Payment failed. Please try again.';
+        setPaymentError(errorMsg);
+        toast.error(errorMsg);
         handlePaymentError(err);
       } finally {
         setProcessing(false);
       }
     };
 
+    // Convert Stripe errors to helpful messages
+    const getHelpfulErrorMessage = (error: any): string => {
+      const code = error.code;
+      const message = error.message;
+
+      // Specific error codes with helpful messages
+      const errorMessages: { [key: string]: string } = {
+        'incomplete_number': '❌ Card number is incomplete. Please enter all 16 digits.',
+        'invalid_number': '❌ Invalid card number. Please check and try again.',
+        'incomplete_expiry': '❌ Expiry date is incomplete. Use MM/YY format (e.g., 12/25)',
+        'invalid_expiry_month': '❌ Invalid month. Enter 01-12.',
+        'invalid_expiry_year_past': '❌ Card has expired. Please use a valid card.',
+        'incomplete_cvc': '❌ CVC is incomplete. Enter 3 digits from back of card.',
+        'invalid_cvc': '❌ Invalid CVC. Enter the 3-digit code on back of card.',
+        'incomplete_zip': '❌ ZIP code is required. Please enter your billing ZIP.',
+        'card_declined': '❌ Card declined. Please try a different card.',
+        'insufficient_funds': '❌ Insufficient funds. Please use a different card.',
+        'expired_card': '❌ Card has expired. Please use a valid card.',
+        'incorrect_cvc': '❌ Incorrect CVC. Check the 3 digits on back of card.',
+        'processing_error': '❌ Processing error. Please try again.',
+        'rate_limit': '❌ Too many attempts. Please wait a moment and try again.',
+      };
+
+      return errorMessages[code] || `❌ ${message}`;
+    };
+
     return (
       <form onSubmit={handlePaymentSubmit} className="space-y-6">
-        <PaymentElement />
+        <div className="space-y-4">
+          <PaymentElement 
+            options={{
+              layout: 'tabs',
+              fields: {
+                billingDetails: {
+                  address: {
+                    postalCode: 'auto'
+                  }
+                }
+              }
+            }}
+            onChange={(event) => {
+              // Clear error when payment form is complete
+              if (event.complete) {
+                setPaymentError('');
+              }
+            }}
+          />
+          
+          {paymentError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {paymentError}
+              </p>
+            </div>
+          )}
+        </div>
         
         <Button
           type="submit"
@@ -2747,9 +2898,19 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
             <div className="lg:col-span-2 space-y-4 sm:space-y-6">
               <Card className="p-3 sm:p-4 md:p-6 bg-white border border-gray-200 shadow-sm">
                 <h2 className="text-gray-900 mb-4 sm:mb-6 text-lg sm:text-xl">Contact Information</h2>
+                
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-xs text-green-900 font-medium mb-1">✅ Required Format:</p>
+                  <ul className="text-xs text-green-800 space-y-0.5">
+                    <li>• <strong>Name:</strong> First and Last name (e.g., John Doe)</li>
+                    <li>• <strong>Email:</strong> Valid email address (e.g., john@example.com)</li>
+                    <li>• <strong>Phone:</strong> 10+ digits, any format (e.g., 555-123-4567)</li>
+                  </ul>
+                </div>
+
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="name" className="text-gray-700">Full Name</Label>
+                    <Label htmlFor="name" className="text-gray-700">Full Name <span className="text-red-500">*</span></Label>
                     <div className="relative mt-2">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -2757,13 +2918,28 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                         type="text"
                         placeholder="John Doe"
                         value={customerData.name}
-                        onChange={(e) => setCustomerData({ ...customerData, name: e.target.value })}
-                        className="pl-10 h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500"
+                        onChange={(e) => {
+                          setCustomerData({ ...customerData, name: e.target.value });
+                          if (validationErrors.name) setValidationErrors({ ...validationErrors, name: undefined });
+                        }}
+                        onBlur={() => {
+                          const result = validateName(customerData.name);
+                          if (!result.isValid) {
+                            setValidationErrors({ ...validationErrors, name: result.error });
+                          }
+                        }}
+                        className={`pl-10 h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500 ${validationErrors.name ? 'border-red-500 bg-red-50' : ''}`}
                       />
                     </div>
+                    {validationErrors.name && (
+                      <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {validationErrors.name}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <Label htmlFor="email" className="text-gray-700">Email</Label>
+                    <Label htmlFor="email" className="text-gray-700">Email <span className="text-red-500">*</span></Label>
                     <div className="relative mt-2">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -2771,13 +2947,28 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                         type="email"
                         placeholder="john@example.com"
                         value={customerData.email}
-                        onChange={(e) => setCustomerData({ ...customerData, email: e.target.value })}
-                        className="pl-10 h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500"
+                        onChange={(e) => {
+                          setCustomerData({ ...customerData, email: e.target.value });
+                          if (validationErrors.email) setValidationErrors({ ...validationErrors, email: undefined });
+                        }}
+                        onBlur={() => {
+                          const result = validateEmail(customerData.email);
+                          if (!result.isValid) {
+                            setValidationErrors({ ...validationErrors, email: result.error });
+                          }
+                        }}
+                        className={`pl-10 h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500 ${validationErrors.email ? 'border-red-500 bg-red-50' : ''}`}
                       />
                     </div>
+                    {validationErrors.email && (
+                      <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {validationErrors.email}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <Label htmlFor="phone" className="text-gray-700">Phone Number</Label>
+                    <Label htmlFor="phone" className="text-gray-700">Phone Number <span className="text-red-500">*</span></Label>
                     <div className="relative mt-2">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -2785,76 +2976,94 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                         type="tel"
                         placeholder="(555) 123-4567"
                         value={customerData.phone}
-                        onChange={(e) => setCustomerData({ ...customerData, phone: e.target.value })}
-                        className="pl-10 h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500"
+                        onChange={(e) => {
+                          setCustomerData({ ...customerData, phone: e.target.value });
+                          if (validationErrors.phone) setValidationErrors({ ...validationErrors, phone: undefined });
+                        }}
+                        onBlur={() => {
+                          const result = validatePhone(customerData.phone);
+                          if (!result.isValid) {
+                            setValidationErrors({ ...validationErrors, phone: result.error });
+                          }
+                        }}
+                        className={`pl-10 h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500 ${validationErrors.phone ? 'border-red-500 bg-red-50' : ''}`}
                       />
                     </div>
+                    {validationErrors.phone && (
+                      <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {validationErrors.phone}
+                      </p>
+                    )}
                   </div>
                 </div>
               </Card>
 
-              <Card className="p-3 sm:p-4 md:p-6 bg-white border border-gray-200 shadow-sm">
-                <h2 className="text-gray-900 mb-4 sm:mb-6 text-lg sm:text-xl">Payment Information</h2>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="cardName" className="text-gray-700">Name on Card</Label>
-                    <Input
-                      id="cardName"
-                      type="text"
-                      placeholder="John Doe"
-                      value={customerData.cardName}
-                      onChange={(e) => setCustomerData({ ...customerData, cardName: e.target.value })}
-                      className="h-12 mt-2 bg-gray-100 border-gray-300 placeholder:text-gray-500"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="cardNumber" className="text-gray-700">Card Number</Label>
-                    <div className="relative mt-2">
-                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        id="cardNumber"
-                        type="text"
-                        placeholder="1234 5678 9012 3456"
-                        value={customerData.cardNumber}
-                        onChange={(e) => setCustomerData({ ...customerData, cardNumber: e.target.value })}
-                        maxLength={19}
-                        className="pl-10 h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+              {/* Payment Information - Only show for "Pay Here" option */}
+              {paymentMethod === 'embedded' && (
+                <Card className="p-3 sm:p-4 md:p-6 bg-white border border-gray-200 shadow-sm">
+                  <h2 className="text-gray-900 mb-4 sm:mb-6 text-lg sm:text-xl">Payment Information</h2>
+                  <div className="space-y-4">
                     <div>
-                      <Label htmlFor="expiry" className="text-gray-700">Expiry Date</Label>
+                      <Label htmlFor="cardName" className="text-gray-700">Name on Card</Label>
                       <Input
-                        id="expiry"
+                        id="cardName"
                         type="text"
-                        placeholder="MM/YY"
-                        value={customerData.cardExpiry}
-                        onChange={(e) => setCustomerData({ ...customerData, cardExpiry: e.target.value })}
-                        maxLength={5}
+                        placeholder="John Doe"
+                        value={customerData.cardName}
+                        onChange={(e) => setCustomerData({ ...customerData, cardName: e.target.value })}
                         className="h-12 mt-2 bg-gray-100 border-gray-300 placeholder:text-gray-500"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="cvv" className="text-gray-700">CVV</Label>
-                      <Input
-                        id="cvv"
-                        type="text"
-                        placeholder="123"
-                        value={customerData.cardCVV}
-                        onChange={(e) => setCustomerData({ ...customerData, cardCVV: e.target.value })}
-                        maxLength={4}
-                        className="h-12 mt-2 bg-gray-100 border-gray-300 placeholder:text-gray-500"
-                      />
+                      <Label htmlFor="cardNumber" className="text-gray-700">Card Number</Label>
+                      <div className="relative mt-2">
+                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                          id="cardNumber"
+                          type="text"
+                          placeholder="1234 5678 9012 3456"
+                          value={customerData.cardNumber}
+                          onChange={(e) => setCustomerData({ ...customerData, cardNumber: e.target.value })}
+                          maxLength={19}
+                          className="pl-10 h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="expiry" className="text-gray-700">Expiry Date</Label>
+                        <Input
+                          id="expiry"
+                          type="text"
+                          placeholder="MM/YY"
+                          value={customerData.cardExpiry}
+                          onChange={(e) => setCustomerData({ ...customerData, cardExpiry: e.target.value })}
+                          maxLength={5}
+                          className="h-12 mt-2 bg-gray-100 border-gray-300 placeholder:text-gray-500"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="cvv" className="text-gray-700">CVV</Label>
+                        <Input
+                          id="cvv"
+                          type="text"
+                          placeholder="123"
+                          value={customerData.cardCVV}
+                          onChange={(e) => setCustomerData({ ...customerData, cardCVV: e.target.value })}
+                          maxLength={4}
+                          className="h-12 mt-2 bg-gray-100 border-gray-300 placeholder:text-gray-500"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700 flex items-start gap-2 mt-6">
-                  <Lock className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <p>Your payment information is encrypted and secure</p>
-                </div>
-              </Card>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700 flex items-start gap-2 mt-6">
+                    <Lock className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <p>Your payment information is encrypted and secure</p>
+                  </div>
+                </Card>
+              )}
             </div>
 
             <div className="lg:col-span-1">
@@ -2886,14 +3095,123 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                   </div>
                 </div>
 
+                {/* Payment Method Selector */}
+                <div className="mb-6 space-y-3">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Choose Payment Method:</h4>
+                  
+                  {/* Checkout Sessions - Recommended */}
+                  <button
+                    onClick={() => setPaymentMethod('checkout')}
+                    className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                      paymentMethod === 'checkout'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          paymentMethod === 'checkout' ? 'border-blue-500' : 'border-gray-300'
+                        }`}>
+                          {paymentMethod === 'checkout' && (
+                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium text-sm text-gray-900">
+                            Secure Checkout <span className="text-xs text-blue-600">(Recommended)</span>
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            Apple Pay, Google Pay, Cards
+                          </div>
+                        </div>
+                      </div>
+                      <Shield className="w-4 h-4 text-green-500" />
+                    </div>
+                  </button>
+
+                  {/* Payment Link */}
+                  <button
+                    onClick={() => setPaymentMethod('payment-link')}
+                    className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                      paymentMethod === 'payment-link'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          paymentMethod === 'payment-link' ? 'border-blue-500' : 'border-gray-300'
+                        }`}>
+                          {paymentMethod === 'payment-link' && (
+                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium text-sm text-gray-900">
+                            Pay Later
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            Receive email with payment link
+                          </div>
+                        </div>
+                      </div>
+                      <Mail className="w-4 h-4 text-gray-400" />
+                    </div>
+                  </button>
+
+                  {/* Embedded Payment */}
+                  <button
+                    onClick={() => setPaymentMethod('embedded')}
+                    className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                      paymentMethod === 'embedded'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          paymentMethod === 'embedded' ? 'border-blue-500' : 'border-gray-300'
+                        }`}>
+                          {paymentMethod === 'embedded' && (
+                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium text-sm text-gray-900">
+                            Pay Here
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            Enter card details on this page
+                          </div>
+                        </div>
+                      </div>
+                      <Lock className="w-4 h-4 text-gray-400" />
+                    </div>
+                  </button>
+                </div>
+
                 <Button
                   onClick={handleCompleteBooking}
-                  disabled={!canCompletePay}
+                  disabled={!canCompletePay || isProcessing}
                   className="w-full text-white min-h-[44px] h-12 sm:h-14 text-sm sm:text-base"
                   style={{ backgroundColor: canCompletePay ? primaryColor : undefined }}
                 >
-                  <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                  Complete Payment ${totalPrice}
+                  {isProcessing ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                      {paymentMethod === 'checkout' ? 'Go to Secure Checkout' : 
+                       paymentMethod === 'payment-link' ? 'Create Booking' : 
+                       'Complete Payment'} ${totalPrice}
+                    </>
+                  )}
                 </Button>
               </Card>
             </div>
@@ -2945,6 +3263,19 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
             </div>
 
             <div className="mb-6">
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-900 font-medium mb-2">💳 Payment Information Required:</p>
+                <ul className="text-xs text-blue-800 space-y-1">
+                  <li>• <strong>Card Number:</strong> 16 digits (e.g., 4242 4242 4242 4242)</li>
+                  <li>• <strong>Expiry Date:</strong> MM/YY format (e.g., 12/25)</li>
+                  <li>• <strong>CVC:</strong> 3 digits on back of card (e.g., 123)</li>
+                  <li>• <strong>ZIP Code:</strong> Your billing postal code</li>
+                </ul>
+                <p className="text-xs text-blue-700 mt-2 italic">
+                  ✨ Test Mode: Use card 4242 4242 4242 4242 with any future expiry and CVC 123
+                </p>
+              </div>
+
               <Elements stripe={stripePromise} options={{ clientSecret }}>
                 <StripePaymentForm />
               </Elements>
@@ -2952,7 +3283,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
 
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <Lock className="w-4 h-4" />
-              <span>Your payment information is secure and encrypted</span>
+              <span>Your payment information is secure and encrypted by Stripe</span>
             </div>
           </Card>
         </div>

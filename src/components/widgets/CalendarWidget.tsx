@@ -24,9 +24,13 @@ import { PromoCodeInput } from './PromoCodeInput';
 import { GiftCardInput } from './GiftCardInput';
 import SupabaseBookingService from '../../services/SupabaseBookingService';
 import { BookingService } from '../../lib/bookings/bookingService';
-import { PaymentWrapper } from '../payments/PaymentWrapper';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { validateCheckoutForm, sanitizeEmail, sanitizeName, sanitizePhone, validateEmail, validateName, validatePhone } from '../../lib/validation/formValidation';
 import { validatePromoCode as validatePromoCodeService, validateGiftCard as validateGiftCardService, recordPromoCodeUsage, recordGiftCardUsage, applyPromoDiscount, applyGiftCardBalance } from '../../lib/validation/codeValidation';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 interface CalendarWidgetProps {
   primaryColor?: string;
@@ -418,27 +422,62 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
       const bookingDate = new Date(currentYear, currentMonth, selectedDate);
       const isoDate = bookingDate.toISOString().split('T')[0];
 
-      // Step 6: Create booking with payment using BookingService
+      // Step 6: Parse and calculate time
+      let startTime = selectedTime;
+      let endTime = '';
+      
+      const cleanedTime = selectedTime.trim().replace(/\s+/g, ' ');
+      const timeMatch = cleanedTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+      
+      if (timeMatch) {
+        let hours = parseInt(timeMatch[1]);
+        const minutes = parseInt(timeMatch[2]);
+        const period = timeMatch[3];
+        
+        if (period) {
+          if (period.toUpperCase() === 'PM' && hours !== 12) {
+            hours += 12;
+          } else if (period.toUpperCase() === 'AM' && hours === 12) {
+            hours = 0;
+          }
+        }
+        
+        startTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        
+        const startDate = new Date();
+        startDate.setHours(hours, minutes, 0, 0);
+        const duration = typeof selectedGameData?.duration === 'string' 
+          ? parseInt(selectedGameData.duration) 
+          : selectedGameData?.duration || 60;
+        const endDate = new Date(startDate.getTime() + duration * 60000);
+        endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
+      } else {
+        toast.error('Invalid time format', { id: 'booking-process' });
+        setIsProcessing(false);
+        return;
+      }
+
+      // Step 7: Create booking with payment using BookingService
       console.log('Creating booking with payment:', {
-        gameId: selectedGameData.id,
         venueId: config.venueId,
-        date: isoDate,
-        time: selectedTime,
+        gameId: selectedGameData.id,
+        bookingDate: isoDate,
+        startTime,
+        endTime,
         partySize,
-        amount: finalAmount,
         customer: cleanCustomerData,
+        totalPrice: finalAmount,
       });
 
       const bookingResult = await BookingService.createBookingWithPayment({
-        gameId: selectedGameData.id,
         venueId: config.venueId,
-        date: isoDate,
-        time: selectedTime,
+        gameId: selectedGameData.id,
+        bookingDate: isoDate,
+        startTime,
+        endTime,
         partySize,
         customer: cleanCustomerData,
-        amount: finalAmount,
-        promoCode: appliedPromoCode?.code,
-        giftCardCode: appliedGiftCard?.code,
+        totalPrice: finalAmount,
       });
 
       // Step 7: Store booking ID and client secret
@@ -494,6 +533,69 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
     toast.error('Payment failed. Please try again.');
     setIsProcessing(false);
     setCurrentStep('checkout'); // Go back to checkout
+  };
+
+  // Inline Payment Component for Stripe Elements
+  const StripePaymentForm = () => {
+    const stripe = useStripe();
+    const elements = useElements();
+    const [processing, setProcessing] = useState(false);
+
+    const handlePaymentSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+
+      if (!stripe || !elements) {
+        toast.error('Stripe is not loaded');
+        return;
+      }
+
+      setProcessing(true);
+
+      try {
+        const { error, paymentIntent } = await stripe.confirmPayment({
+          elements,
+          redirect: 'if_required',
+        });
+
+        if (error) {
+          toast.error(error.message || 'Payment failed');
+          handlePaymentError(error);
+        } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+          await handlePaymentSuccess(paymentIntent);
+        }
+      } catch (err: any) {
+        console.error('Payment error:', err);
+        toast.error('Payment failed. Please try again.');
+        handlePaymentError(err);
+      } finally {
+        setProcessing(false);
+      }
+    };
+
+    return (
+      <form onSubmit={handlePaymentSubmit} className="space-y-6">
+        <PaymentElement />
+        
+        <Button
+          type="submit"
+          disabled={!stripe || processing}
+          className="w-full text-white h-12 text-base"
+          style={{ backgroundColor: primaryColor }}
+        >
+          {processing ? (
+            <>
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              Processing Payment...
+            </>
+          ) : (
+            <>
+              <Lock className="w-4 h-4 mr-2" />
+              Pay ${totalPrice}
+            </>
+          )}
+        </Button>
+      </form>
+    );
   };
 
   const renderDifficultyStars = (level: number) => {
@@ -2843,11 +2945,9 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
             </div>
 
             <div className="mb-6">
-              <PaymentWrapper
-                clientSecret={clientSecret}
-                onSuccess={handlePaymentSuccess}
-                onError={handlePaymentError}
-              />
+              <Elements stripe={stripePromise} options={{ clientSecret }}>
+                <StripePaymentForm />
+              </Elements>
             </div>
 
             <div className="flex items-center gap-2 text-xs text-gray-500">

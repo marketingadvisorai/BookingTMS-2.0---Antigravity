@@ -23,6 +23,10 @@ import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { PromoCodeInput } from './PromoCodeInput';
 import { GiftCardInput } from './GiftCardInput';
 import SupabaseBookingService from '../../services/SupabaseBookingService';
+import { BookingService } from '../../lib/bookings/bookingService';
+import { PaymentWrapper } from '../payments/PaymentWrapper';
+import { validateCheckoutForm, sanitizeEmail, sanitizeName, sanitizePhone, validateEmail, validateName, validatePhone } from '../../lib/validation/formValidation';
+import { validatePromoCode as validatePromoCodeService, validateGiftCard as validateGiftCardService, recordPromoCodeUsage, recordGiftCardUsage, applyPromoDiscount, applyGiftCardBalance } from '../../lib/validation/codeValidation';
 
 interface CalendarWidgetProps {
   primaryColor?: string;
@@ -36,7 +40,7 @@ export function CalendarWidget({ primaryColor = '#2563eb', config }: CalendarWid
   const [partySize, setPartySize] = useState(4);
   const [showGameDetails, setShowGameDetails] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
-  const [currentStep, setCurrentStep] = useState<'booking' | 'cart' | 'checkout' | 'success'>('booking');
+  const [currentStep, setCurrentStep] = useState<'booking' | 'cart' | 'checkout' | 'payment' | 'success'>('booking');
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [customerData, setCustomerData] = useState({
     name: '',
@@ -49,6 +53,16 @@ export function CalendarWidget({ primaryColor = '#2563eb', config }: CalendarWid
   });
   const [bookingsCount, setBookingsCount] = useState(0);
   const [confirmationCode, setConfirmationCode] = useState<string>('');
+  
+  // Payment and validation state
+  const [clientSecret, setClientSecret] = useState<string>('');
+  const [bookingId, setBookingId] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{
+    name?: string;
+    email?: string;
+    phone?: string;
+  }>({});
   
   // Promo code and gift card state
   const [showPromoCodeInput, setShowPromoCodeInput] = useState(false);
@@ -317,15 +331,28 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
     setShowGiftCardInput(false);
   };
 
-  // Save booking to Supabase database and move to success step
+  // Enhanced booking with validation and real payment processing
   const handleCompleteBooking = async () => {
     if (!canCompletePay) {
-      alert('Please complete checkout details');
+      toast.error('Please complete checkout details');
       return;
     }
 
     try {
-      // Validate required data
+      // Step 1: Validate all form inputs
+      const validation = validateCheckoutForm({
+        fullName: customerData.name,
+        email: customerData.email,
+        phone: customerData.phone,
+      });
+
+      if (!validation.isValid) {
+        setValidationErrors(validation.errors);
+        toast.error('Please fix the errors in the form');
+        return;
+      }
+
+      // Step 2: Validate required data
       if (!config?.venueId) {
         toast.error('Venue configuration is missing');
         console.error('Missing venueId in config:', config);
@@ -342,99 +369,131 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
         return;
       }
 
-      if (!customerData.name || !customerData.email) {
-        toast.error('Please fill in customer details');
-        return;
-      }
+      setIsProcessing(true);
+      toast.loading('Creating your booking...', { id: 'booking-process' });
 
-      const isoDate = new Date(new Date().getFullYear(), 10, Number(selectedDate)).toISOString().slice(0, 10); // Nov index = 10
+      // Step 3: Calculate final amount with discounts
+      let finalAmount = totalPrice;
       
-      // Parse and validate time
-      let startTime = selectedTime;
-      let endTime = '';
-      
-      // Clean up time string - remove any extra colons or formatting
-      const cleanedTime = selectedTime.trim().replace(/\s+/g, ' ');
-      
-      // Handle different time formats (HH:MM AM/PM or HH:MM)
-      // More strict regex to avoid matching malformed times like "11:30 AM:00"
-      const timeMatch = cleanedTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-      if (timeMatch) {
-        let hours = parseInt(timeMatch[1]);
-        const minutes = parseInt(timeMatch[2]);
-        const period = timeMatch[3];
-        
-        // Convert to 24-hour format if needed
-        if (period) {
-          if (period.toUpperCase() === 'PM' && hours !== 12) {
-            hours += 12;
-          } else if (period.toUpperCase() === 'AM' && hours === 12) {
-            hours = 0;
-          }
+      if (appliedPromoCode) {
+        const promoValidation = await validatePromoCodeService(appliedPromoCode.code, finalAmount);
+        if (!promoValidation.isValid) {
+          toast.error(promoValidation.error || 'Invalid promo code', { id: 'booking-process' });
+          setAppliedPromoCode(null);
+          setIsProcessing(false);
+          return;
         }
-        
-        // Format as HH:MM for database
-        startTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-        
-        // Calculate end time
-        const startDate = new Date();
-        startDate.setHours(hours, minutes, 0, 0);
-        const endDate = new Date(startDate.getTime() + (selectedGameData?.duration || 60) * 60000);
-        endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
-      } else {
-        toast.error('Invalid time format');
-        console.error('Could not parse time:', selectedTime);
-        return;
+        if (promoValidation.discount) {
+          finalAmount = applyPromoDiscount(finalAmount, promoValidation.discount);
+        }
       }
 
-      // Prepare ticket types
-      const ticketTypes = [{
-        id: 'standard',
-        name: 'Standard Ticket',
-        price: selectedGameData?.price || 0,
-        quantity: partySize,
-        subtotal: calculateSubtotal()
-      }];
-
-      console.log('Creating booking with:', {
-        venue_id: config.venueId,
-        game_id: selectedGameData.id,
-        booking_date: isoDate,
-        start_time: startTime,
-        end_time: endTime,
-        original_selected_time: selectedTime
-      });
-
-      // Create booking via Supabase
-      const result = await SupabaseBookingService.createWidgetBooking({
-        venue_id: config.venueId,
-        game_id: selectedGameData.id,
-        customer_name: customerData.name,
-        customer_email: customerData.email,
-        customer_phone: customerData.phone || '',
-        booking_date: isoDate,
-        start_time: startTime,
-        end_time: endTime,
-        party_size: partySize,
-        ticket_types: ticketTypes,
-        total_amount: calculateSubtotal(),
-        final_amount: totalPrice,
-        promo_code: appliedPromoCode?.code,
-        notes: `Calendar Widget Booking - ${selectedGameData?.name}`
-      });
-
-      if (result) {
-        // Update confirmation code from database
-        setConfirmationCode(result.confirmation_code);
-        
-        toast.success('Booking confirmed!');
-        console.log('✅ Booking created:', result);
-        setCurrentStep('success');
+      if (appliedGiftCard) {
+        const giftValidation = await validateGiftCardService(appliedGiftCard.code);
+        if (!giftValidation.isValid) {
+          toast.error(giftValidation.error || 'Invalid gift card', { id: 'booking-process' });
+          setAppliedGiftCard(null);
+          setIsProcessing(false);
+          return;
+        }
+        if (giftValidation.balance) {
+          const result = applyGiftCardBalance(finalAmount, giftValidation.balance);
+          finalAmount = result.remainingAmount;
+        }
       }
+
+      // Step 4: Sanitize customer data for Stripe
+      const nameParts = customerData.name.trim().split(/\s+/);
+      const firstName = sanitizeName(nameParts[0] || '');
+      const lastName = sanitizeName(nameParts.slice(1).join(' ') || 'Customer');
+
+      const cleanCustomerData = {
+        email: sanitizeEmail(customerData.email),
+        firstName,
+        lastName,
+        phone: sanitizePhone(customerData.phone),
+      };
+
+      // Step 5: Prepare booking date (use current year and month from calendar state)
+      const bookingDate = new Date(currentYear, currentMonth, selectedDate);
+      const isoDate = bookingDate.toISOString().split('T')[0];
+
+      // Step 6: Create booking with payment using BookingService
+      console.log('Creating booking with payment:', {
+        gameId: selectedGameData.id,
+        venueId: config.venueId,
+        date: isoDate,
+        time: selectedTime,
+        partySize,
+        amount: finalAmount,
+        customer: cleanCustomerData,
+      });
+
+      const bookingResult = await BookingService.createBookingWithPayment({
+        gameId: selectedGameData.id,
+        venueId: config.venueId,
+        date: isoDate,
+        time: selectedTime,
+        partySize,
+        customer: cleanCustomerData,
+        amount: finalAmount,
+        promoCode: appliedPromoCode?.code,
+        giftCardCode: appliedGiftCard?.code,
+      });
+
+      // Step 7: Store booking ID and client secret
+      setBookingId(bookingResult.bookingId);
+      setClientSecret(bookingResult.clientSecret);
+      
+      toast.success('Booking created! Proceeding to payment...', { id: 'booking-process' });
+      
+      // Step 8: Move to payment step
+      setCurrentStep('payment');
+      setIsProcessing(false);
+
     } catch (error: any) {
       console.error('❌ Error creating booking:', error);
-      toast.error(error.message || 'Failed to create booking');
+      toast.error(error.message || 'Failed to create booking', { id: 'booking-process' });
+      setIsProcessing(false);
     }
+  };
+
+  // Handle successful payment
+  const handlePaymentSuccess = async (paymentIntent: any) => {
+    try {
+      console.log('Payment successful:', paymentIntent);
+      
+      // Record promo code usage
+      if (appliedPromoCode && bookingId) {
+        await recordPromoCodeUsage(appliedPromoCode.code, bookingId);
+      }
+      
+      // Record gift card usage
+      if (appliedGiftCard && bookingId) {
+        await recordGiftCardUsage(appliedGiftCard.code, appliedGiftCard.amount, bookingId);
+      }
+
+      // Set confirmation code
+      setConfirmationCode(bookingId);
+      
+      // Move to success page
+      setCurrentStep('success');
+      toast.success('Payment successful! Booking confirmed.');
+      
+    } catch (error) {
+      console.error('Post-payment error:', error);
+      // Payment succeeded but tracking failed (non-critical)
+      setConfirmationCode(bookingId);
+      setCurrentStep('success');
+    }
+  };
+
+  // Handle payment failure
+  const handlePaymentError = (error: any) => {
+    console.error('Payment error:', error);
+    toast.error('Payment failed. Please try again.');
+    setIsProcessing(false);
+    setCurrentStep('checkout'); // Go back to checkout
   };
 
   const renderDifficultyStars = (level: number) => {
@@ -2737,6 +2796,65 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
               </Card>
             </div>
           </div>
+        </div>
+      )}
+
+      {currentStep === 'payment' && clientSecret && (
+        <div className="max-w-4xl mx-auto p-4 md:p-8">
+          <Button
+            onClick={() => setCurrentStep('checkout')}
+            variant="ghost"
+            className="mb-6 text-gray-600 hover:text-gray-900"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            Back to Checkout
+          </Button>
+
+          <Card className="p-6 md:p-8">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Complete Payment</h2>
+              <p className="text-gray-600">Enter your card details to confirm your booking</p>
+            </div>
+
+            <div className="mb-8 p-4 bg-gray-50 dark:bg-[#1e1e1e] rounded-lg border border-gray-200 dark:border-[#2a2a2a]">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Game</span>
+                  <span className="text-gray-900 font-medium">{selectedGameData?.name}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Date & Time</span>
+                  <span className="text-gray-900 font-medium">
+                    {new Date(currentYear, currentMonth, selectedDate).toLocaleDateString()} at {selectedTime}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Party Size</span>
+                  <span className="text-gray-900 font-medium">{partySize} players</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center pt-2">
+                  <span className="text-gray-900 font-semibold text-lg">Total Amount</span>
+                  <span className="text-2xl font-bold" style={{ color: primaryColor }}>
+                    ${totalPrice}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <PaymentWrapper
+                clientSecret={clientSecret}
+                onSuccess={handlePaymentSuccess}
+                onError={handlePaymentError}
+              />
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <Lock className="w-4 h-4" />
+              <span>Your payment information is secure and encrypted</span>
+            </div>
+          </Card>
         </div>
       )}
 

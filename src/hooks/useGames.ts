@@ -1,12 +1,14 @@
 /**
  * Games Database Hook
  * Manages escape room games/events with real-time sync
+ * Automatically creates Stripe products/prices for payment processing
  */
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useAuth } from '../lib/auth/AuthContext';
+import { StripeProductService } from '../lib/stripe/stripeProductService';
 
 export interface Game {
   id: string;
@@ -24,6 +26,11 @@ export interface Game {
   created_by: string;
   created_at: string;
   updated_at: string;
+  // Stripe integration fields
+  stripe_product_id?: string;
+  stripe_price_id?: string;
+  stripe_sync_status?: string;
+  stripe_last_sync?: string;
 }
 
 export function useGames(venueId?: string) {
@@ -59,8 +66,10 @@ export function useGames(venueId?: string) {
     }
   };
 
-  // Create game
+  // Create game with automatic Stripe product/price creation
   const createGame = async (gameData: Omit<Game, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
+    let stripeProductId: string | null = null;
+    
     try {
       console.log('useGames.createGame called with:', gameData);
       console.log('Current user from context:', currentUser);
@@ -70,10 +79,28 @@ export function useGames(venueId?: string) {
         throw new Error('Venue ID is required to create a game');
       }
       
-      // Try to get Supabase session (optional - RLS allows anon access)
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // Step 1: Create Stripe Product and Price FIRST
+      console.log('Creating Stripe product and price for game...');
+      toast.loading('Creating payment product...', { id: 'stripe-create' });
       
-      // Use session user ID if available, otherwise null (RLS will handle permissions)
+      const { productId, priceId } = await StripeProductService.createProductAndPrice({
+        name: gameData.name,
+        description: gameData.description || `${gameData.name} - ${gameData.duration} minutes`,
+        price: gameData.price,
+        currency: 'usd',
+        metadata: {
+          venue_id: gameData.venue_id,
+          duration: gameData.duration.toString(),
+          difficulty: gameData.difficulty,
+        },
+      });
+      
+      stripeProductId = productId;
+      console.log('Stripe product created:', productId, 'price:', priceId);
+      toast.success('Payment product created!', { id: 'stripe-create' });
+      
+      // Step 2: Get Supabase session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       const userId = session?.user?.id || null;
       
       if (userId) {
@@ -82,12 +109,17 @@ export function useGames(venueId?: string) {
         console.log('No Supabase session - proceeding with anon access');
       }
 
+      // Step 3: Save game to database WITH Stripe IDs
       const insertData = {
         ...gameData,
         created_by: userId,
+        stripe_product_id: productId,
+        stripe_price_id: priceId,
+        stripe_sync_status: 'synced',
+        stripe_last_sync: new Date().toISOString(),
       };
 
-      console.log('Inserting game data:', insertData);
+      console.log('Inserting game data with Stripe IDs:', insertData);
 
       const { data, error: insertError } = await supabase
         .from('games')
@@ -105,8 +137,14 @@ export function useGames(venueId?: string) {
         throw insertError;
       }
 
-      console.log('Game created successfully in database:', data);
-      toast.success('Game created successfully!');
+      // Step 4: Update Stripe product metadata with game ID
+      console.log('Updating Stripe product with game ID:', data.id);
+      await StripeProductService.updateProductMetadata(productId, {
+        game_id: data.id,
+      });
+
+      console.log('Game created successfully in database with Stripe integration:', data);
+      toast.success('Game created and ready for payments!');
       await fetchGames(); // Refresh list
       return data;
     } catch (err: any) {
@@ -117,14 +155,71 @@ export function useGames(venueId?: string) {
         hint: err?.hint,
         stack: err?.stack,
       });
-      toast.error(err.message || 'Failed to create game');
+      
+      // Rollback: Archive Stripe product if game creation failed
+      if (stripeProductId) {
+        console.log('Rolling back: Archiving Stripe product', stripeProductId);
+        await StripeProductService.archiveProduct(stripeProductId);
+        toast.error('Failed to create game. Stripe product has been archived.');
+      } else {
+        toast.error(err.message || 'Failed to create game');
+      }
+      
       throw err;
     }
   };
 
-  // Update game
+  // Update game with Stripe product/price updates
   const updateGame = async (id: string, updates: Partial<Game>) => {
     try {
+      // Get current game data
+      const { data: currentGame } = await supabase
+        .from('games')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (!currentGame) {
+        throw new Error('Game not found');
+      }
+
+      // Check if we need to update Stripe
+      const needsStripeUpdate = 
+        updates.name || 
+        updates.description || 
+        updates.price;
+
+      if (needsStripeUpdate && currentGame.stripe_product_id) {
+        console.log('Updating Stripe product...');
+        toast.loading('Updating payment product...', { id: 'stripe-update' });
+
+        // Update product if name or description changed
+        if (updates.name || updates.description) {
+          await StripeProductService.updateProduct(currentGame.stripe_product_id, {
+            name: updates.name,
+            description: updates.description,
+          });
+        }
+
+        // Create new price if price changed (prices are immutable in Stripe)
+        if (updates.price && StripeProductService.priceHasChanged(currentGame.price, updates.price)) {
+          const newPriceId = await StripeProductService.createPrice(
+            currentGame.stripe_product_id,
+            {
+              amount: updates.price,
+              currency: 'usd',
+            }
+          );
+          updates.stripe_price_id = newPriceId;
+          console.log('New Stripe price created:', newPriceId);
+        }
+
+        updates.stripe_sync_status = 'synced';
+        updates.stripe_last_sync = new Date().toISOString();
+        toast.success('Payment product updated!', { id: 'stripe-update' });
+      }
+
+      // Update game in database
       const { data, error: updateError } = await supabase
         .from('games')
         .update(updates)

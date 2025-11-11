@@ -25,7 +25,7 @@ export const listBookings = asyncHandler(
     }
 
     const filters: BookingFilters = {
-      status: req.query.status as string | undefined,
+      status: req.query.status as any,
       payment_status: req.query.payment_status as any,
       date: req.query.date as string | undefined,
       date_from: req.query.date_from as string | undefined,

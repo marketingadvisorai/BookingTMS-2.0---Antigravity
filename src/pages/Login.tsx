@@ -132,22 +132,7 @@ const Login = () => {
     }
   };
 
-  // Handle demo login (for testing)
-  const handleDemoLogin = (role: UserRole) => {
-    setSelectedRole(role);
-    // Set demo credentials based on role
-    const demoCredentials = {
-      'super-admin': { username: 'superadmin', password: 'demo123' },
-      'admin': { username: 'admin', password: 'demo123' },
-      'manager': { username: 'manager', password: 'demo123' },
-      'staff': { username: 'staff', password: 'demo123' },
-    };
-    const creds = demoCredentials[role as keyof typeof demoCredentials];
-    if (creds) {
-      setUsername(creds.username);
-      setPassword(creds.password);
-    }
-  };
+  // Demo login removed for security - use proper authentication in production
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -207,17 +192,6 @@ const Login = () => {
                   </button>
                 );
               })}
-
-              {/* Divider */}
-              <div className="relative my-6">
-                <div className={`absolute inset-0 flex items-center`}>
-                  <div className={`w-full border-t ${borderColor}`} />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className={`${bgModal} px-4 ${textSecondary}`}>Demo Access</span>
-                </div>
-              </div>
-
             </div>
           ) : (
             // Login Form View
@@ -261,13 +235,6 @@ const Login = () => {
                 />
                 {errors.password && (
                   <p className="text-sm text-red-500">{errors.password}</p>
-                )}
-                {!errors.password && (
-                  <p className={`text-xs ${textSecondary}`}>
-                    💡 Demo password: <span className={`font-mono ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-                      {selectedRole === 'beta-owner' ? '123admin' : 'demo123'}
-                    </span>
-                  </p>
                 )}
               </div>
 

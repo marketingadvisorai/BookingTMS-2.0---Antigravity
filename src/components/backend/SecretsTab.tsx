@@ -19,10 +19,12 @@ import {
   Shield,
   Database,
   CreditCard,
-  Globe
+  Globe,
+  ShieldAlert
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../layout/ThemeContext';
+import { useAuth } from '../../lib/auth/AuthContext';
 
 interface SecretField {
   key: string;
@@ -136,6 +138,7 @@ const SECRET_CATEGORIES: SecretCategory[] = [
 
 export function SecretsTab() {
   const { theme } = useTheme();
+  const { currentUser } = useAuth();
   const isDark = theme === 'dark';
 
   const [secrets, setSecrets] = useState<Record<string, string>>({});
@@ -149,9 +152,14 @@ export function SecretsTab() {
   const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
   const borderColor = isDark ? 'border-gray-800' : 'border-gray-200';
 
+  // Check if user is super admin
+  const isSuperAdmin = currentUser?.role === 'super-admin' || currentUser?.role === 'beta-owner';
+
   useEffect(() => {
-    loadSecrets();
-  }, []);
+    if (isSuperAdmin) {
+      loadSecrets();
+    }
+  }, [isSuperAdmin]);
 
   const loadSecrets = () => {
     try {
@@ -250,6 +258,40 @@ export function SecretsTab() {
     };
     return colors[color] || colors.blue;
   };
+
+  // Access denied for non-super admins
+  if (!isSuperAdmin) {
+    return (
+      <div className="space-y-6">
+        <Card className={`${bgCard} border ${borderColor}`}>
+          <div className="p-12 text-center">
+            <div className="flex justify-center mb-6">
+              <div className={`p-4 rounded-full ${isDark ? 'bg-red-500/10' : 'bg-red-50'}`}>
+                <ShieldAlert className="w-16 h-16 text-red-500" />
+              </div>
+            </div>
+            <h3 className={`text-2xl font-bold ${textPrimary} mb-3`}>Access Restricted</h3>
+            <p className={`text-lg ${textSecondary} mb-6 max-w-2xl mx-auto`}>
+              This page contains sensitive API keys and secrets.
+              <br />
+              Only <strong className="text-red-500">Super Administrators</strong> can access this section.
+            </p>
+            <Alert className={`max-w-md mx-auto ${isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-200'}`}>
+              <Shield className="w-4 h-4 text-red-500" />
+              <AlertDescription className={`${isDark ? 'text-red-200' : 'text-red-800'}`}>
+                <strong>Current Role:</strong> {currentUser?.role || 'Not authenticated'}
+                <br />
+                <strong>Required Role:</strong> super-admin or beta-owner
+              </AlertDescription>
+            </Alert>
+            <p className={`text-sm ${textSecondary} mt-8`}>
+              If you need access to this page, please contact your system administrator.
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

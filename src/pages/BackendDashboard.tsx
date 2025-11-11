@@ -31,7 +31,8 @@ import {
   Eye,
   EyeOff,
   Trash2,
-  Shield
+  Shield,
+  Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -47,6 +48,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { DatabaseTab } from '../components/backend/DatabaseTab';
 import { AuthServicesTab } from '../components/backend/AuthServicesTab';
+import { SecretsTab } from '../components/backend/SecretsTab';
 
 interface ConnectionStatus {
   name: string;
@@ -497,6 +499,10 @@ export default function BackendDashboard() {
             <Network className="w-4 h-4 mr-2" />
             Connections
           </TabsTrigger>
+          <TabsTrigger value="secrets">
+            <Lock className="w-4 h-4 mr-2" />
+            Secrets
+          </TabsTrigger>
           <TabsTrigger value="auth">
             <Shield className="w-4 h-4 mr-2" />
             Auth Services
@@ -580,6 +586,11 @@ export default function BackendDashboard() {
               )}
             </div>
           </Card>
+        </TabsContent>
+
+        {/* Secrets Tab */}
+        <TabsContent value="secrets" className="space-y-4">
+          <SecretsTab />
         </TabsContent>
 
         {/* Auth Services Tab */}

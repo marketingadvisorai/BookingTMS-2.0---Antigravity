@@ -143,8 +143,8 @@ export function SecretsTab() {
 
   const [secrets, setSecrets] = useState<Record<string, string>>({});
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
-  const [hasChanges, setHasChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [categoryChanges, setCategoryChanges] = useState<Record<string, boolean>>({});
+  const [savingCategory, setSavingCategory] = useState<string | null>(null);
 
   const bgCard = isDark ? 'bg-[#161616]' : 'bg-white';
   const bgElevated = isDark ? 'bg-[#1e1e1e]' : 'bg-gray-50';
@@ -173,9 +173,9 @@ export function SecretsTab() {
     }
   };
 
-  const handleSecretChange = (key: string, value: string) => {
+  const handleSecretChange = (key: string, value: string, categoryId: string) => {
     setSecrets(prev => ({ ...prev, [key]: value }));
-    setHasChanges(true);
+    setCategoryChanges(prev => ({ ...prev, [categoryId]: true }));
   };
 
   const toggleShowSecret = (key: string) => {
@@ -187,36 +187,82 @@ export function SecretsTab() {
     toast.success(`${label} copied to clipboard`);
   };
 
-  const deleteSecret = (key: string, label: string) => {
+  const deleteSecret = (key: string, label: string, categoryId: string) => {
     setSecrets(prev => {
       const newSecrets = { ...prev };
       delete newSecrets[key];
       return newSecrets;
     });
-    setHasChanges(true);
+    setCategoryChanges(prev => ({ ...prev, [categoryId]: true }));
     toast.success(`${label} deleted`);
   };
 
-  const saveSecrets = async () => {
-    setIsSaving(true);
+  const saveCategorySecrets = async (category: SecretCategory) => {
+    setSavingCategory(category.id);
     try {
-      // Save to localStorage (in production, this should go to a secure backend)
-      localStorage.setItem('booking-tms-secrets', JSON.stringify(secrets));
+      // Get only the secrets for this category
+      const categorySecrets: Record<string, string> = {};
+      category.fields.forEach(field => {
+        if (secrets[field.key]) {
+          categorySecrets[field.key] = secrets[field.key];
+        }
+      });
+
+      // Save to localStorage
+      const allSecrets = { ...secrets };
+      localStorage.setItem('booking-tms-secrets', JSON.stringify(allSecrets));
       
-      // Also save to environment variables if possible (requires backend endpoint)
-      // await fetch('/api/secrets/update', {
+      // In production, save to secure backend
+      // await fetch(`/api/secrets/${category.id}`, {
       //   method: 'POST',
       //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(secrets)
+      //   body: JSON.stringify(categorySecrets)
       // });
       
-      toast.success('Secrets saved successfully');
-      setHasChanges(false);
+      toast.success(`${category.name} secrets saved successfully`);
+      setCategoryChanges(prev => ({ ...prev, [category.id]: false }));
+      
+      // Apply the secrets to the application
+      await applySecretsToApp(category.id, categorySecrets);
     } catch (error) {
-      console.error('Error saving secrets:', error);
-      toast.error('Failed to save secrets');
+      console.error(`Error saving ${category.name} secrets:`, error);
+      toast.error(`Failed to save ${category.name} secrets`);
     } finally {
-      setIsSaving(false);
+      setSavingCategory(null);
+    }
+  };
+
+  const applySecretsToApp = async (categoryId: string, categorySecrets: Record<string, string>) => {
+    try {
+      // Apply secrets based on category
+      switch (categoryId) {
+        case 'stripe':
+          // Update Stripe configuration
+          if (categorySecrets.STRIPE_SECRET_KEY) {
+            localStorage.setItem('stripe_secret_key', categorySecrets.STRIPE_SECRET_KEY);
+          }
+          if (categorySecrets.STRIPE_PUBLISHABLE_KEY) {
+            localStorage.setItem('stripe_publishable_key', categorySecrets.STRIPE_PUBLISHABLE_KEY);
+          }
+          break;
+        
+        case 'supabase':
+          // Update Supabase configuration
+          if (categorySecrets.SUPABASE_URL && categorySecrets.SUPABASE_ANON_KEY) {
+            localStorage.setItem('supabase_url', categorySecrets.SUPABASE_URL);
+            localStorage.setItem('supabase_anon_key', categorySecrets.SUPABASE_ANON_KEY);
+          }
+          break;
+        
+        case 'google':
+          // Update Google configuration
+          if (categorySecrets.GOOGLE_CLIENT_ID) {
+            localStorage.setItem('google_client_id', categorySecrets.GOOGLE_CLIENT_ID);
+          }
+          break;
+      }
+    } catch (error) {
+      console.error('Error applying secrets:', error);
     }
   };
 
@@ -298,35 +344,16 @@ export function SecretsTab() {
       {/* Header */}
       <Card className={`${bgCard} border ${borderColor}`}>
         <div className="p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${isDark ? 'bg-blue-500/10' : 'bg-blue-50'}`}>
-                <Lock className="w-6 h-6 text-blue-500" />
-              </div>
-              <div>
-                <h3 className={`text-xl font-semibold ${textPrimary}`}>API Secrets & Keys</h3>
-                <p className={`text-sm ${textSecondary} mt-1`}>
-                  Securely manage API keys and secrets for third-party integrations
-                </p>
-              </div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`p-2 rounded-lg ${isDark ? 'bg-blue-500/10' : 'bg-blue-50'}`}>
+              <Lock className="w-6 h-6 text-blue-500" />
             </div>
-            <Button
-              onClick={saveSecrets}
-              disabled={!hasChanges || isSaving}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {isSaving ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Changes
-                </>
-              )}
-            </Button>
+            <div>
+              <h3 className={`text-xl font-semibold ${textPrimary}`}>API Secrets & Keys</h3>
+              <p className={`text-sm ${textSecondary} mt-1`}>
+                Securely manage API keys and secrets for third-party integrations
+              </p>
+            </div>
           </div>
 
           <Alert className={`${isDark ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-yellow-50 border-yellow-200'}`}>
@@ -346,7 +373,7 @@ export function SecretsTab() {
         return (
           <Card key={category.id} className={`${bgCard} border ${borderColor}`}>
             <CardHeader className={`border-b ${borderColor}`}>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-lg ${colorClasses.bg}`}>
                     {category.icon}
@@ -358,20 +385,40 @@ export function SecretsTab() {
                     </CardDescription>
                   </div>
                 </div>
-                <Badge
-                  variant={status === 'complete' ? 'default' : status === 'partial' ? 'secondary' : 'outline'}
-                  className={
-                    status === 'complete'
-                      ? 'bg-green-500'
-                      : status === 'partial'
-                      ? 'bg-yellow-500'
-                      : ''
-                  }
-                >
-                  {status === 'complete' && <CheckCircle2 className="w-3 h-3 mr-1" />}
-                  {status === 'partial' && <AlertCircle className="w-3 h-3 mr-1" />}
-                  {status === 'complete' ? 'Configured' : status === 'partial' ? 'Partial' : 'Not Configured'}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant={status === 'complete' ? 'default' : status === 'partial' ? 'secondary' : 'outline'}
+                    className={
+                      status === 'complete'
+                        ? 'bg-green-500'
+                        : status === 'partial'
+                        ? 'bg-yellow-500'
+                        : ''
+                    }
+                  >
+                    {status === 'complete' && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                    {status === 'partial' && <AlertCircle className="w-3 h-3 mr-1" />}
+                    {status === 'complete' ? 'Configured' : status === 'partial' ? 'Partial' : 'Not Configured'}
+                  </Badge>
+                  <Button
+                    onClick={() => saveCategorySecrets(category)}
+                    disabled={!categoryChanges[category.id] || savingCategory === category.id}
+                    size="sm"
+                    className={`${colorClasses.badge} hover:opacity-90`}
+                  >
+                    {savingCategory === category.id ? (
+                      <>
+                        <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-3 h-3 mr-1" />
+                        Save
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
@@ -404,7 +451,7 @@ export function SecretsTab() {
                           id={field.key}
                           type={isVisible ? 'text' : 'password'}
                           value={secrets[field.key] || ''}
-                          onChange={(e) => handleSecretChange(field.key, e.target.value)}
+                          onChange={(e) => handleSecretChange(field.key, e.target.value, category.id)}
                           placeholder={field.placeholder}
                           className={`pr-10 ${bgElevated} ${borderColor} ${textPrimary}`}
                         />
@@ -430,7 +477,7 @@ export function SecretsTab() {
                           <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => deleteSecret(field.key, field.label)}
+                            onClick={() => deleteSecret(field.key, field.label, category.id)}
                             className={`${borderColor} text-red-500 hover:text-red-600`}
                           >
                             <Trash2 className="w-4 h-4" />

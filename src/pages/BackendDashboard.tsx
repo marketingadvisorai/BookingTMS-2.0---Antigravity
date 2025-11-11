@@ -494,44 +494,55 @@ export default function BackendDashboard() {
 
       {/* Main Content */}
       <Tabs defaultValue="connections" className="space-y-4">
-        <TabsList className={`${bgCard} border ${borderColor}`}>
-          <TabsTrigger value="connections">
-            <Network className="w-4 h-4 mr-2" />
-            Connections
-          </TabsTrigger>
-          <TabsTrigger value="secrets">
-            <Lock className="w-4 h-4 mr-2" />
-            Secrets
-          </TabsTrigger>
-          <TabsTrigger value="auth">
-            <Shield className="w-4 h-4 mr-2" />
-            Auth Services
-          </TabsTrigger>
-          <TabsTrigger value="database">
-            <Database className="w-4 h-4 mr-2" />
-            Database
-          </TabsTrigger>
-          <TabsTrigger value="health">
-            <Activity className="w-4 h-4 mr-2" />
-            Health Checks
-          </TabsTrigger>
-          <TabsTrigger value="api">
-            <Code className="w-4 h-4 mr-2" />
-            API Tests
-          </TabsTrigger>
-          <TabsTrigger value="env">
-            <Key className="w-4 h-4 mr-2" />
-            Environment
-          </TabsTrigger>
-          <TabsTrigger value="monitoring">
-            <Cpu className="w-4 h-4 mr-2" />
-            Monitoring
-          </TabsTrigger>
-          <TabsTrigger value="llm">
-            <Brain className="w-4 h-4 mr-2" />
-            LLM Connections
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className={`${bgCard} border ${borderColor} flex-nowrap md:flex-wrap justify-start min-w-max md:min-w-0 gap-1`}>
+            <TabsTrigger value="connections" className="flex-shrink-0">
+              <Network className="w-4 h-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Connections</span>
+              <span className="sm:hidden">Conn</span>
+            </TabsTrigger>
+            <TabsTrigger value="secrets" className="flex-shrink-0">
+              <Lock className="w-4 h-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Secrets</span>
+              <span className="sm:hidden">Keys</span>
+            </TabsTrigger>
+            <TabsTrigger value="auth" className="flex-shrink-0">
+              <Shield className="w-4 h-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Auth Services</span>
+              <span className="sm:hidden">Auth</span>
+            </TabsTrigger>
+            <TabsTrigger value="database" className="flex-shrink-0">
+              <Database className="w-4 h-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Database</span>
+              <span className="sm:hidden">DB</span>
+            </TabsTrigger>
+            <TabsTrigger value="health" className="flex-shrink-0">
+              <Activity className="w-4 h-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Health Checks</span>
+              <span className="sm:hidden">Health</span>
+            </TabsTrigger>
+            <TabsTrigger value="api" className="flex-shrink-0">
+              <Code className="w-4 h-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">API Tests</span>
+              <span className="sm:hidden">API</span>
+            </TabsTrigger>
+            <TabsTrigger value="env" className="flex-shrink-0">
+              <Key className="w-4 h-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Environment</span>
+              <span className="sm:hidden">Env</span>
+            </TabsTrigger>
+            <TabsTrigger value="monitoring" className="flex-shrink-0">
+              <Cpu className="w-4 h-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Monitoring</span>
+              <span className="sm:hidden">Mon</span>
+            </TabsTrigger>
+            <TabsTrigger value="llm" className="flex-shrink-0">
+              <Brain className="w-4 h-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">LLM Connections</span>
+              <span className="sm:hidden">LLM</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Connections Tab */}
         <TabsContent value="connections" className="space-y-4">

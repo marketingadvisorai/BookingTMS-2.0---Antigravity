@@ -802,7 +802,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
         description="Manage and track all your bookings"
         sticky
         action={
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full">
             <Button
               variant="outline"
               size="icon"
@@ -818,16 +818,16 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                 }
               }}
               disabled={isRefreshing}
-              className="h-11 w-11"
+              className="h-11 w-11 flex-shrink-0"
             >
               <RefreshCcw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
             <Button 
-              className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] w-full sm:w-auto h-11"
+              className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] flex-1 sm:flex-initial sm:w-auto h-11 flex items-center justify-center gap-2"
               onClick={() => setShowAddBooking(true)}
             >
-              <Plus className="w-5 h-5 sm:w-4 sm:h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Add New Booking</span>
+              <Plus className="w-4 h-4" />
+              <span>Add New Booking</span>
             </Button>
           </div>
         }
@@ -835,8 +835,8 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
 
       {/* Filters and Search */}
       <Card className={`${cardBgClass} border ${borderClass} shadow-sm`}>
-        <CardContent className="p-4 sm:p-6">
-          <div className="flex flex-col gap-3">
+        <CardContent className="p-3 sm:p-6">
+          <div className="flex flex-col gap-2.5 sm:gap-3">
             {/* Search Bar */}
             <div className="relative">
               <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-[#737373]' : 'text-gray-400'}`} />
@@ -849,12 +849,12 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
             </div>
 
             {/* Filters Row */}
-            <div className="flex gap-2 sm:gap-3 flex-wrap">
+            <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
               {/* Date Range Picker */}
               <Popover open={showDateRangePicker} onOpenChange={setShowDateRangePicker}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-11 flex-1 sm:flex-initial sm:min-w-[200px] justify-start">
-                    <CalendarIcon className="w-4 h-4 mr-2" />
+                  <Button variant="outline" className="h-11 col-span-2 sm:col-span-1 sm:flex-initial sm:min-w-[200px] justify-start">
+                    <CalendarIcon className="w-4 h-4 mr-2 flex-shrink-0" />
                     <span className="truncate">{getDateRangeLabel()}</span>
                   </Button>
                 </PopoverTrigger>
@@ -1035,7 +1035,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                 setSelectedVenueId(value === 'all-venues' ? undefined : value);
                 setView('month'); // Switch to month view when venue changes
               }}>
-                <SelectTrigger className="flex-1 sm:w-40 sm:flex-initial h-11">
+                <SelectTrigger className="h-11">
                   <SelectValue placeholder="All Venues" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1049,7 +1049,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
               </Select>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="flex-1 sm:w-40 sm:flex-initial h-11">
+                <SelectTrigger className="h-11">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1062,8 +1062,9 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                 </SelectContent>
               </Select>
               
+              {/* All Games filter and 3-dot menu on same line */}
               <Select value={gameFilter} onValueChange={setGameFilter}>
-                <SelectTrigger className="flex-1 sm:w-40 sm:flex-initial h-11">
+                <SelectTrigger className="h-11">
                   <SelectValue placeholder="Game" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1075,8 +1076,6 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                   <SelectItem value="Prison Break">Prison Break</SelectItem>
                 </SelectContent>
               </Select>
-
-              {/* Staff filter removed */}
 
               {/* Export Button - Only show on desktop, use dropdown on mobile */}
               <DropdownMenu>
@@ -1170,25 +1169,25 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <Tabs value={view} onValueChange={(v) => setView(v as any)} className="w-full sm:w-auto">
-            <TabsList className="w-full sm:w-auto grid grid-cols-5 sm:flex">
+            <TabsList className="w-full sm:w-auto flex overflow-hidden">
               <TabsTrigger value="month" className="gap-2 flex-1 sm:flex-initial">
-                <CalendarDays className="w-4 h-4" />
+                <CalendarDays className="w-4 h-4 flex-shrink-0" />
                 <span className="hidden sm:inline">Month</span>
               </TabsTrigger>
               <TabsTrigger value="week" className="gap-2 flex-1 sm:flex-initial">
-                <Grid3x3 className="w-4 h-4" />
+                <Grid3x3 className="w-4 h-4 flex-shrink-0" />
                 <span className="hidden sm:inline">Week</span>
               </TabsTrigger>
               <TabsTrigger value="day" className="gap-2 flex-1 sm:flex-initial">
-                <Clock className="w-4 h-4" />
+                <Clock className="w-4 h-4 flex-shrink-0" />
                 <span className="hidden sm:inline">Day</span>
               </TabsTrigger>
               <TabsTrigger value="schedule" className="gap-2 flex-1 sm:flex-initial">
-                <Columns className="w-4 h-4" />
+                <Columns className="w-4 h-4 flex-shrink-0" />
                 <span className="hidden sm:inline">Schedule</span>
               </TabsTrigger>
               <TabsTrigger value="table" className="gap-2 flex-1 sm:flex-initial">
-                <List className="w-4 h-4" />
+                <List className="w-4 h-4 flex-shrink-0" />
                 <span className="hidden sm:inline">Table</span>
               </TabsTrigger>
             </TabsList>
@@ -1758,20 +1757,20 @@ function MonthCalendarView({ bookings, onViewDetails, onShowAttendees, calendarM
 
   return (
     <Card className="border-gray-200 dark:border-[#2a2a2a] shadow-sm hover:shadow-md dark:hover:shadow-[0_0_20px_rgba(79,70,229,0.1)] transition-all">
-      <CardHeader className="p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <CardHeader className="p-3 sm:p-6">
+        <div className="flex items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <CalendarDays className="w-5 h-5 text-[#4f46e5] dark:text-[#6366f1] flex-shrink-0" />
-            <span className="truncate">{new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+            <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5 text-[#4f46e5] dark:text-[#6366f1] flex-shrink-0" />
+            <span className="truncate text-sm sm:text-base">{new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
           </CardTitle>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button variant="outline" size="sm" onClick={prevMonth} className="h-9">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Button variant="outline" size="sm" onClick={prevMonth} className="h-8 w-8 sm:h-9 sm:w-9 p-0">
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setCalendarMonth(new Date())} className="flex-1 sm:flex-initial h-9">
+            <Button variant="outline" size="sm" onClick={() => setCalendarMonth(new Date())} className="h-8 sm:h-9 px-3 text-xs sm:text-sm">
               Today
             </Button>
-            <Button variant="outline" size="sm" onClick={nextMonth} className="h-9">
+            <Button variant="outline" size="sm" onClick={nextMonth} className="h-8 w-8 sm:h-9 sm:w-9 p-0">
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
@@ -1867,8 +1866,9 @@ function WeekView({ bookings, onViewDetails, selectedDate, setSelectedDate, game
         </div>
       </CardHeader>
       <CardContent className="p-2 sm:p-6">
-        <ScrollArea className="w-full">
-          <div className="min-w-[800px]">
+        <div className="relative">
+          <div className="overflow-x-auto overflow-y-visible scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+            <div className="min-w-[800px]">
             {/* Week Days Header */}
             <div className="grid grid-cols-8 gap-1 mb-2">
               <div className="text-xs text-gray-600 dark:text-[#737373] p-2">Time</div>
@@ -1923,8 +1923,13 @@ function WeekView({ bookings, onViewDetails, selectedDate, setSelectedDate, game
                 </div>
               ))}
             </div>
+            </div>
           </div>
-        </ScrollArea>
+          {/* Scroll indicator for mobile */}
+          <div className="sm:hidden text-center text-xs text-gray-500 dark:text-gray-400 mt-2 py-1">
+            ← Swipe to view all days →
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
@@ -2103,8 +2108,9 @@ function ScheduleView({ bookings, onViewDetails, selectedDate, setSelectedDate, 
         </p>
       </CardHeader>
       <CardContent className="p-2 sm:p-6">
-        <ScrollArea className="w-full">
-          <div className="min-w-[900px]">
+        <div className="relative">
+          <div className="overflow-x-auto overflow-y-visible scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+            <div className="min-w-[900px]">
             {/* Room Headers */}
             <div className="grid gap-1 mb-2" style={{ gridTemplateColumns: `100px repeat(${gamesData.length}, 1fr)` }}>
               <div className="text-xs text-gray-600 dark:text-[#737373] p-2">Time</div>
@@ -2160,8 +2166,13 @@ function ScheduleView({ bookings, onViewDetails, selectedDate, setSelectedDate, 
                 </div>
               ))}
             </div>
+            </div>
           </div>
-        </ScrollArea>
+          {/* Scroll indicator for mobile */}
+          <div className="sm:hidden text-center text-xs text-gray-500 dark:text-gray-400 mt-2 py-1">
+            ← Swipe to view all rooms →
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

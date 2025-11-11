@@ -52,7 +52,7 @@ class StripeService {
   constructor() {
     // Initialize Stripe with secret key
     this.stripe = new Stripe(backendSecrets.stripe.secretKey, {
-      apiVersion: '2024-06-20',
+      apiVersion: '2023-10-16',
       typescript: true,
     });
 

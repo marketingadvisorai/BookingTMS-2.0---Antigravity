@@ -17,6 +17,7 @@
     "express-rate-limit": "^7.1.5",
     "express-validator": "^7.0.1",
     "stripe": "^14.7.0",
+    "@supabase/supabase-js": "^2.39.0",
     "sendgrid": "^5.2.3",
     "@sendgrid/mail": "^8.1.0",
     "twilio": "^4.19.0",

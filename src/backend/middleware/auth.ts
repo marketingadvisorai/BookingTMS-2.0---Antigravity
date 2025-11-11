@@ -4,7 +4,7 @@
  * Middleware for protecting routes and validating user sessions
  */
 
-import type { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 
 /**
  * Extended Request type with user information

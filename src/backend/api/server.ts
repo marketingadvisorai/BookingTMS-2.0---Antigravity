@@ -10,6 +10,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import { backendSecrets, getSafeConfig } from '../config/secrets.config';
+import configRoutes from './routes/config.routes';
 
 /**
  * Create and configure Express application
@@ -94,6 +95,7 @@ export function createServer(): Express {
       name: 'BookingTMS API',
       version: '0.1.0',
       endpoints: {
+        config: '/api/config',
         auth: '/api/auth',
         payments: '/api/payments',
         notifications: '/api/notifications',
@@ -104,7 +106,10 @@ export function createServer(): Express {
     });
   });
   
-  // API Routes (will be added)
+  // API Routes
+  app.use('/api/config', configRoutes);
+  
+  // Future routes (will be added)
   // app.use('/api/auth', authRoutes);
   // app.use('/api/payments', paymentRoutes);
   // app.use('/api/notifications', notificationRoutes);

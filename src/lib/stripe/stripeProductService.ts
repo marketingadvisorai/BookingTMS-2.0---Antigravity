@@ -210,8 +210,16 @@ export class StripeProductService {
     metadata?: Record<string, string>;
   }): Promise<string> {
     try {
+      const url = `${this.STRIPE_API_URL}/stripe-manage-product`;
+      console.log('🌐 Calling Edge Function:', url);
+      console.log('📦 Request payload:', {
+        action: 'create_product',
+        name: params.name,
+        description: params.description,
+      });
+
       // Call Stripe API via Edge Function
-      const response = await fetch(`${this.STRIPE_API_URL}/stripe-manage-product`, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: this.authHeaders,
         body: JSON.stringify({
@@ -222,19 +230,29 @@ export class StripeProductService {
         }),
       });
 
+      console.log('📡 Response status:', response.status, response.statusText);
+      
       const data = await this.parseResponse(response);
+      console.log('📥 Response data:', data);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create Stripe product');
+        const errorMsg = data.error || `HTTP ${response.status}: Failed to create Stripe product`;
+        console.error('❌ Edge Function error:', errorMsg);
+        throw new Error(errorMsg);
       }
 
       if (!data.productId) {
         throw new Error('Stripe product creation did not return productId');
       }
 
+      console.log('✅ Product created successfully:', data.productId);
       return data.productId;
-    } catch (error) {
-      console.error('Error creating Stripe product:', error);
+    } catch (error: any) {
+      console.error('❌ Error in createProduct:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+      });
       throw error;
     }
   }

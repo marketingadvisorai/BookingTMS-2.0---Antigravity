@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+/**
+ * Venues Page
+ * Main venue management interface - now with organized modular structure
+ */
+
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { useVenues as useVenuesDB } from '../hooks/useVenues';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
@@ -14,401 +17,59 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Separator } from '../components/ui/separator';
-import { toast } from 'sonner';
 import { isValidEmbedKey, generateEmbedUrl, generateIframeCode } from '../utils/embedKeyUtils';
 import { CalendarWidget } from '../components/widgets/CalendarWidget';
 import CalendarWidgetSettings from '../components/widgets/CalendarWidgetSettings';
 import { EmbedPreview } from '../components/widgets/EmbedPreview';
-import { useAuth } from '../lib/auth/AuthContext';
-import { VenueWidgetConfig, createDefaultVenueWidgetConfig, normalizeVenueWidgetConfig } from '../types/venueWidget';
 
-const venueTypes = [
-  { value: 'escape-room', label: 'Escape Room', icon: '🔐' },
-  { value: 'smash-room', label: 'Smash Room', icon: '💥' },
-  { value: 'axe-throwing', label: 'Axe Throwing', icon: '🪓' },
-  { value: 'laser-tag', label: 'Laser Tag', icon: '🔫' },
-  { value: 'vr-experience', label: 'VR Experience', icon: '🥽' },
-  { value: 'arcade', label: 'Arcade', icon: '🎮' },
-  { value: 'other', label: 'Other', icon: '🏢' },
-];
-
-interface Venue {
-  id: string;
-  name: string;
-  type: string;
-  description: string;
-  address: string;
-  phone: string;
-  email: string;
-  website: string;
-  primaryColor: string;
-  widgetConfig: VenueWidgetConfig;
-  embedKey: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-type VenueInput = Pick<
-  Venue,
-  'name' | 'type' | 'description' | 'address' | 'phone' | 'email' | 'website' | 'primaryColor' | 'widgetConfig' | 'isActive'
->;
-
-interface VenueFormData {
-  name: string;
-  type: string;
-  description: string;
-  address: string;
-  phone: string;
-  email: string;
-  website: string;
-  primaryColor: string;
-}
-
-// Helper function to map database venue to UI venue
-const mapDBVenueToUI = (dbVenue: any): Venue => ({
-  id: dbVenue.id,
-  name: dbVenue.name,
-  type: dbVenue.settings?.type || 'other',
-  description: dbVenue.settings?.description || '',
-  address: dbVenue.address || '',
-  phone: dbVenue.phone || '',
-  email: dbVenue.email || '',
-  website: dbVenue.settings?.website || '',
-  primaryColor: dbVenue.primary_color || dbVenue.settings?.primaryColor || '#2563eb',
-  widgetConfig: normalizeVenueWidgetConfig(dbVenue.settings?.widgetConfig),
-  // IMPORTANT: Use database column embed_key, NOT settings.embedKey
-  embedKey: dbVenue.embed_key || '',
-  isActive: dbVenue.status === 'active',
-  createdAt: dbVenue.created_at,
-  updatedAt: dbVenue.updated_at,
-});
-
-// Helper function to map UI venue to database venue
-const mapUIVenueToDB = (uiVenue: VenueInput): any => ({
-  name: uiVenue.name,
-  address: uiVenue.address || '',
-  city: '', // Extract from address if needed
-  state: '',
-  zip: '',
-  country: 'United States',
-  phone: uiVenue.phone || '',
-  email: uiVenue.email || '',
-  capacity: 100,
-  timezone: 'America/New_York',
-  status: (uiVenue.isActive ? 'active' : 'inactive') as 'active' | 'inactive' | 'maintenance',
-  primary_color: uiVenue.primaryColor || '#2563eb',
-  // DO NOT set embed_key here - database trigger handles it automatically
-  settings: {
-    type: uiVenue.type,
-    description: uiVenue.description,
-    website: uiVenue.website,
-    widgetConfig: normalizeVenueWidgetConfig(uiVenue.widgetConfig),
-    // Remove embedKey from settings - it's a database column now
-  },
-});
+// Organized imports from new modular structure
+import { VENUE_TYPES } from '../utils/venue/venueConstants';
+import { useVenueManagement } from '../hooks/venue/useVenueManagement';
+import { handleCopyEmbedCode, handleDownloadHTML, generateEmbedCode } from '../utils/venue/venueEmbedUtils';
 
 export default function Venues() {
-  const { currentUser } = useAuth();
-  const { venues: dbVenues, loading: dbLoading, createVenue: createVenueDB, updateVenue: updateVenueDB, deleteVenue: deleteVenueDB, refreshVenues } = useVenuesDB();
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await refreshVenues();
-      toast.success('All venue data refreshed successfully');
-    } catch (error) {
-      toast.error('Failed to refresh venue data');
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showWidgetSettings, setShowWidgetSettings] = useState(false);
-  const [showWidgetPreview, setShowWidgetPreview] = useState(false);
-  const [showEmbedCode, setShowEmbedCode] = useState(false);
-  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
-  const [copiedEmbed, setCopiedEmbed] = useState(false);
-  const [formData, setFormData] = useState<VenueFormData>({
-    name: '',
-    type: 'escape-room',
-    description: '',
-    address: '',
-    phone: '',
-    email: '',
-    website: '',
-    primaryColor: '#2563eb',
-  });
+  // Use centralized venue management hook
+  const {
+    venues,
+    loading,
+    selectedVenue,
+    formData,
+    searchTerm,
+    isLoading,
+    isRefreshing,
+    copiedEmbed,
+    showCreateDialog,
+    showEditDialog,
+    showDeleteDialog,
+    showWidgetSettings,
+    showWidgetPreview,
+    showEmbedCode,
+    canCreateVenue,
+    canEditVenue,
+    canDeleteVenue,
+    setSelectedVenue,
+    setFormData,
+    setSearchTerm,
+    setShowCreateDialog,
+    setShowEditDialog,
+    setShowDeleteDialog,
+    setShowWidgetSettings,
+    setShowWidgetPreview,
+    setShowEmbedCode,
+    setCopiedEmbed,
+    handleRefresh,
+    handleCreateVenue,
+    handleUpdateVenue,
+    handleDeleteVenue,
+    toggleVenueStatus,
+    handleUpdateWidgetConfig,
+    resetForm,
+    openEditDialog,
+  } = useVenueManagement();
 
-  // No longer need localStorage - data comes from database hook
-  // embed_key and slug are auto-generated by database trigger
-  
-  // Map database venues to UI format
-  const venues = dbVenues.map(mapDBVenueToUI);
-  const loading = dbLoading;
-  
-  // Permission checks (allow super-admin, beta-owner, admin, and manager)
-  const canCreateVenue = currentUser?.role === 'super-admin' || currentUser?.role === 'beta-owner' || currentUser?.role === 'admin' || currentUser?.role === 'manager';
-  const canEditVenue = currentUser?.role === 'super-admin' || currentUser?.role === 'beta-owner' || currentUser?.role === 'admin' || currentUser?.role === 'manager';
-  const canDeleteVenue = currentUser?.role === 'super-admin' || currentUser?.role === 'beta-owner' || currentUser?.role === 'admin';
-
-  const handleCreateVenue = async () => {
-    if (!canCreateVenue) {
-      toast.error('You do not have permission to create venues');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const newVenue: VenueInput = {
-        ...formData,
-        widgetConfig: createDefaultVenueWidgetConfig(),
-        // DO NOT set embedKey - let database trigger generate it automatically
-        // This ensures proper format (emb_xxxxxxxxxxxx) and uniqueness
-        isActive: true,
-      };
-      
-      await createVenueDB(mapUIVenueToDB(newVenue));
-      setShowCreateDialog(false);
-      resetForm();
-      toast.success('Venue created! Embed key generated automatically.');
-    } catch (error) {
-      console.error('Error creating venue:', error);
-      toast.error('Failed to create venue');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleUpdateVenue = async () => {
-    if (!selectedVenue) return;
-    if (!canEditVenue) {
-      toast.error('You do not have permission to edit venues');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const updatedVenue = { ...selectedVenue, ...formData };
-      await updateVenueDB(selectedVenue.id, mapUIVenueToDB(updatedVenue));
-      setShowEditDialog(false);
-      setSelectedVenue(null);
-      resetForm();
-    } catch (error) {
-      console.error('Error updating venue:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteVenue = async () => {
-    if (!selectedVenue) return;
-    if (!canDeleteVenue) {
-      toast.error('You do not have permission to delete venues');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      await deleteVenueDB(selectedVenue.id);
-      setShowDeleteDialog(false);
-      setSelectedVenue(null);
-    } catch (error) {
-      console.error('Error deleting venue:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const toggleVenueStatus = async (venueId: string) => {
-    const venue = venues.find(v => v.id === venueId);
-    if (!venue) return;
-    
-    try {
-      const updatedVenue = { ...venue, isActive: !venue.isActive };
-      await updateVenueDB(venueId, mapUIVenueToDB(updatedVenue));
-    } catch (error) {
-      console.error('Error toggling venue status:', error);
-    }
-  };
-
-  const handleUpdateWidgetConfig = async (config: VenueWidgetConfig) => {
-    if (!selectedVenue) return;
-    
-    try {
-      // Create updated venue with new config
-      const updatedVenue = { 
-        ...selectedVenue, 
-        widgetConfig: config,
-      };
-      
-      // Update in database
-      await updateVenueDB(selectedVenue.id, mapUIVenueToDB(updatedVenue));
-      setSelectedVenue(updatedVenue);
-      
-      console.log('Widget config updated for venue:', updatedVenue.name, 'Games:', config.games?.length || 0);
-    } catch (error) {
-      console.error('Error updating widget config:', error);
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      type: 'escape-room',
-      description: '',
-      address: '',
-      phone: '',
-      email: '',
-      website: '',
-      primaryColor: '#2563eb',
-    });
-  };
-
-  const openEditDialog = (venue: Venue) => {
-    setSelectedVenue(venue);
-    setFormData({
-      name: venue.name,
-      type: venue.type,
-      description: venue.description,
-      address: venue.address,
-      phone: venue.phone,
-      email: venue.email,
-      website: venue.website,
-      primaryColor: venue.primaryColor,
-    });
-    setShowEditDialog(true);
-  };
-
-  const generateEmbedCode = (venue: Venue) => {
-    const baseUrl = window.location.origin;
-    return `<!-- Booking Widget for ${venue.name} -->
-<div id="booking-widget-${venue.embedKey}"></div>
-<script>
-  (function() {
-    var script = document.createElement('script');
-    script.src = '${baseUrl}/widget.js';
-    script.setAttribute('data-venue-key', '${venue.embedKey}');
-    script.setAttribute('data-widget-type', 'calendar');
-    script.setAttribute('data-primary-color', '${venue.primaryColor}');
-    script.async = true;
-    document.getElementById('booking-widget-${venue.embedKey}').appendChild(script);
-  })();
-</script>`;
-  };
-
-  const handleCopyEmbedCode = (venue: Venue) => {
-    const code = generateEmbedCode(venue);
-    navigator.clipboard.writeText(code);
-    setCopiedEmbed(true);
-    toast.success('Embed code copied to clipboard!');
-    setTimeout(() => setCopiedEmbed(false), 2000);
-  };
-
-  const handleDownloadHTML = (venue: Venue) => {
-    const embedCode = generateEmbedCode(venue);
-    const htmlContent = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${venue.name} - Booking Widget</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: #f9fafb;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    h1 {
-      color: #111827;
-      margin-bottom: 10px;
-    }
-    p {
-      color: #6b7280;
-      margin-bottom: 30px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>${venue.name}</h1>
-    <p>Book your experience below</p>
-    ${embedCode}
-  </div>
-</body>
-</html>`;
-
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${venue.name.toLowerCase().replace(/\s+/g, '-')}-widget.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success('HTML file downloaded successfully!');
-  };
-
-  const handleDownloadIframeHTML = (venue: Venue) => {
-    const iframeCode = `<iframe src="${window.location.origin}/embed/calendar/${venue.embedKey}" width="100%" height="800" frameborder="0" style="border: none; border-radius: 8px;"></iframe>`;
-    const htmlContent = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${venue.name} - Booking Widget (iFrame)</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: #f9fafb;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    h1 {
-      color: #111827;
-      margin-bottom: 10px;
-    }
-    p {
-      color: #6b7280;
-      margin-bottom: 30px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>${venue.name}</h1>
-    <p>Book your experience below</p>
-    ${iframeCode}
-  </div>
-</body>
-</html>`;
-
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${venue.name.toLowerCase().replace(/\s+/g, '-')}-iframe-widget.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success('iFrame HTML file downloaded successfully!');
-  };
-
+  // Helper function for venue type display
   const getVenueTypeInfo = (type: string) => {
-    return venueTypes.find(vt => vt.value === type) || venueTypes[venueTypes.length - 1];
+    return VENUE_TYPES.find(vt => vt.value === type) || VENUE_TYPES[VENUE_TYPES.length - 1];
   };
 
   // Get fresh venue data from venues array
@@ -739,7 +400,7 @@ export default function Venues() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {venueTypes.map((type) => (
+                    {VENUE_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         <span className="flex items-center gap-2">
                           <span>{type.icon}</span>
@@ -835,10 +496,10 @@ export default function Venues() {
             </Button>
             <Button
               onClick={showEditDialog ? handleUpdateVenue : handleCreateVenue}
-              disabled={!formData.name || isLoading || dbLoading}
+              disabled={!formData.name || isLoading}
               className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] w-full sm:w-auto h-10 sm:h-11"
             >
-              {(isLoading || dbLoading) ? 'Saving...' : (showEditDialog ? 'Update Venue' : 'Create Venue')}
+              {isLoading ? 'Saving...' : (showEditDialog ? 'Update Venue' : 'Create Venue')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -858,19 +519,7 @@ export default function Venues() {
                 </DialogDescription>
               </div>
               <Button
-                onClick={async () => {
-                  if (selectedVenue) {
-                    try {
-                      // Explicitly save current config to database
-                      await updateVenueDB(selectedVenue.id, mapUIVenueToDB(selectedVenue));
-                      toast.success('Settings saved successfully!');
-                      setShowWidgetSettings(false);
-                    } catch (error) {
-                      console.error('Error saving settings:', error);
-                      toast.error('Failed to save settings');
-                    }
-                  }
-                }}
+                onClick={() => setShowWidgetSettings(false)}
                 className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] text-xs sm:text-sm h-9 sm:h-10 flex-shrink-0"
                 size="sm"
               >

@@ -31,6 +31,7 @@ export interface Game {
   stripe_price_id?: string;
   stripe_sync_status?: string;
   stripe_last_sync?: string;
+  stripe_checkout_url?: string;
 }
 
 export function useGames(venueId?: string) {

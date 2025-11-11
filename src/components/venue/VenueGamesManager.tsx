@@ -7,7 +7,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
-import { Plus, Trash2, Edit, Eye, X } from 'lucide-react';
+import { Plus, Trash2, Edit, Eye, X, MoreVertical, Copy, Settings } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 import { ScrollArea } from '../ui/scroll-area';
 import { toast } from 'sonner';
 import AddGameWizard from '../games/AddGameWizard';
@@ -54,6 +60,7 @@ export default function VenueGamesManager({
   const [showAddGameWizard, setShowAddGameWizard] = useState(false);
   const [editingGame, setEditingGame] = useState<any>(null);
   const { games, createGame, updateGame, deleteGame, loading } = useGames(venueId);
+  const [duplicatingGameId, setDuplicatingGameId] = useState<string | null>(null);
 
   // Map Supabase game to wizard format
   const convertGameToWizardData = (game: any) => {
@@ -189,8 +196,64 @@ export default function VenueGamesManager({
 
   // Handle delete game
   const handleDeleteGame = async (gameId: string) => {
-    if (confirm('Are you sure you want to delete this game?')) {
-      await deleteGame(gameId);
+    if (confirm('Are you sure you want to delete this game? This action cannot be undone.')) {
+      try {
+        await deleteGame(gameId);
+        toast.success('Game deleted successfully');
+      } catch (error) {
+        console.error('Error deleting game:', error);
+        toast.error('Failed to delete game');
+      }
+    }
+  };
+
+  const handleDuplicateGame = async (game: any) => {
+    setDuplicatingGameId(game.id);
+    try {
+      // Convert game to wizard format
+      const wizardData = convertGameToWizardData(game);
+      
+      // Create a new name for the duplicate
+      const duplicateName = `${game.name} (Copy)`;
+      
+      // Create slug from duplicate name
+      const slug = duplicateName
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+
+      // Prepare duplicate game data
+      const duplicateGameData = {
+        venue_id: venueId,
+        name: duplicateName,
+        slug: slug,
+        description: game.description || '',
+        difficulty: game.difficulty,
+        duration: game.duration || 60,
+        min_players: game.min_players || 2,
+        max_players: game.max_players || 8,
+        price: game.price || 0,
+        child_price: game.child_price || game.price || 0,
+        min_age: game.min_age || 0,
+        success_rate: game.success_rate || 75,
+        image_url: game.image_url || 'https://images.unsplash.com/photo-1569002925653-ed18f55d7292',
+        status: 'active' as const,
+        settings: game.settings || {},
+        // Don't copy Stripe IDs - new game needs its own
+        stripe_product_id: undefined,
+        stripe_price_id: undefined,
+        stripe_sync_status: 'not_synced',
+      };
+
+      await createGame(duplicateGameData);
+      toast.success(`Game duplicated successfully as "${duplicateName}"`);
+    } catch (error) {
+      console.error('Error duplicating game:', error);
+      toast.error('Failed to duplicate game');
+    } finally {
+      setDuplicatingGameId(null);
     }
   };
 
@@ -249,20 +312,50 @@ export default function VenueGamesManager({
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => handleEditGame(game)}
+                          className="h-8"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Settings className="w-4 h-4 mr-1" />
+                          Settings
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteGame(game.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              disabled={duplicatingGameId === game.id}
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onClick={() => handleEditGame(game)}
+                              className="cursor-pointer"
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDuplicateGame(game)}
+                              disabled={duplicatingGameId === game.id}
+                              className="cursor-pointer"
+                            >
+                              <Copy className="w-4 h-4 mr-2" />
+                              {duplicatingGameId === game.id ? 'Duplicating...' : 'Duplicate'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteGame(game.id)}
+                              className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </CardContent>

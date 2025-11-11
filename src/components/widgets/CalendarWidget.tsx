@@ -158,7 +158,8 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
       // Stripe integration fields
       stripe_price_id: g?.stripe_price_id || null,
       stripe_product_id: g?.stripe_product_id || null,
-      stripe_sync_status: g?.stripe_sync_status || 'pending'
+      stripe_sync_status: g?.stripe_sync_status || 'pending',
+      stripe_checkout_url: g?.stripe_checkout_url || g?.stripeCheckoutUrl || null
     };
   });
 
@@ -537,7 +538,22 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
 
       // Step 7: Choose payment method and process
       if (paymentMethod === 'checkout') {
-        // OPTION 1: Checkout Sessions (Stripe-hosted) ⭐
+        // Check if game has a custom checkout URL configured
+        const checkoutUrl = selectedGameData.stripeCheckoutUrl || selectedGameData.stripe_checkout_url;
+        
+        if (checkoutUrl) {
+          // OPTION 1A: Direct Stripe Checkout URL (Custom Payment Link) ⭐
+          toast.success('Redirecting to checkout...', { id: 'booking-process' });
+          console.log('Using custom checkout URL:', checkoutUrl);
+          
+          // Redirect to custom Stripe checkout URL
+          setTimeout(() => {
+            window.location.href = checkoutUrl;
+          }, 500);
+          return;
+        }
+        
+        // OPTION 1B: Checkout Sessions (Stripe-hosted) ⭐
         try {
           toast.loading('Creating secure checkout...', { id: 'booking-process' });
           
@@ -2910,7 +2926,29 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
             </div>
 
             <Button
-              onClick={() => setCurrentStep('checkout')}
+              onClick={() => {
+                // Check if game has a custom checkout URL configured
+                const checkoutUrl = selectedGameData?.stripeCheckoutUrl || 
+                                    selectedGameData?.stripe_checkout_url ||
+                                    (selectedGameData as any)?.stripe_checkout_url;
+                
+                console.log('🔍 Proceed to Checkout clicked');
+                console.log('Selected Game Data:', selectedGameData);
+                console.log('Checkout URL found:', checkoutUrl);
+                
+                if (checkoutUrl) {
+                  // Direct redirect to Stripe checkout URL
+                  console.log('✅ Redirecting to Stripe URL:', checkoutUrl);
+                  toast.success('Redirecting to checkout...', { duration: 1000 });
+                  setTimeout(() => {
+                    window.location.href = checkoutUrl;
+                  }, 500);
+                } else {
+                  // Go to checkout form
+                  console.log('ℹ️ No checkout URL found, showing checkout form');
+                  setCurrentStep('checkout');
+                }
+              }}
               className="w-full text-white h-12"
               style={{ backgroundColor: primaryColor }}
             >

@@ -145,6 +145,7 @@ export function SecretsTab() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [categoryChanges, setCategoryChanges] = useState<Record<string, boolean>>({});
   const [savingCategory, setSavingCategory] = useState<string | null>(null);
+  const [testingCategory, setTestingCategory] = useState<string | null>(null);
 
   const bgCard = isDark ? 'bg-[#161616]' : 'bg-white';
   const bgElevated = isDark ? 'bg-[#1e1e1e]' : 'bg-gray-50';
@@ -161,8 +162,24 @@ export function SecretsTab() {
     }
   }, [isSuperAdmin]);
 
-  const loadSecrets = () => {
+  const loadSecrets = async () => {
     try {
+      // Try to load from backend first
+      try {
+        const response = await fetch('http://localhost:3001/api/config');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            // Backend is available, but we still use localStorage for secrets
+            // Backend only provides status information
+            console.log('Backend configuration status:', result.data);
+          }
+        }
+      } catch (backendError) {
+        console.warn('Backend not available, using localStorage only');
+      }
+
+      // Load from localStorage
       const stored = localStorage.getItem('booking-tms-secrets');
       if (stored) {
         setSecrets(JSON.parse(stored));
@@ -208,18 +225,35 @@ export function SecretsTab() {
         }
       });
 
-      // Save to localStorage
+      // Save to localStorage (backup)
       const allSecrets = { ...secrets };
       localStorage.setItem('booking-tms-secrets', JSON.stringify(allSecrets));
       
-      // In production, save to secure backend
-      // await fetch(`/api/secrets/${category.id}`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(categorySecrets)
-      // });
+      // Save to secure backend API
+      try {
+        const response = await fetch('http://localhost:3001/api/config/save', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            service: category.id,
+            config: categorySecrets
+          })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          toast.success(`${category.name} secrets saved securely! ${result.test?.message || ''}`);
+        } else {
+          throw new Error(result.error || 'Backend save failed');
+        }
+      } catch (backendError) {
+        console.warn('Backend save failed, using localStorage:', backendError);
+        toast.warning(`${category.name} secrets saved locally (backend unavailable)`);
+      }
       
-      toast.success(`${category.name} secrets saved successfully`);
       setCategoryChanges(prev => ({ ...prev, [category.id]: false }));
       
       // Apply the secrets to the application
@@ -229,6 +263,31 @@ export function SecretsTab() {
       toast.error(`Failed to save ${category.name} secrets`);
     } finally {
       setSavingCategory(null);
+    }
+  };
+
+  const testConnection = async (categoryId: string) => {
+    setTestingCategory(categoryId);
+    try {
+      const response = await fetch(`http://localhost:3001/api/config/test/${categoryId}`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success(`${categoryId.toUpperCase()} connection successful! ${result.test?.details?.accountId || ''}`);
+      } else {
+        toast.error(`${categoryId.toUpperCase()} connection failed: ${result.test?.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error(`Error testing ${categoryId} connection:`, error);
+      toast.error(`Failed to test ${categoryId.toUpperCase()} connection`);
+    } finally {
+      setTestingCategory(null);
     }
   };
 
@@ -400,24 +459,47 @@ export function SecretsTab() {
                     {status === 'partial' && <AlertCircle className="w-3 h-3 mr-1" />}
                     {status === 'complete' ? 'Configured' : status === 'partial' ? 'Partial' : 'Not Configured'}
                   </Badge>
-                  <Button
-                    onClick={() => saveCategorySecrets(category)}
-                    disabled={!categoryChanges[category.id] || savingCategory === category.id}
-                    size="sm"
-                    className={`${colorClasses.badge} hover:opacity-90`}
-                  >
-                    {savingCategory === category.id ? (
-                      <>
-                        <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-3 h-3 mr-1" />
-                        Save
-                      </>
+                  <div className="flex gap-2">
+                    {category.id === 'stripe' && (
+                      <Button
+                        onClick={() => testConnection(category.id)}
+                        disabled={savingCategory === category.id || testingCategory === category.id}
+                        size="sm"
+                        variant="outline"
+                        className={borderColor}
+                      >
+                        {testingCategory === category.id ? (
+                          <>
+                            <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                            Testing...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Test
+                          </>
+                        )}
+                      </Button>
                     )}
-                  </Button>
+                    <Button
+                      onClick={() => saveCategorySecrets(category)}
+                      disabled={savingCategory === category.id}
+                      size="sm"
+                      className={`${colorClasses.badge} hover:opacity-90`}
+                    >
+                      {savingCategory === category.id ? (
+                        <>
+                          <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-3 h-3 mr-1" />
+                          Save
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardHeader>

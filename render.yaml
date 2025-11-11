@@ -1,0 +1,58 @@
+services:
+  # Backend API Service
+  - type: web
+    name: booking-tms-backend-api
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: cd src/backend && npm install && npm run build
+    startCommand: cd src/backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: API_BASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: SENDGRID_FROM_EMAIL
+        sync: false
+      - key: SENDGRID_FROM_NAME
+        value: BookingTMS
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_ORG_ID
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4-turbo-preview
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: https://your-frontend-url.com,http://localhost:5173
+      - key: SESSION_TIMEOUT
+        value: 3600000
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+    healthCheckPath: /health
+    autoDeploy: true

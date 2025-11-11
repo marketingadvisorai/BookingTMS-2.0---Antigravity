@@ -175,7 +175,14 @@ export function generateTimeSlots(
   const endTime = customDate 
     ? convertTo24Hour(customDate.endTime) 
     : convertTo24Hour(gameSchedule.endTime || '22:00');
-  const interval = gameSchedule.slotInterval || 90;
+  
+  // CRITICAL FIX: Use game duration as interval to prevent overlaps
+  // For a 90-min game, slots must be 90 minutes apart, not 60!
+  const gameDuration = gameSchedule.duration || 90;
+  const slotInterval = gameSchedule.slotInterval || gameDuration;
+  
+  // Ensure interval is at least as long as game duration to prevent overlaps
+  const interval = Math.max(slotInterval, gameDuration);
   
   const [startHour, startMin] = startTime.split(':').map(Number);
   const [endHour, endMin] = endTime.split(':').map(Number);

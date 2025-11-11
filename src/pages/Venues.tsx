@@ -20,6 +20,7 @@ import { CalendarWidget } from '../components/widgets/CalendarWidget';
 import CalendarWidgetSettings from '../components/widgets/CalendarWidgetSettings';
 import { EmbedPreview } from '../components/widgets/EmbedPreview';
 import { useAuth } from '../lib/auth/AuthContext';
+import { VenueWidgetConfig, createDefaultVenueWidgetConfig, normalizeVenueWidgetConfig } from '../types/venueWidget';
 
 const venueTypes = [
   { value: 'escape-room', label: 'Escape Room', icon: '🔐' },
@@ -41,14 +42,28 @@ interface Venue {
   email: string;
   website: string;
   primaryColor: string;
-  widgetConfig: any;
+  widgetConfig: VenueWidgetConfig;
   embedKey: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-const STORAGE_KEY = 'venues_data';
+type VenueInput = Pick<
+  Venue,
+  'name' | 'type' | 'description' | 'address' | 'phone' | 'email' | 'website' | 'primaryColor' | 'widgetConfig' | 'isActive'
+>;
+
+interface VenueFormData {
+  name: string;
+  type: string;
+  description: string;
+  address: string;
+  phone: string;
+  email: string;
+  website: string;
+  primaryColor: string;
+}
 
 // Helper function to map database venue to UI venue
 const mapDBVenueToUI = (dbVenue: any): Venue => ({
@@ -61,15 +76,7 @@ const mapDBVenueToUI = (dbVenue: any): Venue => ({
   email: dbVenue.email || '',
   website: dbVenue.settings?.website || '',
   primaryColor: dbVenue.primary_color || dbVenue.settings?.primaryColor || '#2563eb',
-  widgetConfig: dbVenue.settings?.widgetConfig || {
-    showSecuredBadge: true,
-    showHealthSafety: true,
-    enableVeteranDiscount: false,
-    games: [],
-    ticketTypes: [{ id: 'player', name: 'Players', description: 'Ages 6 & Up', price: 30 }],
-    additionalQuestions: [],
-    cancellationPolicy: 'Cash refunds are not available. If you are unable to keep your scheduled reservation, please contact us.'
-  },
+  widgetConfig: normalizeVenueWidgetConfig(dbVenue.settings?.widgetConfig),
   // IMPORTANT: Use database column embed_key, NOT settings.embedKey
   embedKey: dbVenue.embed_key || '',
   isActive: dbVenue.status === 'active',
@@ -78,7 +85,7 @@ const mapDBVenueToUI = (dbVenue: any): Venue => ({
 });
 
 // Helper function to map UI venue to database venue
-const mapUIVenueToDB = (uiVenue: any): any => ({
+const mapUIVenueToDB = (uiVenue: VenueInput): any => ({
   name: uiVenue.name,
   address: uiVenue.address || '',
   city: '', // Extract from address if needed
@@ -96,13 +103,13 @@ const mapUIVenueToDB = (uiVenue: any): any => ({
     type: uiVenue.type,
     description: uiVenue.description,
     website: uiVenue.website,
-    widgetConfig: uiVenue.widgetConfig,
+    widgetConfig: normalizeVenueWidgetConfig(uiVenue.widgetConfig),
     // Remove embedKey from settings - it's a database column now
   },
 });
 
 export default function Venues() {
-  const { currentUser, hasPermission } = useAuth();
+  const { currentUser } = useAuth();
   const { venues: dbVenues, loading: dbLoading, createVenue: createVenueDB, updateVenue: updateVenueDB, deleteVenue: deleteVenueDB, refreshVenues } = useVenuesDB();
   const [isRefreshing, setIsRefreshing] = useState(false);
   
@@ -127,7 +134,7 @@ export default function Venues() {
   const [showEmbedCode, setShowEmbedCode] = useState(false);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [copiedEmbed, setCopiedEmbed] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<VenueFormData>({
     name: '',
     type: 'escape-room',
     description: '',
@@ -157,17 +164,9 @@ export default function Venues() {
     }
     setIsLoading(true);
     try {
-      const newVenue = {
+      const newVenue: VenueInput = {
         ...formData,
-        widgetConfig: {
-          showSecuredBadge: true,
-          showHealthSafety: true,
-          enableVeteranDiscount: false,
-          games: [],
-          ticketTypes: [{ id: 'player', name: 'Players', description: 'Ages 6 & Up', price: 30 }],
-          additionalQuestions: [],
-          cancellationPolicy: 'Cash refunds are not available. If you are unable to keep your scheduled reservation, please contact us.'
-        },
+        widgetConfig: createDefaultVenueWidgetConfig(),
         // DO NOT set embedKey - let database trigger generate it automatically
         // This ensures proper format (emb_xxxxxxxxxxxx) and uniqueness
         isActive: true,
@@ -235,7 +234,7 @@ export default function Venues() {
     }
   };
 
-  const handleUpdateWidgetConfig = async (config: any) => {
+  const handleUpdateWidgetConfig = async (config: VenueWidgetConfig) => {
     if (!selectedVenue) return;
     
     try {
@@ -648,6 +647,10 @@ export default function Venues() {
                       variant="outline"
                       onClick={() => {
                         const freshVenue = getFreshVenueData(venue.id) || venue;
+                        if (!freshVenue.embedKey) {
+                          toast.info('Embed key is still being generated. Please refresh and try again.');
+                          return;
+                        }
                         setSelectedVenue(freshVenue);
                         setShowEmbedCode(true);
                       }}
@@ -855,9 +858,18 @@ export default function Venues() {
                 </DialogDescription>
               </div>
               <Button
-                onClick={() => {
-                  setShowWidgetSettings(false);
-                  toast.success('Settings saved successfully!');
+                onClick={async () => {
+                  if (selectedVenue) {
+                    try {
+                      // Explicitly save current config to database
+                      await updateVenueDB(selectedVenue.id, mapUIVenueToDB(selectedVenue));
+                      toast.success('Settings saved successfully!');
+                      setShowWidgetSettings(false);
+                    } catch (error) {
+                      console.error('Error saving settings:', error);
+                      toast.error('Failed to save settings');
+                    }
+                  }
                 }}
                 className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] text-xs sm:text-sm h-9 sm:h-10 flex-shrink-0"
                 size="sm"
@@ -872,7 +884,7 @@ export default function Venues() {
               {selectedVenue && (
                 <CalendarWidgetSettings
                   key={`widget-settings-${selectedVenue.id}`}
-                  config={selectedVenue.widgetConfig || { games: [], ticketTypes: [], questions: [] }}
+                  config={selectedVenue.widgetConfig}
                   onConfigChange={handleUpdateWidgetConfig}
                   onPreview={() => {
                     setShowWidgetSettings(false);
@@ -916,7 +928,12 @@ export default function Venues() {
                 <CalendarWidget 
                   key={`widget-preview-${selectedVenue.id}`}
                   primaryColor={selectedVenue.primaryColor} 
-                  config={selectedVenue.widgetConfig || { games: [], ticketTypes: [], questions: [] }} 
+                  config={{
+                    ...selectedVenue.widgetConfig,
+                    venueId: selectedVenue.id,
+                    venueName: selectedVenue.name,
+                    embedKey: selectedVenue.embedKey
+                  }}
                 />
               )}
               <div className="h-12 sm:h-20" />
@@ -943,13 +960,19 @@ export default function Venues() {
           <ScrollArea className="flex-1 h-full">
             <div className="p-4 sm:p-6 pb-20 sm:pb-24 bg-gray-50 dark:bg-[#0a0a0a]">
               {selectedVenue && (
-                <EmbedPreview
-                  widgetId="calendar"
-                  widgetName={selectedVenue.name}
-                  primaryColor={selectedVenue.primaryColor}
-                  embedKey={selectedVenue.embedKey}
-                  widgetConfig={selectedVenue.widgetConfig}
-                />
+                selectedVenue.embedKey ? (
+                  <EmbedPreview
+                    widgetId="calendar"
+                    widgetName={selectedVenue.name}
+                    primaryColor={selectedVenue.primaryColor}
+                    embedKey={selectedVenue.embedKey}
+                    widgetConfig={selectedVenue.widgetConfig}
+                  />
+                ) : (
+                  <div className="p-6 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-[#111] text-sm text-gray-600 dark:text-gray-300">
+                    The embed key for this venue is still being generated. Please refresh in a few seconds and try again.
+                  </div>
+                )
               )}
             </div>
           </ScrollArea>

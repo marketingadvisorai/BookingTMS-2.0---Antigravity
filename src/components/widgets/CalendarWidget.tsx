@@ -1,3 +1,28 @@
+/**
+ * CalendarWidget Component
+ * 
+ * DUAL-PURPOSE BOOKING INTERFACE:
+ * 
+ * 1. VENUE MODE (Full Booking + Payment):
+ *    - Used in Venues page for preview
+ *    - config.venueId present
+ *    - config.enablePayment = true (or undefined, defaults to true)
+ *    - Full Stripe payment integration
+ *    - Creates real bookings
+ * 
+ * 2. TEMPLATE MODE (Display Only):
+ *    - Used in Booking Widgets gallery (future)
+ *    - config.isTemplate = true OR config.enablePayment = false
+ *    - NO venueId
+ *    - Payment disabled
+ *    - Visual preview only
+ * 
+ * SEPARATION:
+ * - Venues module = Admin management with payment
+ * - Booking Widgets module = Template gallery without payment
+ * - This component supports both via config flags
+ */
+
 import { useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
@@ -379,9 +404,21 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
         return;
       }
 
-      // Step 2: Validate required data
+      // Step 2: Check if payment is enabled (template mode vs venue mode)
+      if (config?.isTemplate || config?.enablePayment === false) {
+        toast.info('This is a template preview. Configure in Venues to enable booking.', {
+          duration: 5000,
+          description: 'Booking widgets are templates. Add this to your venue to accept real bookings.'
+        });
+        return;
+      }
+
+      // Step 3: Validate required venue data
       if (!config?.venueId) {
-        toast.error('Venue configuration is missing');
+        toast.error('Venue configuration is missing. This widget must be configured in Venues.', {
+          duration: 5000,
+          description: 'Please configure this widget in the Venues section to enable booking.'
+        });
         return;
       }
 

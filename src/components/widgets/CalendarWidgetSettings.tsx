@@ -1,3 +1,38 @@
+/**
+ * CalendarWidgetSettings Component
+ * 
+ * SHARED CONFIGURATION INTERFACE:
+ * 
+ * This component is MODULE-AGNOSTIC and used by multiple contexts:
+ * 
+ * 1. VENUES MODULE (Current):
+ *    - Configures actual venue widget settings
+ *    - embedContext.venueId present
+ *    - Saves to database (venue.widget_config)
+ *    - Manages real games with Stripe integration
+ *    - Full game CRUD operations
+ * 
+ * 2. BOOKING WIDGETS MODULE (Future):
+ *    - Configures template demo settings
+ *    - NO embedContext.venueId
+ *    - Saves to local state only
+ *    - Manages demo games (no Stripe)
+ *    - Template customization
+ * 
+ * FEATURES:
+ * - General tab: Display options, widget header
+ * - Games tab: Game management (via wizard)
+ * - Availability tab: Blocked dates, custom dates
+ * - Custom tab: Custom settings panel
+ * - SEO tab: SEO optimization
+ * - Advanced tab: Advanced options
+ * 
+ * SEPARATION:
+ * - This component doesn't know about Venues or Widgets
+ * - It just manages VenueWidgetConfig
+ * - Context (venue vs widget) determined by embedContext
+ */
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';

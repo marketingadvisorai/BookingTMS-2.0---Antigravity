@@ -43,7 +43,13 @@ import { Textarea } from '../ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
-import { Plus, Trash2, Upload, Eye, X } from 'lucide-react';
+import { Plus, Trash2, Upload, Eye, X, MoreVertical, Copy, Edit, Settings, ExternalLink } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ScrollArea } from '../ui/scroll-area';
 import { toast } from 'sonner';
@@ -80,8 +86,9 @@ const generateSlug = (value: string | undefined) => {
 
 export default function CalendarWidgetSettings({ config, onConfigChange, onPreview, embedContext }: CalendarWidgetSettingsProps) {
   const [activeTab, setActiveTab] = useState('general');
-  const [showAddGameWizard, setShowAddGameWizard] = useState(false);
+  const [showGameWizard, setShowGameWizard] = useState(false);
   const [editingGame, setEditingGame] = useState<any>(null);
+  const [duplicatingGameId, setDuplicatingGameId] = useState<string | null>(null);
   const { games: supabaseGames, createGame, updateGame: updateSupabaseGame, deleteGame: deleteSupabaseGame, loading: gamesLoading } = useGames(embedContext?.venueId);
 
   const mapSupabaseGameToWidgetGame = (game: any) => {
@@ -159,7 +166,7 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
 
   const handleAddGame = () => {
     setEditingGame(null);
-    setShowAddGameWizard(true);
+    setShowGameWizard(true);
   };
 
   const handleUpdateGame = (gameId: string, updates: any) => {
@@ -259,7 +266,7 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
         toast.success('Experience created successfully!');
       }
       
-      setShowAddGameWizard(false);
+      setShowGameWizard(false);
       setEditingGame(null);
     } catch (error: any) {
       console.error('Error saving game:', {
@@ -292,13 +299,13 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
   };
 
   const handleWizardCancel = () => {
-    setShowAddGameWizard(false);
+    setShowGameWizard(false);
     setEditingGame(null);
   };
 
   const handleEditGame = (game: any) => {
     setEditingGame(game);
-    setShowAddGameWizard(true);
+    setShowGameWizard(true);
   };
 
   const convertGameToWizardData = (game: any) => {
@@ -627,18 +634,81 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleEditGame(game)}>Edit</Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={async () => {
-                            if (confirm(`Delete "${game.name}"?`)) {
-                              await deleteSupabaseGame(game.id);
-                            }
-                          }}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditGame(game)}
+                          className="h-8"
                         >
-                          Delete
+                          <Settings className="w-4 h-4 mr-1" />
+                          Settings
                         </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              disabled={duplicatingGameId === game.id}
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onClick={() => handleEditGame(game)}
+                              className="cursor-pointer"
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={async () => {
+                                setDuplicatingGameId(game.id);
+                                try {
+                                  const duplicateName = `${game.name} (Copy)`;
+                                  const slug = duplicateName.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+                                  
+                                  const duplicateData = {
+                                    ...game,
+                                    id: undefined,
+                                    name: duplicateName,
+                                    slug: slug,
+                                    stripe_product_id: undefined,
+                                    stripe_price_id: undefined,
+                                    stripe_sync_status: 'not_synced',
+                                    created_at: undefined,
+                                    updated_at: undefined,
+                                  };
+                                  
+                                  await createGame(duplicateData);
+                                  toast.success(`Game duplicated as "${duplicateName}"`);
+                                } catch (error) {
+                                  console.error('Error duplicating game:', error);
+                                  toast.error('Failed to duplicate game');
+                                } finally {
+                                  setDuplicatingGameId(null);
+                                }
+                              }}
+                              disabled={duplicatingGameId === game.id}
+                              className="cursor-pointer"
+                            >
+                              <Copy className="w-4 h-4 mr-2" />
+                              {duplicatingGameId === game.id ? 'Duplicating...' : 'Duplicate'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={async () => {
+                                if (confirm(`Delete "${game.name}"?`)) {
+                                  await deleteSupabaseGame(game.id);
+                                }
+                              }}
+                              className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </div>
@@ -1194,7 +1264,274 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
         </TabsContent>
 
         {/* Advanced Settings */}
-        <TabsContent value="advanced">
+        <TabsContent value="advanced" className="space-y-6 pb-24">
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Settings for Widget</CardTitle>
+              <CardDescription>Games with Stripe checkout configured for this widget</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {config.games && config.games.length > 0 ? (
+                <div className="space-y-4">
+                  {config.games
+                    .filter((game: any) => game.checkoutEnabled || game.stripe_product_id || game.stripeProductId)
+                    .map((game: any) => {
+                      const stripeProductId = game.stripe_product_id || game.stripeProductId;
+                      const stripePriceId = game.stripe_price_id || game.stripePriceId;
+                      const stripePrices = game.stripePrices || [];
+                      const syncStatus = game.stripe_sync_status || game.stripeSyncStatus || 'not_synced';
+                      
+                      return (
+                        <div key={game.id} className="p-4 border rounded-lg bg-gradient-to-r from-green-50 to-blue-50">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="font-semibold text-lg">{game.name}</h4>
+                                {syncStatus === 'synced' && (
+                                  <Badge className="bg-green-600">
+                                    ✓ Checkout Enabled
+                                  </Badge>
+                                )}
+                              </div>
+                              
+                              {stripeProductId && (
+                                <div className="space-y-2 mt-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium text-gray-700">Stripe Product:</span>
+                                    <code className="text-xs bg-white px-2 py-1 rounded border">
+                                      {stripeProductId}
+                                    </code>
+                                  </div>
+                                  
+                                  {stripePrices && stripePrices.length > 0 ? (
+                                    <div className="mt-3">
+                                      <span className="text-sm font-medium text-gray-700 block mb-2">
+                                        Available Prices ({stripePrices.length}):
+                                      </span>
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        {stripePrices.map((price: any, index: number) => (
+                                          <div key={price.priceId || index} className="bg-white p-3 rounded border">
+                                            <div className="flex justify-between items-start">
+                                              <div>
+                                                <div className="font-semibold text-gray-900">
+                                                  ${((price.unitAmount || 0) / 100).toFixed(2)} {price.currency?.toUpperCase() || 'USD'}
+                                                </div>
+                                                {price.lookupKey && (
+                                                  <div className="text-xs text-blue-600 mt-1">
+                                                    🔑 {price.lookupKey}
+                                                  </div>
+                                                )}
+                                                {price.metadata?.pricing_type && (
+                                                  <Badge variant="outline" className="text-xs mt-1">
+                                                    {price.metadata.pricing_type}
+                                                  </Badge>
+                                                )}
+                                              </div>
+                                            </div>
+                                            <code className="text-xs text-gray-500 block mt-2 truncate">
+                                              {price.priceId}
+                                            </code>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ) : stripePriceId ? (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-medium text-gray-700">Stripe Price:</span>
+                                      <code className="text-xs bg-white px-2 py-1 rounded border">
+                                        {stripePriceId}
+                                      </code>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              )}
+
+                              {/* Display Checkout URL if configured */}
+                              {(game.stripeCheckoutUrl || game.stripe_checkout_url) && (
+                                <div className="mt-3 p-3 bg-purple-50 rounded border border-purple-200">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-sm font-medium text-purple-900">🔗 Checkout URL:</span>
+                                  </div>
+                                  <code className="text-xs bg-white px-2 py-1 rounded border block truncate">
+                                    {game.stripeCheckoutUrl || game.stripe_checkout_url}
+                                  </code>
+                                  <p className="text-xs text-purple-700 mt-2">
+                                    Users will be redirected to this URL when clicking "Proceed to Checkout"
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                handleEditGame(game);
+                                setActiveTab('games');
+                              }}
+                            >
+                              <Settings className="w-4 h-4 mr-1" />
+                              Configure
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  
+                  {config.games.filter((game: any) => game.checkoutEnabled || game.stripe_product_id || game.stripeProductId).length === 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-gray-500 mb-4">
+                        No games have Stripe checkout configured yet.
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={() => setActiveTab('games')}
+                      >
+                        Configure Payment Settings for Games
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-500 mb-4">No games added yet.</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => setActiveTab('games')}
+                  >
+                    Add Games First
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Checkout URL Configuration</CardTitle>
+                <CardDescription>Set custom Stripe checkout URLs for each game</CardDescription>
+              </div>
+              <Button
+                onClick={async () => {
+                  try {
+                    toast.loading('Saving checkout URLs...', { id: 'save-urls' });
+                    
+                    // Update each game with its checkout URL
+                    for (const game of config.games) {
+                      if (game.stripeCheckoutUrl !== undefined) {
+                        await updateSupabaseGame(game.id, {
+                          stripe_checkout_url: game.stripeCheckoutUrl || null,
+                        } as any);
+                      }
+                    }
+                    
+                    toast.success('Checkout URLs saved successfully!', { id: 'save-urls' });
+                  } catch (error: any) {
+                    console.error('Error saving checkout URLs:', error);
+                    toast.error('Failed to save checkout URLs', { id: 'save-urls' });
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Save Checkout URLs
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {config.games && config.games.length > 0 ? (
+                <div className="space-y-4">
+                  {config.games.map((game: any) => (
+                    <div key={game.id} className="p-4 border rounded-lg bg-gray-50">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold text-gray-900">{game.name}</h4>
+                          {game.stripeCheckoutUrl && (
+                            <Badge className="bg-green-600">
+                              ✓ URL Configured
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor={`checkout-url-${game.id}`}>
+                            Stripe Checkout URL
+                          </Label>
+                          <Input
+                            id={`checkout-url-${game.id}`}
+                            placeholder="https://buy.stripe.com/..."
+                            value={game.stripeCheckoutUrl || ''}
+                            onChange={(e) => {
+                              const updatedGames = config.games.map((g: any) =>
+                                g.id === game.id
+                                  ? { ...g, stripeCheckoutUrl: e.target.value }
+                                  : g
+                              );
+                              onConfigChange({ ...config, games: updatedGames });
+                            }}
+                          />
+                          <p className="text-xs text-gray-500">
+                            Users will be redirected to this URL when clicking "Proceed to Checkout"
+                          </p>
+                        </div>
+
+                        {game.stripeCheckoutUrl && (
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                navigator.clipboard.writeText(game.stripeCheckoutUrl);
+                                toast.success('Checkout URL copied!');
+                              }}
+                            >
+                              <Copy className="w-4 h-4 mr-1" />
+                              Copy URL
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(game.stripeCheckoutUrl, '_blank')}
+                            >
+                              <ExternalLink className="w-4 h-4 mr-1" />
+                              Test URL
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => {
+                                const updatedGames = config.games.map((g: any) =>
+                                  g.id === game.id
+                                    ? { ...g, stripeCheckoutUrl: '' }
+                                    : g
+                                );
+                                onConfigChange({ ...config, games: updatedGames });
+                                toast.success('Checkout URL removed');
+                              }}
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Remove
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-500 mb-4">No games added yet.</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => setActiveTab('games')}
+                  >
+                    Add Games First
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Advanced Settings</CardTitle>
@@ -1279,7 +1616,7 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
       </Tabs>
 
       {/* Add/Edit Game Wizard Dialog */}
-      <Dialog open={showAddGameWizard} onOpenChange={(open) => !open && handleWizardCancel()}>
+      <Dialog open={showGameWizard} onOpenChange={(open) => !open && handleWizardCancel()}>
         <DialogContent className="!w-[90vw] !max-w-[1000px] h-[90vh] !max-h-[90vh] overflow-hidden p-0 flex flex-col">
           <div className="sr-only">
             <DialogTitle>{editingGame ? 'Edit Experience' : 'Add New Experience'}</DialogTitle>

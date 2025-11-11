@@ -537,7 +537,22 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
 
       // Step 7: Choose payment method and process
       if (paymentMethod === 'checkout') {
-        // OPTION 1: Checkout Sessions (Stripe-hosted) ⭐
+        // Check if game has a custom checkout URL configured
+        const checkoutUrl = selectedGameData.stripeCheckoutUrl || selectedGameData.stripe_checkout_url;
+        
+        if (checkoutUrl) {
+          // OPTION 1A: Direct Stripe Checkout URL (Custom Payment Link) ⭐
+          toast.success('Redirecting to checkout...', { id: 'booking-process' });
+          console.log('Using custom checkout URL:', checkoutUrl);
+          
+          // Redirect to custom Stripe checkout URL
+          setTimeout(() => {
+            window.location.href = checkoutUrl;
+          }, 500);
+          return;
+        }
+        
+        // OPTION 1B: Checkout Sessions (Stripe-hosted) ⭐
         try {
           toast.loading('Creating secure checkout...', { id: 'booking-process' });
           
@@ -2910,7 +2925,21 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
             </div>
 
             <Button
-              onClick={() => setCurrentStep('checkout')}
+              onClick={() => {
+                // Check if game has a custom checkout URL configured
+                const checkoutUrl = selectedGameData?.stripeCheckoutUrl || selectedGameData?.stripe_checkout_url;
+                
+                if (checkoutUrl) {
+                  // Direct redirect to Stripe checkout URL
+                  toast.success('Redirecting to checkout...', { duration: 1000 });
+                  setTimeout(() => {
+                    window.location.href = checkoutUrl;
+                  }, 500);
+                } else {
+                  // Go to checkout form
+                  setCurrentStep('checkout');
+                }
+              }}
               className="w-full text-white h-12"
               style={{ backgroundColor: primaryColor }}
             >

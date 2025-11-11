@@ -18,6 +18,9 @@ import configRoutes from './routes/config.routes';
 export function createServer(): Express {
   const app = express();
   
+  // Trust proxy for Render deployment
+  app.set('trust proxy', 1);
+  
   // Security Middleware
   app.use(helmet({
     contentSecurityPolicy: {
@@ -77,6 +80,23 @@ export function createServer(): Express {
     });
     
     next();
+  });
+  
+  // Root Path - Welcome Message
+  app.get('/', (req: Request, res: Response) => {
+    res.json({
+      message: 'BookingTMS API Server',
+      version: '0.1.0',
+      status: 'online',
+      endpoints: {
+        health: '/health',
+        api: '/api',
+        config: '/api/config',
+        docs: '/api/docs',
+      },
+      documentation: 'Visit /api for full endpoint list',
+      timestamp: new Date().toISOString(),
+    });
   });
   
   // Health Check

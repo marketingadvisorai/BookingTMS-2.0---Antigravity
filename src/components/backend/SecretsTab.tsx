@@ -485,7 +485,7 @@ export function SecretsTab() {
                       onClick={() => saveCategorySecrets(category)}
                       disabled={savingCategory === category.id}
                       size="sm"
-                      className={`${colorClasses.badge} hover:opacity-90`}
+                      className={`${isDark ? 'bg-green-600 hover:bg-green-700' : 'bg-green-500 hover:bg-green-600'} text-white`}
                     >
                       {savingCategory === category.id ? (
                         <>

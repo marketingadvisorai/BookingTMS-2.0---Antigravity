@@ -19,10 +19,7 @@
     "noUnusedParameters": false,
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": true,
-    "baseUrl": "./",
-    "paths": {
-      "@/types/*": ["../types/*"]
-    }
+    "baseUrl": "./"
   },
   "include": [
     "**/*.ts"

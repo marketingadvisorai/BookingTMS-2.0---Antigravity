@@ -120,6 +120,18 @@ export default function VenueGamesManager({
     };
   };
 
+  // Helper function to convert difficulty number to string
+  const getDifficultyString = (difficulty: number): 'Easy' | 'Medium' | 'Hard' | 'Expert' => {
+    const difficultyMap: { [key: number]: 'Easy' | 'Medium' | 'Hard' | 'Expert' } = {
+      1: 'Easy',
+      2: 'Easy',
+      3: 'Medium',
+      4: 'Hard',
+      5: 'Expert',
+    };
+    return difficultyMap[difficulty] || 'Medium';
+  };
+
   // Handle wizard complete (create or update)
   const handleWizardComplete = async (gameData: any) => {
     const slug = gameData.name
@@ -134,7 +146,7 @@ export default function VenueGamesManager({
       name: gameData.name,
       slug: slug,
       description: gameData.description || '',
-      difficulty: gameData.difficulty,
+      difficulty: getDifficultyString(gameData.difficulty), // Convert number to string
       duration: gameData.duration || 60,
       min_players: gameData.minAdults || 2,
       max_players: gameData.maxAdults || 8,

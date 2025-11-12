@@ -12,6 +12,16 @@ import { Badge } from '../../ui/badge';
 import { Separator } from '../../ui/separator';
 import { Alert, AlertDescription } from '../../ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../ui/alert-dialog';
 import { 
   CreditCard, 
   Check, 
@@ -24,7 +34,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Info
+  Info,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StripeProductService } from '../../../lib/stripe/stripeProductService';
@@ -52,6 +63,7 @@ export default function Step6PaymentSettings({
   const [stripeCheckoutUrl, setStripeCheckoutUrl] = useState(gameData.stripeCheckoutUrl || '');
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(gameData.stripeSyncStatus || 'not_synced');
   const [errorMessage, setErrorMessage] = useState('');
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
 
   // Check if payment is already configured
   const isConfigured = !!(gameData.stripeProductId && gameData.stripePriceId);
@@ -278,24 +290,34 @@ export default function Step6PaymentSettings({
   // No manual connect/disconnect needed
 
   /**
-   * Remove payment configuration
+   * Show confirmation dialog before removing payment configuration
    */
   const handleRemovePayment = () => {
-    if (confirm('Are you sure you want to remove payment configuration? This will not delete the Stripe product.')) {
-      const updatedData = {
-        ...gameData,
-        stripeProductId: undefined,
-        stripePriceId: undefined,
-        stripeSyncStatus: 'not_synced',
-        stripeLastSync: undefined,
-      };
+    setShowRemoveDialog(true);
+  };
 
-      onUpdate(updatedData);
-      setSyncStatus('not_synced');
-      setManualProductId('');
-      setManualPriceId('');
-      toast.success('Payment configuration removed');
-    }
+  /**
+   * Confirm and remove payment configuration
+   * Clears all Stripe-related data from the game
+   */
+  const confirmRemovePayment = () => {
+    const updatedData = {
+      ...gameData,
+      stripeProductId: undefined,
+      stripePriceId: undefined,
+      stripePrices: undefined,
+      stripeCheckoutUrl: undefined,
+      stripeSyncStatus: 'not_synced',
+      stripeLastSync: undefined,
+    };
+
+    onUpdate(updatedData);
+    setSyncStatus('not_synced');
+    setManualProductId('');
+    setManualPriceId('');
+    setStripeCheckoutUrl('');
+    setShowRemoveDialog(false);
+    toast.success('Stripe payment configuration removed successfully');
   };
 
   const getSyncStatusBadge = () => {
@@ -519,6 +541,7 @@ export default function Step6PaymentSettings({
                     onClick={handleRemovePayment}
                     className="ml-auto"
                   >
+                    <Trash2 className="w-4 h-4 mr-2" />
                     Remove Configuration
                   </Button>
                 </div>
@@ -799,6 +822,49 @@ export default function Step6PaymentSettings({
           <ChevronRight className="w-4 h-4 ml-2" />
         </Button>
       </div>
+
+      {/* Remove Configuration Confirmation Dialog */}
+      <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+        <AlertDialogContent className="bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-[#2a2a2a] max-w-[calc(100%-2rem)] sm:max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-red-600" />
+              Remove Stripe Configuration?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600 dark:text-gray-400 text-left space-y-2">
+              <p>
+                This will remove all Stripe payment configuration from this game, including:
+              </p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>Product ID and Price ID</li>
+                <li>All configured prices</li>
+                <li>Custom checkout URL (if any)</li>
+                <li>Sync status and history</li>
+              </ul>
+              <p className="font-semibold text-gray-700 dark:text-gray-300 mt-3">
+                Note: This will NOT delete the product or prices in your Stripe account.
+              </p>
+              <p className="text-sm">
+                Customers will no longer be able to book and pay for this game through Stripe until you reconfigure payment settings.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+            <AlertDialogCancel 
+              className="w-full sm:w-auto bg-white dark:bg-[#161616] text-gray-900 dark:text-gray-300 border-gray-300 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#222]"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRemovePayment}
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Remove Configuration
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

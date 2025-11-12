@@ -187,30 +187,47 @@ export default function VenueGamesManager({
       },
     };
 
+    console.log('=== STARTING GAME SAVE ===');
+    console.log('Editing game?:', !!editingGame);
+    console.log('Supabase game data:', JSON.stringify(supabaseGameData, null, 2));
+    
     try {
       let result;
       if (editingGame) {
+        console.log('Updating existing game:', editingGame.id);
         result = await updateGame(editingGame.id, supabaseGameData);
         setEditingGame(null);
         toast.success('Game updated successfully!');
       } else {
+        console.log('Creating new game...');
         result = await createGame(supabaseGameData);
-        console.log('New game created:', result);
+        console.log('✅ Game created successfully:', result);
+        toast.success('Game created successfully!');
+      }
+
+      if (!result) {
+        throw new Error('No result returned from save operation');
       }
 
       // Close wizard first
       setShowAddGameWizard(false);
       
+      console.log('Triggering game list refreshes...');
       // Force multiple refreshes to ensure the game appears
-      // Sometimes the first refresh happens too quickly
       refreshGames(); // Immediate
       setTimeout(() => refreshGames(), 300); // After 300ms
       setTimeout(() => refreshGames(), 1000); // After 1 second
       setTimeout(() => refreshGames(), 2000); // After 2 seconds for slow connections
       
     } catch (error: any) {
-      console.error('Error in handleWizardComplete:', error);
-      toast.error(error.message || 'Failed to save game');
+      console.error('❌ ERROR in handleWizardComplete:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        stack: error.stack,
+      });
+      toast.error(`Failed to save game: ${error.message}`);
       // Don't close wizard on error so user can try again
     }
   };

@@ -92,33 +92,47 @@ export function useGames(venueId?: string) {
         throw new Error('Venue ID is required to create a game');
       }
       
-      // Step 1: Try to create Stripe Product and Price (non-blocking)
-      try {
-        console.log('Attempting to create Stripe product and price...');
-        toast.loading('Creating payment product...', { id: 'stripe-create' });
-        
-        const { productId, priceId } = await StripeProductService.createProductAndPrice({
-          name: gameData.name,
-          description: gameData.description || `${gameData.name} - ${gameData.duration} minutes`,
-          price: gameData.price,
-          currency: 'usd',
-          metadata: {
-            venue_id: gameData.venue_id,
-            duration: gameData.duration.toString(),
-            difficulty: gameData.difficulty,
-            image_url: gameData.image_url || '',
-          },
+      // Step 1: Only create Stripe product if price is set and Stripe was configured in wizard
+      // Check if Stripe IDs already exist from wizard (Step 6)
+      if (gameData.stripe_product_id && gameData.stripe_price_id) {
+        console.log('Using Stripe IDs from wizard:', {
+          productId: gameData.stripe_product_id,
+          priceId: gameData.stripe_price_id,
         });
-        
-        stripeProductId = productId;
-        stripePriceId = priceId;
-        console.log('Stripe product created:', productId, 'price:', priceId);
-        toast.success('Payment product created!', { id: 'stripe-create' });
-      } catch (stripeError: any) {
-        console.warn('Stripe product creation failed (non-blocking):', stripeError);
-        toast.dismiss('stripe-create');
-        toast.warning('Game will be created without payment integration. You can add it later.');
-        // Continue without Stripe - not critical for game creation
+        stripeProductId = gameData.stripe_product_id;
+        stripePriceId = gameData.stripe_price_id;
+      } else if (gameData.price && gameData.price > 0) {
+        // Only auto-create if there's a price but no Stripe IDs
+        try {
+          console.log('Attempting to auto-create Stripe product and price...');
+          toast.loading('Creating payment product...', { id: 'stripe-create' });
+          
+          const { productId, priceId } = await StripeProductService.createProductAndPrice({
+            name: gameData.name,
+            description: gameData.description || `${gameData.name} - ${gameData.duration} minutes`,
+            price: gameData.price,
+            currency: 'usd',
+            metadata: {
+              venue_id: gameData.venue_id,
+              duration: gameData.duration.toString(),
+              difficulty: gameData.difficulty,
+              image_url: gameData.image_url || '',
+            },
+          });
+          
+          stripeProductId = productId;
+          stripePriceId = priceId;
+          console.log('Stripe product created:', productId, 'price:', priceId);
+          toast.success('Payment product created!', { id: 'stripe-create' });
+        } catch (stripeError: any) {
+          console.warn('Stripe product creation failed (non-blocking):', stripeError);
+          toast.dismiss('stripe-create');
+          // Don't show warning toast - just continue without Stripe
+          console.log('Continuing without Stripe integration');
+          // Continue without Stripe - not critical for game creation
+        }
+      } else {
+        console.log('No price set or Stripe not configured - skipping Stripe product creation');
       }
       
       // Step 2: Get Supabase session

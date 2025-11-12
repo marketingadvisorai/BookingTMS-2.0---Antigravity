@@ -35,7 +35,8 @@ import {
   ChevronRight,
   X,
   Info,
-  Trash2
+  Trash2,
+  Edit
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StripeProductService } from '../../../lib/stripe/stripeProductService';
@@ -64,6 +65,10 @@ export default function Step6PaymentSettings({
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(gameData.stripeSyncStatus || 'not_synced');
   const [errorMessage, setErrorMessage] = useState('');
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editProductId, setEditProductId] = useState('');
+  const [editPriceId, setEditPriceId] = useState('');
+  const [editCheckoutUrl, setEditCheckoutUrl] = useState('');
 
   // Check if payment is already configured
   const isConfigured = !!(gameData.stripeProductId && gameData.stripePriceId);
@@ -235,9 +240,23 @@ export default function Step6PaymentSettings({
     } catch (error: any) {
       console.error('❌ Error linking Stripe product:', error);
       setSyncStatus('error');
-      const errorMsg = error.message || 'Failed to link Stripe product';
+      
+      // Provide more specific error messages
+      let errorMsg = error.message || 'Failed to link Stripe product';
+      
+      // Check for common issues
+      if (error.message?.includes('fetch') || error.message?.includes('connect')) {
+        errorMsg = 'Cannot connect to backend API. Please ensure the backend server is running and accessible.';
+      } else if (error.message?.includes('404')) {
+        errorMsg = 'Product not found. Please verify the Product ID exists in your Stripe dashboard.';
+      } else if (error.message?.includes('401') || error.message?.includes('403')) {
+        errorMsg = 'Authentication failed. Please check your Stripe API keys are configured correctly.';
+      } else if (error.message?.includes('timeout')) {
+        errorMsg = 'Request timed out. Please check your internet connection and try again.';
+      }
+      
       setErrorMessage(errorMsg);
-      toast.error(`Error: ${errorMsg}`, { id: 'stripe-link' });
+      toast.error(errorMsg, { id: 'stripe-link', duration: 6000 });
     } finally {
       setIsLinking(false);
     }
@@ -294,6 +313,85 @@ export default function Step6PaymentSettings({
    */
   const handleRemovePayment = () => {
     setShowRemoveDialog(true);
+  };
+
+  /**
+   * Open edit dialog with current values
+   */
+  const handleEditConfiguration = () => {
+    setEditProductId(gameData.stripeProductId || '');
+    setEditPriceId(gameData.stripePriceId || '');
+    setEditCheckoutUrl(gameData.stripeCheckoutUrl || '');
+    setShowEditDialog(true);
+  };
+
+  /**
+   * Save edited configuration
+   */
+  const handleSaveEdit = async () => {
+    const productId = editProductId.trim();
+    
+    // Validate Product ID if provided
+    if (productId && !StripeProductService.isValidProductId(productId)) {
+      toast.error('Invalid Product ID format. Should start with "prod_"');
+      return;
+    }
+
+    setIsLinking(true);
+    setSyncStatus('pending');
+    setErrorMessage('');
+
+    try {
+      toast.loading('Updating Stripe configuration...', { id: 'stripe-edit' });
+
+      // If product ID changed, fetch new product details
+      if (productId && productId !== gameData.stripeProductId) {
+        const result = await StripeProductService.linkExistingProduct({
+          productId,
+          priceId: editPriceId.trim() || undefined,
+        });
+
+        const updatedData = {
+          ...gameData,
+          stripeProductId: result.productId,
+          stripePrices: result.prices,
+          stripePriceId: result.priceId || result.prices[0]?.priceId,
+          stripeCheckoutUrl: editCheckoutUrl.trim() || undefined,
+          stripeSyncStatus: 'synced' as const,
+          stripeLastSync: new Date().toISOString(),
+        };
+
+        onUpdate(updatedData);
+        setSyncStatus('synced');
+        toast.success('Configuration updated successfully!', { id: 'stripe-edit' });
+      } else {
+        // Just update checkout URL or price ID
+        const updatedData = {
+          ...gameData,
+          stripePriceId: editPriceId.trim() || gameData.stripePriceId,
+          stripeCheckoutUrl: editCheckoutUrl.trim() || undefined,
+          stripeLastSync: new Date().toISOString(),
+        };
+
+        onUpdate(updatedData);
+        toast.success('Configuration updated successfully!', { id: 'stripe-edit' });
+      }
+
+      setShowEditDialog(false);
+    } catch (error: any) {
+      console.error('Error updating configuration:', error);
+      let errorMsg = error.message || 'Failed to update configuration';
+      
+      if (error.message?.includes('fetch') || error.message?.includes('connect')) {
+        errorMsg = 'Cannot connect to backend API. Please ensure the backend server is running.';
+      } else if (error.message?.includes('404')) {
+        errorMsg = 'Product not found. Please verify the Product ID exists in Stripe.';
+      }
+      
+      toast.error(errorMsg, { id: 'stripe-edit', duration: 6000 });
+    } finally {
+      setIsLinking(false);
+    }
   };
 
   /**
@@ -517,7 +615,15 @@ export default function Step6PaymentSettings({
 
               <div className="space-y-2">
                 {/* Action Buttons */}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEditConfiguration}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -822,6 +928,100 @@ export default function Step6PaymentSettings({
           <ChevronRight className="w-4 h-4 ml-2" />
         </Button>
       </div>
+
+      {/* Edit Configuration Dialog */}
+      <AlertDialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <AlertDialogContent className="bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-[#2a2a2a] max-w-[calc(100%-2rem)] sm:max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+              <Edit className="w-5 h-5 text-blue-600" />
+              Edit Stripe Configuration
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600 dark:text-gray-400 text-left">
+              Update your Stripe product, price, or checkout URL settings
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Product ID */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-product-id" className="text-sm font-medium text-gray-900 dark:text-white">
+                Stripe Product ID
+              </Label>
+              <Input
+                id="edit-product-id"
+                placeholder="prod_xxxxxxxxxxxx"
+                value={editProductId}
+                onChange={(e) => setEditProductId(e.target.value)}
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Find this in your Stripe dashboard
+              </p>
+            </div>
+
+            {/* Price ID */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-price-id" className="text-sm font-medium text-gray-900 dark:text-white">
+                Stripe Price ID <span className="text-gray-500">(Optional)</span>
+              </Label>
+              <Input
+                id="edit-price-id"
+                placeholder="price_xxxxxxxxxxxx"
+                value={editPriceId}
+                onChange={(e) => setEditPriceId(e.target.value)}
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Leave empty to fetch all prices automatically
+              </p>
+            </div>
+
+            {/* Checkout URL */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-checkout-url" className="text-sm font-medium text-gray-900 dark:text-white">
+                Stripe Checkout URL <span className="text-gray-500">(Optional)</span>
+              </Label>
+              <Input
+                id="edit-checkout-url"
+                placeholder="https://buy.stripe.com/..."
+                value={editCheckoutUrl}
+                onChange={(e) => setEditCheckoutUrl(e.target.value)}
+                className="text-sm"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Add a direct Stripe checkout link for custom redirect
+              </p>
+            </div>
+          </div>
+
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+            <AlertDialogCancel 
+              className="w-full sm:w-auto bg-white dark:bg-[#161616] text-gray-900 dark:text-gray-300 border-gray-300 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#222]"
+              disabled={isLinking}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={isLinking}
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isLinking ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Remove Configuration Confirmation Dialog */}
       <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>

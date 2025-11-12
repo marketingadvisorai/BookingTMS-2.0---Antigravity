@@ -59,7 +59,7 @@ export default function VenueGamesManager({
 }: VenueGamesManagerProps) {
   const [showAddGameWizard, setShowAddGameWizard] = useState(false);
   const [editingGame, setEditingGame] = useState<any>(null);
-  const { games, createGame, updateGame, deleteGame, loading } = useGames(venueId);
+  const { games, createGame, updateGame, deleteGame, loading, refreshGames } = useGames(venueId);
   const [duplicatingGameId, setDuplicatingGameId] = useState<string | null>(null);
 
   // Map Supabase game to wizard format
@@ -187,14 +187,28 @@ export default function VenueGamesManager({
       },
     };
 
-    if (editingGame) {
-      await updateGame(editingGame.id, supabaseGameData);
-      setEditingGame(null);
-    } else {
-      await createGame(supabaseGameData);
-    }
+    try {
+      if (editingGame) {
+        await updateGame(editingGame.id, supabaseGameData);
+        setEditingGame(null);
+        toast.success('Game updated successfully!');
+      } else {
+        const newGame = await createGame(supabaseGameData);
+        console.log('New game created:', newGame);
+        toast.success('Game created successfully!');
+      }
 
-    setShowAddGameWizard(false);
+      // Close wizard and force refresh
+      setShowAddGameWizard(false);
+      
+      // Force a manual refresh after a short delay to ensure DB is updated
+      setTimeout(() => {
+        refreshGames();
+      }, 500);
+    } catch (error: any) {
+      console.error('Error in handleWizardComplete:', error);
+      toast.error(error.message || 'Failed to save game');
+    }
   };
 
   // Handle edit game

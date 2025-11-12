@@ -173,7 +173,10 @@ export function useGames(venueId?: string) {
 
       console.log('Game created successfully in database:', data);
       toast.success(stripeProductId ? 'Game created and ready for payments!' : 'Game created successfully!');
-      await fetchGames(); // Refresh list
+      
+      // Force refresh the games list
+      await fetchGames(true); // Pass true to show toast
+      
       return data;
     } catch (err: any) {
       console.error('Error creating game:', {
@@ -270,18 +273,49 @@ export function useGames(venueId?: string) {
   // Delete game
   const deleteGame = async (id: string) => {
     try {
+      // First check if there are any bookings for this game
+      const { data: bookings, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('game_id', id)
+        .limit(1);
+
+      if (bookingsError) {
+        console.error('Error checking bookings:', bookingsError);
+      }
+
+      if (bookings && bookings.length > 0) {
+        toast.error('Cannot delete game with existing bookings. Please cancel all bookings first or archive the game instead.', {
+          duration: 5000,
+        });
+        throw new Error('Game has existing bookings');
+      }
+
+      // If no bookings, proceed with deletion
       const { error: deleteError } = await supabase
         .from('games')
         .delete()
         .eq('id', id);
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        // Handle foreign key constraint error with user-friendly message
+        if (deleteError.code === '23503') {
+          toast.error('Cannot delete game with existing bookings. Please cancel all bookings first or archive the game instead.', {
+            duration: 5000,
+          });
+        } else {
+          throw deleteError;
+        }
+        throw deleteError;
+      }
 
       toast.success('Game deleted successfully!');
       await fetchGames(); // Refresh list
     } catch (err: any) {
       console.error('Error deleting game:', err);
-      toast.error(err.message || 'Failed to delete game');
+      if (err.message !== 'Game has existing bookings' && err.code !== '23503') {
+        toast.error(err.message || 'Failed to delete game');
+      }
       throw err;
     }
   };

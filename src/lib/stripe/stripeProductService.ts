@@ -381,4 +381,100 @@ export class StripeProductService {
 
     throw lastError || new Error('Failed to create Stripe product after retries');
   }
+
+  /**
+   * Get product by ID
+   */
+  static async getProduct(productId: string): Promise<any> {
+    try {
+      const headers = this.getAuthHeaders();
+      const response = await fetch(`${this.BACKEND_API_URL}/api/stripe/products/${productId}`, {
+        method: 'GET',
+        headers,
+      });
+
+      const data = await this.parseResponse(response);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get product');
+      }
+
+      return data.product;
+    } catch (error) {
+      console.error('Error getting product:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all prices for a product
+   */
+  static async getProductPrices(productId: string): Promise<any[]> {
+    try {
+      console.log('🔍 Fetching prices for product:', productId);
+      
+      const headers = this.getAuthHeaders();
+      const response = await fetch(`${this.BACKEND_API_URL}/api/stripe/products/${productId}/prices`, {
+        method: 'GET',
+        headers,
+      });
+
+      const data = await this.parseResponse(response);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get prices');
+      }
+
+      console.log('✅ Retrieved prices:', data.prices);
+      return data.prices;
+    } catch (error) {
+      console.error('Error getting product prices:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Link existing product (get product and prices)
+   */
+  static async linkExistingProduct(params: {
+    productId: string;
+    priceId?: string;
+  }): Promise<{
+    productId: string;
+    priceId?: string;
+    prices: any[];
+  }> {
+    try {
+      console.log('🔗 Linking existing product:', params.productId);
+
+      // Get product details
+      const product = await this.getProduct(params.productId);
+      
+      // Get all prices for the product
+      const prices = await this.getProductPrices(params.productId);
+
+      return {
+        productId: params.productId,
+        priceId: params.priceId || prices[0]?.id,
+        prices: prices.map(p => ({
+          priceId: p.id,
+          unitAmount: p.unit_amount,
+          currency: p.currency,
+          lookupKey: p.lookup_key,
+          type: p.metadata?.type || p.metadata?.pricing_type,
+          metadata: p.metadata,
+        })),
+      };
+    } catch (error) {
+      console.error('Error linking product:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Validate product ID format
+   */
+  static isValidProductId(productId: string): boolean {
+    return /^prod_[a-zA-Z0-9]+$/.test(productId);
+  }
 }

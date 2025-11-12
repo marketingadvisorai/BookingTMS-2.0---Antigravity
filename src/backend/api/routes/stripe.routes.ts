@@ -280,4 +280,39 @@ router.get('/config', (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/stripe/products/:productId/prices
+ * List all prices for a product
+ */
+router.get(
+  '/products/:productId/prices',
+  [param('productId').isString().notEmpty()],
+  validate,
+  async (req: Request, res: Response) => {
+    try {
+      const { productId } = req.params;
+      
+      // Use Stripe SDK to fetch prices for the product
+      const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+      const prices = await stripe.prices.list({
+        product: productId,
+        active: true,
+        limit: 100,
+      });
+
+      res.json({
+        success: true,
+        prices: prices.data,
+        count: prices.data.length,
+      });
+    } catch (error: any) {
+      console.error('List product prices error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to list prices',
+      });
+    }
+  }
+);
+
 export default router;

@@ -27,7 +27,7 @@ import {
   Info
 } from 'lucide-react';
 import { toast } from 'sonner';
-import StripeDirectApi from '../../../lib/stripe/stripeDirectApi';
+import { StripeProductService } from '../../../lib/stripe/stripeProductService';
 
 interface PaymentSettingsProps {
   gameData: any;
@@ -69,7 +69,7 @@ export default function Step6PaymentSettings({
       return;
     }
 
-    console.log('🚀 Starting Stripe product creation with StripeDirectApi...');
+    console.log('🚀 Starting Stripe product creation with Backend API...');
     console.log('📊 Game Data:', {
       name: gameData.name,
       adultPrice: gameData.adultPrice,
@@ -83,58 +83,36 @@ export default function Step6PaymentSettings({
     try {
       toast.loading('Creating Stripe product with pricing options...', { id: 'stripe-create' });
 
-      // Build pricing options array
-      const pricingOptions: Array<{
-        type: 'adult' | 'child' | 'veteran' | 'senior' | 'student' | 'custom';
-        name: string;
-        amount: number;
-      }> = [];
+      // Build custom capacity fields for metadata
+      const customCapacityFields = gameData.customCapacityFields?.filter((f: any) => f.price > 0).map((field: any) => ({
+        id: field.id,
+        name: field.name,
+        min: field.min || 0,
+        max: field.max || 10,
+        price: field.price,
+      })) || [];
 
-      // Adult price (required)
-      if (gameData.adultPrice > 0) {
-        pricingOptions.push({
-          type: 'adult',
-          name: 'Adult',
-          amount: gameData.adultPrice,
-        });
-      }
+      console.log('💰 Pricing details:', {
+        adult: gameData.adultPrice,
+        child: gameData.childPrice,
+        custom: customCapacityFields,
+      });
 
-      // Child price (optional)
-      if (gameData.childPrice && gameData.childPrice > 0) {
-        pricingOptions.push({
-          type: 'child',
-          name: 'Child',
-          amount: gameData.childPrice,
-        });
-      }
-
-      // Custom capacity fields (optional)
-      if (gameData.customCapacityFields && gameData.customCapacityFields.length > 0) {
-        gameData.customCapacityFields.forEach((field: any) => {
-          if (field.price > 0) {
-            pricingOptions.push({
-              type: 'custom',
-              name: field.name,
-              amount: field.price,
-            });
-          }
-        });
-      }
-
-      console.log('💰 Pricing options:', pricingOptions);
-
-      // Create product with all pricing options
-      const result = await StripeDirectApi.createProductWithPricing({
+      // Create product and price using backend API
+      const result = await StripeProductService.createProductAndPrice({
         name: gameData.name || 'Untitled Game',
         description: gameData.description || '',
-        imageUrl: gameData.imageUrl,
+        price: gameData.adultPrice,
+        currency: 'usd',
+        childPrice: gameData.childPrice > 0 ? gameData.childPrice : undefined,
+        customCapacityFields: customCapacityFields.length > 0 ? customCapacityFields : undefined,
         metadata: {
           duration: gameData.duration?.toString() || '60',
           category: gameData.category || '',
           difficulty: gameData.difficulty?.toString() || '3',
           venue_id: gameData.venueId || '',
+          image_url: gameData.imageUrl || '',
         },
-        pricingOptions,
       });
 
       console.log('✅ Product created:', result);
@@ -143,8 +121,7 @@ export default function Step6PaymentSettings({
       const updatedData = {
         ...gameData,
         stripeProductId: result.productId,
-        stripePrices: result.prices, // Store all prices
-        stripePriceId: result.prices[0]?.priceId, // Default to first price
+        stripePriceId: result.priceId,
         stripeSyncStatus: 'synced' as const,
         stripeLastSync: new Date().toISOString(),
         checkoutEnabled: true,
@@ -154,7 +131,7 @@ export default function Step6PaymentSettings({
       onUpdate(updatedData);
       setSyncStatus('synced');
       
-      toast.success(`Stripe product created with ${result.prices.length} pricing option(s)!`, { id: 'stripe-create' });
+      toast.success('Stripe product created successfully!', { id: 'stripe-create' });
     } catch (error: any) {
       console.error('❌ STRIPE PRODUCT CREATION ERROR:', {
         message: error.message,
@@ -204,12 +181,12 @@ export default function Step6PaymentSettings({
     }
 
     // Validate Product ID format if provided
-    if (productId && !StripeDirectApi.isValidProductId(productId)) {
+    if (productId && !StripeProductService.isValidProductId(productId)) {
       toast.error('Invalid Product ID format. Should start with "prod_"');
       return;
     }
 
-    console.log('🔗 Linking Stripe product with StripeDirectApi...');
+    console.log('🔗 Linking Stripe product with Backend API...');
     console.log('📦 Product ID:', productId);
 
     setIsLinking(true);
@@ -220,7 +197,7 @@ export default function Step6PaymentSettings({
       toast.loading('Linking Stripe product and fetching prices...', { id: 'stripe-link' });
 
       // Link existing product and get all prices
-      const result = await StripeDirectApi.linkExistingProduct({
+      const result = await StripeProductService.linkExistingProduct({
         productId,
         priceId: manualPriceId.trim() || undefined,
       });
@@ -273,11 +250,20 @@ export default function Step6PaymentSettings({
       toast.loading('Refreshing prices from Stripe...', { id: 'stripe-sync' });
 
       // Fetch all current prices for the product
-      const prices = await StripeDirectApi.getProductPrices(gameData.stripeProductId);
+      const prices = await StripeProductService.getProductPrices(gameData.stripeProductId);
+      
+      // Transform prices to match expected format
+      const transformedPrices = prices.map(p => ({
+        priceId: p.id,
+        unitAmount: p.unit_amount,
+        currency: p.currency,
+        lookupKey: p.lookup_key,
+        metadata: p.metadata,
+      }));
 
       const updatedData = {
         ...gameData,
-        stripePrices: prices, // Update with latest prices
+        stripePrices: transformedPrices, // Update with latest prices
         stripeSyncStatus: 'synced',
         stripeLastSync: new Date().toISOString(),
       };
@@ -285,7 +271,7 @@ export default function Step6PaymentSettings({
       onUpdate(updatedData);
       setSyncStatus('synced');
       
-      toast.success(`Synced! Found ${prices.length} price(s)`, { id: 'stripe-sync' });
+      toast.success(`Synced! Found ${transformedPrices.length} price(s)`, { id: 'stripe-sync' });
     } catch (error: any) {
       console.error('Error syncing with Stripe:', error);
       setSyncStatus('error');

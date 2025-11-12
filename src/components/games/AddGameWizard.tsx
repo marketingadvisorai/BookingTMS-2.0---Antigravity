@@ -153,6 +153,8 @@ interface GameData {
   // Step 6: Payment Settings
   stripeProductId?: string;
   stripePriceId?: string;
+  stripePrices?: any[];
+  stripeCheckoutUrl?: string;
   stripeSyncStatus?: 'not_synced' | 'pending' | 'synced' | 'error';
   stripeLastSync?: string;
   checkoutEnabled?: boolean;

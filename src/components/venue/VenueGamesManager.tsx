@@ -115,6 +115,8 @@ export default function VenueGamesManager({
       // Stripe payment integration fields
       stripeProductId: game.stripe_product_id || null,
       stripePriceId: game.stripe_price_id || null,
+      stripePrices: game.stripe_prices || [],
+      stripeCheckoutUrl: game.stripe_checkout_url || null,
       stripeSyncStatus: game.stripe_sync_status || 'not_synced',
       stripeLastSync: game.stripe_last_sync || null,
     };
@@ -159,6 +161,8 @@ export default function VenueGamesManager({
       // Stripe payment integration fields
       stripe_product_id: gameData.stripeProductId || null,
       stripe_price_id: gameData.stripePriceId || null,
+      stripe_prices: gameData.stripePrices || null,
+      stripe_checkout_url: gameData.stripeCheckoutUrl || null,
       stripe_sync_status: gameData.stripeSyncStatus || null,
       stripe_last_sync: gameData.stripeLastSync || null,
       settings: {

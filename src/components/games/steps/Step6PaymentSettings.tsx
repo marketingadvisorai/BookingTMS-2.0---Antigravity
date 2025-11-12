@@ -3,7 +3,7 @@
  * Stripe integration for game payments using Supabase Edge Functions
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
@@ -69,6 +69,22 @@ export default function Step6PaymentSettings({
   const [editProductId, setEditProductId] = useState('');
   const [editPriceId, setEditPriceId] = useState('');
   const [editCheckoutUrl, setEditCheckoutUrl] = useState('');
+
+  // Sync state with gameData when it changes (important for edit mode)
+  useEffect(() => {
+    if (gameData.stripeProductId) {
+      setManualProductId(gameData.stripeProductId);
+    }
+    if (gameData.stripePriceId) {
+      setManualPriceId(gameData.stripePriceId);
+    }
+    if (gameData.stripeCheckoutUrl) {
+      setStripeCheckoutUrl(gameData.stripeCheckoutUrl);
+    }
+    if (gameData.stripeSyncStatus) {
+      setSyncStatus(gameData.stripeSyncStatus);
+    }
+  }, [gameData.stripeProductId, gameData.stripePriceId, gameData.stripeCheckoutUrl, gameData.stripeSyncStatus]);
 
   // Check if payment is already configured
   const isConfigured = !!(gameData.stripeProductId && gameData.stripePriceId);

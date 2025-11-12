@@ -336,10 +336,18 @@ export default function Step6PaymentSettings({
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
           {isConfigured 
-            ? 'Stripe integration active - Manage your payment settings below'
-            : 'Configure Stripe payment integration for online bookings (can be set up later)'
+            ? 'Stripe integration active - Update prices or view product details below'
+            : 'Create a new Stripe product or reconnect an existing one for online bookings'
           }
         </p>
+        {!isConfigured && hasPrice && (
+          <Alert className="mt-2 bg-purple-50 border-purple-200">
+            <Info className="h-4 w-4 text-purple-600" />
+            <AlertDescription className="text-xs text-purple-800">
+              <strong>Reconnecting a product?</strong> Use the "Link Existing" tab to reconnect a Stripe product that was previously created or got disconnected.
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       {/* Info Message */}

@@ -26,6 +26,39 @@ export function Embed() {
   const [singleGameDescription, setSingleGameDescription] = useState<string | undefined>(undefined);
   const [singleGamePrice, setSingleGamePrice] = useState<number | undefined>(undefined);
 
+  // Enforce responsive layout on the embed document to prevent horizontal scrolling
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+
+    const previousHtmlStyles = {
+      width: html.style.width,
+      maxWidth: html.style.maxWidth,
+      overflowX: html.style.overflowX,
+    };
+    const previousBodyStyles = {
+      width: body.style.width,
+      maxWidth: body.style.maxWidth,
+      overflowX: body.style.overflowX,
+    };
+
+    html.style.width = '100%';
+    html.style.maxWidth = '100%';
+    html.style.overflowX = 'hidden';
+    body.style.width = '100%';
+    body.style.maxWidth = '100%';
+    body.style.overflowX = 'hidden';
+
+    return () => {
+      html.style.width = previousHtmlStyles.width;
+      html.style.maxWidth = previousHtmlStyles.maxWidth;
+      html.style.overflowX = previousHtmlStyles.overflowX;
+      body.style.width = previousBodyStyles.width;
+      body.style.maxWidth = previousBodyStyles.maxWidth;
+      body.style.overflowX = previousBodyStyles.overflowX;
+    };
+  }, []);
+
   useEffect(() => {
     // Parse URL parameters
     const params = new URLSearchParams(window.location.search);
@@ -66,10 +99,14 @@ export function Embed() {
     const sendHeightUpdate = () => {
       if (window.parent !== window) {
         const height = document.documentElement.scrollHeight;
-        window.parent.postMessage({
-          type: 'BOOKINGTMS_RESIZE',
-          height
-        }, '*');
+        const payloads = [
+          { type: 'BOOKINGTMS_RESIZE', height },
+          { type: 'resize-iframe', height },
+        ];
+
+        payloads.forEach(payload => {
+          window.parent.postMessage(payload, '*');
+        });
       }
     };
 
@@ -383,7 +420,7 @@ export function Embed() {
 
   return (
     <WidgetThemeProvider initialTheme={widgetTheme}>
-      <div className={`w-full min-h-screen ${widgetTheme === 'dark' ? 'dark bg-[#0a0a0a]' : 'bg-white'}`}>
+      <div className={`w-full min-h-screen overflow-x-hidden ${widgetTheme === 'dark' ? 'dark bg-[#0a0a0a]' : 'bg-white'}`} style={{ maxWidth: '100%' }}>
         {renderWidget()}
       </div>
     </WidgetThemeProvider>

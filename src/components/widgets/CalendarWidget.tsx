@@ -845,7 +845,10 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
   }
 
   return (
-    <div className="w-full min-h-screen bg-gray-50" style={{ fontFamily: config?.fontFamily || undefined }}>
+    <div
+      className="w-full min-h-[600px] bg-gray-50 max-w-full overflow-x-hidden"
+      style={{ fontFamily: config?.fontFamily || undefined }}
+    >
       {/* Health & Safety Dialog */}
       <Dialog open={showHealthSafetyDialog} onOpenChange={setShowHealthSafetyDialog}>
         <DialogContent className="sm:max-w-[425px]">

@@ -11,6 +11,7 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import { backendSecrets, getSafeConfig } from '../config/secrets.config';
 import configRoutes from './routes/config.routes';
+import stripeRoutes from './routes/stripe.routes';
 
 /**
  * Create and configure Express application
@@ -116,6 +117,7 @@ export function createServer(): Express {
       version: '0.1.0',
       endpoints: {
         config: '/api/config',
+        stripe: '/api/stripe',
         auth: '/api/auth',
         payments: '/api/payments',
         notifications: '/api/notifications',
@@ -128,6 +130,7 @@ export function createServer(): Express {
   
   // API Routes
   app.use('/api/config', configRoutes);
+  app.use('/api/stripe', stripeRoutes);
   
   // Future routes (will be added)
   // app.use('/api/auth', authRoutes);

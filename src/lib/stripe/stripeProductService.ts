@@ -1,9 +1,8 @@
 /**
  * Stripe Product Service
  * Automatically creates and manages Stripe products/prices for games
+ * Uses backend API for secure Stripe operations
  */
-
-import { supabase } from '../supabase/client';
 
 interface CreateProductParams {
   name: string;
@@ -50,22 +49,11 @@ interface ProductAndPrice {
 }
 
 export class StripeProductService {
-  private static STRIPE_API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+  private static BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:3001';
 
-  private static async getAuthHeaders() {
-    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    if (!anonKey) {
-      console.error('Supabase anon key missing. Check VITE_SUPABASE_ANON_KEY env variable.');
-    }
-
-    // Get authenticated session token
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token || anonKey;
-
+  private static getAuthHeaders() {
     return {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token ?? ''}`,
-      apikey: anonKey ?? '',
     } as const;
   }
 
@@ -216,21 +204,19 @@ export class StripeProductService {
     metadata?: Record<string, string>;
   }): Promise<string> {
     try {
-      const url = `${this.STRIPE_API_URL}/stripe-manage-product`;
-      console.log('🌐 Calling Edge Function:', url);
+      const url = `${this.BACKEND_API_URL}/api/stripe/products`;
+      console.log('🌐 Calling Backend API:', url);
       console.log('📦 Request payload:', {
-        action: 'create_product',
         name: params.name,
         description: params.description,
       });
 
-      // Call Stripe API via Edge Function
-      const headers = await this.getAuthHeaders();
+      // Call Backend Stripe API
+      const headers = this.getAuthHeaders();
       const response = await fetch(url, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          action: 'create_product',
           name: params.name,
           description: params.description,
           metadata: params.metadata || {},
@@ -244,7 +230,7 @@ export class StripeProductService {
 
       if (!response.ok) {
         const errorMsg = data.error || `HTTP ${response.status}: Failed to create Stripe product`;
-        console.error('❌ Edge Function error:', errorMsg);
+        console.error('❌ Backend API error:', errorMsg);
         throw new Error(errorMsg);
       }
 
@@ -272,14 +258,13 @@ export class StripeProductService {
     params: CreatePriceParams
   ): Promise<string> {
     try {
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${this.STRIPE_API_URL}/stripe-manage-product`, {
+      const headers = this.getAuthHeaders();
+      const response = await fetch(`${this.BACKEND_API_URL}/api/stripe/prices`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          action: 'create_price',
-          product: productId,
-          unit_amount: Math.round(params.amount * 100), // Convert to cents
+          productId: productId,
+          amount: params.amount,
           currency: params.currency || 'usd',
           metadata: params.metadata || {},
         }),
@@ -310,15 +295,11 @@ export class StripeProductService {
     updates: UpdateProductParams
   ): Promise<void> {
     try {
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${this.STRIPE_API_URL}/stripe-manage-product`, {
-        method: 'POST',
+      const headers = this.getAuthHeaders();
+      const response = await fetch(`${this.BACKEND_API_URL}/api/stripe/products/${productId}`, {
+        method: 'PUT',
         headers,
-        body: JSON.stringify({
-          action: 'update_product',
-          productId,
-          ...updates,
-        }),
+        body: JSON.stringify(updates),
       });
 
       if (!response.ok) {
@@ -351,14 +332,10 @@ export class StripeProductService {
    */
   static async archiveProduct(productId: string): Promise<void> {
     try {
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${this.STRIPE_API_URL}/stripe-manage-product`, {
-        method: 'POST',
+      const headers = this.getAuthHeaders();
+      const response = await fetch(`${this.BACKEND_API_URL}/api/stripe/products/${productId}`, {
+        method: 'DELETE',
         headers,
-        body: JSON.stringify({
-          action: 'archive_product',
-          productId
-        }),
       });
 
       if (!response.ok) {

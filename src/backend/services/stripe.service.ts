@@ -261,6 +261,123 @@ class StripeService {
       throw new Error('Failed to retrieve account information');
     }
   }
+
+  /**
+   * Create a product
+   */
+  public async createProduct(params: {
+    name: string;
+    description?: string;
+    metadata?: Record<string, string>;
+  }): Promise<Stripe.Product> {
+    try {
+      const product = await this.stripe.products.create({
+        name: params.name,
+        description: params.description,
+        metadata: params.metadata || {},
+      });
+
+      console.log('✅ Stripe product created:', product.id);
+      return product;
+    } catch (error) {
+      console.error('Stripe product creation failed:', error);
+      throw new Error('Failed to create Stripe product');
+    }
+  }
+
+  /**
+   * Create a price for a product
+   */
+  public async createPrice(params: {
+    productId: string;
+    amount: number;
+    currency?: string;
+    metadata?: Record<string, string>;
+  }): Promise<Stripe.Price> {
+    try {
+      const price = await this.stripe.prices.create({
+        product: params.productId,
+        unit_amount: Math.round(params.amount * 100), // Convert to cents
+        currency: params.currency || this.config.currency,
+        metadata: params.metadata || {},
+      });
+
+      console.log('✅ Stripe price created:', price.id);
+      return price;
+    } catch (error) {
+      console.error('Stripe price creation failed:', error);
+      throw new Error('Failed to create Stripe price');
+    }
+  }
+
+  /**
+   * Update a product
+   */
+  public async updateProduct(
+    productId: string,
+    params: {
+      name?: string;
+      description?: string;
+      metadata?: Record<string, string>;
+    }
+  ): Promise<Stripe.Product> {
+    try {
+      const product = await this.stripe.products.update(productId, params);
+      console.log('✅ Stripe product updated:', product.id);
+      return product;
+    } catch (error) {
+      console.error('Stripe product update failed:', error);
+      throw new Error('Failed to update Stripe product');
+    }
+  }
+
+  /**
+   * Archive a product (soft delete)
+   */
+  public async archiveProduct(productId: string): Promise<Stripe.Product> {
+    try {
+      const product = await this.stripe.products.update(productId, {
+        active: false,
+      });
+      console.log('✅ Stripe product archived:', product.id);
+      return product;
+    } catch (error) {
+      console.error('Stripe product archival failed:', error);
+      throw new Error('Failed to archive Stripe product');
+    }
+  }
+
+  /**
+   * Get a product by ID
+   */
+  public async getProduct(productId: string): Promise<Stripe.Product> {
+    try {
+      const product = await this.stripe.products.retrieve(productId);
+      return product;
+    } catch (error) {
+      console.error('Stripe product retrieval failed:', error);
+      throw new Error('Failed to retrieve Stripe product');
+    }
+  }
+
+  /**
+   * List all products
+   */
+  public async listProducts(params?: {
+    active?: boolean;
+    limit?: number;
+  }): Promise<Stripe.Product[]> {
+    try {
+      const products = await this.stripe.products.list({
+        active: params?.active,
+        limit: params?.limit || 100,
+      });
+      return products.data;
+    } catch (error) {
+      console.error('Stripe products listing failed:', error);
+      throw new Error('Failed to list Stripe products');
+    }
+  }
 }
 
 // Export singleton instance

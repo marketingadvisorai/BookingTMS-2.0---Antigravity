@@ -64,6 +64,17 @@ export default function VenueGamesManager({
 
   // Map Supabase game to wizard format
   const convertGameToWizardData = (game: any) => {
+    console.log('🔄 VenueGamesManager - Converting game to wizard data:', {
+      gameId: game.id,
+      gameName: game.name,
+      stripe_product_id: game.stripe_product_id,
+      stripe_price_id: game.stripe_price_id,
+      stripe_prices: game.stripe_prices,
+      stripe_checkout_url: game.stripe_checkout_url,
+      stripe_sync_status: game.stripe_sync_status,
+      stripe_last_sync: game.stripe_last_sync
+    });
+    
     const settings = game.settings || {};
     return {
       id: game.id,

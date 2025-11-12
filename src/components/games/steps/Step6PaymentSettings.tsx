@@ -72,6 +72,15 @@ export default function Step6PaymentSettings({
 
   // Sync state with gameData when it changes (important for edit mode)
   useEffect(() => {
+    console.log('🔍 Step6PaymentSettings - gameData received:', {
+      stripeProductId: gameData.stripeProductId,
+      stripePriceId: gameData.stripePriceId,
+      stripePrices: gameData.stripePrices,
+      stripeCheckoutUrl: gameData.stripeCheckoutUrl,
+      stripeSyncStatus: gameData.stripeSyncStatus,
+      stripeLastSync: gameData.stripeLastSync
+    });
+    
     if (gameData.stripeProductId) {
       setManualProductId(gameData.stripeProductId);
     }
@@ -91,6 +100,15 @@ export default function Step6PaymentSettings({
   const hasPrice = gameData.adultPrice && gameData.adultPrice > 0;
   // Checkout is "connected" if we have valid Stripe product and price
   const isCheckoutConnected = !!(gameData.stripeProductId && gameData.stripePriceId && gameData.stripeSyncStatus === 'synced');
+  
+  console.log('🎯 Step6PaymentSettings - Configuration Status:', {
+    isConfigured,
+    hasPrice,
+    isCheckoutConnected,
+    productId: gameData.stripeProductId,
+    priceId: gameData.stripePriceId,
+    syncStatus: gameData.stripeSyncStatus
+  });
 
   /**
    * Create new Stripe product with multiple pricing options

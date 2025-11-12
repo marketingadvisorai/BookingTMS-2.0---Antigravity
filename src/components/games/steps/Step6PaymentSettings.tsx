@@ -1,6 +1,7 @@
 /**
  * Step 6: Payment Settings
  * Stripe integration for game payments using Supabase Edge Functions
+ * Version: 1.1.0 - Auto-detect and refresh connection status
  */
 
 import React, { useState, useEffect } from 'react';

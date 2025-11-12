@@ -223,8 +223,8 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
         stripe_price_id: gameData.stripePriceId || null,
         stripe_sync_status: gameData.stripeSyncStatus || null,
         stripe_last_sync: gameData.stripeLastSync || null,
-        checkout_enabled: gameData.checkoutEnabled || false,
-        checkout_connected_at: gameData.checkoutConnectedAt || null,
+        // Note: checkout_enabled and checkout_connected_at columns don't exist in database
+        // Checkout is automatically enabled when stripe_product_id exists
         settings: {
           category: gameData.category,
           eventType: gameData.eventType,
@@ -1281,7 +1281,7 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
               {config.games && config.games.length > 0 ? (
                 <div className="space-y-4">
                   {config.games
-                    .filter((game: any) => game.checkoutEnabled || game.stripe_product_id || game.stripeProductId)
+                    .filter((game: any) => game.stripe_product_id || game.stripeProductId)
                     .map((game: any) => {
                       const stripeProductId = game.stripe_product_id || game.stripeProductId;
                       const stripePriceId = game.stripe_price_id || game.stripePriceId;
@@ -1385,7 +1385,7 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
                       );
                     })}
                   
-                  {config.games.filter((game: any) => game.checkoutEnabled || game.stripe_product_id || game.stripeProductId).length === 0 && (
+                  {config.games.filter((game: any) => game.stripe_product_id || game.stripeProductId).length === 0 && (
                     <div className="text-center py-8">
                       <p className="text-sm text-gray-500 mb-4">
                         No games have Stripe checkout configured yet.

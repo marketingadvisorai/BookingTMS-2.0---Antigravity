@@ -3358,9 +3358,8 @@ function Step8Review({ gameData }: any) {
     // Payment Settings validation (optional but recommended)
     if (!gameData.stripeProductId || !gameData.stripePriceId) {
       warnings.push('Payment settings not configured - Go to Step 6 to create or link a Stripe product for online payments');
-    } else if (!gameData.checkoutEnabled) {
-      warnings.push('Checkout is disabled - customers cannot book this game online. Enable checkout in Step 6');
     }
+    // Note: Checkout is automatically enabled when Stripe product exists
 
     // Optional but recommended fields
     if (!gameData.coverImage) {

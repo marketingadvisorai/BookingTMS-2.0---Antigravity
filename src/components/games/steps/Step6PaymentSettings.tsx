@@ -116,15 +116,14 @@ export default function Step6PaymentSettings({
 
       console.log('✅ Product created:', result);
 
-      // Update game data with Stripe IDs and auto-enable checkout
+      // Update game data with Stripe IDs
+      // Note: Checkout is automatically enabled when Stripe product exists
       const updatedData = {
         ...gameData,
         stripeProductId: result.productId,
         stripePriceId: result.priceId,
         stripeSyncStatus: 'synced' as const,
         stripeLastSync: new Date().toISOString(),
-        checkoutEnabled: true,
-        checkoutConnectedAt: new Date().toISOString(),
       };
 
       onUpdate(updatedData);
@@ -169,8 +168,6 @@ export default function Step6PaymentSettings({
         stripeCheckoutUrl: checkoutUrl,
         stripeSyncStatus: 'synced' as const,
         stripeLastSync: new Date().toISOString(),
-        checkoutEnabled: true,
-        checkoutConnectedAt: new Date().toISOString(),
       };
 
       onUpdate(updatedData);
@@ -213,8 +210,6 @@ export default function Step6PaymentSettings({
         stripeCheckoutUrl: stripeCheckoutUrl.trim() || undefined, // Store custom checkout URL
         stripeSyncStatus: 'synced' as const,
         stripeLastSync: new Date().toISOString(),
-        checkoutEnabled: true,
-        checkoutConnectedAt: new Date().toISOString(),
       };
 
       console.log('✅ Product linked successfully');
@@ -293,8 +288,6 @@ export default function Step6PaymentSettings({
         stripePriceId: undefined,
         stripeSyncStatus: 'not_synced',
         stripeLastSync: undefined,
-        checkoutEnabled: false,
-        checkoutConnectedAt: undefined,
       };
 
       onUpdate(updatedData);

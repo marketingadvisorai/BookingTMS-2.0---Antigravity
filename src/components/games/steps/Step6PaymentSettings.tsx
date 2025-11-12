@@ -96,10 +96,15 @@ export default function Step6PaymentSettings({
   }, [gameData.stripeProductId, gameData.stripePriceId, gameData.stripeCheckoutUrl, gameData.stripeSyncStatus]);
 
   // Check if payment is already configured
+  // A game is configured if it has BOTH product ID and price ID (regardless of sync status)
   const isConfigured = !!(gameData.stripeProductId && gameData.stripePriceId);
   const hasPrice = gameData.adultPrice && gameData.adultPrice > 0;
-  // Checkout is "connected" if we have valid Stripe product and price
-  const isCheckoutConnected = !!(gameData.stripeProductId && gameData.stripePriceId && gameData.stripeSyncStatus === 'synced');
+  // Checkout is "connected" if we have valid Stripe product and price with synced status
+  const isCheckoutConnected = !!(
+    gameData.stripeProductId && 
+    gameData.stripePriceId && 
+    (gameData.stripeSyncStatus === 'synced' || gameData.stripeSyncStatus === 'pending')
+  );
   
   console.log('🎯 Step6PaymentSettings - Configuration Status:', {
     isConfigured,
@@ -107,7 +112,12 @@ export default function Step6PaymentSettings({
     isCheckoutConnected,
     productId: gameData.stripeProductId,
     priceId: gameData.stripePriceId,
-    syncStatus: gameData.stripeSyncStatus
+    syncStatus: gameData.stripeSyncStatus,
+    rawGameData: {
+      stripeProductId: gameData.stripeProductId,
+      stripePriceId: gameData.stripePriceId,
+      stripeSyncStatus: gameData.stripeSyncStatus
+    }
   });
 
   /**

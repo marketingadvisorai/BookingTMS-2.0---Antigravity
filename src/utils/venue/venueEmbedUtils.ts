@@ -7,23 +7,34 @@ import { Venue } from '../../types/venue';
 import { toast } from 'sonner';
 
 /**
- * Generates embed code snippet for a venue
+ * Generates responsive iframe-based embed code snippet for a venue
+ * Uses the same URL pattern and responsive wrapper approach as EmbedPreview
  */
 export const generateEmbedCode = (venue: Venue): string => {
-  const baseUrl = window.location.origin;
-  return `<!-- Booking Widget for ${venue.name} -->
-<div id="booking-widget-${venue.embedKey}"></div>
-<script>
-  (function() {
-    var script = document.createElement('script');
-    script.src = '${baseUrl}/widget.js';
-    script.setAttribute('data-venue-key', '${venue.embedKey}');
-    script.setAttribute('data-widget-type', 'calendar');
-    script.setAttribute('data-primary-color', '${venue.primaryColor}');
-    script.async = true;
-    document.getElementById('booking-widget-${venue.embedKey}').appendChild(script);
-  })();
-</script>`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const baseUrl = (origin || '').trim().replace(/\/+$/, '');
+
+  const params = new URLSearchParams({
+    widget: 'calendar',
+    color: (venue.primaryColor || '#2563eb').replace('#', ''),
+    key: venue.embedKey,
+    theme: 'light', // final theme is still driven by the widget page; this is just a default
+  });
+
+  const embedUrl = baseUrl ? `${baseUrl}/?${params.toString()}` : `/?${params.toString()}`;
+
+  return `<!-- BookingTMS Booking Widget for ${venue.name} -->
+<!-- Responsive Embed Wrapper -->
+<div style="position: relative; width: 100%; padding-top: 135%; overflow: hidden; border-radius: 8px;">
+  <iframe
+    src="${embedUrl}"
+    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"
+    frameborder="0"
+    allow="payment; camera"
+    allowfullscreen
+    title="${venue.name} Booking Widget"
+  ></iframe>
+</div>`;
 };
 
 /**

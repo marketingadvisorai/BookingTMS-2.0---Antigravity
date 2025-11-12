@@ -61,6 +61,8 @@ export function generateIframeCode(
     height?: string;
     frameBorder?: string;
     style?: string;
+    responsive?: boolean;
+    paddingTop?: string;
   } = {}
 ): string | null {
   const url = generateEmbedUrl(embedKey, widgetId);
@@ -70,10 +72,28 @@ export function generateIframeCode(
     width = '100%',
     height = '800',
     frameBorder = '0',
-    style = 'border: none; border-radius: 8px;'
+    style = 'border: none; border-radius: 8px;',
+    responsive = true,
+    paddingTop = '135%'
   } = options;
 
-  return `<iframe src="${url}" width="${width}" height="${height}" frameborder="${frameBorder}" style="${style}"></iframe>`;
+  if (!responsive) {
+    return `<iframe src="${url}" width="${width}" height="${height}" frameborder="${frameBorder}" style="${style}"></iframe>`;
+  }
+
+  const iframeStyle = `position: absolute; top: 0; left: 0; width: 100%; height: 100%; ${style}`;
+
+  return `<!-- Responsive BookingTMS Widget Wrapper -->
+<div style="position: relative; width: ${width}; padding-top: ${paddingTop}; overflow: hidden; border-radius: 8px; max-width: 100%;">
+  <iframe
+    src="${url}"
+    frameborder="${frameBorder}"
+    style="${iframeStyle}"
+    allow="payment; camera"
+    allowfullscreen
+    title="BookingTMS Widget"
+  ></iframe>
+</div>`;
 }
 
 /**
@@ -89,13 +109,38 @@ export function generateReactCode(
   const url = generateEmbedUrl(embedKey, widgetId);
   if (!url) return null;
 
-  return `<iframe
-  src="${url}"
-  width="100%"
-  height="800"
-  frameBorder="0"
-  style={{ border: 'none', borderRadius: '8px' }}
-/>`;
+  return `import React, { useEffect, useRef } from 'react';
+
+export function BookingTMSWidget() {
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (!event.data || typeof event.data !== 'object') return;
+      if (event.data.type === 'BOOKINGTMS_RESIZE' || event.data.type === 'resize-iframe') {
+        if (iframeRef.current && typeof event.data.height === 'number') {
+          iframeRef.current.style.height = event.data.height + 'px';
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  return (
+    <div style={{ position: 'relative', width: '100%', paddingTop: '135%', overflow: 'hidden', borderRadius: '8px', maxWidth: '100%' }}>
+      <iframe
+        ref={iframeRef}
+        src="${url}"
+        title="BookingTMS Widget"
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none', borderRadius: '8px' }}
+        allow="payment; camera"
+        allowFullScreen
+      />
+    </div>
+  );
+}`;
 }
 
 /**

@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Separator } from '../components/ui/separator';
+import { toast } from 'sonner';
 import { isValidEmbedKey, generateEmbedUrl, generateIframeCode } from '../utils/embedKeyUtils';
 import { CalendarWidget } from '../components/widgets/CalendarWidget';
 import CalendarWidgetSettings from '../components/widgets/CalendarWidgetSettings';
@@ -606,19 +607,21 @@ export default function Venues() {
               </div>
             </div>
           </DialogHeader>
-          <ScrollArea className="flex-1 h-full">
-            <div className="p-4 sm:p-6 pb-20 sm:pb-24 bg-gray-50 dark:bg-[#0a0a0a]">
+          <ScrollArea className="flex-1 h-full overflow-x-hidden">
+            <div className="p-2 sm:p-4 md:p-6 pb-20 sm:pb-24 bg-gray-50 dark:bg-[#0a0a0a] w-full max-w-full">
               {selectedVenue && (
                 selectedVenue.embedKey ? (
-                  <EmbedPreview
-                    widgetId="calendar"
-                    widgetName={selectedVenue.name}
-                    primaryColor={selectedVenue.primaryColor}
-                    embedKey={selectedVenue.embedKey}
-                    widgetConfig={selectedVenue.widgetConfig}
-                  />
+                  <div className="w-full max-w-full overflow-x-hidden">
+                    <EmbedPreview
+                      widgetId="calendar"
+                      widgetName={selectedVenue.name}
+                      primaryColor={selectedVenue.primaryColor}
+                      embedKey={selectedVenue.embedKey}
+                      widgetConfig={selectedVenue.widgetConfig}
+                    />
+                  </div>
                 ) : (
-                  <div className="p-6 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-[#111] text-sm text-gray-600 dark:text-gray-300">
+                  <div className="p-4 sm:p-6 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-[#111] text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                     The embed key for this venue is still being generated. Please refresh in a few seconds and try again.
                   </div>
                 )

@@ -233,6 +233,7 @@ export function Marketing() {
   const [workflowStates, setWorkflowStates] = useState<Record<string, boolean>>({});
   const [showEditTemplateDialog, setShowEditTemplateDialog] = useState(false);
   const [templateToEdit, setTemplateToEdit] = useState<EmailTemplate | null>(null);
+  const [activeTab, setActiveTab] = useState('promotions');
 
   // Load email templates from localStorage
   useEffect(() => {
@@ -327,16 +328,89 @@ export function Marketing() {
     setShowCreateWorkflowDialog(true);
   };
 
+  // Get section info for better UX
+  const getSectionInfo = () => {
+    switch(activeTab) {
+      case 'promotions':
+        return { icon: Percent, title: 'Promotions', description: 'Manage discount codes and special offers', color: 'blue' };
+      case 'gift-cards':
+        return { icon: Gift, title: 'Gift Cards', description: 'Create and track gift card sales', color: 'pink' };
+      case 'reviews':
+        return { icon: Star, title: 'Review Management', description: 'Monitor and respond to customer feedback', color: 'yellow' };
+      case 'email':
+        return { icon: Mail, title: 'Email Campaigns', description: 'Send targeted marketing emails', color: 'purple' };
+      case 'affiliate':
+        return { icon: UserPlus, title: 'Affiliate Program', description: 'Manage affiliate partners and commissions', color: 'green' };
+      default:
+        return { icon: Percent, title: 'Promotions', description: 'Manage discount codes and special offers', color: 'blue' };
+    }
+  };
+
+  const sectionInfo = getSectionInfo();
+  const SectionIcon = sectionInfo.icon;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
       <div>
         <h1 className={`mb-2 ${textClass}`}>Marketing</h1>
         <p className={textMutedClass}>Manage promotions, gift cards, reviews, emails, and affiliates</p>
       </div>
 
-      <Tabs defaultValue="promotions" className="space-y-6">
-        <TabsList className={`w-full justify-start overflow-x-auto flex-wrap h-auto ${isDark ? 'bg-[#161616] border border-[#2a2a2a]' : ''}`}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+        {/* Mobile: Dropdown Navigation */}
+        <div className="sm:hidden">
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className={`w-full h-12 font-medium ${
+              isDark ? 'bg-[#1e1e1e] border-[#2a2a2a]' : 'bg-white border-gray-200'
+            }`}>
+              <SelectValue>
+                <div className="flex items-center gap-2">
+                  {activeTab === 'promotions' && <><Percent className="w-4 h-4 text-blue-600 dark:text-blue-400" /><span>Promotions</span></>}
+                  {activeTab === 'gift-cards' && <><Gift className="w-4 h-4 text-pink-600 dark:text-pink-400" /><span>Gift Cards</span></>}
+                  {activeTab === 'reviews' && <><Star className="w-4 h-4 text-yellow-600 dark:text-yellow-400" /><span>Review Management</span></>}
+                  {activeTab === 'email' && <><Mail className="w-4 h-4 text-purple-600 dark:text-purple-400" /><span>Email Campaigns</span></>}
+                  {activeTab === 'affiliate' && <><UserPlus className="w-4 h-4 text-green-600 dark:text-green-400" /><span>Affiliate Program</span></>}
+                </div>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="promotions">
+                <div className="flex items-center gap-2">
+                  <Percent className="w-4 h-4" />
+                  <span>Promotions</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="gift-cards">
+                <div className="flex items-center gap-2">
+                  <Gift className="w-4 h-4" />
+                  <span>Gift Cards</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="reviews">
+                <div className="flex items-center gap-2">
+                  <Star className="w-4 h-4" />
+                  <span>Review Management</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="email">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  <span>Email Campaigns</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="affiliate">
+                <div className="flex items-center gap-2">
+                  <UserPlus className="w-4 h-4" />
+                  <span>Affiliate Program</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Desktop: Horizontal Tabs */}
+        <TabsList className={`hidden sm:flex w-full justify-start overflow-x-auto h-auto ${isDark ? 'bg-[#161616] border border-[#2a2a2a]' : ''}`}>
           <TabsTrigger value="promotions" className="gap-2">
             <Percent className="w-4 h-4" />
             Promotions
@@ -358,6 +432,31 @@ export function Marketing() {
             Affiliate Program
           </TabsTrigger>
         </TabsList>
+
+        {/* Mobile: Section Header - Shows current section clearly */}
+        <div className={`sm:hidden ${cardBgClass} border ${borderClass} rounded-lg p-4 shadow-sm`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+              sectionInfo.color === 'blue' ? 'bg-blue-100 dark:bg-blue-500/20' :
+              sectionInfo.color === 'pink' ? 'bg-pink-100 dark:bg-pink-500/20' :
+              sectionInfo.color === 'yellow' ? 'bg-yellow-100 dark:bg-yellow-500/20' :
+              sectionInfo.color === 'purple' ? 'bg-purple-100 dark:bg-purple-500/20' :
+              'bg-green-100 dark:bg-green-500/20'
+            }`}>
+              <SectionIcon className={`w-5 h-5 ${
+                sectionInfo.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
+                sectionInfo.color === 'pink' ? 'text-pink-600 dark:text-pink-400' :
+                sectionInfo.color === 'yellow' ? 'text-yellow-600 dark:text-yellow-400' :
+                sectionInfo.color === 'purple' ? 'text-purple-600 dark:text-purple-400' :
+                'text-green-600 dark:text-green-400'
+              }`} />
+            </div>
+            <div className="flex-1">
+              <h2 className={`text-base font-semibold ${textClass}`}>{sectionInfo.title}</h2>
+              <p className={`text-xs ${textMutedClass}`}>{sectionInfo.description}</p>
+            </div>
+          </div>
+        </div>
 
         {/* PROMOTIONS TAB */}
         <TabsContent value="promotions" className="space-y-6">

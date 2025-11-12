@@ -1,59 +1,36 @@
 services:
-  # Backend API Service
+  # Frontend Static Site
   - type: web
-    name: booking-tms-backend-api
-    runtime: node
-    region: oregon
-    plan: free
-    rootDir: src/backend
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    name: bookingtms-frontend
+    runtime: static
+    branch: booking-tms-beta-0.1.9
+    buildCommand: npm install --legacy-peer-deps && npm run build
+    staticPublishPath: ./build
     envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 3001
-      - key: API_BASE_URL
+      - key: NODE_VERSION
+        value: 20.10.0
+      - key: VITE_API_URL
+        value: https://bookingtms-backend-api.onrender.com
+      - key: VITE_SUPABASE_URL
         sync: false
-      - key: SUPABASE_URL
+      - key: VITE_SUPABASE_ANON_KEY
         sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
+      - key: VITE_STRIPE_PUBLISHABLE_KEY
         sync: false
-      - key: STRIPE_SECRET_KEY
-        sync: false
-      - key: STRIPE_PUBLISHABLE_KEY
-        sync: false
-      - key: STRIPE_WEBHOOK_SECRET
-        sync: false
-      - key: SENDGRID_API_KEY
-        sync: false
-      - key: SENDGRID_FROM_EMAIL
-        sync: false
-      - key: SENDGRID_FROM_NAME
-        value: BookingTMS
-      - key: TWILIO_ACCOUNT_SID
-        sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: TWILIO_PHONE_NUMBER
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: OPENAI_ORG_ID
-        sync: false
-      - key: OPENAI_MODEL
-        value: gpt-4-turbo-preview
-      - key: JWT_SECRET
-        generateValue: true
-      - key: ENCRYPTION_KEY
-        generateValue: true
-      - key: ALLOWED_ORIGINS
-        value: https://your-frontend-url.com,http://localhost:5173
-      - key: SESSION_TIMEOUT
-        value: 3600000
-      - key: RATE_LIMIT_WINDOW_MS
-        value: 900000
-      - key: RATE_LIMIT_MAX_REQUESTS
-        value: 100
-    healthCheckPath: /health
-    autoDeploy: true
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-XSS-Protection
+        value: 1; mode=block
+      - path: /build/assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

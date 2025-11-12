@@ -165,23 +165,26 @@ export default function Step6PaymentSettings({
   };
 
   // Check if payment is already configured
+  // Use STATE variables (not gameData prop) for detection - this ensures UI updates when state changes
   // A game is configured if it has BOTH product ID and price ID (regardless of sync status)
-  const isConfigured = !!(gameData.stripeProductId && gameData.stripePriceId);
+  const isConfigured = !!(manualProductId && manualPriceId);
   const hasPrice = gameData.adultPrice && gameData.adultPrice > 0;
   // Checkout is "connected" if we have valid Stripe product and price with synced status
   const isCheckoutConnected = !!(
-    gameData.stripeProductId && 
-    gameData.stripePriceId && 
-    (gameData.stripeSyncStatus === 'synced' || gameData.stripeSyncStatus === 'pending')
+    manualProductId && 
+    manualPriceId && 
+    (syncStatus === 'synced' || syncStatus === 'pending')
   );
   
   console.log('🎯 Step6PaymentSettings - Configuration Status:', {
     isConfigured,
     hasPrice,
     isCheckoutConnected,
-    productId: gameData.stripeProductId,
-    priceId: gameData.stripePriceId,
-    syncStatus: gameData.stripeSyncStatus,
+    productId: manualProductId,
+    priceId: manualPriceId,
+    syncStatus: syncStatus,
+    gameDataProductId: gameData.stripeProductId,
+    gameDataPriceId: gameData.stripePriceId,
     rawGameData: {
       stripeProductId: gameData.stripeProductId,
       stripePriceId: gameData.stripePriceId,
@@ -663,13 +666,13 @@ export default function Step6PaymentSettings({
                   <Label className="text-xs text-gray-500">Product ID</Label>
                   <div className="flex items-center gap-2 mt-1">
                     <code className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded text-sm font-mono">
-                      {gameData.stripeProductId}
+                      {manualProductId}
                     </code>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        navigator.clipboard.writeText(gameData.stripeProductId);
+                        navigator.clipboard.writeText(manualProductId);
                         toast.success('Copied to clipboard');
                       }}
                     >
@@ -678,18 +681,18 @@ export default function Step6PaymentSettings({
                   </div>
                 </div>
 
-                {gameData.stripePriceId && (
+                {manualPriceId && (
                   <div>
                     <Label className="text-xs text-gray-500">Price ID</Label>
                     <div className="flex items-center gap-2 mt-1">
                       <code className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded text-sm font-mono">
-                        {gameData.stripePriceId}
+                        {manualPriceId}
                       </code>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          navigator.clipboard.writeText(gameData.stripePriceId);
+                          navigator.clipboard.writeText(manualPriceId);
                           toast.success('Copied to clipboard');
                         }}
                       >
@@ -761,7 +764,7 @@ export default function Step6PaymentSettings({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(`https://dashboard.stripe.com/products/${gameData.stripeProductId}`, '_blank')}
+                    onClick={() => window.open(`https://dashboard.stripe.com/products/${manualProductId}`, '_blank')}
                   >
                     <ExternalLink className="w-4 h-4 mr-2" />
                     View in Stripe

@@ -36,7 +36,8 @@ import {
   X,
   Info,
   Trash2,
-  Edit
+  Edit,
+  RotateCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StripeProductService } from '../../../lib/stripe/stripeProductService';
@@ -571,7 +572,21 @@ export default function Step6PaymentSettings({
               <CardTitle className="text-base">Payment Status</CardTitle>
               <CardDescription>Current Stripe integration status</CardDescription>
             </div>
-            {getSyncStatusBadge()}
+            <div className="flex items-center gap-2">
+              {isConfigured && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefreshSync}
+                  disabled={syncStatus === 'pending'}
+                  className="gap-2"
+                >
+                  <RotateCw className={`w-4 h-4 ${syncStatus === 'pending' ? 'animate-spin' : ''}`} />
+                  {syncStatus === 'pending' ? 'Checking...' : 'Refresh Status'}
+                </Button>
+              )}
+              {getSyncStatusBadge()}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">

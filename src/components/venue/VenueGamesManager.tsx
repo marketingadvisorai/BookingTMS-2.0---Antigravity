@@ -188,26 +188,30 @@ export default function VenueGamesManager({
     };
 
     try {
+      let result;
       if (editingGame) {
-        await updateGame(editingGame.id, supabaseGameData);
+        result = await updateGame(editingGame.id, supabaseGameData);
         setEditingGame(null);
         toast.success('Game updated successfully!');
       } else {
-        const newGame = await createGame(supabaseGameData);
-        console.log('New game created:', newGame);
-        toast.success('Game created successfully!');
+        result = await createGame(supabaseGameData);
+        console.log('New game created:', result);
       }
 
-      // Close wizard and force refresh
+      // Close wizard first
       setShowAddGameWizard(false);
       
-      // Force a manual refresh after a short delay to ensure DB is updated
-      setTimeout(() => {
-        refreshGames();
-      }, 500);
+      // Force multiple refreshes to ensure the game appears
+      // Sometimes the first refresh happens too quickly
+      refreshGames(); // Immediate
+      setTimeout(() => refreshGames(), 300); // After 300ms
+      setTimeout(() => refreshGames(), 1000); // After 1 second
+      setTimeout(() => refreshGames(), 2000); // After 2 seconds for slow connections
+      
     } catch (error: any) {
       console.error('Error in handleWizardComplete:', error);
       toast.error(error.message || 'Failed to save game');
+      // Don't close wizard on error so user can try again
     }
   };
 

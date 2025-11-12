@@ -174,8 +174,8 @@ export function useGames(venueId?: string) {
       console.log('Game created successfully in database:', data);
       toast.success(stripeProductId ? 'Game created and ready for payments!' : 'Game created successfully!');
       
-      // Force refresh the games list
-      await fetchGames(true); // Pass true to show toast
+      // Force refresh the games list (don't show toast to avoid duplicate messages)
+      await fetchGames(false);
       
       return data;
     } catch (err: any) {

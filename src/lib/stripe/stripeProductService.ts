@@ -49,7 +49,26 @@ interface ProductAndPrice {
 }
 
 export class StripeProductService {
-  private static BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:3001';
+  // Auto-detect backend URL based on environment
+  private static BACKEND_API_URL = (() => {
+    // 1. Check env variable first
+    if (import.meta.env.VITE_BACKEND_API_URL) {
+      return import.meta.env.VITE_BACKEND_API_URL;
+    }
+    
+    // 2. If on Render frontend, use Render backend
+    if (window.location.hostname.includes('onrender.com')) {
+      return 'https://bookingtms-backend-api.onrender.com';
+    }
+    
+    // 3. If on localhost, check common ports
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:3001';
+    }
+    
+    // 4. Default fallback
+    return 'http://localhost:3001';
+  })();
 
   private static getAuthHeaders() {
     return {
@@ -211,17 +230,31 @@ export class StripeProductService {
         description: params.description,
       });
 
-      // Call Backend Stripe API
+      // Call Backend Stripe API with timeout
       const headers = this.getAuthHeaders();
-      const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          name: params.name,
-          description: params.description,
-          metadata: params.metadata || {},
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      let response;
+      try {
+        response = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            name: params.name,
+            description: params.description,
+            metadata: params.metadata || {},
+          }),
+          signal: controller.signal,
+        });
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Backend API request timed out. Please check your connection and try again.');
+        }
+        throw new Error(`Cannot connect to backend API at ${url}. Please check if the backend is running.`);
+      }
+      clearTimeout(timeoutId);
 
       console.log('📡 Response status:', response.status, response.statusText);
       

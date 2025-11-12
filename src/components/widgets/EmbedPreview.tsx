@@ -205,204 +205,96 @@ add_shortcode('bookingtms', 'bookingtms_widget_shortcode');
   };
 
   return (
-    <div className="space-y-3 sm:space-y-4 md:space-y-6 pb-8 w-full max-w-full">
+    <div className="space-y-2.5 sm:space-y-4 md:space-y-6 pb-6 sm:pb-10 w-full max-w-full bg-gradient-to-b from-white via-slate-50/70 to-white dark:from-[#050505] dark:via-[#080808] dark:to-[#050505] rounded-3xl">
       {/* Widget Key Configuration */}
-      <Card className="border-gray-200 dark:border-[#2a2a2a] w-full">
-        <CardHeader className="p-2 sm:p-3 md:p-4">
-          <CardTitle className="text-sm sm:text-base">Widget Configuration</CardTitle>
+      <Card className="w-full rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-white/85 dark:bg-[#0b0b0b]/85 backdrop-blur-sm shadow-lg shadow-slate-900/5">
+        <CardHeader className="p-1 sm:p-3 md:p-4">
+          <CardTitle className="text-[11px] sm:text-base">Widget Configuration</CardTitle>
         </CardHeader>
-        <CardContent className="p-2 sm:p-3 md:p-4 pt-0 space-y-2 sm:space-y-3 md:space-y-4">
-          <div>
-            <Label htmlFor="widget-key" className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Widget Key</Label>
-            <div className="flex flex-col md:flex-row gap-2 mt-1.5">
-              <Input
-                id="widget-key"
-                value={widgetKey}
-                onChange={(e) => setWidgetKey(e.target.value)}
-                placeholder="Enter your widget key"
-                readOnly
-                className="h-10 sm:h-11 text-sm font-mono bg-white dark:bg-[#0a0a0a] border-2 border-gray-300 dark:border-[#3a3a3a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 w-full focus:border-blue-500 dark:focus:border-blue-400"
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                disabled
-                className="h-10 sm:h-11 px-3 text-xs w-auto md:w-[100px] cursor-not-allowed opacity-50 whitespace-nowrap"
-                title="Key generation temporarily disabled. Use the venue's assigned key."
-              >
-                Generate
-              </Button>
+        <CardContent className="p-1 sm:p-3 md:p-4 pt-0 overflow-x-auto">
+          <div className="min-w-[420px] sm:min-w-0 space-y-2 sm:space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="widget-key" className="text-[11px] sm:text-sm font-medium text-gray-700 dark:text-gray-300">Widget Key</Label>
+              <div className="flex flex-col md:flex-row gap-1 sm:gap-1.5">
+                <Input
+                  id="widget-key"
+                  value={widgetKey}
+                  onChange={(e) => setWidgetKey(e.target.value)}
+                  placeholder="Enter your widget key"
+                  readOnly
+                  className="h-7 sm:h-9 text-[11px] sm:text-sm font-mono bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3a3a3a] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 w-full focus:border-blue-500 dark:focus:border-blue-400"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  className="h-7 sm:h-9 px-2 text-[10px] sm:text-xs w-auto md:w-[88px] cursor-not-allowed opacity-60 whitespace-nowrap rounded-full"
+                  title="Key generation temporarily disabled. Use the venue's assigned key."
+                >
+                  Generate
+                </Button>
+              </div>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                Use the widget key provided on the venue record. Generation controls are disabled for now.
+              </p>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-              Use the widget key provided on the venue record. Generation controls are disabled for now.
-            </p>
-          </div>
 
-          <div>
-            <Label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Base URL</Label>
-            <div className="flex flex-col gap-2 mt-1">
+            <div className="space-y-1">
+              <Label className="text-[11px] sm:text-sm text-gray-700 dark:text-gray-300">Base URL</Label>
               <Input
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 placeholder="http://localhost:3002"
-                className="h-9 sm:h-10 text-xs sm:text-sm bg-gray-50 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 w-full"
+                className="h-7 sm:h-9 text-[10px] sm:text-sm bg-gray-50 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 w-full"
               />
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                Use your site origin for testing (e.g., http://localhost:3002).
+              </p>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Use your site origin for testing (e.g., http://localhost:3002).
-            </p>
 
-            <Label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Embed URL</Label>
-            <div className="flex flex-col md:flex-row gap-2 mt-1">
-              <Input
-                value={generateEmbedUrl()}
-                readOnly
-                className="h-9 sm:h-10 text-xs sm:text-sm bg-gray-50 dark:bg-[#0a0a0a] font-mono border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 w-full"
-              />
-              <div className="flex gap-2 w-full md:w-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyUrl}
-                  className="h-9 sm:h-10 flex-1 md:flex-initial flex-shrink-0"
-                >
-                  {copiedUrl ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(generateEmbedUrl(), '_blank')}
-                  className="h-9 sm:h-10 flex-1 md:flex-initial flex-shrink-0"
-                  title="Open in new tab"
-                >
-                  <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
-                </Button>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Generates an absolute URL when Base URL is set; otherwise relative.
-            </p>
-          </div>
-
-          {/* Theme Sync Notice */}
-          <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-2 sm:p-3">
-            <p className="text-xs text-indigo-900 dark:text-indigo-200 font-medium mb-1">
-              🎨 Auto Theme Sync
-            </p>
-            <p className="text-xs text-indigo-700 dark:text-indigo-300">
-              Widget preview automatically matches your admin theme. Currently showing: <strong>{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</strong>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Embed Code Tabs */}
-      <Card className="border-gray-200 dark:border-[#2a2a2a] w-full">
-        <CardHeader className="p-2 sm:p-3 md:p-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-            <CardTitle className="text-base sm:text-lg">Embed Code</CardTitle>
-            <div className="flex gap-2 w-full md:w-auto">
-              <Button
-                variant={embedType === 'iframe' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setEmbedType('iframe')}
-                className="h-9 sm:h-10 text-sm flex-1 md:flex-initial"
-              >
-                <Code className="w-4 h-4 mr-2" />
-                iFrame
-              </Button>
-              <Button
-                variant={embedType === 'script' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setEmbedType('script')}
-                className="h-9 sm:h-10 text-sm flex-1 md:flex-initial"
-              >
-                <Code className="w-4 h-4 mr-2" />
-                Script
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-2 sm:p-3 md:p-6 pt-0">
-          <Tabs defaultValue="html" className="w-full max-w-full">
-            <TabsList className="w-full flex overflow-x-auto gap-2 h-9 sm:h-10 sm:grid sm:grid-cols-3 sm:gap-0">
-              <TabsTrigger value="html" className="text-sm px-3 py-2 min-w-[96px] sm:min-w-0 sm:text-sm">HTML</TabsTrigger>
-              <TabsTrigger value="react" className="text-sm px-3 py-2 min-w-[96px] sm:min-w-0 sm:text-sm">React</TabsTrigger>
-              <TabsTrigger value="wordpress" className="text-sm px-3 py-2 min-w-[96px] sm:min-w-0 sm:text-sm">WordPress</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="html" className="mt-4">
-              <div className="relative">
-                <div className="absolute top-2 right-2 z-10">
+            <div className="space-y-1">
+              <Label className="text-[11px] sm:text-sm text-gray-700 dark:text-gray-300">Embed URL</Label>
+              <div className="flex flex-col md:flex-row gap-1 sm:gap-1.5">
+                <Input
+                  value={generateEmbedUrl()}
+                  readOnly
+                  className="h-7 sm:h-9 text-[10px] sm:text-sm bg-gray-50 dark:bg-[#0a0a0a] font-mono border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 w-full"
+                />
+                <div className="flex gap-1 sm:gap-1.5 w-full md:w-auto">
                   <Button
-                    variant="secondary"
+                    variant="outline"
                     size="sm"
-                    onClick={() => handleCopy(getCode())}
-                    className="h-9 sm:h-10"
+                    onClick={handleCopyUrl}
+                    className="h-7 sm:h-9 text-[10px] sm:text-sm flex-1 md:flex-initial flex-shrink-0 rounded-full"
                   >
-                    {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                    <span className="text-sm">{copied ? 'Copied!' : 'Copy'}</span>
+                    {copiedUrl ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(generateEmbedUrl(), '_blank')}
+                    className="h-7 sm:h-9 text-[10px] sm:text-sm flex-1 md:flex-initial flex-shrink-0 rounded-full"
+                    title="Open in new tab"
+                  >
+                    <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
                   </Button>
                 </div>
-                <div className="bg-gray-900 dark:bg-[#0a0a0a] rounded-lg p-2 sm:p-3 md:p-4 overflow-x-auto border border-gray-700 dark:border-[#2a2a2a] max-w-full">
-                  <pre className="text-xs sm:text-sm text-green-400 dark:text-emerald-400 whitespace-pre-wrap break-words">
-                    <code>{getCode()}</code>
-                  </pre>
-                </div>
               </div>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-3">
-                Copy and paste this HTML code into your website where you want the booking widget to appear.
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                Generates an absolute URL when Base URL is set; otherwise relative.
               </p>
-            </TabsContent>
+            </div>
 
-            <TabsContent value="react" className="mt-4">
-              <div className="relative">
-                <div className="absolute top-2 right-2 z-10">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleCopy(generateReactCode())}
-                    className="h-9 sm:h-10"
-                  >
-                    {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                    <span className="text-sm">{copied ? 'Copied!' : 'Copy'}</span>
-                  </Button>
-                </div>
-                <div className="bg-gray-900 dark:bg-[#0a0a0a] rounded-lg p-2 sm:p-3 md:p-4 overflow-x-auto border border-gray-700 dark:border-[#2a2a2a] max-w-full">
-                  <pre className="text-xs sm:text-sm text-green-400 dark:text-emerald-400 whitespace-pre-wrap break-words">
-                    <code>{generateReactCode()}</code>
-                  </pre>
-                </div>
-              </div>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-3">
-                Import and use this React component in your Next.js, Create React App, or any React application.
+            <div className="rounded-xl border border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-r from-indigo-50/90 via-slate-50/90 to-white/90 dark:from-indigo-950/30 dark:via-indigo-900/20 dark:to-slate-900/30 p-2.5 sm:p-3">
+              <p className="text-xs font-semibold text-indigo-900 dark:text-indigo-200 mb-1 flex items-center gap-1.5">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">🎨</span>
+                Auto Theme Sync
               </p>
-            </TabsContent>
-
-            <TabsContent value="wordpress" className="mt-4">
-              <div className="relative">
-                <div className="absolute top-2 right-2 z-10">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleCopy(generateWordPressCode())}
-                    className="h-9 sm:h-10"
-                  >
-                    {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                    <span className="text-sm">{copied ? 'Copied!' : 'Copy'}</span>
-                  </Button>
-                </div>
-                <div className="bg-gray-900 dark:bg-[#0a0a0a] rounded-lg p-2 sm:p-3 md:p-4 overflow-x-auto border border-gray-700 dark:border-[#2a2a2a] max-w-full">
-                  <pre className="text-xs sm:text-sm text-green-400 dark:text-emerald-400 whitespace-pre-wrap break-words">
-                    <code>{generateWordPressCode()}</code>
-                  </pre>
-                </div>
-              </div>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-3">
-                Add the function to your theme's functions.php, then use the shortcode in any post or page.
+              <p className="text-xs text-indigo-700 dark:text-indigo-300">
+                Widget preview automatically matches your admin theme. Currently showing: <strong>{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</strong>
               </p>
-            </TabsContent>
-          </Tabs>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

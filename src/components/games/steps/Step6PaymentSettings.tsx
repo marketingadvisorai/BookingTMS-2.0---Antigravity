@@ -46,8 +46,6 @@ export default function Step6PaymentSettings({
 }: PaymentSettingsProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [manualProductId, setManualProductId] = useState(gameData.stripeProductId || '');
   const [manualPriceId, setManualPriceId] = useState(gameData.stripePriceId || '');
   const [manualLookupKey, setManualLookupKey] = useState('');
@@ -56,9 +54,10 @@ export default function Step6PaymentSettings({
   const [errorMessage, setErrorMessage] = useState('');
 
   // Check if payment is already configured
-  const isConfigured = gameData.stripeProductId && gameData.stripePriceId;
+  const isConfigured = !!(gameData.stripeProductId && gameData.stripePriceId);
   const hasPrice = gameData.adultPrice && gameData.adultPrice > 0;
-  const isCheckoutConnected = gameData.checkoutEnabled || false;
+  // Checkout is "connected" if we have valid Stripe product and price
+  const isCheckoutConnected = !!(gameData.stripeProductId && gameData.stripePriceId && gameData.stripeSyncStatus === 'synced');
 
   /**
    * Create new Stripe product with multiple pricing options
@@ -280,64 +279,8 @@ export default function Step6PaymentSettings({
     }
   };
 
-  /**
-   * Connect to checkout
-   */
-  const handleConnectCheckout = async () => {
-    if (!isConfigured) {
-      toast.error('Please configure Stripe product first');
-      return;
-    }
-
-    setIsConnecting(true);
-    setErrorMessage('');
-
-    try {
-      toast.loading('Connecting to checkout...', { id: 'checkout-connect' });
-
-      // Simulate connection validation (you can add actual validation here)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const updatedData = {
-        ...gameData,
-        checkoutEnabled: true,
-        checkoutConnectedAt: new Date().toISOString(),
-      };
-
-      onUpdate(updatedData);
-      toast.success('Successfully connected to Stripe Checkout!', { id: 'checkout-connect' });
-    } catch (error: any) {
-      console.error('Error connecting to checkout:', error);
-      setErrorMessage(error.message || 'Failed to connect to checkout');
-      toast.error('Failed to connect to checkout', { id: 'checkout-connect' });
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
-  /**
-   * Disconnect from checkout
-   */
-  const handleDisconnectCheckout = () => {
-    if (confirm('Are you sure you want to disconnect from Stripe Checkout? Customers will not be able to book this game until reconnected.')) {
-      setIsDisconnecting(true);
-      
-      try {
-        const updatedData = {
-          ...gameData,
-          checkoutEnabled: false,
-          checkoutConnectedAt: undefined,
-        };
-
-        onUpdate(updatedData);
-        toast.success('Disconnected from checkout');
-      } catch (error: any) {
-        toast.error('Failed to disconnect');
-      } finally {
-        setIsDisconnecting(false);
-      }
-    }
-  };
+  // Checkout is automatically enabled when valid Stripe product/price IDs exist
+  // No manual connect/disconnect needed
 
   /**
    * Remove payment configuration
@@ -530,78 +473,27 @@ export default function Step6PaymentSettings({
                     {isCheckoutConnected ? (
                       <Badge className="bg-green-500">
                         <Check className="w-3 h-3 mr-1" />
-                        Connected to Checkout
+                        Ready for Checkout
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-gray-500">
-                        Not Connected
+                      <Badge variant="outline" className="text-yellow-600">
+                        <Info className="w-3 h-3 mr-1" />
+                        Sync Required
                       </Badge>
                     )}
                   </div>
-                  {gameData.checkoutConnectedAt && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Connected: {new Date(gameData.checkoutConnectedAt).toLocaleString()}
-                    </p>
-                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    {isCheckoutConnected 
+                      ? 'Customers can book and pay for this game' 
+                      : 'Complete sync to enable checkout'}
+                  </p>
                 </div>
               </div>
 
               <Separator />
 
               <div className="space-y-2">
-                {/* Checkout Connection Button */}
-                <div className="flex gap-2">
-                  {isCheckoutConnected ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled
-                      className="bg-green-50 border-green-200 text-green-700 hover:bg-green-50"
-                    >
-                      <Check className="w-4 h-4 mr-2" />
-                      Connected to Checkout
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={handleConnectCheckout}
-                      disabled={isConnecting}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      {isConnecting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Connecting...
-                        </>
-                      ) : (
-                        <>
-                          <CreditCard className="w-4 h-4 mr-2" />
-                          Connect to Checkout
-                        </>
-                      )}
-                    </Button>
-                  )}
-
-                  {isCheckoutConnected && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleDisconnectCheckout}
-                      disabled={isDisconnecting}
-                      className="text-orange-600 border-orange-200 hover:bg-orange-50"
-                    >
-                      {isDisconnecting ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <X className="w-4 h-4 mr-2" />
-                      )}
-                      Disconnect
-                    </Button>
-                  )}
-                </div>
-
-                {/* Other Action Buttons */}
+                {/* Action Buttons */}
                 <div className="flex gap-2">
                   <Button
                     variant="outline"

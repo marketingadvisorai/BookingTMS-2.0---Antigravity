@@ -117,8 +117,6 @@ export default function VenueGamesManager({
       stripePriceId: game.stripe_price_id || null,
       stripeSyncStatus: game.stripe_sync_status || 'not_synced',
       stripeLastSync: game.stripe_last_sync || null,
-      checkoutEnabled: game.checkout_enabled || false,
-      checkoutConnectedAt: game.checkout_connected_at || null,
     };
   };
 
@@ -151,8 +149,6 @@ export default function VenueGamesManager({
       stripe_price_id: gameData.stripePriceId || null,
       stripe_sync_status: gameData.stripeSyncStatus || null,
       stripe_last_sync: gameData.stripeLastSync || null,
-      checkout_enabled: gameData.checkoutEnabled || false,
-      checkout_connected_at: gameData.checkoutConnectedAt || null,
       settings: {
         tagline: gameData.tagline,
         category: gameData.category,

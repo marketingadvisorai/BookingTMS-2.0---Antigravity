@@ -112,6 +112,13 @@ export default function VenueGamesManager({
       selectedWaiver: settings.selectedWaiver || null,
       cancellationWindow: settings.cancellationWindow || 24,
       specialInstructions: settings.specialInstructions || '',
+      // Stripe payment integration fields
+      stripeProductId: game.stripe_product_id || null,
+      stripePriceId: game.stripe_price_id || null,
+      stripeSyncStatus: game.stripe_sync_status || 'not_synced',
+      stripeLastSync: game.stripe_last_sync || null,
+      checkoutEnabled: game.checkout_enabled || false,
+      checkoutConnectedAt: game.checkout_connected_at || null,
     };
   };
 
@@ -139,6 +146,13 @@ export default function VenueGamesManager({
       success_rate: gameData.successRate || 75,
       image_url: gameData.coverImage || 'https://images.unsplash.com/photo-1569002925653-ed18f55d7292',
       status: 'active' as const,
+      // Stripe payment integration fields
+      stripe_product_id: gameData.stripeProductId || null,
+      stripe_price_id: gameData.stripePriceId || null,
+      stripe_sync_status: gameData.stripeSyncStatus || null,
+      stripe_last_sync: gameData.stripeLastSync || null,
+      checkout_enabled: gameData.checkoutEnabled || false,
+      checkout_connected_at: gameData.checkoutConnectedAt || null,
       settings: {
         tagline: gameData.tagline,
         category: gameData.category,

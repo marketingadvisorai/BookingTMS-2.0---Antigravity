@@ -218,6 +218,13 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
         success_rate: gameData.successRate || 75,
         image_url: gameData.coverImage || 'https://images.unsplash.com/photo-1569002925653-ed18f55d7292?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
         status: 'active' as const,
+        // Stripe payment integration fields
+        stripe_product_id: gameData.stripeProductId || null,
+        stripe_price_id: gameData.stripePriceId || null,
+        stripe_sync_status: gameData.stripeSyncStatus || null,
+        stripe_last_sync: gameData.stripeLastSync || null,
+        checkout_enabled: gameData.checkoutEnabled || false,
+        checkout_connected_at: gameData.checkoutConnectedAt || null,
         settings: {
           category: gameData.category,
           eventType: gameData.eventType,

@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StripeProductService } from '../../../lib/stripe/stripeProductService';
+import { supabase } from '../../../lib/supabase/client';
 
 interface PaymentSettingsProps {
   gameData: any;
@@ -71,6 +72,7 @@ export default function Step6PaymentSettings({
   const [editProductId, setEditProductId] = useState('');
   const [editPriceId, setEditPriceId] = useState('');
   const [editCheckoutUrl, setEditCheckoutUrl] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Sync state with gameData when it changes (important for edit mode)
   useEffect(() => {
@@ -96,6 +98,71 @@ export default function Step6PaymentSettings({
       setSyncStatus(gameData.stripeSyncStatus);
     }
   }, [gameData.stripeProductId, gameData.stripePriceId, gameData.stripeCheckoutUrl, gameData.stripeSyncStatus]);
+
+  /**
+   * Refresh connection status from database
+   * Fetches fresh game data and updates UI
+   */
+  const handleRefreshConnection = async () => {
+    setIsRefreshing(true);
+    try {
+      console.log('🔄 Refreshing Stripe connection from database...');
+      
+      // Fetch fresh game data from Supabase
+      if (gameData.id) {
+        const { data: freshGame, error } = await supabase
+          .from('games')
+          .select('*')
+          .eq('id', gameData.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching game:', error);
+          toast.error('Failed to refresh connection status');
+          return;
+        }
+
+        if (freshGame) {
+          console.log('✅ Fresh game data from database:', {
+            stripe_product_id: (freshGame as any).stripe_product_id,
+            stripe_price_id: (freshGame as any).stripe_price_id,
+            stripe_sync_status: (freshGame as any).stripe_sync_status
+          });
+
+          // Update local state
+          if ((freshGame as any).stripe_product_id) {
+            setManualProductId((freshGame as any).stripe_product_id);
+          }
+          if ((freshGame as any).stripe_price_id) {
+            setManualPriceId((freshGame as any).stripe_price_id);
+          }
+          if ((freshGame as any).stripe_checkout_url) {
+            setStripeCheckoutUrl((freshGame as any).stripe_checkout_url);
+          }
+          if ((freshGame as any).stripe_sync_status) {
+            setSyncStatus((freshGame as any).stripe_sync_status);
+          }
+
+          // Update parent component with fresh data
+          onUpdate({
+            stripeProductId: (freshGame as any).stripe_product_id,
+            stripePriceId: (freshGame as any).stripe_price_id,
+            stripePrices: (freshGame as any).stripe_prices,
+            stripeCheckoutUrl: (freshGame as any).stripe_checkout_url,
+            stripeSyncStatus: (freshGame as any).stripe_sync_status,
+            stripeLastSync: (freshGame as any).stripe_last_sync
+          });
+
+          toast.success('Connection status refreshed');
+        }
+      }
+    } catch (err) {
+      console.error('Error refreshing connection:', err);
+      toast.error('Failed to refresh connection status');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Check if payment is already configured
   // A game is configured if it has BOTH product ID and price ID (regardless of sync status)
@@ -481,18 +548,30 @@ export default function Step6PaymentSettings({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-          <CreditCard className="w-5 h-5" />
-          Payment Settings
-          {isConfigured ? (
-            <Badge className="bg-green-500">
-              <Check className="w-3 h-3 mr-1" />
-              {isCheckoutConnected ? 'Connected & Active' : 'Connected'}
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-xs">Optional</Badge>
-          )}
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <CreditCard className="w-5 h-5" />
+            Payment Settings
+            {isConfigured ? (
+              <Badge className="bg-green-500">
+                <Check className="w-3 h-3 mr-1" />
+                {isCheckoutConnected ? 'Connected & Active' : 'Connected'}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-xs">Optional</Badge>
+            )}
+          </h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefreshConnection}
+            disabled={isRefreshing}
+            className="gap-2"
+          >
+            <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+        </div>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
           {isConfigured 
             ? 'Stripe integration active - Update prices or view product details below'
@@ -573,21 +652,7 @@ export default function Step6PaymentSettings({
               <CardTitle className="text-base">Payment Status</CardTitle>
               <CardDescription>Current Stripe integration status</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
-              {isConfigured && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRefreshSync}
-                  disabled={syncStatus === 'pending'}
-                  className="gap-2"
-                >
-                  <RotateCw className={`w-4 h-4 ${syncStatus === 'pending' ? 'animate-spin' : ''}`} />
-                  {syncStatus === 'pending' ? 'Checking...' : 'Refresh Status'}
-                </Button>
-              )}
-              {getSyncStatusBadge()}
-            </div>
+            {getSyncStatusBadge()}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">

@@ -1275,70 +1275,70 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
         {/* Advanced Settings */}
         <TabsContent value="advanced" className="space-y-6 pb-24">
           {/* Payment Settings Management Button */}
-          <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-blue-600" />
+          <Card className="border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
+            <CardHeader className="px-4 py-3 sm:px-6 sm:py-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex-1">
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                    <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
                     Payment Configuration Manager
                   </CardTitle>
-                  <CardDescription className="mt-1">
+                  <CardDescription className="mt-1 text-sm sm:text-base">
                     Manage Stripe payment settings for all games in this widget
                   </CardDescription>
                 </div>
                 <Button
                   onClick={() => setShowPaymentSettingsModal(true)}
-                  className="bg-blue-600 hover:bg-blue-700 gap-2"
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 dark:bg-[#4f46e5] dark:hover:bg-[#4338ca] gap-2"
                 >
                   <Settings className="w-4 h-4" />
-                  Payment Settings
+                  <span className="text-sm sm:text-base">Payment Settings</span>
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-lg font-bold text-blue-600">{config.games?.length || 0}</span>
+            <CardContent className="px-4 py-4 sm:px-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
+                <div className="flex items-center gap-3 p-3 sm:p-4 bg-white dark:bg-[#1e1e1e] rounded-lg border border-gray-200 dark:border-[#2a2a2a] transition-colors hover:border-blue-300 dark:hover:border-blue-700">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400">{config.games?.length || 0}</span>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">Total Games</p>
-                    <p className="text-xs text-muted-foreground">In this widget</p>
+                  <div className="min-w-0">
+                    <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">Total Games</p>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-[#737373]">In this widget</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <span className="text-lg font-bold text-green-600">
+                <div className="flex items-center gap-3 p-3 sm:p-4 bg-white dark:bg-[#1e1e1e] rounded-lg border border-gray-200 dark:border-[#2a2a2a] transition-colors hover:border-green-300 dark:hover:border-green-700">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg sm:text-xl font-bold text-green-600 dark:text-green-400">
                       {config.games?.filter((g: any) => g.stripe_product_id || g.stripeProductId).length || 0}
                     </span>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">Configured</p>
-                    <p className="text-xs text-muted-foreground">With Stripe</p>
+                  <div className="min-w-0">
+                    <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">Configured</p>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-[#737373]">With Stripe</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                    <span className="text-lg font-bold text-amber-600">
+                <div className="flex items-center gap-3 p-3 sm:p-4 bg-white dark:bg-[#1e1e1e] rounded-lg border border-gray-200 dark:border-[#2a2a2a] transition-colors hover:border-amber-300 dark:hover:border-amber-700">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg sm:text-xl font-bold text-amber-600 dark:text-amber-400">
                       {(config.games?.length || 0) - (config.games?.filter((g: any) => g.stripe_product_id || g.stripeProductId).length || 0)}
                     </span>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">Pending</p>
-                    <p className="text-xs text-muted-foreground">Need setup</p>
+                  <div className="min-w-0">
+                    <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">Pending</p>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-[#737373]">Need setup</p>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Settings for Widget</CardTitle>
-              <CardDescription>Games with Stripe checkout configured for this widget</CardDescription>
+          <Card className="border-gray-200 dark:border-[#2a2a2a]">
+            <CardHeader className="px-4 py-3 sm:px-6 sm:py-4">
+              <CardTitle className="text-lg sm:text-xl text-gray-900 dark:text-white">Payment Settings for Widget</CardTitle>
+              <CardDescription className="text-sm sm:text-base">Games with Stripe checkout configured for this widget</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 py-4 sm:px-6">
               {config.games && config.games.length > 0 ? (
                 <div className="space-y-4">
                   {config.games
@@ -1600,35 +1600,42 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Advanced Settings</CardTitle>
-              <CardDescription>Configure cancellation policies and other advanced options</CardDescription>
+          <Card className="border-gray-200 dark:border-[#2a2a2a]">
+            <CardHeader className="px-4 py-3 sm:px-6 sm:py-4">
+              <CardTitle className="text-lg sm:text-xl text-gray-900 dark:text-white">Advanced Settings</CardTitle>
+              <CardDescription className="text-sm sm:text-base">Configure cancellation policies and other advanced options</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="px-4 py-4 sm:px-6 space-y-4 sm:space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="cancellation-policy">Cancellation Policy</Label>
+                <Label htmlFor="cancellation-policy" className="text-sm font-medium text-gray-900 dark:text-white">Cancellation Policy</Label>
                 <Textarea
                   id="cancellation-policy"
                   value={config.cancellationPolicy}
                   onChange={(e) => handleGeneralSettingChange('cancellationPolicy', e.target.value)}
                   rows={6}
+                  className="resize-none bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-white"
                 />
               </div>
             </CardContent>
           </Card>
-          <Card className="mt-6">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Additional Questions</CardTitle>
-                <CardDescription>Add custom questions to your booking form</CardDescription>
+          <Card className="border-gray-200 dark:border-[#2a2a2a]">
+            <CardHeader className="px-4 py-3 sm:px-6 sm:py-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex-1">
+                  <CardTitle className="text-lg sm:text-xl text-gray-900 dark:text-white">Additional Questions</CardTitle>
+                  <CardDescription className="text-sm sm:text-base">Add custom questions to your booking form</CardDescription>
+                </div>
+                <Button 
+                  onClick={handleAddQuestion} 
+                  size="sm" 
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-[#4f46e5] dark:hover:bg-[#4338ca]"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Question</span>
+                </Button>
               </div>
-              <Button onClick={handleAddQuestion} size="sm" className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                Add Question
-              </Button>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="px-4 py-4 sm:px-6 space-y-6">
               {(config.additionalQuestions || []).map((q: any, index: number) => (
                 <div key={q.id} className="space-y-4 border-b pb-4 mb-4">
                   <div className="flex items-center justify-between">

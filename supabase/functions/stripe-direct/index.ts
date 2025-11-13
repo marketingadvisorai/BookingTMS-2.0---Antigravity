@@ -328,6 +328,7 @@ async function updateProductMetadata(params: any) {
 
 /**
  * Verify product connection and set metadata/lookup_key if needed
+ * Additionally validates venue association if venueId is provided.
  */
 async function verifyProductConnection(params: any) {
   console.log('🔍 Verifying product connection:', params.productId);
@@ -339,6 +340,7 @@ async function verifyProductConnection(params: any) {
   let updated = false;
   let metadataUpdated = false;
   let lookupKeySet = false;
+  let venueMatch = true;
 
   // Check if game_id metadata is missing or mismatched
   if (!product.metadata?.game_id || product.metadata.game_id !== params.gameId) {
@@ -351,6 +353,26 @@ async function verifyProductConnection(params: any) {
     });
     metadataUpdated = true;
     updated = true;
+  }
+
+  // Validate or set venue_id metadata if venueId is provided
+  if (params.venueId) {
+    const currentVenueId = product.metadata?.venue_id;
+    if (!currentVenueId) {
+      console.log('🔧 Setting venue_id metadata');
+      await stripe.products.update(params.productId, {
+        metadata: {
+          ...product.metadata,
+          venue_id: params.venueId,
+        },
+      });
+      metadataUpdated = true;
+      updated = true;
+    } else if (currentVenueId !== params.venueId) {
+      console.log('⚠️ Venue mismatch detected. Product venue_id does not match provided venueId.');
+      // Do not overwrite if different; report mismatch to client
+      venueMatch = false;
+    }
   }
 
   // Get prices for this product
@@ -390,6 +412,7 @@ async function verifyProductConnection(params: any) {
     updated,
     metadataUpdated,
     lookupKeySet,
+    venueMatch,
     metadata: product.metadata,
   };
 }

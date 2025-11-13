@@ -74,6 +74,7 @@ export default function Step6PaymentSettings({
   const [editPriceId, setEditPriceId] = useState('');
   const [editCheckoutUrl, setEditCheckoutUrl] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [venueMatches, setVenueMatches] = useState(true);
 
   // Sync state with gameData when it changes (important for edit mode)
   useEffect(() => {
@@ -139,6 +140,7 @@ export default function Step6PaymentSettings({
               const verifyResult = await StripeDirectApi.verifyProductConnection({
                 productId: (freshGame as any).stripe_product_id,
                 gameId: gameData.id,
+                venueId: (gameData as any).venueId || (freshGame as any).venue_id,
               });
 
               if (verifyResult.updated) {
@@ -146,6 +148,17 @@ export default function Step6PaymentSettings({
                   metadataUpdated: verifyResult.metadataUpdated,
                   lookupKeySet: verifyResult.lookupKeySet,
                 });
+              }
+
+              // Venue matching validation
+              if (verifyResult.venueMatch === false) {
+                setVenueMatches(false);
+                setSyncStatus('error');
+                const mismatchMsg = 'Stripe product belongs to a different venue. Please link a product for this venue.';
+                setErrorMessage(mismatchMsg);
+                toast.warning(mismatchMsg);
+              } else {
+                setVenueMatches(true);
               }
             } catch (verifyErr) {
               console.warn('⚠️ Could not verify Stripe metadata (non-critical):', verifyErr);
@@ -191,7 +204,7 @@ export default function Step6PaymentSettings({
   // Check if payment is already configured
   // Use STATE variables (not gameData prop) for detection - this ensures UI updates when state changes
   // A game is configured if it has at least a product ID (price ID is optional)
-  const isConfigured = !!manualProductId;
+  const isConfigured = !!manualProductId && venueMatches;
   const hasPrice = gameData.adultPrice && gameData.adultPrice > 0;
   // Checkout is "connected" if we have valid Stripe product and price with synced status
   const isCheckoutConnected = !!(

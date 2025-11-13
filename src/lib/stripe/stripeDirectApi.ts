@@ -330,6 +330,7 @@ export class StripeDirectApi {
   static async verifyProductConnection(params: {
     productId: string;
     gameId: string;
+    venueId?: string;
   }): Promise<{
     productId: string;
     gameId: string;
@@ -337,6 +338,7 @@ export class StripeDirectApi {
     updated: boolean;
     metadataUpdated: boolean;
     lookupKeySet: boolean;
+    venueMatch?: boolean;
     metadata: Record<string, string>;
   }> {
     try {

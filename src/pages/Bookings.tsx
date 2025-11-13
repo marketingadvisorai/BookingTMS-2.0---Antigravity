@@ -107,6 +107,8 @@ interface AddBookingFormValues {
   paymentMethod: string;
   paymentStatus: string;
   depositAmount: number;
+  couponCode: string;
+  discountPercentage: number;
 }
 
 interface GameOption {
@@ -2197,6 +2199,8 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings, gamesData, v
     paymentMethod: 'credit-card',
     paymentStatus: 'pending',
     depositAmount: 0,
+    couponCode: '',
+    discountPercentage: 0,
   });
 
   // Validation & helpers
@@ -2284,6 +2288,8 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings, gamesData, v
           paymentMethod: 'credit-card',
           paymentStatus: 'pending',
           depositAmount: 0,
+          couponCode: '',
+          discountPercentage: 0,
         });
       } catch (error) {
         // errors handled by onCreate (toast), keep dialog open
@@ -2300,8 +2306,10 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings, gamesData, v
   const totalAmount = useMemo(() => {
     const adultPrice = selectedGame?.price ?? 30;
     const childPrice = selectedGame?.childPrice ?? Math.max((selectedGame?.price ?? 30) * 0.7, 0);
-    return (formData.adults * adultPrice) + (formData.children * childPrice);
-  }, [formData.adults, formData.children, selectedGame]);
+    const subtotal = (formData.adults * adultPrice) + (formData.children * childPrice);
+    const discountAmount = (subtotal * formData.discountPercentage) / 100;
+    return subtotal - discountAmount;
+  }, [formData.adults, formData.children, selectedGame, formData.discountPercentage]);
 
   const estimatedEndTime = useMemo(() => {
     if (!selectedGame || !formData.time) return '';
@@ -2571,7 +2579,19 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings, gamesData, v
                     <span className="text-gray-900">{formData.adults} adults, {formData.children} children</span>
                   </div>
                   <Separator className="my-2" />
-                  <div className="flex justify-between">
+                  {formData.discountPercentage > 0 && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Subtotal:</span>
+                        <span className="text-gray-900">{formatCurrency((formData.adults * (selectedGame?.price ?? 30)) + (formData.children * (selectedGame?.childPrice ?? Math.max((selectedGame?.price ?? 30) * 0.7, 0))))}</span>
+                      </div>
+                      <div className="flex justify-between text-green-600">
+                        <span>Discount ({formData.discountPercentage}%):</span>
+                        <span>-{formatCurrency(((formData.adults * (selectedGame?.price ?? 30)) + (formData.children * (selectedGame?.childPrice ?? Math.max((selectedGame?.price ?? 30) * 0.7, 0)))) * formData.discountPercentage / 100)}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="flex justify-between font-semibold">
                     <span className="text-gray-900">Total Amount:</span>
                     <span className="text-gray-900">{formatCurrency(totalAmount)}</span>
                   </div>
@@ -2607,6 +2627,40 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings, gamesData, v
                       <SelectItem value="refunded">Refunded</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="couponCode" className="text-sm">Coupon Code (Optional)</Label>
+                  <Input
+                    id="couponCode"
+                    type="text"
+                    value={formData.couponCode}
+                    onChange={(e) => setFormData({ ...formData, couponCode: e.target.value.toUpperCase() })}
+                    placeholder="SAVE20"
+                    className="mt-1 h-11 uppercase"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Enter promotional code if available</p>
+                </div>
+
+                <div>
+                  <Label htmlFor="discountPercentage" className="text-sm">Discount Percentage</Label>
+                  <Input
+                    id="discountPercentage"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={formData.discountPercentage}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      setFormData({ ...formData, discountPercentage: Math.min(Math.max(value, 0), 100) });
+                    }}
+                    placeholder="0"
+                    className="mt-1 h-11"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Enter discount percentage (0-100%)</p>
                 </div>
               </div>
 

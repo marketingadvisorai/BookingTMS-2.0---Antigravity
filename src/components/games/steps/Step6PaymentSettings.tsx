@@ -104,15 +104,15 @@ export default function Step6PaymentSettings({
   }, [gameData.stripeProductId, gameData.stripePriceId, gameData.stripeCheckoutUrl, gameData.stripeSyncStatus]);
 
   /**
-   * Check connection status from database
-   * Fetches fresh game data from Supabase and updates UI
-   * Shows connected UI if product_id exists (even without price_id)
-   * Verifies and backfills Stripe product metadata if needed
+   * Check connection status from database and widget settings
+   * Fetches fresh game data from Supabase and cross-references with widget configuration
+   * Shows connected UI if product_id exists in database or widget settings
+   * Provides enhanced feedback about where the configuration was found
    */
   const handleRefreshConnection = async () => {
     setIsRefreshing(true);
     try {
-      console.log('🔍 Checking Stripe connection from database...');
+      console.log('🔍 Checking Stripe connection from database and widget settings...');
       
       // Fetch fresh game data from Supabase
       if (gameData.id) {
@@ -129,32 +129,93 @@ export default function Step6PaymentSettings({
         }
 
         if (freshGame) {
+          const stripeProductId = (freshGame as any).stripe_product_id;
+          const stripePriceId = (freshGame as any).stripe_price_id;
+          const venueId = (freshGame as any).venue_id;
+
           console.log('✅ Fresh game data from database:', {
-            stripe_product_id: (freshGame as any).stripe_product_id,
-            stripe_price_id: (freshGame as any).stripe_price_id,
+            stripe_product_id: stripeProductId,
+            stripe_price_id: stripePriceId,
             stripe_sync_status: (freshGame as any).stripe_sync_status,
-            venue_id: (freshGame as any).venue_id
+            venue_id: venueId
           });
 
-          // SIMPLIFIED: Just check if product exists in database
-          // Skip Stripe API verification to avoid auth issues
-          const hasStripeProduct = !!(freshGame as any).stripe_product_id;
+          // Check if product exists in database
+          const hasStripeProduct = !!stripeProductId;
+          
+          // ENHANCED: Cross-reference with widget settings
+          let foundInWidget = false;
+          let widgetCheckoutUrl = null;
+          
+          if (venueId && stripeProductId) {
+            try {
+              // Fetch venue widget configuration
+              const { data: venue, error: venueError } = await supabase
+                .from('venues')
+                .select('widget_config')
+                .eq('id', venueId)
+                .single();
+
+              if (!venueError && venue?.widget_config) {
+                const widgetConfig = venue.widget_config as any;
+                const widgetGames = widgetConfig.games || [];
+                
+                // Find this game in widget settings
+                const widgetGame = widgetGames.find((g: any) => 
+                  (g.stripe_product_id === stripeProductId || g.stripeProductId === stripeProductId) ||
+                  g.id === gameData.id
+                );
+
+                if (widgetGame) {
+                  const widgetProductId = widgetGame.stripe_product_id || widgetGame.stripeProductId;
+                  if (widgetProductId === stripeProductId) {
+                    foundInWidget = true;
+                    widgetCheckoutUrl = widgetGame.stripe_checkout_url || widgetGame.stripeCheckoutUrl;
+                    console.log('✅ Product ID found in widget settings!', {
+                      productId: widgetProductId,
+                      priceId: widgetGame.stripe_price_id || widgetGame.stripePriceId,
+                      checkoutUrl: widgetCheckoutUrl
+                    });
+                  }
+                }
+              }
+            } catch (widgetErr) {
+              console.warn('Could not check widget settings:', widgetErr);
+              // Non-critical, continue with database check
+            }
+          }
           
           if (hasStripeProduct) {
             console.log('✅ Stripe product found in database');
-            setVenueMatches(true); // Assume venue matches if product exists
+            setVenueMatches(true);
             setSyncStatus('synced');
             setErrorMessage('');
+            
+            // Show enhanced success message
+            if (foundInWidget) {
+              toast.success('✅ Stripe Connected - Found in database and widget settings!', {
+                description: 'Your payment configuration is active across all systems',
+                duration: 5000,
+              });
+            } else {
+              toast.success('✅ Stripe Connected - Product found in database', {
+                description: 'Configure widget settings to enable checkout on your booking page',
+                duration: 5000,
+              });
+            }
           } else {
             console.log('ℹ️ No Stripe product configured');
             setVenueMatches(false);
             setSyncStatus('not_synced');
+            toast.info('No Stripe product configured yet', {
+              description: 'Create or link a Stripe product to enable payments',
+            });
           }
 
           // Update local state with fresh data from database
-          setManualProductId((freshGame as any).stripe_product_id || '');
-          setManualPriceId((freshGame as any).stripe_price_id || '');
-          setStripeCheckoutUrl((freshGame as any).stripe_checkout_url || '');
+          setManualProductId(stripeProductId || '');
+          setManualPriceId(stripePriceId || '');
+          setStripeCheckoutUrl(widgetCheckoutUrl || (freshGame as any).stripe_checkout_url || '');
           
           if ((freshGame as any).stripe_sync_status) {
             setSyncStatus((freshGame as any).stripe_sync_status);
@@ -162,19 +223,14 @@ export default function Step6PaymentSettings({
 
           // Update parent component with fresh data
           onUpdate({
-            stripeProductId: (freshGame as any).stripe_product_id,
-            stripePriceId: (freshGame as any).stripe_price_id,
+            stripeProductId: stripeProductId,
+            stripePriceId: stripePriceId,
             stripePrices: (freshGame as any).stripe_prices,
-            stripeCheckoutUrl: (freshGame as any).stripe_checkout_url,
-            stripeSyncStatus: (freshGame as any).stripe_sync_status || 'synced',
-            stripeLastSync: new Date().toISOString()
+            stripeCheckoutUrl: widgetCheckoutUrl || (freshGame as any).stripe_checkout_url,
+            stripeSyncStatus: (freshGame as any).stripe_sync_status || (hasStripeProduct ? 'synced' : 'not_synced'),
+            stripeLastSync: new Date().toISOString(),
+            foundInWidget: foundInWidget, // Add flag for UI feedback
           });
-
-          if (hasStripeProduct) {
-            toast.success('✅ Stripe Connected - Product found in database');
-          } else {
-            toast.info('No Stripe product configured yet');
-          }
         }
       }
     } catch (err) {
@@ -634,14 +690,21 @@ export default function Step6PaymentSettings({
 
       {/* Connection Status Summary - For Already Configured Games */}
       {isConfigured && (
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                 <Check className="w-6 h-6 text-green-600" />
               </div>
               <div className="flex-1">
-                <h4 className="text-green-900 font-semibold mb-1">Stripe Connected</h4>
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="text-green-900 font-semibold">Stripe Connected</h4>
+                  {(gameData as any).foundInWidget && (
+                    <Badge className="bg-emerald-600 text-white text-xs">
+                      ✓ Active in Widget
+                    </Badge>
+                  )}
+                </div>
                 <div className="space-y-1 text-sm text-green-800">
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4" />
@@ -651,6 +714,12 @@ export default function Step6PaymentSettings({
                     <Check className="w-4 h-4" />
                     <span>Price configured ({gameData.adultPrice ? `$${gameData.adultPrice.toFixed(2)}` : 'N/A'})</span>
                   </div>
+                  {(gameData as any).foundInWidget && (
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4" />
+                      <span className="font-semibold">Found in widget settings - Checkout enabled</span>
+                    </div>
+                  )}
                   {isCheckoutConnected ? (
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4" />

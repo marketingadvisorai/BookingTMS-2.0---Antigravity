@@ -58,6 +58,7 @@ import CustomSettingsPanel from './CustomSettingsPanel';
 import { Game, GameInput } from '../../services/DataSyncService';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../ui/dialog';
 import { useGames } from '../../hooks/useGames';
+import { WidgetPaymentSettingsModal } from './WidgetPaymentSettingsModal';
 
 interface EmbedContext {
   embedKey?: string;
@@ -89,6 +90,7 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
   const [showGameWizard, setShowGameWizard] = useState(false);
   const [editingGame, setEditingGame] = useState<any>(null);
   const [duplicatingGameId, setDuplicatingGameId] = useState<string | null>(null);
+  const [showPaymentSettingsModal, setShowPaymentSettingsModal] = useState(false);
   const { games: supabaseGames, createGame, updateGame: updateSupabaseGame, deleteGame: deleteSupabaseGame, loading: gamesLoading } = useGames(embedContext?.venueId);
 
   const mapSupabaseGameToWidgetGame = (game: any) => {
@@ -1272,6 +1274,65 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
 
         {/* Advanced Settings */}
         <TabsContent value="advanced" className="space-y-6 pb-24">
+          {/* Payment Settings Management Button */}
+          <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-blue-600" />
+                    Payment Configuration Manager
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    Manage Stripe payment settings for all games in this widget
+                  </CardDescription>
+                </div>
+                <Button
+                  onClick={() => setShowPaymentSettingsModal(true)}
+                  className="bg-blue-600 hover:bg-blue-700 gap-2"
+                >
+                  <Settings className="w-4 h-4" />
+                  Payment Settings
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <span className="text-lg font-bold text-blue-600">{config.games?.length || 0}</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Total Games</p>
+                    <p className="text-xs text-muted-foreground">In this widget</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                    <span className="text-lg font-bold text-green-600">
+                      {config.games?.filter((g: any) => g.stripe_product_id || g.stripeProductId).length || 0}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Configured</p>
+                    <p className="text-xs text-muted-foreground">With Stripe</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                    <span className="text-lg font-bold text-amber-600">
+                      {(config.games?.length || 0) - (config.games?.filter((g: any) => g.stripe_product_id || g.stripeProductId).length || 0)}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Pending</p>
+                    <p className="text-xs text-muted-foreground">Need setup</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Payment Settings for Widget</CardTitle>
@@ -1641,6 +1702,20 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
           />
         </DialogContent>
       </Dialog>
+
+      {/* Payment Settings Modal */}
+      <WidgetPaymentSettingsModal
+        isOpen={showPaymentSettingsModal}
+        onClose={() => setShowPaymentSettingsModal(false)}
+        games={config.games || []}
+        venueId={embedContext?.venueId || ''}
+        onUpdate={(updatedGames) => {
+          onConfigChange({
+            ...config,
+            games: updatedGames,
+          });
+        }}
+      />
     </div>
   );
 }

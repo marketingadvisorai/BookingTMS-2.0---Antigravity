@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StripeProductService } from '../../../lib/stripe/stripeProductService';
+import { StripeDirectApi } from '../../../lib/stripe/stripeDirectApi';
 import { supabase } from '../../../lib/supabase/client';
 
 interface PaymentSettingsProps {
@@ -103,6 +104,7 @@ export default function Step6PaymentSettings({
    * Check connection status from database
    * Fetches fresh game data from Supabase and updates UI
    * Shows connected UI if product_id exists (even without price_id)
+   * Verifies and backfills Stripe product metadata if needed
    */
   const handleRefreshConnection = async () => {
     setIsRefreshing(true);
@@ -129,6 +131,27 @@ export default function Step6PaymentSettings({
             stripe_price_id: (freshGame as any).stripe_price_id,
             stripe_sync_status: (freshGame as any).stripe_sync_status
           });
+
+          // If product exists, verify and backfill metadata on Stripe
+          if ((freshGame as any).stripe_product_id) {
+            try {
+              console.log('🔍 Verifying Stripe product metadata and lookup_key...');
+              const verifyResult = await StripeDirectApi.verifyProductConnection({
+                productId: (freshGame as any).stripe_product_id,
+                gameId: gameData.id,
+              });
+
+              if (verifyResult.updated) {
+                console.log('✅ Stripe product metadata verified/updated:', {
+                  metadataUpdated: verifyResult.metadataUpdated,
+                  lookupKeySet: verifyResult.lookupKeySet,
+                });
+              }
+            } catch (verifyErr) {
+              console.warn('⚠️ Could not verify Stripe metadata (non-critical):', verifyErr);
+              // Don't fail the whole operation if verification fails
+            }
+          }
 
           // Update local state
           if ((freshGame as any).stripe_product_id) {
@@ -240,6 +263,7 @@ export default function Step6PaymentSettings({
         childPrice: gameData.childPrice > 0 ? gameData.childPrice : undefined,
         customCapacityFields: customCapacityFields.length > 0 ? customCapacityFields : undefined,
         metadata: {
+          game_id: gameData.id || '', // Track which game this product belongs to
           duration: gameData.duration?.toString() || '60',
           category: gameData.category || '',
           difficulty: gameData.difficulty?.toString() || '3',

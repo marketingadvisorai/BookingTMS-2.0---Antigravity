@@ -323,6 +323,34 @@ export class StripeDirectApi {
   static isValidPriceId(id: string): boolean {
     return id.startsWith('price_');
   }
+
+  /**
+   * Verify product connection and backfill metadata/lookup_key
+   */
+  static async verifyProductConnection(params: {
+    productId: string;
+    gameId: string;
+  }): Promise<{
+    productId: string;
+    gameId: string;
+    verified: boolean;
+    updated: boolean;
+    metadataUpdated: boolean;
+    lookupKeySet: boolean;
+    metadata: Record<string, string>;
+  }> {
+    try {
+      console.log('🔍 Verifying product connection...');
+
+      const result = await this.callEdgeFunction('verify_product_connection', params);
+
+      console.log('✅ Product connection verified:', result);
+      return result;
+    } catch (error: any) {
+      console.error('❌ Error verifying product connection:', error);
+      throw error;
+    }
+  }
 }
 
 export default StripeDirectApi;

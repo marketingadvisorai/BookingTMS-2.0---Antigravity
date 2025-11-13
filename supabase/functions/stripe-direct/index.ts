@@ -55,6 +55,12 @@ serve(async (req) => {
       case 'create_checkout_session':
         result = await createCheckoutSession(params);
         break;
+      case 'update_product_metadata':
+        result = await updateProductMetadata(params);
+        break;
+      case 'verify_product_connection':
+        result = await verifyProductConnection(params);
+        break;
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -83,15 +89,23 @@ serve(async (req) => {
 async function createProductWithPricing(params: any) {
   console.log('🎨 Creating product:', params.name);
 
+  // Add game_id to metadata if provided
+  const metadata = {
+    ...(params.metadata || {}),
+  };
+  if (params.gameId) {
+    metadata.game_id = params.gameId;
+  }
+
   // Create product
   const product = await stripe.products.create({
     name: params.name,
     description: params.description,
     images: params.imageUrl ? [params.imageUrl] : [],
-    metadata: params.metadata || {},
+    metadata,
   });
 
-  console.log('✅ Product created:', product.id);
+  console.log('✅ Product created:', product.id, 'with game_id:', params.gameId);
 
   // Create prices for each pricing option
   const prices = [];
@@ -212,6 +226,17 @@ async function linkExistingProduct(params: any) {
   const product = await stripe.products.retrieve(params.productId);
   console.log('✅ Product found:', product.name);
 
+  // Set game_id metadata if provided and not already set
+  if (params.gameId && (!product.metadata?.game_id || product.metadata.game_id !== params.gameId)) {
+    console.log('🔧 Setting game_id metadata on existing product');
+    await stripe.products.update(params.productId, {
+      metadata: {
+        ...product.metadata,
+        game_id: params.gameId,
+      },
+    });
+  }
+
   // Get all prices for this product
   const prices = await stripe.prices.list({
     product: params.productId,
@@ -278,5 +303,93 @@ async function createCheckoutSession(params: any) {
   return {
     sessionId: session.id,
     url: session.url,
+  };
+}
+
+/**
+ * Update product metadata (add game_id for tracking)
+ */
+async function updateProductMetadata(params: any) {
+  console.log('🔄 Updating product metadata:', params.productId);
+
+  const product = await stripe.products.update(params.productId, {
+    metadata: {
+      ...params.metadata,
+    },
+  });
+
+  console.log('✅ Product metadata updated');
+
+  return {
+    productId: product.id,
+    metadata: product.metadata,
+  };
+}
+
+/**
+ * Verify product connection and set metadata/lookup_key if needed
+ */
+async function verifyProductConnection(params: any) {
+  console.log('🔍 Verifying product connection:', params.productId);
+
+  // Get product
+  const product = await stripe.products.retrieve(params.productId);
+  console.log('✅ Product found:', product.name);
+
+  let updated = false;
+  let metadataUpdated = false;
+  let lookupKeySet = false;
+
+  // Check if game_id metadata is missing or mismatched
+  if (!product.metadata?.game_id || product.metadata.game_id !== params.gameId) {
+    console.log('🔧 Setting/updating game_id metadata');
+    await stripe.products.update(params.productId, {
+      metadata: {
+        ...product.metadata,
+        game_id: params.gameId,
+      },
+    });
+    metadataUpdated = true;
+    updated = true;
+  }
+
+  // Get prices for this product
+  const prices = await stripe.prices.list({
+    product: params.productId,
+    limit: 100,
+  });
+
+  // Find default/adult price and set lookup_key if needed
+  if (prices.data.length > 0 && params.gameId) {
+    const defaultPrice = prices.data[0]; // Use first price as default
+    const expectedLookupKey = `game:${params.gameId}:default`;
+
+    if (!defaultPrice.lookup_key || defaultPrice.lookup_key !== expectedLookupKey) {
+      console.log('🔧 Setting lookup_key for default price');
+      // Create new price with lookup_key (Stripe doesn't allow updating lookup_key)
+      await stripe.prices.create({
+        product: params.productId,
+        unit_amount: defaultPrice.unit_amount,
+        currency: defaultPrice.currency,
+        lookup_key: expectedLookupKey,
+        transfer_lookup_key: true, // Transfer from old price if exists
+        metadata: {
+          ...defaultPrice.metadata,
+          pricing_type: 'adult',
+        },
+      });
+      lookupKeySet = true;
+      updated = true;
+    }
+  }
+
+  return {
+    productId: product.id,
+    gameId: params.gameId,
+    verified: true,
+    updated,
+    metadataUpdated,
+    lookupKeySet,
+    metadata: product.metadata,
   };
 }

@@ -332,57 +332,57 @@ export function WidgetPaymentSettingsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] p-0">
-        <DialogHeader className="px-6 pt-6 pb-4">
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <CreditCard className="h-6 w-6 text-blue-600" />
+      <DialogContent className="!w-[95vw] !max-w-[2000px] !h-[90vh] !max-h-[90vh] md:!h-[90vh] lg:!h-[90vh] p-0 overflow-hidden flex flex-col">
+        <DialogHeader className="px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-200 dark:border-[#2a2a2a] flex-shrink-0">
+          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
             Widget Payment Settings
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm sm:text-base">
             Manage Stripe payment configurations for all games in this widget
           </DialogDescription>
         </DialogHeader>
 
-        <div className="px-6 pb-6">
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
           {/* Stats Bar */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <CreditCard className="w-5 h-5 text-blue-600" />
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 mb-4 sm:mb-6">
+            <Card className="border-gray-200 dark:border-[#2a2a2a]">
+              <CardContent className="p-2 sm:p-3 md:p-4">
+                <div className="flex flex-col sm:flex-row items-center sm:gap-3 text-center sm:text-left">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mb-1 sm:mb-0">
+                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold">{games.length}</p>
-                    <p className="text-xs text-muted-foreground">Total Games</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{configuredGamesCount}</p>
-                    <p className="text-xs text-muted-foreground">Configured</p>
+                  <div className="min-w-0">
+                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{games.length}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground dark:text-[#737373]">Total</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                    <AlertCircle className="w-5 h-5 text-amber-600" />
+            <Card className="border-gray-200 dark:border-[#2a2a2a]">
+              <CardContent className="p-2 sm:p-3 md:p-4">
+                <div className="flex flex-col sm:flex-row items-center sm:gap-3 text-center sm:text-left">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 mb-1 sm:mb-0">
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold">{games.length - configuredGamesCount}</p>
-                    <p className="text-xs text-muted-foreground">Pending</p>
+                  <div className="min-w-0">
+                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{configuredGamesCount}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground dark:text-[#737373]">Configured</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-gray-200 dark:border-[#2a2a2a]">
+              <CardContent className="p-2 sm:p-3 md:p-4">
+                <div className="flex flex-col sm:flex-row items-center sm:gap-3 text-center sm:text-left">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 mb-1 sm:mb-0">
+                    <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{games.length - configuredGamesCount}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground dark:text-[#737373]">Pending</p>
                   </div>
                 </div>
               </CardContent>
@@ -390,23 +390,23 @@ export function WidgetPaymentSettingsModal({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-4 mb-4">
             <Button
               variant="outline"
               size="sm"
               onClick={handleSyncAllGames}
               disabled={isSyncing}
-              className="gap-2"
+              className="gap-2 w-full sm:w-auto"
             >
               {isSyncing ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <RefreshCw className="w-4 h-4" />
               )}
-              Sync All from Database
+              <span className="text-xs sm:text-sm">Sync All from Database</span>
             </Button>
 
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs text-center py-1.5 sm:py-0">
               {configuredGamesCount} of {games.length} games configured
             </Badge>
           </div>
@@ -414,19 +414,19 @@ export function WidgetPaymentSettingsModal({
           <Separator className="mb-4" />
 
           {/* Games List and Details */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Left: Games List */}
-            <div className="col-span-1">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Games</CardTitle>
-                  <CardDescription className="text-xs">
+            <div className="col-span-1 lg:col-span-1">
+              <Card className="border-gray-200 dark:border-[#2a2a2a]">
+                <CardHeader className="pb-3 px-4 py-3 sm:px-6 sm:py-4">
+                  <CardTitle className="text-sm sm:text-base text-gray-900 dark:text-white">Games</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
                     Select a game to manage
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <ScrollArea className="h-[400px]">
-                    <div className="space-y-1 p-4 pt-0">
+                  <ScrollArea className="h-[300px] sm:h-[400px] lg:h-[500px]">
+                    <div className="space-y-1 p-3 pt-0 sm:p-4 sm:pt-0">
                       {games.map((game) => {
                         const isConfigured = !!(game.stripe_product_id || game.stripe_checkout_url);
                         const isSelected = selectedGame?.id === game.id;
@@ -438,23 +438,23 @@ export function WidgetPaymentSettingsModal({
                               setSelectedGame(game);
                               setActiveTab('overview');
                             }}
-                            className={`w-full text-left p-3 rounded-lg border transition-all ${
+                            className={`w-full text-left p-3 sm:p-3 md:p-4 rounded-lg border transition-all min-h-[60px] sm:min-h-[64px] ${
                               isSelected
-                                ? 'bg-blue-50 border-blue-200 shadow-sm'
-                                : 'hover:bg-gray-50 border-transparent'
+                                ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 shadow-sm'
+                                : 'hover:bg-gray-50 dark:hover:bg-[#2a2a2a] border-transparent dark:border-[#2a2a2a]'
                             }`}
                           >
-                            <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start justify-between gap-2 sm:gap-3">
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm truncate">{game.name}</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
+                                <p className="font-medium text-sm sm:text-base truncate text-gray-900 dark:text-white">{game.name}</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground dark:text-[#737373] mt-0.5">
                                   ${game.price.toFixed(2)}
                                 </p>
                               </div>
                               {isConfigured ? (
-                                <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
                               ) : (
-                                <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
                               )}
                             </div>
                           </button>
@@ -467,11 +467,11 @@ export function WidgetPaymentSettingsModal({
             </div>
 
             {/* Right: Game Details */}
-            <div className="col-span-2">
+            <div className="col-span-1 lg:col-span-2">
               {selectedGame ? (
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
+                <Card className="border-gray-200 dark:border-[#2a2a2a]">
+                  <CardHeader className="px-4 py-3 sm:px-6 sm:py-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                       <div>
                         <CardTitle>{selectedGame.name}</CardTitle>
                         <CardDescription className="mt-1">

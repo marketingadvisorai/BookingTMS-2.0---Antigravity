@@ -100,13 +100,14 @@ export default function Step6PaymentSettings({
   }, [gameData.stripeProductId, gameData.stripePriceId, gameData.stripeCheckoutUrl, gameData.stripeSyncStatus]);
 
   /**
-   * Refresh connection status from database
-   * Fetches fresh game data and updates UI
+   * Check connection status from database
+   * Fetches fresh game data from Supabase and updates UI
+   * Shows connected UI if product_id exists (even without price_id)
    */
   const handleRefreshConnection = async () => {
     setIsRefreshing(true);
     try {
-      console.log('🔄 Refreshing Stripe connection from database...');
+      console.log('🔍 Checking Stripe connection from database...');
       
       // Fetch fresh game data from Supabase
       if (gameData.id) {
@@ -118,7 +119,7 @@ export default function Step6PaymentSettings({
 
         if (error) {
           console.error('Error fetching game:', error);
-          toast.error('Failed to refresh connection status');
+          toast.error('Failed to check connection status');
           return;
         }
 
@@ -153,12 +154,12 @@ export default function Step6PaymentSettings({
             stripeLastSync: (freshGame as any).stripe_last_sync
           });
 
-          toast.success('Connection status refreshed');
+          toast.success('Connection checked successfully');
         }
       }
     } catch (err) {
-      console.error('Error refreshing connection:', err);
-      toast.error('Failed to refresh connection status');
+      console.error('Error checking connection:', err);
+      toast.error('Failed to check connection status');
     } finally {
       setIsRefreshing(false);
     }
@@ -166,8 +167,8 @@ export default function Step6PaymentSettings({
 
   // Check if payment is already configured
   // Use STATE variables (not gameData prop) for detection - this ensures UI updates when state changes
-  // A game is configured if it has BOTH product ID and price ID (regardless of sync status)
-  const isConfigured = !!(manualProductId && manualPriceId);
+  // A game is configured if it has at least a product ID (price ID is optional)
+  const isConfigured = !!manualProductId;
   const hasPrice = gameData.adultPrice && gameData.adultPrice > 0;
   // Checkout is "connected" if we have valid Stripe product and price with synced status
   const isCheckoutConnected = !!(
@@ -572,7 +573,7 @@ export default function Step6PaymentSettings({
             className="gap-2"
           >
             <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            {isRefreshing ? 'Checking...' : 'Check Connection'}
           </Button>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">

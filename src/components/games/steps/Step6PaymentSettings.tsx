@@ -44,6 +44,7 @@ import { toast } from 'sonner';
 import { StripeProductService } from '../../../lib/stripe/stripeProductService';
 import { StripeDirectApi } from '../../../lib/stripe/stripeDirectApi';
 import { supabase } from '../../../lib/supabase/client';
+import { StripeConfigurationModal } from '../StripeConfigurationModal';
 
 interface PaymentSettingsProps {
   gameData: any;
@@ -75,6 +76,7 @@ export default function Step6PaymentSettings({
   const [editCheckoutUrl, setEditCheckoutUrl] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [venueMatches, setVenueMatches] = useState(true);
+  const [showConfigModal, setShowConfigModal] = useState(false);
 
   // Sync state with gameData when it changes (important for edit mode)
   useEffect(() => {
@@ -765,21 +767,25 @@ export default function Step6PaymentSettings({
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    variant="outline"
+                    variant="default"
                     size="sm"
-                    onClick={handleEditConfiguration}
+                    onClick={() => setShowConfigModal(true)}
                   >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Configure
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleRefreshSync}
-                    disabled={syncStatus === 'pending'}
+                    onClick={handleRefreshConnection}
+                    disabled={isRefreshing}
                   >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Re-sync
+                    {isRefreshing ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                    )}
+                    Check Connection
                   </Button>
                   <Button
                     variant="outline"
@@ -1170,6 +1176,14 @@ export default function Step6PaymentSettings({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Stripe Configuration Modal */}
+      <StripeConfigurationModal
+        isOpen={showConfigModal}
+        onClose={() => setShowConfigModal(false)}
+        gameData={gameData}
+        onUpdate={onUpdate}
+      />
 
       {/* Remove Configuration Confirmation Dialog */}
       <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>

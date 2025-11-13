@@ -41,6 +41,9 @@ export interface Game {
   price_lookup_key?: string;
   active_price_id?: string;
   price_history?: any[];
+  // Pricing tiers (will be fetched separately)
+  pricing_tiers?: any[];
+  child_price?: number; // Backwards compatibility
 }
 
 export function useGames(venueId?: string) {
@@ -91,6 +94,7 @@ export function useGames(venueId?: string) {
   const createGame = async (gameData: Omit<Game, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
     let stripeProductId: string | null = null;
     let stripePriceId: string | null = null;
+    let venueData: any = null; // Store venue data for later use
     
     try {
       console.log('useGames.createGame called with:', gameData);
@@ -100,6 +104,15 @@ export function useGames(venueId?: string) {
       if (!gameData.venue_id) {
         throw new Error('Venue ID is required to create a game');
       }
+      
+      // Fetch venue data early (needed for both Stripe and pricing tiers)
+      const { data: fetchedVenueData } = await supabase
+        .from('venues')
+        .select('organization_id, organization_name, name, id')
+        .eq('id', gameData.venue_id)
+        .single();
+      
+      venueData = fetchedVenueData;
       
       // Step 1: Only create Stripe product if price is set and Stripe was configured in wizard
       // Check if Stripe IDs already exist from wizard (Step 6)
@@ -115,13 +128,6 @@ export function useGames(venueId?: string) {
         try {
           console.log('Attempting to auto-create Stripe product and price...');
           toast.loading('Creating payment product...', { id: 'stripe-create' });
-          
-          // Fetch organization and venue details for metadata
-          const { data: venueData } = await supabase
-            .from('venues')
-            .select('organization_id, organization_name, name, id')
-            .eq('id', gameData.venue_id)
-            .single();
           
           // Generate lookup key for this game
           const lookupKey = `${venueData?.organization_id || 'org'}_${gameData.venue_id}_${Date.now()}_default`
@@ -202,7 +208,32 @@ export function useGames(venueId?: string) {
         throw insertError;
       }
 
-      // Step 4: Update Stripe product metadata with game ID (if Stripe was created)
+      // Step 4: Create default pricing tiers
+      try {
+        const childPrice = (gameData as any).child_price || (gameData as any).childPrice;
+        if (childPrice && childPrice > 0) {
+          console.log('Creating pricing tiers:', { adultPrice: gameData.price, childPrice });
+          
+          // Call Supabase function to create pricing tiers
+          const { data: tiersData, error: tiersError } = await supabase
+            .rpc('create_default_pricing_tiers', {
+              p_game_id: data.id,
+              p_organization_id: venueData?.organization_id,
+              p_adult_price: gameData.price,
+              p_child_price: childPrice
+            });
+          
+          if (tiersError) {
+            console.warn('Failed to create pricing tiers (non-critical):', tiersError);
+          } else {
+            console.log('Pricing tiers created:', tiersData);
+          }
+        }
+      } catch (tiersError) {
+        console.warn('Error creating pricing tiers (non-critical):', tiersError);
+      }
+
+      // Step 5: Update Stripe product metadata with game ID (if Stripe was created)
       if (stripeProductId) {
         try {
           console.log('Updating Stripe product with game ID:', data.id);

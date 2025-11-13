@@ -1685,7 +1685,7 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
 
       {/* Add/Edit Game Wizard Dialog */}
       <Dialog open={showGameWizard} onOpenChange={(open) => !open && handleWizardCancel()}>
-        <DialogContent className="!w-[90vw] !max-w-[1000px] !h-[90vh] !max-h-[90vh] md:!max-w-[1200px] !rounded-lg overflow-hidden p-0 flex flex-col min-h-0">
+        <DialogContent className="!w-[90vw] !max-w-[1000px] h-[90vh] !max-h-[90vh] overflow-hidden p-0 flex flex-col">
           <div className="sr-only">
             <DialogTitle>{editingGame ? 'Edit Experience' : 'Add New Experience'}</DialogTitle>
             <DialogDescription>

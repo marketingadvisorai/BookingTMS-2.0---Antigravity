@@ -25,7 +25,15 @@ interface CreateProductParams {
   }>;
   metadata?: {
     game_id?: string;
+    game_name?: string;
     venue_id?: string;
+    venue_name?: string;
+    calendar_id?: string;
+    calendar_name?: string;
+    venue_calendar_id?: string;
+    organization_id?: string;
+    organization_name?: string;
+    company_name?: string;
     duration?: string;
     [key: string]: string | undefined;
   };
@@ -40,6 +48,7 @@ interface UpdateProductParams {
 interface CreatePriceParams {
   amount: number;
   currency?: string;
+  lookup_key?: string;
   metadata?: Record<string, string>;
 }
 
@@ -106,6 +115,17 @@ export class StripeProductService {
         product_type: 'game',
         created_at: new Date().toISOString(),
         currency: params.currency || 'usd',
+        
+        // === MULTI-TENANT DATA ===
+        ...(params.metadata?.organization_id && { organization_id: params.metadata.organization_id }),
+        ...(params.metadata?.organization_name && { organization_name: params.metadata.organization_name }),
+        ...(params.metadata?.company_name && { company_name: params.metadata.company_name }),
+        ...(params.metadata?.venue_id && { venue_id: params.metadata.venue_id }),
+        ...(params.metadata?.venue_name && { venue_name: params.metadata.venue_name }),
+        ...(params.metadata?.calendar_id && { calendar_id: params.metadata.calendar_id }),
+        ...(params.metadata?.calendar_name && { calendar_name: params.metadata.calendar_name }),
+        ...(params.metadata?.venue_calendar_id && { venue_calendar_id: params.metadata.venue_calendar_id }),
+        ...(params.metadata?.game_name && { game_name: params.metadata.game_name }),
         
         // === MEDIA DATA ===
         // Add cover image URL if provided in metadata
@@ -299,6 +319,7 @@ export class StripeProductService {
           productId: productId,
           amount: params.amount,
           currency: params.currency || 'usd',
+          lookup_key: params.lookup_key,
           metadata: params.metadata || {},
         }),
       });
@@ -505,9 +526,69 @@ export class StripeProductService {
   }
 
   /**
+   * Update price using lookup key (creates new price, archives old)
+   */
+  static async updatePriceByLookupKey(
+    lookupKey: string,
+    newAmount: number,
+    productId: string
+  ): Promise<string> {
+    try {
+      console.log('Updating price via lookup key:', { lookupKey, newAmount, productId });
+      
+      // Create new price with same lookup key (Stripe will deactivate old)
+      const newPriceId = await this.createPrice(productId, {
+        amount: newAmount,
+        currency: 'usd',
+        lookup_key: lookupKey,
+      });
+      
+      console.log('New price created with lookup key:', newPriceId);
+      return newPriceId;
+    } catch (error) {
+      console.error('Error updating price by lookup key:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get price by lookup key
+   */
+  static async getPriceByLookupKey(lookupKey: string): Promise<any> {
+    try {
+      const headers = this.getAuthHeaders();
+      const response = await fetch(
+        `${this.BACKEND_API_URL}/api/stripe/prices/lookup/${encodeURIComponent(lookupKey)}`,
+        {
+          method: 'GET',
+          headers,
+        }
+      );
+
+      const data = await this.parseResponse(response);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get price by lookup key');
+      }
+
+      return data.price;
+    } catch (error) {
+      console.error('Error getting price by lookup key:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Validate product ID format
    */
   static isValidProductId(productId: string): boolean {
     return /^prod_[a-zA-Z0-9]+$/.test(productId);
+  }
+
+  /**
+   * Validate price lookup key format
+   */
+  static isValidLookupKey(lookupKey: string): boolean {
+    return /^[a-z0-9_-]+$/.test(lookupKey) && lookupKey.length <= 250;
   }
 }

@@ -9,6 +9,9 @@ import { toast } from 'sonner';
 
 export interface Venue {
   id: string;
+  organization_id?: string;
+  organization_name?: string;
+  company_name?: string;
   name: string;
   address: string;
   city: string;

@@ -49,9 +49,16 @@ export enum BookingSource {
 export interface IBooking {
   id: string;
   organizationId: string;
+  organizationName?: string; // Denormalized for quick reporting
   venueId: string;
+  venueName?: string; // Denormalized for quick reporting
   gameId: string;
+  gameName?: string; // Denormalized for quick reporting
   customerId: string;
+  
+  // Calendar references
+  venueCalendarId?: string;
+  gameCalendarId?: string;
   
   // Booking details
   bookingDate: Date;
@@ -77,6 +84,7 @@ export interface IBooking {
   
   // Metadata
   metadata?: Record<string, any>;
+  bookingMetadata?: Record<string, any>; // Structured metadata with all context
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -91,6 +99,8 @@ export interface ICreateBookingDTO {
   venueId: string;
   gameId: string;
   customerId: string;
+  venueCalendarId?: string;
+  gameCalendarId?: string;
   bookingDate: Date;
   bookingTime: string;
   players: number;
@@ -151,6 +161,8 @@ export interface IBookingFilter {
   venueId?: string;
   gameId?: string;
   customerId?: string;
+  venueCalendarId?: string;
+  gameCalendarId?: string;
   status?: BookingStatus[];
   paymentStatus?: PaymentStatus[];
   dateFrom?: Date;
@@ -269,18 +281,27 @@ export interface IBookingDetailsResponse extends IBooking {
     name: string;
     email: string;
     phone: string;
+    firstName?: string;
+    lastName?: string;
   };
   game: {
     id: string;
     name: string;
     duration: number;
     difficulty: string;
+    calendarId?: string;
   };
   venue: {
     id: string;
     name: string;
     address: string;
     timezone: string;
+    calendarId?: string;
+  };
+  organization: {
+    id: string;
+    name: string;
+    companyName?: string;
   };
   payments: IPaymentRecord[];
 }

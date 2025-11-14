@@ -1,6 +1,7 @@
 /**
  * Stripe Product Service
  * Automatically creates and manages Stripe products/prices for games
+ * Uses backend API for secure Stripe operations
  */
 
 interface CreateProductParams {
@@ -24,7 +25,15 @@ interface CreateProductParams {
   }>;
   metadata?: {
     game_id?: string;
+    game_name?: string;
     venue_id?: string;
+    venue_name?: string;
+    calendar_id?: string;
+    calendar_name?: string;
+    venue_calendar_id?: string;
+    organization_id?: string;
+    organization_name?: string;
+    company_name?: string;
     duration?: string;
     [key: string]: string | undefined;
   };
@@ -39,6 +48,7 @@ interface UpdateProductParams {
 interface CreatePriceParams {
   amount: number;
   currency?: string;
+  lookup_key?: string;
   metadata?: Record<string, string>;
 }
 
@@ -48,18 +58,30 @@ interface ProductAndPrice {
 }
 
 export class StripeProductService {
-  private static STRIPE_API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
-
-  private static get authHeaders() {
-    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    if (!anonKey) {
-      console.error('Supabase anon key missing. Check VITE_SUPABASE_ANON_KEY env variable.');
+  // Auto-detect backend URL based on environment
+  private static BACKEND_API_URL = (() => {
+    // 1. Check env variable first
+    if (import.meta.env.VITE_BACKEND_API_URL) {
+      return import.meta.env.VITE_BACKEND_API_URL;
     }
+    
+    // 2. If on Render frontend, use Render backend
+    if (window.location.hostname.includes('onrender.com')) {
+      return 'https://bookingtms-backend-api.onrender.com';
+    }
+    
+    // 3. If on localhost, check common ports
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:3001';
+    }
+    
+    // 4. Default fallback
+    return 'http://localhost:3001';
+  })();
 
+  private static getAuthHeaders() {
     return {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${anonKey ?? ''}`,
-      apikey: anonKey ?? '',
     } as const;
   }
 
@@ -93,6 +115,17 @@ export class StripeProductService {
         product_type: 'game',
         created_at: new Date().toISOString(),
         currency: params.currency || 'usd',
+        
+        // === MULTI-TENANT DATA ===
+        ...(params.metadata?.organization_id && { organization_id: params.metadata.organization_id }),
+        ...(params.metadata?.organization_name && { organization_name: params.metadata.organization_name }),
+        ...(params.metadata?.company_name && { company_name: params.metadata.company_name }),
+        ...(params.metadata?.venue_id && { venue_id: params.metadata.venue_id }),
+        ...(params.metadata?.venue_name && { venue_name: params.metadata.venue_name }),
+        ...(params.metadata?.calendar_id && { calendar_id: params.metadata.calendar_id }),
+        ...(params.metadata?.calendar_name && { calendar_name: params.metadata.calendar_name }),
+        ...(params.metadata?.venue_calendar_id && { venue_calendar_id: params.metadata.venue_calendar_id }),
+        ...(params.metadata?.game_name && { game_name: params.metadata.game_name }),
         
         // === MEDIA DATA ===
         // Add cover image URL if provided in metadata
@@ -210,31 +243,62 @@ export class StripeProductService {
     metadata?: Record<string, string>;
   }): Promise<string> {
     try {
-      // Call Stripe API via Edge Function
-      const response = await fetch(`${this.STRIPE_API_URL}/stripe-manage-product`, {
-        method: 'POST',
-        headers: this.authHeaders,
-        body: JSON.stringify({
-          action: 'create_product',
-          name: params.name,
-          description: params.description,
-          metadata: params.metadata || {},
-        }),
+      const url = `${this.BACKEND_API_URL}/api/stripe/products`;
+      console.log('🌐 Calling Backend API:', url);
+      console.log('📦 Request payload:', {
+        name: params.name,
+        description: params.description,
       });
 
+      // Call Backend Stripe API with timeout
+      const headers = this.getAuthHeaders();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      let response;
+      try {
+        response = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            name: params.name,
+            description: params.description,
+            metadata: params.metadata || {},
+          }),
+          signal: controller.signal,
+        });
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Backend API request timed out. Please check your connection and try again.');
+        }
+        throw new Error(`Cannot connect to backend API at ${url}. Please check if the backend is running.`);
+      }
+      clearTimeout(timeoutId);
+
+      console.log('📡 Response status:', response.status, response.statusText);
+      
       const data = await this.parseResponse(response);
+      console.log('📥 Response data:', data);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create Stripe product');
+        const errorMsg = data.error || `HTTP ${response.status}: Failed to create Stripe product`;
+        console.error('❌ Backend API error:', errorMsg);
+        throw new Error(errorMsg);
       }
 
       if (!data.productId) {
         throw new Error('Stripe product creation did not return productId');
       }
 
+      console.log('✅ Product created successfully:', data.productId);
       return data.productId;
-    } catch (error) {
-      console.error('Error creating Stripe product:', error);
+    } catch (error: any) {
+      console.error('❌ Error in createProduct:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+      });
       throw error;
     }
   }
@@ -247,14 +311,15 @@ export class StripeProductService {
     params: CreatePriceParams
   ): Promise<string> {
     try {
-      const response = await fetch(`${this.STRIPE_API_URL}/stripe-manage-product`, {
+      const headers = this.getAuthHeaders();
+      const response = await fetch(`${this.BACKEND_API_URL}/api/stripe/prices`, {
         method: 'POST',
-        headers: this.authHeaders,
+        headers,
         body: JSON.stringify({
-          action: 'create_price',
-          product: productId,
-          unit_amount: Math.round(params.amount * 100), // Convert to cents
+          productId: productId,
+          amount: params.amount,
           currency: params.currency || 'usd',
+          lookup_key: params.lookup_key,
           metadata: params.metadata || {},
         }),
       });
@@ -284,14 +349,11 @@ export class StripeProductService {
     updates: UpdateProductParams
   ): Promise<void> {
     try {
-      const response = await fetch(`${this.STRIPE_API_URL}/stripe-manage-product`, {
-        method: 'POST',
-        headers: this.authHeaders,
-        body: JSON.stringify({
-          action: 'update_product',
-          productId,
-          ...updates,
-        }),
+      const headers = this.getAuthHeaders();
+      const response = await fetch(`${this.BACKEND_API_URL}/api/stripe/products/${productId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
       });
 
       if (!response.ok) {
@@ -324,13 +386,10 @@ export class StripeProductService {
    */
   static async archiveProduct(productId: string): Promise<void> {
     try {
-      const response = await fetch(`${this.STRIPE_API_URL}/stripe-manage-product`, {
-        method: 'POST',
-        headers: this.authHeaders,
-        body: JSON.stringify({
-          action: 'archive_product',
-          productId
-        }),
+      const headers = this.getAuthHeaders();
+      const response = await fetch(`${this.BACKEND_API_URL}/api/stripe/products/${productId}`, {
+        method: 'DELETE',
+        headers,
       });
 
       if (!response.ok) {
@@ -375,5 +434,161 @@ export class StripeProductService {
     }
 
     throw lastError || new Error('Failed to create Stripe product after retries');
+  }
+
+  /**
+   * Get product by ID
+   */
+  static async getProduct(productId: string): Promise<any> {
+    try {
+      const headers = this.getAuthHeaders();
+      const response = await fetch(`${this.BACKEND_API_URL}/api/stripe/products/${productId}`, {
+        method: 'GET',
+        headers,
+      });
+
+      const data = await this.parseResponse(response);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get product');
+      }
+
+      return data.product;
+    } catch (error) {
+      console.error('Error getting product:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all prices for a product
+   */
+  static async getProductPrices(productId: string): Promise<any[]> {
+    try {
+      console.log('🔍 Fetching prices for product:', productId);
+      
+      const headers = this.getAuthHeaders();
+      const response = await fetch(`${this.BACKEND_API_URL}/api/stripe/products/${productId}/prices`, {
+        method: 'GET',
+        headers,
+      });
+
+      const data = await this.parseResponse(response);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get prices');
+      }
+
+      console.log('✅ Retrieved prices:', data.prices);
+      return data.prices;
+    } catch (error) {
+      console.error('Error getting product prices:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Link existing product (get product and prices)
+   */
+  static async linkExistingProduct(params: {
+    productId: string;
+    priceId?: string;
+  }): Promise<{
+    productId: string;
+    priceId?: string;
+    prices: any[];
+  }> {
+    try {
+      console.log('🔗 Linking existing product:', params.productId);
+
+      // Get product details
+      const product = await this.getProduct(params.productId);
+      
+      // Get all prices for the product
+      const prices = await this.getProductPrices(params.productId);
+
+      return {
+        productId: params.productId,
+        priceId: params.priceId || prices[0]?.id,
+        prices: prices.map(p => ({
+          priceId: p.id,
+          unitAmount: p.unit_amount,
+          currency: p.currency,
+          lookupKey: p.lookup_key,
+          type: p.metadata?.type || p.metadata?.pricing_type,
+          metadata: p.metadata,
+        })),
+      };
+    } catch (error) {
+      console.error('Error linking product:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update price using lookup key (creates new price, archives old)
+   */
+  static async updatePriceByLookupKey(
+    lookupKey: string,
+    newAmount: number,
+    productId: string
+  ): Promise<string> {
+    try {
+      console.log('Updating price via lookup key:', { lookupKey, newAmount, productId });
+      
+      // Create new price with same lookup key (Stripe will deactivate old)
+      const newPriceId = await this.createPrice(productId, {
+        amount: newAmount,
+        currency: 'usd',
+        lookup_key: lookupKey,
+      });
+      
+      console.log('New price created with lookup key:', newPriceId);
+      return newPriceId;
+    } catch (error) {
+      console.error('Error updating price by lookup key:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get price by lookup key
+   */
+  static async getPriceByLookupKey(lookupKey: string): Promise<any> {
+    try {
+      const headers = this.getAuthHeaders();
+      const response = await fetch(
+        `${this.BACKEND_API_URL}/api/stripe/prices/lookup/${encodeURIComponent(lookupKey)}`,
+        {
+          method: 'GET',
+          headers,
+        }
+      );
+
+      const data = await this.parseResponse(response);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get price by lookup key');
+      }
+
+      return data.price;
+    } catch (error) {
+      console.error('Error getting price by lookup key:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Validate product ID format
+   */
+  static isValidProductId(productId: string): boolean {
+    return /^prod_[a-zA-Z0-9]+$/.test(productId);
+  }
+
+  /**
+   * Validate price lookup key format
+   */
+  static isValidLookupKey(lookupKey: string): boolean {
+    return /^[a-z0-9_-]+$/.test(lookupKey) && lookupKey.length <= 250;
   }
 }

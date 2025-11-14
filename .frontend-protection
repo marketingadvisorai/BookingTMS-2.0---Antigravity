@@ -1,0 +1,22 @@
+# Frontend Protection Lock
+# DO NOT MODIFY FRONTEND FILES
+
+## Protected Directories:
+- src/components/
+- src/pages/
+- src/hooks/
+- src/App.tsx
+- src/main.tsx
+- src/index.css
+- All .tsx and .jsx files
+
+## Allowed Changes:
+- src/supabase/migrations/ (database only)
+- Documentation files (.md)
+- Backend configuration
+
+## Current Status:
+LOCKED - Backend changes only
+NO UI/Design modifications allowed
+
+Last Updated: 2025-01-11

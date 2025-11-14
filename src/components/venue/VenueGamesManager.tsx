@@ -7,7 +7,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
-import { Plus, Trash2, Edit, Eye, X } from 'lucide-react';
+import { Plus, Trash2, Edit, Eye, X, MoreVertical, Copy, Settings } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 import { ScrollArea } from '../ui/scroll-area';
 import { toast } from 'sonner';
 import AddGameWizard from '../games/AddGameWizard';
@@ -53,10 +59,22 @@ export default function VenueGamesManager({
 }: VenueGamesManagerProps) {
   const [showAddGameWizard, setShowAddGameWizard] = useState(false);
   const [editingGame, setEditingGame] = useState<any>(null);
-  const { games, createGame, updateGame, deleteGame, loading } = useGames(venueId);
+  const { games, createGame, updateGame, deleteGame, loading, refreshGames } = useGames(venueId);
+  const [duplicatingGameId, setDuplicatingGameId] = useState<string | null>(null);
 
   // Map Supabase game to wizard format
   const convertGameToWizardData = (game: any) => {
+    console.log('🔄 VenueGamesManager - Converting game to wizard data:', {
+      gameId: game.id,
+      gameName: game.name,
+      stripe_product_id: game.stripe_product_id,
+      stripe_price_id: game.stripe_price_id,
+      stripe_prices: game.stripe_prices,
+      stripe_checkout_url: game.stripe_checkout_url,
+      stripe_sync_status: game.stripe_sync_status,
+      stripe_last_sync: game.stripe_last_sync
+    });
+    
     const settings = game.settings || {};
     return {
       id: game.id,
@@ -105,7 +123,26 @@ export default function VenueGamesManager({
       selectedWaiver: settings.selectedWaiver || null,
       cancellationWindow: settings.cancellationWindow || 24,
       specialInstructions: settings.specialInstructions || '',
+      // Stripe payment integration fields
+      stripeProductId: game.stripe_product_id || null,
+      stripePriceId: game.stripe_price_id || null,
+      stripePrices: game.stripe_prices || [],
+      stripeCheckoutUrl: game.stripe_checkout_url || null,
+      stripeSyncStatus: game.stripe_sync_status || 'not_synced',
+      stripeLastSync: game.stripe_last_sync || null,
     };
+  };
+
+  // Helper function to convert difficulty number to string
+  const getDifficultyString = (difficulty: number): 'Easy' | 'Medium' | 'Hard' | 'Expert' => {
+    const difficultyMap: { [key: number]: 'Easy' | 'Medium' | 'Hard' | 'Expert' } = {
+      1: 'Easy',
+      2: 'Easy',
+      3: 'Medium',
+      4: 'Hard',
+      5: 'Expert',
+    };
+    return difficultyMap[difficulty] || 'Medium';
   };
 
   // Handle wizard complete (create or update)
@@ -122,7 +159,7 @@ export default function VenueGamesManager({
       name: gameData.name,
       slug: slug,
       description: gameData.description || '',
-      difficulty: gameData.difficulty,
+      difficulty: getDifficultyString(gameData.difficulty), // Convert number to string
       duration: gameData.duration || 60,
       min_players: gameData.minAdults || 2,
       max_players: gameData.maxAdults || 8,
@@ -132,6 +169,13 @@ export default function VenueGamesManager({
       success_rate: gameData.successRate || 75,
       image_url: gameData.coverImage || 'https://images.unsplash.com/photo-1569002925653-ed18f55d7292',
       status: 'active' as const,
+      // Stripe payment integration fields
+      stripe_product_id: gameData.stripeProductId || null,
+      stripe_price_id: gameData.stripePriceId || null,
+      stripe_prices: gameData.stripePrices || null,
+      stripe_checkout_url: gameData.stripeCheckoutUrl || null,
+      stripe_sync_status: gameData.stripeSyncStatus || null,
+      stripe_last_sync: gameData.stripeLastSync || null,
       settings: {
         tagline: gameData.tagline,
         category: gameData.category,
@@ -170,14 +214,49 @@ export default function VenueGamesManager({
       },
     };
 
-    if (editingGame) {
-      await updateGame(editingGame.id, supabaseGameData);
-      setEditingGame(null);
-    } else {
-      await createGame(supabaseGameData);
-    }
+    console.log('=== STARTING GAME SAVE ===');
+    console.log('Editing game?:', !!editingGame);
+    console.log('Supabase game data:', JSON.stringify(supabaseGameData, null, 2));
+    
+    try {
+      let result;
+      if (editingGame) {
+        console.log('Updating existing game:', editingGame.id);
+        result = await updateGame(editingGame.id, supabaseGameData);
+        setEditingGame(null);
+        toast.success('Game updated successfully!');
+      } else {
+        console.log('Creating new game...');
+        result = await createGame(supabaseGameData);
+        console.log('✅ Game created successfully:', result);
+        toast.success('Game created successfully!');
+      }
 
-    setShowAddGameWizard(false);
+      if (!result) {
+        throw new Error('No result returned from save operation');
+      }
+
+      // Close wizard first
+      setShowAddGameWizard(false);
+      
+      console.log('Triggering game list refreshes...');
+      // Force multiple refreshes to ensure the game appears
+      refreshGames(); // Immediate
+      setTimeout(() => refreshGames(), 300); // After 300ms
+      setTimeout(() => refreshGames(), 1000); // After 1 second
+      setTimeout(() => refreshGames(), 2000); // After 2 seconds for slow connections
+      
+    } catch (error: any) {
+      console.error('❌ ERROR in handleWizardComplete:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        stack: error.stack,
+      });
+      toast.error(`Failed to save game: ${error.message}`);
+      // Don't close wizard on error so user can try again
+    }
   };
 
   // Handle edit game
@@ -189,8 +268,64 @@ export default function VenueGamesManager({
 
   // Handle delete game
   const handleDeleteGame = async (gameId: string) => {
-    if (confirm('Are you sure you want to delete this game?')) {
-      await deleteGame(gameId);
+    if (confirm('Are you sure you want to delete this game? This action cannot be undone.')) {
+      try {
+        await deleteGame(gameId);
+        toast.success('Game deleted successfully');
+      } catch (error) {
+        console.error('Error deleting game:', error);
+        toast.error('Failed to delete game');
+      }
+    }
+  };
+
+  const handleDuplicateGame = async (game: any) => {
+    setDuplicatingGameId(game.id);
+    try {
+      // Convert game to wizard format
+      const wizardData = convertGameToWizardData(game);
+      
+      // Create a new name for the duplicate
+      const duplicateName = `${game.name} (Copy)`;
+      
+      // Create slug from duplicate name
+      const slug = duplicateName
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+
+      // Prepare duplicate game data
+      const duplicateGameData = {
+        venue_id: venueId,
+        name: duplicateName,
+        slug: slug,
+        description: game.description || '',
+        difficulty: game.difficulty,
+        duration: game.duration || 60,
+        min_players: game.min_players || 2,
+        max_players: game.max_players || 8,
+        price: game.price || 0,
+        child_price: game.child_price || game.price || 0,
+        min_age: game.min_age || 0,
+        success_rate: game.success_rate || 75,
+        image_url: game.image_url || 'https://images.unsplash.com/photo-1569002925653-ed18f55d7292',
+        status: 'active' as const,
+        settings: game.settings || {},
+        // Don't copy Stripe IDs - new game needs its own
+        stripe_product_id: undefined,
+        stripe_price_id: undefined,
+        stripe_sync_status: 'not_synced',
+      };
+
+      await createGame(duplicateGameData);
+      toast.success(`Game duplicated successfully as "${duplicateName}"`);
+    } catch (error) {
+      console.error('Error duplicating game:', error);
+      toast.error('Failed to duplicate game');
+    } finally {
+      setDuplicatingGameId(null);
     }
   };
 
@@ -249,20 +384,50 @@ export default function VenueGamesManager({
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => handleEditGame(game)}
+                          className="h-8"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Settings className="w-4 h-4 mr-1" />
+                          Settings
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteGame(game.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              disabled={duplicatingGameId === game.id}
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onClick={() => handleEditGame(game)}
+                              className="cursor-pointer"
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDuplicateGame(game)}
+                              disabled={duplicatingGameId === game.id}
+                              className="cursor-pointer"
+                            >
+                              <Copy className="w-4 h-4 mr-2" />
+                              {duplicatingGameId === game.id ? 'Duplicating...' : 'Duplicate'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteGame(game.id)}
+                              className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </CardContent>

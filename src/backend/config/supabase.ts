@@ -5,7 +5,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '../../types/supabase';
+import type { Database } from '../types/supabase';
 
 // Environment variables
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -77,7 +77,7 @@ export async function verifyToken(token: string): Promise<string | null> {
 /**
  * Get user by ID with full profile
  */
-export async function getUserById(userId: string) {
+export async function getUserById(userId: string): Promise<any> {
   const { data, error } = await supabase
     .from('users')
     .select(`

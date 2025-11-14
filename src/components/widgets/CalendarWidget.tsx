@@ -158,7 +158,8 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
       // Stripe integration fields
       stripe_price_id: g?.stripe_price_id || null,
       stripe_product_id: g?.stripe_product_id || null,
-      stripe_sync_status: g?.stripe_sync_status || 'pending'
+      stripe_sync_status: g?.stripe_sync_status || 'pending',
+      stripe_checkout_url: g?.stripe_checkout_url || g?.stripeCheckoutUrl || null
     };
   });
 
@@ -358,12 +359,8 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
   
   const canCheckout = customerData.name !== '' && customerData.email !== '' && customerData.phone !== '';
   
-  // For "Pay Here" (embedded), require card details. For other methods, only require contact info.
-  const canCompletePay = paymentMethod === 'embedded'
-    ? customerData.name !== '' && customerData.email !== '' && customerData.phone !== '' &&
-      customerData.cardNumber !== '' && customerData.cardExpiry !== '' && 
-      customerData.cardCVV !== '' && customerData.cardName !== ''
-    : customerData.name !== '' && customerData.email !== '' && customerData.phone !== '';
+  // Only require contact info for Stripe Checkout redirect
+  const canCompletePay = customerData.name !== '' && customerData.email !== '' && customerData.phone !== '';
 
   const resetBooking = () => {
     setCurrentStep('booking');
@@ -537,7 +534,22 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
 
       // Step 7: Choose payment method and process
       if (paymentMethod === 'checkout') {
-        // OPTION 1: Checkout Sessions (Stripe-hosted) ⭐
+        // Check if game has a custom checkout URL configured
+        const checkoutUrl = selectedGameData.stripeCheckoutUrl || selectedGameData.stripe_checkout_url;
+        
+        if (checkoutUrl) {
+          // OPTION 1A: Direct Stripe Checkout URL (Custom Payment Link) ⭐
+          toast.success('Redirecting to checkout...', { id: 'booking-process' });
+          console.log('Using custom checkout URL:', checkoutUrl);
+          
+          // Redirect to custom Stripe checkout URL
+          setTimeout(() => {
+            window.location.href = checkoutUrl;
+          }, 500);
+          return;
+        }
+        
+        // OPTION 1B: Checkout Sessions (Stripe-hosted) ⭐
         try {
           toast.loading('Creating secure checkout...', { id: 'booking-process' });
           
@@ -829,7 +841,10 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
   }
 
   return (
-    <div className="w-full min-h-screen bg-gray-50" style={{ fontFamily: config?.fontFamily || undefined }}>
+    <div
+      className="w-full min-h-[600px] bg-gray-50 max-w-full overflow-x-hidden"
+      style={{ fontFamily: config?.fontFamily || undefined }}
+    >
       {/* Health & Safety Dialog */}
       <Dialog open={showHealthSafetyDialog} onOpenChange={setShowHealthSafetyDialog}>
         <DialogContent className="sm:max-w-[425px]">
@@ -2910,7 +2925,29 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
             </div>
 
             <Button
-              onClick={() => setCurrentStep('checkout')}
+              onClick={() => {
+                // Check if game has a custom checkout URL configured
+                const checkoutUrl = selectedGameData?.stripeCheckoutUrl || 
+                                    selectedGameData?.stripe_checkout_url ||
+                                    (selectedGameData as any)?.stripe_checkout_url;
+                
+                console.log('🔍 Proceed to Checkout clicked');
+                console.log('Selected Game Data:', selectedGameData);
+                console.log('Checkout URL found:', checkoutUrl);
+                
+                if (checkoutUrl) {
+                  // Direct redirect to Stripe checkout URL
+                  console.log('✅ Redirecting to Stripe URL:', checkoutUrl);
+                  toast.success('Redirecting to checkout...', { duration: 1000 });
+                  setTimeout(() => {
+                    window.location.href = checkoutUrl;
+                  }, 500);
+                } else {
+                  // Go to checkout form
+                  console.log('ℹ️ No checkout URL found, showing checkout form');
+                  setCurrentStep('checkout');
+                }
+              }}
               className="w-full text-white h-12"
               style={{ backgroundColor: primaryColor }}
             >
@@ -3036,71 +3073,6 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                 </div>
               </Card>
 
-              {/* Payment Information - Only show for "Pay Here" option */}
-              {paymentMethod === 'embedded' && (
-                <Card className="p-3 sm:p-4 md:p-6 bg-white border border-gray-200 shadow-sm">
-                  <h2 className="text-gray-900 mb-4 sm:mb-6 text-lg sm:text-xl">Payment Information</h2>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="cardName" className="text-gray-700">Name on Card</Label>
-                      <Input
-                        id="cardName"
-                        type="text"
-                        placeholder="John Doe"
-                        value={customerData.cardName}
-                        onChange={(e) => setCustomerData({ ...customerData, cardName: e.target.value })}
-                        className="h-12 mt-2 bg-gray-100 border-gray-300 placeholder:text-gray-500"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="cardNumber" className="text-gray-700">Card Number</Label>
-                      <div className="relative mt-2">
-                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input
-                          id="cardNumber"
-                          type="text"
-                          placeholder="1234 5678 9012 3456"
-                          value={customerData.cardNumber}
-                          onChange={(e) => setCustomerData({ ...customerData, cardNumber: e.target.value })}
-                          maxLength={19}
-                          className="pl-10 h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="expiry" className="text-gray-700">Expiry Date</Label>
-                        <Input
-                          id="expiry"
-                          type="text"
-                          placeholder="MM/YY"
-                          value={customerData.cardExpiry}
-                          onChange={(e) => setCustomerData({ ...customerData, cardExpiry: e.target.value })}
-                          maxLength={5}
-                          className="h-12 mt-2 bg-gray-100 border-gray-300 placeholder:text-gray-500"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="cvv" className="text-gray-700">CVV</Label>
-                        <Input
-                          id="cvv"
-                          type="text"
-                          placeholder="123"
-                          value={customerData.cardCVV}
-                          onChange={(e) => setCustomerData({ ...customerData, cardCVV: e.target.value })}
-                          maxLength={4}
-                          className="h-12 mt-2 bg-gray-100 border-gray-300 placeholder:text-gray-500"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700 flex items-start gap-2 mt-6">
-                    <Lock className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                    <p>Your payment information is encrypted and secure</p>
-                  </div>
-                </Card>
-              )}
             </div>
 
             <div className="lg:col-span-1">
@@ -3132,102 +3104,22 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                   </div>
                 </div>
 
-                {/* Payment Method Selector */}
-                <div className="mb-6 space-y-3">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Choose Payment Method:</h4>
-                  
-                  {/* Checkout Sessions - Recommended */}
-                  <button
-                    onClick={() => setPaymentMethod('checkout')}
-                    className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
-                      paymentMethod === 'checkout'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                          paymentMethod === 'checkout' ? 'border-blue-500' : 'border-gray-300'
-                        }`}>
-                          {paymentMethod === 'checkout' && (
-                            <div className="w-2 h-2 rounded-full bg-blue-500" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="font-medium text-sm text-gray-900">
-                            Secure Checkout <span className="text-xs text-blue-600">(Recommended)</span>
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            Apple Pay, Google Pay, Cards
-                          </div>
-                        </div>
-                      </div>
-                      <Shield className="w-4 h-4 text-green-500" />
+                {/* Payment Method Info - Stripe Checkout Only */}
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Shield className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="text-sm font-semibold text-blue-900 mb-1">Secure Payment via Stripe</h4>
+                      <p className="text-xs text-blue-700 mb-2">
+                        You'll be redirected to Stripe's secure checkout page to complete your payment.
+                      </p>
+                      <ul className="text-xs text-blue-600 space-y-1">
+                        <li>✓ Apple Pay, Google Pay, and all major cards</li>
+                        <li>✓ Bank-level encryption and security</li>
+                        <li>✓ Instant booking confirmation</li>
+                      </ul>
                     </div>
-                  </button>
-
-                  {/* Payment Link */}
-                  <button
-                    onClick={() => setPaymentMethod('payment-link')}
-                    className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
-                      paymentMethod === 'payment-link'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                          paymentMethod === 'payment-link' ? 'border-blue-500' : 'border-gray-300'
-                        }`}>
-                          {paymentMethod === 'payment-link' && (
-                            <div className="w-2 h-2 rounded-full bg-blue-500" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="font-medium text-sm text-gray-900">
-                            Pay Later
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            Receive email with payment link
-                          </div>
-                        </div>
-                      </div>
-                      <Mail className="w-4 h-4 text-gray-400" />
-                    </div>
-                  </button>
-
-                  {/* Embedded Payment */}
-                  <button
-                    onClick={() => setPaymentMethod('embedded')}
-                    className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
-                      paymentMethod === 'embedded'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                          paymentMethod === 'embedded' ? 'border-blue-500' : 'border-gray-300'
-                        }`}>
-                          {paymentMethod === 'embedded' && (
-                            <div className="w-2 h-2 rounded-full bg-blue-500" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="font-medium text-sm text-gray-900">
-                            Pay Here
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            Enter card details on this page
-                          </div>
-                        </div>
-                      </div>
-                      <Lock className="w-4 h-4 text-gray-400" />
-                    </div>
-                  </button>
+                  </div>
                 </div>
 
                 <Button
@@ -3244,9 +3136,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                   ) : (
                     <>
                       <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                      {paymentMethod === 'checkout' ? 'Go to Secure Checkout' : 
-                       paymentMethod === 'payment-link' ? 'Create Booking' : 
-                       'Complete Payment'} ${totalPrice}
+                      Go to Secure Checkout ${totalPrice}
                     </>
                   )}
                 </Button>

@@ -4,10 +4,11 @@
  * Middleware for protecting routes and validating user sessions
  */
 
-import type { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 
 /**
  * Extended Request type with user information
+ * Explicitly includes all Express Request properties
  */
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -16,6 +17,10 @@ export interface AuthenticatedRequest extends Request {
     role: string;
     organizationId: string;
   };
+  body: any;
+  params: any;
+  query: any;
+  headers: any;
 }
 
 /**

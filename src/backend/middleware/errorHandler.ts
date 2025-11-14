@@ -4,7 +4,7 @@
  * Global error handling for Express/Hono applications
  */
 
-import type { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 
 /**
  * Custom error class with status code

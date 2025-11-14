@@ -137,7 +137,7 @@ export class CheckoutService {
       // Create Checkout Session
       const session = await this.createCheckoutSession({
         priceId: params.priceId,
-        quantity: 1,
+        quantity: params.partySize, // Use party size as quantity for correct total
         customerEmail: params.customer.email,
         customerName: `${params.customer.firstName} ${params.customer.lastName}`,
         successUrl: params.successUrl,
@@ -146,6 +146,7 @@ export class CheckoutService {
           booking_id: booking.id,
           game_id: params.gameId,
           venue_id: params.venueId,
+          party_size: params.partySize.toString(),
         },
       });
 
@@ -214,11 +215,12 @@ export class CheckoutService {
       // Create Payment Link
       const paymentLink = await this.createPaymentLink({
         priceId: params.priceId,
-        quantity: 1,
+        quantity: params.partySize, // Use party size as quantity for correct total
         metadata: {
           booking_id: booking.id,
           game_id: params.gameId,
           venue_id: params.venueId,
+          party_size: params.partySize.toString(),
         },
       });
 

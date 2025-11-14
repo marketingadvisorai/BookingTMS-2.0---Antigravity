@@ -1,7 +1,7 @@
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Download } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface DownloadTestPageProps {
   embedUrl: string;
@@ -143,20 +143,20 @@ export function DownloadTestPage({
   };
 
   return (
-    <Card className="border-gray-200 dark:border-[#2a2a2a]">
-      <CardHeader className="p-4">
-        <CardTitle className="text-base">Download Test Page</CardTitle>
+    <Card className="border-gray-200 dark:border-[#2a2a2a] w-full">
+      <CardHeader className="p-2 sm:p-3 md:p-4">
+        <CardTitle className="text-sm sm:text-base">Download Test Page</CardTitle>
       </CardHeader>
-      <CardContent className="p-4 pt-0 space-y-3">
-        <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-          Download a ready-to-use HTML test page to test the widget locally on your computer before deploying to your website.
+      <CardContent className="p-2 sm:p-3 md:p-4 pt-0 space-y-3 sm:space-y-4">
+        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+          Download a ready-to-use HTML test page to verify the widget locally on different devices before deploying it to your website.
         </p>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
           <Button
             variant="outline"
             onClick={() => handleDownload('iframe')}
-            className="w-full h-10 text-sm"
+            className="w-full h-10 sm:h-11 text-xs sm:text-sm"
           >
             <Download className="w-4 h-4 mr-2" />
             Download iFrame Test
@@ -164,20 +164,20 @@ export function DownloadTestPage({
           <Button
             variant="outline"
             onClick={() => handleDownload('script')}
-            className="w-full h-10 text-sm"
+            className="w-full h-10 sm:h-11 text-xs sm:text-sm"
           >
             <Download className="w-4 h-4 mr-2" />
             Download Script Test
           </Button>
         </div>
 
-        <div className="bg-gray-50 dark:bg-[#1e1e1e] rounded-lg p-3 text-xs text-gray-600 dark:text-gray-400">
+        <div className="bg-gray-50 dark:bg-[#1e1e1e] rounded-lg p-3 sm:p-4 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
           <p className="font-medium text-gray-900 dark:text-white mb-1">How to use:</p>
-          <ol className="list-decimal list-inside space-y-1 ml-2">
+          <ol className="list-decimal list-inside space-y-1 sm:space-y-1.5 ml-3">
             <li>Download the test HTML file</li>
-            <li>Open the file in your web browser</li>
-            <li>Test all functionality before deploying</li>
-            <li>Make sure everything works as expected</li>
+            <li>Open the file in your preferred browser</li>
+            <li>Test all widget interactions before deployment</li>
+            <li>Confirm everything works as expected</li>
           </ol>
         </div>
       </CardContent>

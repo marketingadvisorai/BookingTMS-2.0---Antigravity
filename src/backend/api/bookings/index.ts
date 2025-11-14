@@ -4,12 +4,12 @@
  * Handles all booking-related API endpoints
  */
 
-import type { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { BookingService } from '../../services/BookingService';
 import { supabase } from '../../config/supabase';
 import { asyncHandler } from '../../middleware/errorHandler';
 import { ValidationError, NotFoundError } from '../../middleware/errorHandler';
-import type { AuthenticatedRequest } from '../../middleware/auth';
+import { AuthenticatedRequest } from '../../middleware/auth';
 import type { CreateBookingDTO, UpdateBookingDTO, BookingFilters } from '../../models/Booking';
 
 const bookingService = new BookingService(supabase);
@@ -25,7 +25,7 @@ export const listBookings = asyncHandler(
     }
 
     const filters: BookingFilters = {
-      status: req.query.status as string | undefined,
+      status: req.query.status as any,
       payment_status: req.query.payment_status as any,
       date: req.query.date as string | undefined,
       date_from: req.query.date_from as string | undefined,

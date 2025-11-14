@@ -12,7 +12,11 @@ import { StripeProductService } from '../lib/stripe/stripeProductService';
 
 export interface Game {
   id: string;
+  organization_id?: string;
+  organization_name?: string;
   venue_id: string;
+  venue_name?: string;
+  calendar_id?: string;
   name: string;
   description: string;
   difficulty: 'Easy' | 'Medium' | 'Hard' | 'Expert';
@@ -29,8 +33,17 @@ export interface Game {
   // Stripe integration fields
   stripe_product_id?: string;
   stripe_price_id?: string;
+  stripe_prices?: any[];
+  stripe_checkout_url?: string;
   stripe_sync_status?: string;
   stripe_last_sync?: string;
+  stripe_metadata?: Record<string, any>;
+  price_lookup_key?: string;
+  active_price_id?: string;
+  price_history?: any[];
+  // Pricing tiers (will be fetched separately)
+  pricing_tiers?: any[];
+  child_price?: number; // Backwards compatibility
 }
 
 export function useGames(venueId?: string) {
@@ -81,6 +94,7 @@ export function useGames(venueId?: string) {
   const createGame = async (gameData: Omit<Game, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
     let stripeProductId: string | null = null;
     let stripePriceId: string | null = null;
+    let venueData: any = null; // Store venue data for later use
     
     try {
       console.log('useGames.createGame called with:', gameData);
@@ -91,33 +105,67 @@ export function useGames(venueId?: string) {
         throw new Error('Venue ID is required to create a game');
       }
       
-      // Step 1: Try to create Stripe Product and Price (non-blocking)
-      try {
-        console.log('Attempting to create Stripe product and price...');
-        toast.loading('Creating payment product...', { id: 'stripe-create' });
-        
-        const { productId, priceId } = await StripeProductService.createProductAndPrice({
-          name: gameData.name,
-          description: gameData.description || `${gameData.name} - ${gameData.duration} minutes`,
-          price: gameData.price,
-          currency: 'usd',
-          metadata: {
-            venue_id: gameData.venue_id,
-            duration: gameData.duration.toString(),
-            difficulty: gameData.difficulty,
-            image_url: gameData.image_url || '',
-          },
+      // Fetch venue data early (needed for both Stripe and pricing tiers)
+      const { data: fetchedVenueData } = await supabase
+        .from('venues')
+        .select('organization_id, organization_name, name, id')
+        .eq('id', gameData.venue_id)
+        .single();
+      
+      venueData = fetchedVenueData;
+      
+      // Step 1: Only create Stripe product if price is set and Stripe was configured in wizard
+      // Check if Stripe IDs already exist from wizard (Step 6)
+      if (gameData.stripe_product_id && gameData.stripe_price_id) {
+        console.log('Using Stripe IDs from wizard:', {
+          productId: gameData.stripe_product_id,
+          priceId: gameData.stripe_price_id,
         });
-        
-        stripeProductId = productId;
-        stripePriceId = priceId;
-        console.log('Stripe product created:', productId, 'price:', priceId);
-        toast.success('Payment product created!', { id: 'stripe-create' });
-      } catch (stripeError: any) {
-        console.warn('Stripe product creation failed (non-blocking):', stripeError);
-        toast.dismiss('stripe-create');
-        toast.warning('Game will be created without payment integration. You can add it later.');
-        // Continue without Stripe - not critical for game creation
+        stripeProductId = gameData.stripe_product_id;
+        stripePriceId = gameData.stripe_price_id;
+      } else if (gameData.price && gameData.price > 0) {
+        // Only auto-create if there's a price but no Stripe IDs
+        try {
+          console.log('Attempting to auto-create Stripe product and price...');
+          toast.loading('Creating payment product...', { id: 'stripe-create' });
+          
+          // Generate lookup key for this game
+          const lookupKey = `${venueData?.organization_id || 'org'}_${gameData.venue_id}_${Date.now()}_default`
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]/g, '_')
+            .substring(0, 250);
+          
+          const { productId, priceId } = await StripeProductService.createProductAndPrice({
+            name: gameData.name,
+            description: gameData.description || `${gameData.name} - ${gameData.duration} minutes`,
+            price: gameData.price,
+            currency: 'usd',
+            metadata: {
+              game_name: gameData.name,
+              venue_id: gameData.venue_id,
+              venue_name: venueData?.name || '',
+              organization_id: venueData?.organization_id || '',
+              organization_name: venueData?.organization_name || '',
+              duration: gameData.duration.toString(),
+              difficulty: gameData.difficulty,
+              image_url: gameData.image_url || '',
+              lookup_key: lookupKey,
+            },
+          });
+          
+          stripeProductId = productId;
+          stripePriceId = priceId;
+          console.log('Stripe product created:', productId, 'price:', priceId);
+          toast.success('Payment product created!', { id: 'stripe-create' });
+        } catch (stripeError: any) {
+          console.warn('Stripe product creation failed (non-blocking):', stripeError);
+          toast.dismiss('stripe-create');
+          // Don't show warning toast - just continue without Stripe
+          console.log('Continuing without Stripe integration');
+          // Continue without Stripe - not critical for game creation
+        }
+      } else {
+        console.log('No price set or Stripe not configured - skipping Stripe product creation');
       }
       
       // Step 2: Get Supabase session
@@ -136,8 +184,10 @@ export function useGames(venueId?: string) {
         created_by: userId,
         stripe_product_id: stripeProductId,
         stripe_price_id: stripePriceId,
+        active_price_id: stripePriceId,
         stripe_sync_status: stripeProductId ? 'synced' : 'pending',
         stripe_last_sync: stripeProductId ? new Date().toISOString() : null,
+        // price_lookup_key will be auto-generated by database trigger
       };
 
       console.log('Inserting game data:', insertData);
@@ -158,7 +208,32 @@ export function useGames(venueId?: string) {
         throw insertError;
       }
 
-      // Step 4: Update Stripe product metadata with game ID (if Stripe was created)
+      // Step 4: Create default pricing tiers
+      try {
+        const childPrice = (gameData as any).child_price || (gameData as any).childPrice;
+        if (childPrice && childPrice > 0) {
+          console.log('Creating pricing tiers:', { adultPrice: gameData.price, childPrice });
+          
+          // Call Supabase function to create pricing tiers
+          const { data: tiersData, error: tiersError } = await supabase
+            .rpc('create_default_pricing_tiers', {
+              p_game_id: data.id,
+              p_organization_id: venueData?.organization_id,
+              p_adult_price: gameData.price,
+              p_child_price: childPrice
+            });
+          
+          if (tiersError) {
+            console.warn('Failed to create pricing tiers (non-critical):', tiersError);
+          } else {
+            console.log('Pricing tiers created:', tiersData);
+          }
+        }
+      } catch (tiersError) {
+        console.warn('Error creating pricing tiers (non-critical):', tiersError);
+      }
+
+      // Step 5: Update Stripe product metadata with game ID (if Stripe was created)
       if (stripeProductId) {
         try {
           console.log('Updating Stripe product with game ID:', data.id);
@@ -172,7 +247,10 @@ export function useGames(venueId?: string) {
 
       console.log('Game created successfully in database:', data);
       toast.success(stripeProductId ? 'Game created and ready for payments!' : 'Game created successfully!');
-      await fetchGames(); // Refresh list
+      
+      // Force refresh the games list (don't show toast to avoid duplicate messages)
+      await fetchGames(false);
+      
       return data;
     } catch (err: any) {
       console.error('Error creating game:', {
@@ -228,17 +306,31 @@ export function useGames(venueId?: string) {
           });
         }
 
-        // Create new price if price changed (prices are immutable in Stripe)
+        // Create new price if price changed (use lookup key for seamless updates)
         if (updates.price && StripeProductService.priceHasChanged(currentGame.price, updates.price)) {
-          const newPriceId = await StripeProductService.createPrice(
-            currentGame.stripe_product_id,
-            {
-              amount: updates.price,
-              currency: 'usd',
-            }
-          );
-          updates.stripe_price_id = newPriceId;
-          console.log('New Stripe price created:', newPriceId);
+          if (currentGame.price_lookup_key) {
+            // Use lookup key to update price
+            const newPriceId = await StripeProductService.updatePriceByLookupKey(
+              currentGame.price_lookup_key,
+              updates.price,
+              currentGame.stripe_product_id
+            );
+            updates.stripe_price_id = newPriceId;
+            updates.active_price_id = newPriceId;
+            console.log('Price updated via lookup key:', newPriceId);
+          } else {
+            // Fallback: create new price without lookup key
+            const newPriceId = await StripeProductService.createPrice(
+              currentGame.stripe_product_id,
+              {
+                amount: updates.price,
+                currency: 'usd',
+              }
+            );
+            updates.stripe_price_id = newPriceId;
+            updates.active_price_id = newPriceId;
+            console.log('New Stripe price created (no lookup key):', newPriceId);
+          }
         }
 
         updates.stripe_sync_status = 'synced';
@@ -269,18 +361,49 @@ export function useGames(venueId?: string) {
   // Delete game
   const deleteGame = async (id: string) => {
     try {
+      // First check if there are any bookings for this game
+      const { data: bookings, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('game_id', id)
+        .limit(1);
+
+      if (bookingsError) {
+        console.error('Error checking bookings:', bookingsError);
+      }
+
+      if (bookings && bookings.length > 0) {
+        toast.error('Cannot delete game with existing bookings. Please cancel all bookings first or archive the game instead.', {
+          duration: 5000,
+        });
+        throw new Error('Game has existing bookings');
+      }
+
+      // If no bookings, proceed with deletion
       const { error: deleteError } = await supabase
         .from('games')
         .delete()
         .eq('id', id);
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        // Handle foreign key constraint error with user-friendly message
+        if (deleteError.code === '23503') {
+          toast.error('Cannot delete game with existing bookings. Please cancel all bookings first or archive the game instead.', {
+            duration: 5000,
+          });
+        } else {
+          throw deleteError;
+        }
+        throw deleteError;
+      }
 
       toast.success('Game deleted successfully!');
       await fetchGames(); // Refresh list
     } catch (err: any) {
       console.error('Error deleting game:', err);
-      toast.error(err.message || 'Failed to delete game');
+      if (err.message !== 'Game has existing bookings' && err.code !== '23503') {
+        toast.error(err.message || 'Failed to delete game');
+      }
       throw err;
     }
   };

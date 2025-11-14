@@ -389,7 +389,9 @@ export class BookingService {
    */
   private async sendBookingConfirmation(booking: Booking): Promise<void> {
     // TODO: Implement email sending with SendGrid
-    console.log('Sending booking confirmation to:', booking.customer.email);
+    if (booking.customer) {
+      console.log('Sending booking confirmation to:', booking.customer.email);
+    }
   }
 
   /**
@@ -397,7 +399,9 @@ export class BookingService {
    */
   private async sendBookingModification(booking: Booking): Promise<void> {
     // TODO: Implement email sending with SendGrid
-    console.log('Sending booking modification to:', booking.customer.email);
+    if (booking.customer) {
+      console.log('Sending booking modification to:', booking.customer.email);
+    }
   }
 
   /**
@@ -405,7 +409,9 @@ export class BookingService {
    */
   private async sendBookingCancellation(booking: Booking): Promise<void> {
     // TODO: Implement email sending with SendGrid
-    console.log('Sending booking cancellation to:', booking.customer.email);
+    if (booking.customer) {
+      console.log('Sending booking cancellation to:', booking.customer.email);
+    }
   }
 
   /**
@@ -416,7 +422,7 @@ export class BookingService {
     action: 'created' | 'updated' | 'cancelled'
   ): Promise<void> {
     const messages = {
-      created: `New booking ${booking.booking_number} for ${booking.game.name}`,
+      created: `New booking ${booking.booking_number} for ${booking.game?.name || 'game'}`,
       updated: `Booking ${booking.booking_number} has been updated`,
       cancelled: `Booking ${booking.booking_number} has been cancelled`,
     };

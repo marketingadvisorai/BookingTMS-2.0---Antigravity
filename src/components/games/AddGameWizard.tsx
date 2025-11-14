@@ -38,9 +38,11 @@ import {
   CalendarDays,
   Trash2,
   Copy,
-  ExternalLink
+  ExternalLink,
+  CreditCard
 } from 'lucide-react';
 import { toast } from 'sonner';
+import Step6PaymentSettings from './steps/Step6PaymentSettings';
 
 interface EmbedContext {
   embedKey?: string;
@@ -148,7 +150,17 @@ interface GameData {
   }>;
   blockedDates: string[];
   
-  // Step 6: Additional Settings
+  // Step 6: Payment Settings
+  stripeProductId?: string;
+  stripePriceId?: string;
+  stripePrices?: any[];
+  stripeCheckoutUrl?: string;
+  stripeSyncStatus?: 'not_synced' | 'pending' | 'synced' | 'error';
+  stripeLastSync?: string;
+  checkoutEnabled?: boolean;
+  checkoutConnectedAt?: string;
+  
+  // Step 7: Additional Settings
   requiresWaiver: boolean;
   selectedWaiver: {
     id: string;
@@ -166,8 +178,9 @@ const STEPS = [
   { id: 3, name: 'Game Details', icon: Sparkles },
   { id: 4, name: 'Media Upload', icon: ImageIcon },
   { id: 5, name: 'Schedule', icon: Calendar },
-  { id: 6, name: 'Widget & Embed', icon: CalendarDays },
-  { id: 7, name: 'Review & Publish', icon: Check }
+  { id: 6, name: 'Payment Settings', icon: CreditCard },
+  { id: 7, name: 'Widget & Embed', icon: CalendarDays },
+  { id: 8, name: 'Review & Publish', icon: Check }
 ];
 
 const CATEGORIES = [
@@ -411,7 +424,7 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
       });
       
       // Call onComplete which handles Supabase and Stripe creation
-      const result = await onComplete(gameData);
+      const result: any = await onComplete(gameData);
       
       // Stage 3: Saving to database
       setCreationStatus({
@@ -469,9 +482,16 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
       case 5:
         return <Step5Schedule gameData={gameData} updateGameData={updateGameData} />;
       case 6:
-        return <Step6WidgetEmbed gameData={gameData} updateGameData={updateGameData} theme={theme} embedContext={embedContext} />;
+        return <Step6PaymentSettings 
+          gameData={gameData} 
+          onUpdate={(data) => setGameData(data)} 
+          onNext={() => setCurrentStep(7)} 
+          onPrevious={() => setCurrentStep(5)} 
+        />;
       case 7:
-        return <Step7Review gameData={gameData} />;
+        return <Step7WidgetEmbed gameData={gameData} updateGameData={updateGameData} theme={theme} embedContext={embedContext} />;
+      case 8:
+        return <Step8Review gameData={gameData} />;
       default:
         return null;
     }
@@ -649,14 +669,18 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
             
             return (
               <React.Fragment key={step.id}>
-                <div className="flex flex-col items-center">
+                <button
+                  onClick={() => setCurrentStep(step.id)}
+                  className="flex flex-col items-center group cursor-pointer"
+                  title={`Go to ${step.name}`}
+                >
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                       isCompleted
-                        ? 'bg-green-600 dark:bg-emerald-600 text-white'
+                        ? 'bg-green-600 dark:bg-emerald-600 text-white group-hover:bg-green-700 dark:group-hover:bg-emerald-700'
                         : isCurrent
                         ? 'bg-blue-600 dark:bg-[#4f46e5] text-white'
-                        : 'bg-gray-200 dark:bg-[#2a2a2a] text-gray-500 dark:text-[#737373]'
+                        : 'bg-gray-200 dark:bg-[#2a2a2a] text-gray-500 dark:text-[#737373] group-hover:bg-gray-300 dark:group-hover:bg-[#3a3a3a]'
                     }`}
                   >
                     {isCompleted ? (
@@ -666,13 +690,15 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
                     )}
                   </div>
                   <span
-                    className={`text-xs mt-2 hidden md:block ${
-                      isCurrent ? 'text-blue-600 dark:text-[#6366f1]' : 'text-gray-500 dark:text-[#737373]'
+                    className={`text-xs mt-2 hidden md:block transition-colors ${
+                      isCurrent 
+                        ? 'text-blue-600 dark:text-[#6366f1]' 
+                        : 'text-gray-500 dark:text-[#737373] group-hover:text-gray-700 dark:group-hover:text-[#a3a3a3]'
                     }`}
                   >
                     {step.name}
                   </span>
-                </div>
+                </button>
                 {index < STEPS.length - 1 && (
                   <div
                     className={`flex-1 h-0.5 mx-2 ${
@@ -2788,8 +2814,8 @@ function Step5Schedule({ gameData, updateGameData }: any) {
   );
 }
 
-// Step 6: Widget & Embed
-function Step6WidgetEmbed({ gameData, updateGameData, theme, embedContext }: any) {
+// Step 7: Widget & Embed
+function Step7WidgetEmbed({ gameData, updateGameData, theme, embedContext }: any) {
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -3304,8 +3330,8 @@ Alternative: Use a shortcode plugin
   );
 }
 
-// Step 7: Review & Publish
-function Step7Review({ gameData }: any) {
+// Step 8: Review & Publish
+function Step8Review({ gameData }: any) {
   // Validation function
   const validateGameData = () => {
     const errors: string[] = [];
@@ -3330,6 +3356,12 @@ function Step7Review({ gameData }: any) {
     if (!gameData.maxAdults || gameData.maxAdults < gameData.minAdults) {
       errors.push('Maximum adults must be greater than or equal to minimum');
     }
+
+    // Payment Settings validation (optional but recommended)
+    if (!gameData.stripeProductId || !gameData.stripePriceId) {
+      warnings.push('Payment settings not configured - Go to Step 6 to create or link a Stripe product for online payments');
+    }
+    // Note: Checkout is automatically enabled when Stripe product exists
 
     // Optional but recommended fields
     if (!gameData.coverImage) {
@@ -3478,26 +3510,74 @@ function Step7Review({ gameData }: any) {
 
       {/* Validation Status */}
       {validation.errors.length > 0 ? (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <X className="w-5 h-5 text-red-600" />
+        <>
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <X className="w-5 h-5 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-red-900 font-semibold mb-2">Cannot publish - please complete the following:</p>
+                  <ul className="space-y-1">
+                    {validation.errors.map((error, index) => (
+                      <li key={index} className="text-sm text-red-700 flex items-start gap-2">
+                        <span className="text-red-500 mt-0.5">•</span>
+                        <span>{error}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-red-900 mb-2">Cannot publish - please fix the following errors:</p>
-                <ul className="space-y-1">
-                  {validation.errors.map((error, index) => (
-                    <li key={index} className="text-sm text-red-700 flex items-start gap-2">
-                      <span className="text-red-500 mt-0.5">•</span>
-                      <span>{error}</span>
-                    </li>
-                  ))}
-                </ul>
+            </CardContent>
+          </Card>
+
+          {/* To-Do List */}
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-blue-900 font-semibold mb-3">To-Do List:</p>
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2">
+                      <Check className={`w-4 h-4 mt-0.5 ${gameData.name ? 'text-green-500' : 'text-gray-300'}`} />
+                      <span className={`text-sm ${gameData.name ? 'text-green-700 line-through' : 'text-blue-700'}`}>
+                        Set game name and description
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Check className={`w-4 h-4 mt-0.5 ${gameData.adultPrice > 0 ? 'text-green-500' : 'text-gray-300'}`} />
+                      <span className={`text-sm ${gameData.adultPrice > 0 ? 'text-green-700 line-through' : 'text-blue-700'}`}>
+                        Configure pricing in Step 2
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Check className={`w-4 h-4 mt-0.5 ${gameData.duration > 0 ? 'text-green-500' : 'text-gray-300'}`} />
+                      <span className={`text-sm ${gameData.duration > 0 ? 'text-green-700 line-through' : 'text-blue-700'}`}>
+                        Set game duration in Step 3
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Check className={`w-4 h-4 mt-0.5 ${gameData.operatingDays?.length > 0 ? 'text-green-500' : 'text-gray-300'}`} />
+                      <span className={`text-sm ${gameData.operatingDays?.length > 0 ? 'text-green-700 line-through' : 'text-blue-700'}`}>
+                        Select operating days in Step 5
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Check className={`w-4 h-4 mt-0.5 ${gameData.stripeProductId ? 'text-green-500' : 'text-gray-300'}`} />
+                      <span className={`text-sm ${gameData.stripeProductId ? 'text-green-700 line-through' : 'text-blue-700'}`}>
+                        Configure payment settings in Step 6 (Recommended for online payments)
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </>
       ) : (
         <>
           {validation.warnings.length > 0 && (

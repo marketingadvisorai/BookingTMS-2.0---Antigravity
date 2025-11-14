@@ -231,7 +231,8 @@ export function WidgetPaymentSettingsModal({
       });
 
       // Update database
-      const { error } = await (supabase
+      // @ts-ignore - Supabase type inference issue
+      const { error } = await supabase
         .from('games')
         .update({
           stripe_product_id: productId || null,
@@ -239,7 +240,7 @@ export function WidgetPaymentSettingsModal({
           stripe_checkout_url: checkoutUrl || null,
           stripe_sync_status: 'synced',
           stripe_last_sync: new Date().toISOString(),
-        }) as any)
+        })
         .eq('id', selectedGame.id);
 
       if (error) {
@@ -332,425 +333,305 @@ export function WidgetPaymentSettingsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="!w-[95vw] !max-w-[2000px] !h-[90vh] !max-h-[90vh] md:!h-[90vh] lg:!h-[90vh] p-0 overflow-hidden flex flex-col">
-        <DialogHeader className="px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-200 dark:border-[#2a2a2a] flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
-            <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
-            Widget Payment Settings
-          </DialogTitle>
-          <DialogDescription className="text-sm sm:text-base">
-            Manage Stripe payment configurations for all games in this widget
-          </DialogDescription>
+      <DialogContent className="!w-[95vw] !max-w-[500px] !h-[95vh] !max-h-[95vh] sm:!w-[92vw] sm:!max-w-[800px] sm:!h-[92vh] md:!w-[90vw] md:!max-w-[1200px] md:!h-[90vh] lg:!w-[85vw] lg:!max-w-[2000px] lg:!h-[88vh] xl:!w-[80vw] xl:!max-w-[2000px] xl:!h-[85vh] p-0 overflow-hidden flex flex-col !rounded-lg">
+        <DialogHeader className="px-4 py-4 sm:px-6 sm:py-5 border-b border-gray-200 dark:border-[#2a2a2a] flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg sm:text-xl lg:text-2xl font-semibold">
+                  Stripe Payment Settings
+                </DialogTitle>
+                <DialogDescription className="text-sm sm:text-base">
+                  Manage Stripe payment configurations for all games in this widget
+                </DialogDescription>
+              </div>
+            </div>
+          </div>
         </DialogHeader>
+
+        {/* Provider Tabs */}
+        <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-200 dark:border-[#2a2a2a] flex-shrink-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-gray-600 dark:text-gray-400 mr-2">Provider:</span>
+            
+            {/* Stripe - Active */}
+            <Button
+              variant="default"
+              size="sm"
+              className="gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
+            >
+              <span>Stripe</span>
+              <Badge variant="secondary" className="bg-green-600 text-white text-xs">Active</Badge>
+            </Button>
+            
+            {/* PayPal - Coming Soon */}
+            <Button variant="outline" size="sm" className="gap-2" disabled>
+              <span>PayPal</span>
+              <Badge variant="outline" className="text-xs">Coming Soon</Badge>
+            </Button>
+            
+            {/* 2Checkout - Coming Soon */}
+            <Button variant="outline" size="sm" className="gap-2" disabled>
+              <span>2Checkout</span>
+              <Badge variant="outline" className="text-xs">Coming Soon</Badge>
+            </Button>
+          </div>
+        </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
           {/* Stats Bar */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 mb-4 sm:mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
             <Card className="border-gray-200 dark:border-[#2a2a2a]">
-              <CardContent className="p-2 sm:p-3 md:p-4">
-                <div className="flex flex-col sm:flex-row items-center sm:gap-3 text-center sm:text-left">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mb-1 sm:mb-0">
-                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                    <CreditCard className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{games.length}</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground dark:text-[#737373]">Total</p>
+                  <div>
+                    <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{games.length}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Total Games</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card className="border-gray-200 dark:border-[#2a2a2a]">
-              <CardContent className="p-2 sm:p-3 md:p-4">
-                <div className="flex flex-col sm:flex-row items-center sm:gap-3 text-center sm:text-left">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 mb-1 sm:mb-0">
-                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" />
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7 text-green-600 dark:text-green-400" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{configuredGamesCount}</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground dark:text-[#737373]">Configured</p>
+                  <div>
+                    <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{configuredGamesCount}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Configured</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card className="border-gray-200 dark:border-[#2a2a2a]">
-              <CardContent className="p-2 sm:p-3 md:p-4">
-                <div className="flex flex-col sm:flex-row items-center sm:gap-3 text-center sm:text-left">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 mb-1 sm:mb-0">
-                    <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-amber-600 dark:text-amber-400" />
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7 text-orange-600 dark:text-orange-400" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{games.length - configuredGamesCount}</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground dark:text-[#737373]">Pending</p>
+                  <div>
+                    <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{games.length - configuredGamesCount}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Pending</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-4 mb-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSyncAllGames}
-              disabled={isSyncing}
-              className="gap-2 w-full sm:w-auto"
-            >
-              {isSyncing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              <span className="text-xs sm:text-sm">Sync All from Database</span>
-            </Button>
-
-            <Badge variant="outline" className="text-xs text-center py-1.5 sm:py-0">
-              {configuredGamesCount} of {games.length} games configured
-            </Badge>
-          </div>
-
-          <Separator className="mb-4" />
-
-          {/* Games List and Details */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            {/* Left: Games List */}
-            <div className="col-span-1 lg:col-span-1">
-              <Card className="border-gray-200 dark:border-[#2a2a2a]">
-                <CardHeader className="pb-3 px-4 py-3 sm:px-6 sm:py-4">
-                  <CardTitle className="text-sm sm:text-base text-gray-900 dark:text-white">Games</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
-                    Select a game to manage
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <ScrollArea className="h-[300px] sm:h-[400px] lg:h-[500px]">
-                    <div className="space-y-1 p-3 pt-0 sm:p-4 sm:pt-0">
-                      {games.map((game) => {
-                        const isConfigured = !!(game.stripe_product_id || game.stripe_checkout_url);
-                        const isSelected = selectedGame?.id === game.id;
-
-                        return (
-                          <button
-                            key={game.id}
-                            onClick={() => {
-                              setSelectedGame(game);
-                              setActiveTab('overview');
-                            }}
-                            className={`w-full text-left p-3 sm:p-3 md:p-4 rounded-lg border transition-all min-h-[60px] sm:min-h-[64px] ${
-                              isSelected
-                                ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 shadow-sm'
-                                : 'hover:bg-gray-50 dark:hover:bg-[#2a2a2a] border-transparent dark:border-[#2a2a2a]'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-2 sm:gap-3">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm sm:text-base truncate text-gray-900 dark:text-white">{game.name}</p>
-                                <p className="text-xs sm:text-sm text-muted-foreground dark:text-[#737373] mt-0.5">
-                                  ${game.price.toFixed(2)}
-                                </p>
-                              </div>
-                              {isConfigured ? (
-                                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                              ) : (
-                                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
+          {/* Games Section Header */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Games</h3>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="text-xs">{configuredGamesCount} of {games.length} configured</Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSyncAllGames}
+                disabled={isSyncing}
+                className="gap-2"
+              >
+                {isSyncing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                <span className="hidden sm:inline">Sync All</span>
+              </Button>
             </div>
+          </div>
 
-            {/* Right: Game Details */}
-            <div className="col-span-1 lg:col-span-2">
-              {selectedGame ? (
-                <Card className="border-gray-200 dark:border-[#2a2a2a]">
-                  <CardHeader className="px-4 py-3 sm:px-6 sm:py-4">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                      <div>
-                        <CardTitle>{selectedGame.name}</CardTitle>
-                        <CardDescription className="mt-1">
-                          Manage Stripe payment configuration
-                        </CardDescription>
+          {/* Games Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 pb-6">
+            {games.map((game) => {
+              const isConfigured = !!(game.stripe_product_id || game.stripe_checkout_url);
+              
+              return (
+                <Card 
+                  key={game.id} 
+                  className="border-gray-200 dark:border-[#2a2a2a] hover:border-blue-300 dark:hover:border-blue-700 transition-colors cursor-pointer"
+                  onClick={() => {
+                    setSelectedGame(game);
+                    setActiveTab('overview');
+                  }}
+                >
+                  <CardContent className="p-4">
+                    {/* Game Header */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-base text-gray-900 dark:text-white">{game.name}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">${game.price.toFixed(2)}</p>
                       </div>
-                      {(selectedGame.stripe_product_id || selectedGame.stripe_checkout_url) && (
-                        <Badge className="bg-green-600">
-                          <Check className="w-3 h-3 mr-1" />
-                          Configured
-                        </Badge>
+                      {isConfigured ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0" />
                       )}
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Tabs value={activeTab} onValueChange={setActiveTab}>
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="overview">Overview</TabsTrigger>
-                        <TabsTrigger value="edit">Edit</TabsTrigger>
-                      </TabsList>
 
-                      {/* Overview Tab */}
-                      <TabsContent value="overview" className="space-y-4 mt-4">
-                        {/* Current Configuration */}
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm font-semibold">Current Configuration</Label>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleFetchFromDatabase(selectedGame.id)}
-                              disabled={isLoading}
-                              className="gap-2 h-8"
-                            >
-                              {isLoading ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Database className="w-3 h-3" />
-                              )}
-                              Refresh
-                            </Button>
-                          </div>
+                    {/* Configured Badge */}
+                    {isConfigured ? (
+                      <Badge className="bg-green-600 text-white mb-3">Configured</Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-orange-600 text-orange-600 mb-3">Pending</Badge>
+                    )}
 
-                          {selectedGame.stripe_product_id ? (
-                            <div className="space-y-3">
-                              <div className="space-y-1.5">
-                                <Label className="text-xs text-muted-foreground">Stripe Product ID</Label>
-                                <div className="flex items-center gap-2">
-                                  <Input
-                                    value={selectedGame.stripe_product_id}
-                                    readOnly
-                                    className="font-mono text-xs bg-muted"
-                                  />
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-9 w-9"
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(selectedGame.stripe_product_id!);
-                                      toast.success('Copied to clipboard');
-                                    }}
-                                  >
-                                    <Copy className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              </div>
+                    {/* Product ID */}
+                    {game.stripe_product_id && (
+                      <div className="space-y-1.5 mb-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Product ID</p>
+                        <p className="text-xs font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded truncate text-gray-900 dark:text-gray-100">
+                          {game.stripe_product_id}
+                        </p>
+                      </div>
+                    )}
 
-                              {selectedGame.stripe_price_id && (
-                                <div className="space-y-1.5">
-                                  <Label className="text-xs text-muted-foreground">Stripe Price ID</Label>
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      value={selectedGame.stripe_price_id}
-                                      readOnly
-                                      className="font-mono text-xs bg-muted"
-                                    />
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-9 w-9"
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(selectedGame.stripe_price_id!);
-                                        toast.success('Copied to clipboard');
-                                      }}
-                                    >
-                                      <Copy className="w-3 h-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
+                    {/* Price ID */}
+                    {game.stripe_price_id && (
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Price ID</p>
+                        <p className="text-xs font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded truncate text-gray-900 dark:text-gray-100">
+                          {game.stripe_price_id}
+                        </p>
+                      </div>
+                    )}
 
-                              {selectedGame.stripe_checkout_url && (
-                                <div className="space-y-1.5">
-                                  <Label className="text-xs text-muted-foreground">Checkout URL</Label>
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      value={selectedGame.stripe_checkout_url}
-                                      readOnly
-                                      className="font-mono text-xs bg-muted"
-                                    />
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-9 w-9"
-                                      onClick={() => window.open(selectedGame.stripe_checkout_url, '_blank')}
-                                    >
-                                      <ExternalLink className="w-3 h-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
+                    {/* Empty state for unconfigured */}
+                    {!isConfigured && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 italic mt-2">
+                        Click to configure payment
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
 
-                              {/* Available Prices */}
-                              {availablePrices.length > 0 && (
-                                <div className="space-y-2 mt-4">
-                                  <Label className="text-xs text-muted-foreground">
-                                    Available Prices ({availablePrices.length})
-                                  </Label>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    {availablePrices.map((price: any, index: number) => (
-                                      <div
-                                        key={price.priceId || index}
-                                        className="p-3 border rounded-lg bg-muted/50"
-                                      >
-                                        <div className="flex items-center justify-between mb-1">
-                                          <span className="font-semibold text-sm">
-                                            ${((price.unitAmount || 0) / 100).toFixed(2)}
-                                          </span>
-                                          <Badge variant="outline" className="text-xs">
-                                            {price.currency?.toUpperCase() || 'USD'}
-                                          </Badge>
-                                        </div>
-                                        {price.lookupKey && (
-                                          <p className="text-xs text-blue-600 truncate">
-                                            🔑 {price.lookupKey}
-                                          </p>
-                                        )}
-                                        <code className="text-xs text-muted-foreground block truncate mt-1">
-                                          {price.priceId}
-                                        </code>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
+          {/* Edit Modal for Selected Game */}
+          {selectedGame && (
+            <Dialog open={!!selectedGame} onOpenChange={() => setSelectedGame(null)}>
+              <DialogContent className="!w-[95vw] !max-w-[500px] sm:!max-w-[600px] md:!max-w-[700px]">
+                <DialogHeader>
+                  <DialogTitle>{selectedGame.name} - Payment Configuration</DialogTitle>
+                  <DialogDescription>
+                    Configure Stripe payment settings for this game
+                  </DialogDescription>
+                </DialogHeader>
 
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="edit">Edit</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="overview" className="space-y-4">
+                    <div className="space-y-3">
+                      {selectedGame.stripe_product_id ? (
+                        <>
+                          <div className="space-y-2">
+                            <Label className="text-sm">Product ID</Label>
+                            <div className="flex gap-2">
+                              <Input value={selectedGame.stripe_product_id} readOnly className="font-mono text-sm" />
                               <Button
                                 variant="outline"
-                                size="sm"
-                                onClick={() => handleFetchFromStripe(selectedGame.id, selectedGame.stripe_product_id!)}
-                                disabled={isLoading}
-                                className="w-full gap-2 mt-2"
+                                size="icon"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(selectedGame.stripe_product_id!);
+                                  toast.success('Copied!');
+                                }}
                               >
-                                {isLoading ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Zap className="w-4 h-4" />
-                                )}
-                                Fetch Latest from Stripe
+                                <Copy className="w-4 h-4" />
                               </Button>
                             </div>
-                          ) : (
-                            <Alert>
-                              <Info className="h-4 w-4" />
-                              <AlertDescription className="text-sm">
-                                No Stripe configuration found. Click "Edit" to add payment settings.
-                              </AlertDescription>
-                            </Alert>
+                          </div>
+
+                          {selectedGame.stripe_price_id && (
+                            <div className="space-y-2">
+                              <Label className="text-sm">Price ID</Label>
+                              <div className="flex gap-2">
+                                <Input value={selectedGame.stripe_price_id} readOnly className="font-mono text-sm" />
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(selectedGame.stripe_price_id!);
+                                    toast.success('Copied!');
+                                  }}
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
                           )}
-                        </div>
-                      </TabsContent>
-
-                      {/* Edit Tab */}
-                      <TabsContent value="edit" className="space-y-4 mt-4">
+                        </>
+                      ) : (
                         <Alert>
-                          <Settings className="h-4 w-4" />
-                          <AlertDescription className="text-xs">
-                            Enter Stripe Product ID, Price ID, or Checkout URL. At least one field is required.
-                          </AlertDescription>
+                          <Info className="h-4 w-4" />
+                          <AlertDescription>No configuration found. Use Edit tab to add settings.</AlertDescription>
                         </Alert>
+                      )}
+                    </div>
+                  </TabsContent>
 
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-product-id" className="text-sm">
-                              Stripe Product ID
-                            </Label>
-                            <Input
-                              id="edit-product-id"
-                              placeholder="prod_xxxxxxxxxxxxx"
-                              value={editProductId}
-                              onChange={(e) => setEditProductId(e.target.value)}
-                              className="font-mono text-sm"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Find this in your Stripe dashboard under Products
-                            </p>
-                          </div>
+                  <TabsContent value="edit" className="space-y-4">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-product-id">Stripe Product ID</Label>
+                        <Input
+                          id="edit-product-id"
+                          placeholder="prod_xxxxxxxxxxxxx"
+                          value={editProductId}
+                          onChange={(e) => setEditProductId(e.target.value)}
+                          className="font-mono"
+                        />
+                      </div>
 
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-price-id" className="text-sm">
-                              Stripe Price ID <span className="text-muted-foreground">(Optional)</span>
-                            </Label>
-                            <Input
-                              id="edit-price-id"
-                              placeholder="price_xxxxxxxxxxxxx"
-                              value={editPriceId}
-                              onChange={(e) => setEditPriceId(e.target.value)}
-                              className="font-mono text-sm"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Leave empty to fetch all prices automatically
-                            </p>
-                          </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-price-id">Stripe Price ID</Label>
+                        <Input
+                          id="edit-price-id"
+                          placeholder="price_xxxxxxxxxxxxx"
+                          value={editPriceId}
+                          onChange={(e) => setEditPriceId(e.target.value)}
+                          className="font-mono"
+                        />
+                      </div>
 
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-checkout-url" className="text-sm">
-                              Stripe Checkout URL <span className="text-muted-foreground">(Optional)</span>
-                            </Label>
-                            <Input
-                              id="edit-checkout-url"
-                              placeholder="https://buy.stripe.com/..."
-                              value={editCheckoutUrl}
-                              onChange={(e) => setEditCheckoutUrl(e.target.value)}
-                              className="font-mono text-sm"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Direct checkout link for customers
-                            </p>
-                          </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-checkout-url">Checkout URL (Optional)</Label>
+                        <Input
+                          id="edit-checkout-url"
+                          placeholder="https://buy.stripe.com/..."
+                          value={editCheckoutUrl}
+                          onChange={(e) => setEditCheckoutUrl(e.target.value)}
+                          className="font-mono"
+                        />
+                      </div>
 
-                          <Separator />
-
-                          <div className="flex gap-2">
-                            <Button
-                              onClick={handleSaveConfiguration}
-                              disabled={isSyncing}
-                              className="flex-1 gap-2"
-                            >
-                              {isSyncing ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                  Saving...
-                                </>
-                              ) : (
-                                <>
-                                  <Save className="w-4 h-4" />
-                                  Save Configuration
-                                </>
-                              )}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setEditProductId(selectedGame.stripe_product_id || '');
-                                setEditPriceId(selectedGame.stripe_price_id || '');
-                                setEditCheckoutUrl(selectedGame.stripe_checkout_url || '');
-                                setActiveTab('overview');
-                              }}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="h-full flex items-center justify-center">
-                  <CardContent className="text-center py-12">
-                    <DollarSign className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      Select a game from the list to manage its payment settings
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </div>
+                      <div className="flex gap-2 pt-4">
+                        <Button onClick={handleSaveConfiguration} disabled={isSyncing} className="flex-1">
+                          {isSyncing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                          Save
+                        </Button>
+                        <Button variant="outline" onClick={() => setSelectedGame(null)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </DialogContent>
     </Dialog>

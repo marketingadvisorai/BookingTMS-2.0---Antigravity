@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Step6PaymentSettings from './steps/Step6PaymentSettings';
+import { SupabaseStorageService } from '../../services/SupabaseStorageService';
 
 interface EmbedContext {
   embedKey?: string;
@@ -124,7 +125,9 @@ interface GameData {
   
   // Step 4: Media & Widget
   coverImage: string;
+  coverImagePath?: string; // Storage path for cleanup
   galleryImages: string[];
+  galleryImagePaths?: string[]; // Storage paths for cleanup
   videos: string[];
   selectedWidget: string;
   
@@ -262,7 +265,9 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
     accessibility: { strollerAccessible: false, wheelchairAccessible: false },
     location: '',
     coverImage: '',
+    coverImagePath: '',
     galleryImages: [],
+    galleryImagePaths: [],
     videos: [],
     selectedWidget: 'calendar-single-event',
     operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
@@ -320,7 +325,9 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
     accessibility: game.accessibility || { strollerAccessible: false, wheelchairAccessible: false },
     location: game.location || '',
     coverImage: game.coverImage || game.imageUrl || game.image || '',
+    coverImagePath: game.coverImagePath || game.cover_image_path || '',
     galleryImages: Array.isArray(game.galleryImages) ? game.galleryImages : [],
+    galleryImagePaths: Array.isArray(game.galleryImagePaths) ? game.galleryImagePaths : (Array.isArray(game.gallery_image_paths) ? game.gallery_image_paths : []),
     videos: Array.isArray(game.videos) ? game.videos : [],
     selectedWidget: game.selectedWidget || 'calendar-single-event',
     operatingDays: Array.isArray(game.operatingDays) ? game.operatingDays : ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
@@ -2079,38 +2086,11 @@ function WaiverSection({ gameData, updateGameData }: any) {
 // Step 4: Media Upload
 function Step4MediaUpload({ gameData, updateGameData }: any) {
   const [uploadType, setUploadType] = useState<'image' | 'video'>('image');
+  const [uploading, setUploading] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const [videoUrlInput, setVideoUrlInput] = useState('');
-
-  const readFileAsDataUrl = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (e) => reject(e);
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const resizeImageDataUrl = async (dataUrl: string, maxWidth = 1280, quality = 0.85): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(1, maxWidth / img.width);
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return reject(new Error('Canvas context not available'));
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const optimized = canvas.toDataURL('image/jpeg', quality);
-        resolve(optimized);
-      };
-      img.onerror = (e) => reject(e);
-      img.src = dataUrl;
-    });
-  };
 
   const handleCoverFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2119,15 +2099,37 @@ function Step4MediaUpload({ gameData, updateGameData }: any) {
       toast.error('Please select a valid image file');
       return;
     }
+    
     try {
-      const raw = await readFileAsDataUrl(file);
-      const optimized = await resizeImageDataUrl(raw);
-      updateGameData('coverImage', optimized);
-      toast.success('Cover image uploaded');
-    } catch (err) {
+      setUploading(true);
+      const toastId = 'cover-upload';
+      toast.loading('Uploading cover image...', { id: toastId });
+
+      // Upload to Supabase Storage
+      const result = await SupabaseStorageService.uploadImage(file, 'game-images', {
+        maxWidth: 1920,
+        maxHeight: 1080,
+        quality: 0.85,
+        folder: 'covers'
+      });
+
+      // Delete old cover if exists
+      if (gameData.coverImagePath) {
+        try {
+          await SupabaseStorageService.deleteFile('game-images', gameData.coverImagePath);
+        } catch (error) {
+          console.warn('Failed to delete old cover:', error);
+        }
+      }
+
+      updateGameData('coverImage', result.url);
+      updateGameData('coverImagePath', result.path);
+      toast.success('Cover image uploaded!', { id: toastId });
+    } catch (err: any) {
       console.error(err);
-      toast.error('Failed to process image');
+      toast.error(err.message || 'Failed to upload image', { id: 'cover-upload' });
     } finally {
+      setUploading(false);
       if (coverInputRef.current) coverInputRef.current.value = '';
     }
   };
@@ -2135,24 +2137,48 @@ function Step4MediaUpload({ gameData, updateGameData }: any) {
   const handleGalleryFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
+    
     try {
-      const results: string[] = [];
-      for (const file of files) {
-        if (!file.type.startsWith('image/')) continue;
-        const raw = await readFileAsDataUrl(file);
-        const optimized = await resizeImageDataUrl(raw);
-        results.push(optimized);
+      setUploading(true);
+      const toastId = 'gallery-upload';
+      toast.loading('Uploading gallery images...', { id: toastId });
+
+      // Filter valid image files
+      const imageFiles = files.filter(file => file.type.startsWith('image/'));
+      
+      if (!imageFiles.length) {
+        toast.error('No valid images selected', { id: toastId });
+        return;
       }
+
+      // Upload all images to Supabase Storage
+      const results = await SupabaseStorageService.uploadMultipleImages(
+        imageFiles,
+        'game-images',
+        {
+          maxWidth: 1920,
+          maxHeight: 1080,
+          quality: 0.85,
+          folder: 'gallery'
+        }
+      );
+
       if (results.length) {
-        updateGameData('galleryImages', [...gameData.galleryImages, ...results]);
-        toast.success(`${results.length} image(s) added to gallery`);
+        const newUrls = results.map(r => r.url);
+        const newPaths = results.map(r => r.path);
+        
+        updateGameData('galleryImages', [...gameData.galleryImages, ...newUrls]);
+        updateGameData('galleryImagePaths', [...(gameData.galleryImagePaths || []), ...newPaths]);
+        
+        toast.success(`${results.length} image(s) added to gallery!`, { id: toastId });
       } else {
-        toast.error('No valid images selected');
+        toast.error('Failed to upload images', { id: toastId });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error('Failed to process gallery images');
+      toast.error(err.message || 'Failed to process gallery images', { id: 'gallery-upload' });
     } finally {
+      setUploading(false);
       if (galleryInputRef.current) galleryInputRef.current.value = '';
     }
   };
@@ -2164,23 +2190,12 @@ function Step4MediaUpload({ gameData, updateGameData }: any) {
       toast.error('Please select a valid video file');
       return;
     }
-    // Guard against very large files for localStorage
-    const MAX_SIZE_MB = 8; // conservative limit
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      toast.error(`Video too large (> ${MAX_SIZE_MB}MB). Please use a URL instead.`);
-      if (videoInputRef.current) videoInputRef.current.value = '';
-      return;
-    }
-    try {
-      const dataUrl = await readFileAsDataUrl(file);
-      updateGameData('videos', [...gameData.videos, dataUrl]);
-      toast.success('Video uploaded');
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to upload video');
-    } finally {
-      if (videoInputRef.current) videoInputRef.current.value = '';
-    }
+    
+    // For videos, recommend using external URLs (YouTube, Vimeo) instead of uploading
+    // Large video files should not be stored in database or even storage
+    toast.info('For best performance, please use video URLs from YouTube or Vimeo instead of uploading files.');
+    
+    if (videoInputRef.current) videoInputRef.current.value = '';
   };
 
   const addVideoByUrl = () => {
@@ -2194,8 +2209,20 @@ function Step4MediaUpload({ gameData, updateGameData }: any) {
     toast.success('Video URL added');
   };
 
-  const removeGalleryImage = (index: number) => {
+  const removeGalleryImage = async (index: number) => {
+    // Delete from storage if it's a storage URL
+    const imagePath = gameData.galleryImagePaths?.[index];
+    if (imagePath) {
+      try {
+        await SupabaseStorageService.deleteFile('game-images', imagePath);
+      } catch (error) {
+        console.warn('Failed to delete image from storage:', error);
+      }
+    }
+
+    // Remove from arrays
     updateGameData('galleryImages', gameData.galleryImages.filter((_: any, i: number) => i !== index));
+    updateGameData('galleryImagePaths', (gameData.galleryImagePaths || []).filter((_: any, i: number) => i !== index));
   };
 
   const removeVideo = (index: number) => {

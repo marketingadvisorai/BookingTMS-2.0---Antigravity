@@ -48,6 +48,7 @@ import {
 import { PageHeader } from '../components/layout/PageHeader';
 import { toast } from 'sonner';
 import avatarImage from 'figma:asset/00e8f72492f468a73fc822a8f3b89537848df6aa.png';
+import { SupabaseStorageService } from '../services/SupabaseStorageService';
 
 export function ProfileSettings() {
   const { theme } = useTheme();
@@ -445,25 +446,16 @@ export function ProfileSettings() {
 
       try {
         setLoading(true);
+        const toastId = 'avatar-upload';
+        toast.loading('Uploading profile photo...', { id: toastId });
 
-        // Upload to Supabase Storage
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${currentUser?.id}-${Date.now()}.${fileExt}`;
-        const filePath = `avatars/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('profile-photos')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: true
-          });
-
-        if (uploadError) throw uploadError;
-
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('profile-photos')
-          .getPublicUrl(filePath);
+        // Upload to Supabase Storage using the service
+        const result = await SupabaseStorageService.uploadImage(file, 'profile-photos', {
+          maxWidth: 512,  // Profile photos don't need to be large
+          maxHeight: 512,
+          quality: 0.9,
+          folder: `${currentUser?.id}`  // User-specific folder
+        });
 
         // Update profile with new avatar URL
         const { data: currentProfile } = await supabase
@@ -472,9 +464,20 @@ export function ProfileSettings() {
           .eq('id', currentUser?.id)
           .single();
 
+        // Delete old avatar if it exists and is a storage URL
+        const oldAvatarPath = currentProfile?.metadata?.avatarPath;
+        if (oldAvatarPath) {
+          try {
+            await SupabaseStorageService.deleteFile('profile-photos', oldAvatarPath);
+          } catch (error) {
+            console.warn('Failed to delete old avatar:', error);
+          }
+        }
+
         const metadata = {
           ...(currentProfile?.metadata || {}),
-          avatar: publicUrl
+          avatar: result.url,
+          avatarPath: result.path
         };
 
         const { error: updateError } = await supabase
@@ -488,9 +491,9 @@ export function ProfileSettings() {
         if (updateError) throw updateError;
 
         // Update local state
-        setProfileData(prev => ({ ...prev, avatar: publicUrl }));
+        setProfileData(prev => ({ ...prev, avatar: result.url }));
 
-        toast.success('Profile photo updated');
+        toast.success('Profile photo updated!', { id: toastId });
       } catch (error: any) {
         console.error('Error uploading photo:', error);
         toast.error(error.message || 'Failed to upload photo');

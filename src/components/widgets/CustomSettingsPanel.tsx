@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -9,6 +9,7 @@ import { Separator } from '../ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { CalendarWidget } from './CalendarWidget';
 import { toast } from 'sonner';
+import { SupabaseStorageService } from '../../services/SupabaseStorageService';
 
 interface CustomSettingsPanelProps {
   config: any;
@@ -16,8 +17,11 @@ interface CustomSettingsPanelProps {
 }
 
 export default function CustomSettingsPanel({ config, onConfigChange }: CustomSettingsPanelProps) {
+  const [uploading, setUploading] = useState(false);
+
   const defaults = {
     logoUrl: '',
+    logoPath: '', // Storage path for cleanup
     logoSize: 64,
     logoPosition: 'top',
     headlineText: config?.widgetTitle || '',
@@ -46,15 +50,51 @@ export default function CustomSettingsPanel({ config, onConfigChange }: CustomSe
     onConfigChange(next);
   };
 
-  const handleLogoUpload = (file?: File) => {
+  const handleLogoUpload = async (file?: File) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       toast.error('Please upload a valid image file');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => update('logoUrl', String(reader.result));
-    reader.readAsDataURL(file);
+
+    try {
+      setUploading(true);
+      const toastId = 'logo-upload';
+      toast.loading('Uploading logo...', { id: toastId });
+
+      // Upload to Supabase Storage with optimization
+      const result = await SupabaseStorageService.uploadImage(file, 'venue-logos', {
+        maxWidth: 400, // Logos don't need to be large
+        quality: 0.9, // High quality for branding
+      });
+
+      // Delete old logo if it exists
+      if (cs.logoPath) {
+        try {
+          await SupabaseStorageService.deleteFile('venue-logos', cs.logoPath);
+        } catch (error) {
+          console.warn('Failed to delete old logo:', error);
+        }
+      }
+
+      // Update with new URL and path
+      const next = {
+        ...config,
+        customSettings: {
+          ...cs,
+          logoUrl: result.url,
+          logoPath: result.path
+        }
+      };
+      onConfigChange(next);
+
+      toast.success('Logo uploaded successfully!', { id: toastId });
+    } catch (error: any) {
+      console.error('Logo upload error:', error);
+      toast.error(error.message || 'Failed to upload logo', { id: 'logo-upload' });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const applyDevicePreset = (device: string) => {
@@ -113,7 +153,10 @@ export default function CustomSettingsPanel({ config, onConfigChange }: CustomSe
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Upload Logo</Label>
-                  <Input type="file" accept="image/*" disabled={locked} onChange={(e) => handleLogoUpload(e.target.files?.[0])} />
+                  <Input type="file" accept="image/*" disabled={locked || uploading} onChange={(e) => handleLogoUpload(e.target.files?.[0])} />
+                  {cs.logoUrl && (
+                    <p className="text-xs text-green-600 mt-1">✓ Logo uploaded to CDN</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Size</Label>

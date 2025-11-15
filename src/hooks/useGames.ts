@@ -44,6 +44,28 @@ export interface Game {
   // Pricing tiers (will be fetched separately)
   pricing_tiers?: any[];
   child_price?: number; // Backwards compatibility
+  // Schedule fields (stored in schedule JSONB column)
+  schedule?: {
+    operatingDays: string[];
+    startTime: string;
+    endTime: string;
+    slotInterval: number;
+    advanceBooking: number;
+    customHoursEnabled: boolean;
+    customHours: Record<string, { enabled: boolean; startTime: string; endTime: string }>;
+    customDates: Array<{ id: string; date: string; startTime: string; endTime: string }>;
+    blockedDates: Array<string | { date: string; startTime: string; endTime: string; reason?: string }>;
+  };
+  // Flattened schedule fields for easier access
+  operatingDays?: string[];
+  startTime?: string;
+  endTime?: string;
+  slotInterval?: number;
+  advanceBooking?: number;
+  customHoursEnabled?: boolean;
+  customHours?: Record<string, { enabled: boolean; startTime: string; endTime: string }>;
+  customDates?: Array<{ id: string; date: string; startTime: string; endTime: string }>;
+  blockedDates?: Array<string | { date: string; startTime: string; endTime: string; reason?: string }>;
 }
 
 export function useGames(venueId?: string) {
@@ -75,7 +97,21 @@ export function useGames(venueId?: string) {
 
       if (fetchError) throw fetchError;
 
-      setGames(data || []);
+      // Unpack schedule data from JSONB column to flat structure
+      const gamesWithSchedule = (data || []).map(game => ({
+        ...game,
+        operatingDays: game.schedule?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        startTime: game.schedule?.startTime || '10:00',
+        endTime: game.schedule?.endTime || '22:00',
+        slotInterval: game.schedule?.slotInterval || 60,
+        advanceBooking: game.schedule?.advanceBooking || 30,
+        customHoursEnabled: game.schedule?.customHoursEnabled || false,
+        customHours: game.schedule?.customHours || {},
+        customDates: game.schedule?.customDates || [],
+        blockedDates: game.schedule?.blockedDates || []
+      }));
+
+      setGames(gamesWithSchedule);
     } catch (err: any) {
       console.error('Error fetching games:', err);
       setError(err.message);
@@ -178,9 +214,30 @@ export function useGames(venueId?: string) {
         console.log('No Supabase session - proceeding with anon access');
       }
 
-      // Step 3: Save game to database (with or without Stripe IDs)
+      // Step 3: Build schedule object from flat fields
+      const schedule = {
+        operatingDays: (gameData as any).operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        startTime: (gameData as any).startTime || '10:00',
+        endTime: (gameData as any).endTime || '22:00',
+        slotInterval: (gameData as any).slotInterval || 60,
+        advanceBooking: (gameData as any).advanceBooking || 30,
+        customHoursEnabled: (gameData as any).customHoursEnabled || false,
+        customHours: (gameData as any).customHours || {},
+        customDates: (gameData as any).customDates || [],
+        blockedDates: (gameData as any).blockedDates || []
+      };
+      
+      // Remove schedule fields from gameData to avoid duplication
+      const { 
+        operatingDays, startTime, endTime, slotInterval, advanceBooking,
+        customHoursEnabled, customHours, customDates, blockedDates,
+        ...cleanedGameData 
+      } = gameData as any;
+
+      // Step 4: Save game to database (with or without Stripe IDs)
       const insertData = {
-        ...gameData,
+        ...cleanedGameData,
+        schedule, // Add schedule as JSONB
         created_by: userId,
         stripe_product_id: stripeProductId,
         stripe_price_id: stripePriceId,
@@ -336,6 +393,31 @@ export function useGames(venueId?: string) {
         updates.stripe_sync_status = 'synced';
         updates.stripe_last_sync = new Date().toISOString();
         toast.success('Payment product updated!', { id: 'stripe-update' });
+      }
+
+      // Handle schedule updates - pack into JSONB if any schedule field is present
+      const scheduleFields = ['operatingDays', 'startTime', 'endTime', 'slotInterval', 'advanceBooking', 'customHoursEnabled', 'customHours', 'customDates', 'blockedDates'];
+      const hasScheduleUpdate = scheduleFields.some(field => (updates as any)[field] !== undefined);
+      
+      if (hasScheduleUpdate) {
+        // Build updated schedule object
+        const updatedSchedule = {
+          operatingDays: (updates as any).operatingDays || currentGame.schedule?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+          startTime: (updates as any).startTime || currentGame.schedule?.startTime || '10:00',
+          endTime: (updates as any).endTime || currentGame.schedule?.endTime || '22:00',
+          slotInterval: (updates as any).slotInterval || currentGame.schedule?.slotInterval || 60,
+          advanceBooking: (updates as any).advanceBooking || currentGame.schedule?.advanceBooking || 30,
+          customHoursEnabled: (updates as any).customHoursEnabled !== undefined ? (updates as any).customHoursEnabled : currentGame.schedule?.customHoursEnabled || false,
+          customHours: (updates as any).customHours || currentGame.schedule?.customHours || {},
+          customDates: (updates as any).customDates || currentGame.schedule?.customDates || [],
+          blockedDates: (updates as any).blockedDates || currentGame.schedule?.blockedDates || []
+        };
+        
+        // Remove flat schedule fields and add JSONB schedule
+        scheduleFields.forEach(field => delete (updates as any)[field]);
+        (updates as any).schedule = updatedSchedule;
+        
+        console.log('Updating game schedule:', updatedSchedule);
       }
 
       // Update game in database

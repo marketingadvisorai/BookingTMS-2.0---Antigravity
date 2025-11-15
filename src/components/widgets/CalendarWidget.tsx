@@ -182,18 +182,19 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
     if (!selectedGameData) return [];
     
     const selectedDateObj = new Date(currentYear, currentMonth, selectedDate);
-    const blockedDates = config?.blockedDates || [];
-    const customAvailableDates = config?.customAvailableDates || [];
+    // Use game schedule data from database (via useGames hook)
+    const blockedDates = selectedGameData?.blockedDates || config?.blockedDates || [];
+    const customAvailableDates = selectedGameData?.customDates || config?.customAvailableDates || [];
     
     return generateTimeSlots(
       selectedDateObj,
       {
-        operatingDays: selectedGameData.operatingDays,
-        startTime: selectedGameData.startTime,
-        endTime: selectedGameData.endTime,
-        slotInterval: selectedGameData.slotInterval,
-        duration: typeof selectedGameData.duration === 'string' ? parseInt(selectedGameData.duration) : selectedGameData.duration,
-        advanceBooking: selectedGameData.advanceBooking
+        operatingDays: selectedGameData.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        startTime: selectedGameData.startTime || '10:00',
+        endTime: selectedGameData.endTime || '22:00',
+        slotInterval: selectedGameData.slotInterval || 60,
+        duration: typeof selectedGameData.duration === 'string' ? parseInt(selectedGameData.duration) : (selectedGameData.duration || 90),
+        advanceBooking: selectedGameData.advanceBooking || 30
       },
       blockedDates,
       [], // TODO: Load existing bookings from database
@@ -2534,12 +2535,21 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                       const isPast = dateObj < new Date(today.getFullYear(), today.getMonth(), today.getDate());
                       
                       // Check if date is available based on game schedule and blocked dates
-                      const blockedDates = config?.blockedDates || [];
-                      const customAvailableDates = config?.customAvailableDates || [];
+                      // Use game schedule data from database (via useGames hook)
+                      const blockedDates = selectedGameData?.blockedDates || config?.blockedDates || [];
+                      const customAvailableDates = selectedGameData?.customDates || config?.customAvailableDates || [];
+                      const operatingDays = selectedGameData?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                      
+                      // Check advance booking limit from game schedule
+                      const advanceBookingDays = selectedGameData?.advanceBooking || 30;
+                      const maxBookingDate = new Date(today);
+                      maxBookingDate.setDate(maxBookingDate.getDate() + advanceBookingDays);
+                      const isBeyondAdvanceBooking = dateObj > maxBookingDate;
+                      
                       const isBlockedDate = isDateBlocked(dateObj, blockedDates);
-                      const isOperatingDay = isDayOperating(dateObj, selectedGameData?.operatingDays, customAvailableDates);
+                      const isOperatingDay = isDayOperating(dateObj, operatingDays, customAvailableDates);
                       const customDate = isCustomAvailableDate(dateObj, customAvailableDates);
-                      const isAvailable = !isPast && !isBlockedDate && isOperatingDay;
+                      const isAvailable = !isPast && !isBlockedDate && isOperatingDay && !isBeyondAdvanceBooking;
 
                       return (
                         <button
@@ -2561,7 +2571,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                             backgroundColor: isToday && !isSelected ? primaryColor : (isSelected ? undefined : (isAvailable ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)')),
                             borderColor: isSelected ? primaryColor : (isAvailable ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'),
                           }}
-                          title={!isAvailable ? (isBlockedDate ? 'Date blocked by admin' : !isOperatingDay ? 'Not operating on this day' : 'Past date') : 'Available'}
+                          title={!isAvailable ? (isBlockedDate ? 'Date blocked by admin' : !isOperatingDay ? 'Not operating on this day' : isBeyondAdvanceBooking ? `Cannot book more than ${advanceBookingDays} days in advance` : 'Past date') : 'Available'}
                         >
                           {day}
                           {isAvailable && !isSelected && !isToday && (

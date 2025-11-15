@@ -370,6 +370,60 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
         return;
       }
     }
+    if (currentStep === 5) {
+      // Validate schedule settings
+      if (gameData.operatingDays.length === 0) {
+        toast.error('Please select at least one operating day');
+        return;
+      }
+      
+      // Validate time range
+      if (gameData.startTime >= gameData.endTime) {
+        toast.error('End time must be after start time');
+        return;
+      }
+      
+      // Validate custom hours if enabled
+      if (gameData.customHoursEnabled) {
+        const invalidDays = gameData.operatingDays.filter((day: string) => {
+          const hours = gameData.customHours[day];
+          return hours && hours.enabled && hours.startTime >= hours.endTime;
+        });
+        
+        if (invalidDays.length > 0) {
+          toast.error(`Invalid hours for: ${invalidDays.join(', ')}. End time must be after start time.`);
+          return;
+        }
+      }
+      
+      // Validate slot interval
+      if (gameData.slotInterval < gameData.duration) {
+        toast.error(`Time slot interval (${gameData.slotInterval} min) cannot be shorter than game duration (${gameData.duration} min). This may cause booking overlaps.`);
+        return;
+      }
+      
+      // Validate advance booking
+      if (gameData.advanceBooking < 1 || gameData.advanceBooking > 365) {
+        toast.error('Advance booking must be between 1 and 365 days');
+        return;
+      }
+      
+      // Validate custom dates
+      const invalidCustomDates = gameData.customDates.filter((cd: any) => cd.startTime >= cd.endTime);
+      if (invalidCustomDates.length > 0) {
+        toast.error('Some custom dates have invalid time ranges. End time must be after start time.');
+        return;
+      }
+      
+      // Validate blocked dates with time ranges
+      const invalidBlockedDates = gameData.blockedDates.filter((bd: any) => 
+        typeof bd === 'object' && bd.startTime && bd.endTime && bd.startTime >= bd.endTime
+      );
+      if (invalidBlockedDates.length > 0) {
+        toast.error('Some blocked dates have invalid time ranges. End time must be after start time.');
+        return;
+      }
+    }
 
     if (currentStep < STEPS.length) {
       setCurrentStep(currentStep + 1);

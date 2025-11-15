@@ -25,6 +25,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '../../lib/supabase';
 import { Button } from '../ui/button';
 import { generateTimeSlots, getAvailableDatesForMonth, isDateBlocked, isDayOperating, isCustomAvailableDate } from '../../utils/availabilityEngine';
 import { Card } from '../ui/card';
@@ -176,8 +177,66 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
   // Get current month and year for calendar
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [existingBookings, setExistingBookings] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
   
-  // Calculate time slots dynamically based on selected game's schedule
+  // Fetch existing bookings for availability check
+  useEffect(() => {
+    const fetchBookings = async () => {
+      if (!selectedGameData?.id) return;
+      
+      try {
+        setLoadingBookings(true);
+        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
+        
+        const { data, error } = await supabase
+          .from('bookings')
+          .select('start_time, end_time, party_size, status')
+          .eq('game_id', selectedGameData.id)
+          .eq('booking_date', dateStr)
+          .in('status', ['confirmed', 'pending']); // Include both confirmed and pending bookings
+        
+        if (error) {
+          console.error('Error fetching bookings:', error);
+          setExistingBookings([]);
+          return;
+        }
+        
+        console.log(`📅 Loaded ${data?.length || 0} existing bookings for ${dateStr}`);
+        setExistingBookings(data || []);
+      } catch (err) {
+        console.error('Error loading bookings:', err);
+        setExistingBookings([]);
+      } finally {
+        setLoadingBookings(false);
+      }
+    };
+    
+    fetchBookings();
+    
+    // Set up real-time subscription for booking changes
+    const channel = supabase
+      .channel(`bookings-${selectedGameData?.id}-${selectedDate}`)
+      .on('postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+          filter: `game_id=eq.${selectedGameData?.id}`
+        },
+        (payload) => {
+          console.log('🔄 Booking changed, refetching availability...');
+          fetchBookings();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [selectedGameData, selectedDate, currentMonth, currentYear]);
+  
+  // Calculate time slots dynamically based on selected game's schedule and existing bookings
   const timeSlots = useMemo(() => {
     if (!selectedGameData) return [];
     
@@ -197,10 +256,10 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
         advanceBooking: selectedGameData.advanceBooking || 30
       },
       blockedDates,
-      [], // TODO: Load existing bookings from database
+      existingBookings, // ✅ Now uses real bookings from database
       customAvailableDates
     );
-  }, [selectedDate, currentMonth, currentYear, selectedGameData, config]);
+  }, [selectedDate, currentMonth, currentYear, selectedGameData, config, existingBookings]);
 
   // Compute address details from config with sensible fallbacks (parity with single-game page)
   const streetAddress = (config?.streetAddress || config?.address || (selectedGameData as any)?.location?.address) as string | undefined;

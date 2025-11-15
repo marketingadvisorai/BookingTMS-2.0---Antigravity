@@ -11,7 +11,7 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { PageHeader } from '../components/layout/PageHeader';
 import { PageLoadingScreen } from '../components/layout/PageLoadingScreen';
-import { Building2, Plus, Edit, Trash2, Code, Eye, MapPin, Phone, Mail, Settings2, Check, Copy, Save, ExternalLink, Download, RefreshCcw } from 'lucide-react';
+import { Calendar, Settings, Eye, Link, X, Plus, Pencil, Trash2, Power, Globe, ExternalLink, Copy, Check, MapPin, Phone, Mail, Globe2, Clock, Building2, ChevronLeft, ChevronRight, Search, Download, AlertCircle, Loader2, CheckCircle2, XCircle, RefreshCcw, Code, Settings2, Edit, Save } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
@@ -58,6 +58,7 @@ export default function Venues() {
     setShowWidgetPreview,
     setShowEmbedCode,
     setCopiedEmbed,
+    saveStatus,
     handleRefresh,
     handleCreateVenue,
     handleUpdateVenue,
@@ -511,7 +512,7 @@ export default function Venues() {
         <DialogContent className="!w-screen !h-screen !max-w-none !max-h-none sm:!w-[90vw] sm:!h-[90vh] sm:!max-w-[1200px] sm:!max-h-[90vh] !rounded-none sm:!rounded-lg overflow-hidden p-0 flex flex-col">
           <DialogHeader className="bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-[#2a2a2a] p-4 sm:p-6 shrink-0">
             <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <DialogTitle className="text-base sm:text-lg text-gray-900 dark:text-white truncate">
                   Configure Widget for {selectedVenue?.name}
                 </DialogTitle>
@@ -519,14 +520,37 @@ export default function Venues() {
                   Add events/rooms and customize your booking widget settings
                 </DialogDescription>
               </div>
-              <Button
-                onClick={() => setShowWidgetSettings(false)}
-                className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] text-xs sm:text-sm h-9 sm:h-10 flex-shrink-0"
-                size="sm"
-              >
-                <Save className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Save Changes</span>
-              </Button>
+              
+              {/* Save Status Indicator */}
+              <div className="flex items-center gap-3 flex-shrink-0">
+                {saveStatus === 'saving' && (
+                  <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm hidden sm:inline">Saving...</span>
+                  </div>
+                )}
+                {saveStatus === 'saved' && (
+                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="text-sm hidden sm:inline">Saved ✓</span>
+                  </div>
+                )}
+                {saveStatus === 'error' && (
+                  <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                    <XCircle className="w-4 h-4" />
+                    <span className="text-sm hidden sm:inline">Error saving</span>
+                  </div>
+                )}
+                
+                <Button
+                  onClick={() => setShowWidgetSettings(false)}
+                  className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] text-xs sm:text-sm h-9 sm:h-10"
+                  size="sm"
+                >
+                  <Save className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Save Changes</span>
+                </Button>
+              </div>
             </div>
           </DialogHeader>
           <ScrollArea className="flex-1 h-full">

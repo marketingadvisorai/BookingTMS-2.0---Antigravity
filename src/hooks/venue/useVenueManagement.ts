@@ -35,6 +35,7 @@ export function useVenueManagement() {
   const [showEmbedCode, setShowEmbedCode] = useState(false);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [copiedEmbed, setCopiedEmbed] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [formData, setFormData] = useState<VenueFormData>(DEFAULT_FORM_DATA);
 
   // Transform database venues to UI format
@@ -137,6 +138,7 @@ export function useVenueManagement() {
   const handleUpdateWidgetConfig = async (config: VenueWidgetConfig) => {
     if (!selectedVenue) return;
     
+    setSaveStatus('saving');
     try {
       const updatedVenue = { 
         ...selectedVenue, 
@@ -146,9 +148,15 @@ export function useVenueManagement() {
       await updateVenueDB(selectedVenue.id, mapUIVenueToDB(updatedVenue));
       setSelectedVenue(updatedVenue);
       
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+      
       console.log('Widget config updated for venue:', updatedVenue.name, 'Games:', config.games?.length || 0);
     } catch (error) {
       console.error('Error updating widget config:', error);
+      setSaveStatus('error');
+      toast.error('Failed to save widget settings');
+      setTimeout(() => setSaveStatus('idle'), 3000);
     }
   };
 
@@ -181,6 +189,7 @@ export function useVenueManagement() {
     isLoading,
     isRefreshing,
     copiedEmbed,
+    saveStatus,
     
     // Dialog states
     showCreateDialog,

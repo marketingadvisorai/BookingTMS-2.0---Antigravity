@@ -43,7 +43,7 @@ import { Textarea } from '../ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
-import { Plus, Trash2, Upload, Eye, X, MoreVertical, Copy, Edit, Settings, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, Upload, Eye, X, MoreVertical, Copy, Edit, Settings, ExternalLink, Info, AlertCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +53,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ScrollArea } from '../ui/scroll-area';
 import { toast } from 'sonner';
+import { validateSEOSettings, validateCustomDate, validateBlockedDate, isValidEmail, isValidURL } from '../../utils/validation';
 import AddGameWizard from '../../components/games/AddGameWizard';
 import CustomSettingsPanel from './CustomSettingsPanel';
 import { Game, GameInput } from '../../services/DataSyncService';
@@ -729,6 +730,23 @@ export default function CalendarWidgetSettings({ config, onConfigChange, onPrevi
 
         {/* Availability & Blocked Dates */}
         <TabsContent value="availability" className="space-y-6 pb-24">
+          {/* Info Notice */}
+          <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900">
+            <CardContent className="pt-6">
+              <div className="flex gap-3">
+                <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    Widget-Level Availability Settings
+                  </p>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    These settings apply to the entire booking widget. For game-specific schedules (operating days, hours, advance booking), edit each game individually in the <strong>Games tab</strong>.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Custom Available Dates */}
           <Card>
             <CardHeader>

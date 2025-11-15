@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DataSyncService as DataSyncServiceWithEvents } from '../../services/DataSyncService';
+import { supabase } from '../../lib/supabase';
 import SupabaseBookingService from '../../services/SupabaseBookingService';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
@@ -50,49 +50,77 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
   const [showGiftCardInput, setShowGiftCardInput] = useState(false);
   const [appliedGiftCard, setAppliedGiftCard] = useState<{ code: string; amount: number } | null>(null);
 
-  // 🔄 Real-time admin games data loading
+  // 🔄 Fetch games from Supabase database
   const [adminGames, setAdminGames] = useState<any[]>([]);
+  const [loadingGames, setLoadingGames] = useState(true);
 
-  // Load admin games with real-time sync
+  // Fetch games from Supabase
   useEffect(() => {
-    const loadAndSubscribeGames = () => {
-      // Initial load
-      const games = DataSyncServiceWithEvents.getAllGames();
-      console.log('📦 ListWidget loaded', games.length, 'games from admin');
-      setAdminGames(games);
-
-      // Real-time sync: Listen for admin changes
-      const handleGamesUpdate = () => {
-        const updatedGames = DataSyncServiceWithEvents.getAllGames();
-        console.log('🔄 ListWidget games updated in real-time!', updatedGames.length);
-        setAdminGames(updatedGames);
-      };
-
-      // Subscribe to events
-      DataSyncEvents.subscribe('games-updated', handleGamesUpdate);
-
-      // Cleanup function
-      return () => {
-        DataSyncEvents.unsubscribe('games-updated', handleGamesUpdate);
-      };
+    const fetchGames = async () => {
+      try {
+        setLoadingGames(true);
+        const venueId = config?.venueId || config?.venue?.id;
+        
+        let query = supabase
+          .from('games')
+          .select('*')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        
+        if (venueId) {
+          query = query.eq('venue_id', venueId);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error('Error fetching games:', error);
+          setAdminGames([]);
+          return;
+        }
+        
+        console.log('📦 ListWidget loaded', data?.length || 0, 'games from Supabase');
+        setAdminGames(data || []);
+      } catch (err) {
+        console.error('Error loading games:', err);
+        setAdminGames([]);
+      } finally {
+        setLoadingGames(false);
+      }
     };
 
-    return loadAndSubscribeGames();
-  }, []);
+    fetchGames();
+    
+    // Real-time subscription
+    const channel = supabase
+      .channel('games-list-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'games' },
+        () => {
+          console.log('🔄 Games updated, refetching...');
+          fetchGames();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [config?.venueId, config?.venue?.id]);
 
-  // 🔄 Use admin games when available, fallback to hardcoded experiences
+  // 🔄 Use Supabase games when available, fallback to hardcoded experiences
   const experiences = adminGames.length > 0 ? adminGames.map(g => ({
     id: g.id.toString(),
     name: g.name,
     description: g.description || 'Amazing escape room experience',
-    duration: g.duration,
+    duration: g.duration || 60,
     difficulty: g.difficulty || 'Medium',
-    minAge: 10,
-    maxPlayers: g.capacity,
-    price: g.basePrice,
+    minAge: g.min_age || 10,
+    maxPlayers: g.max_players || g.capacity || 8,
+    price: parseFloat(g.price) || 0,
     rating: 4.8,
     reviews: 156,
-    image: g.imageUrl,
+    image: g.image_url || g.coverImage,
     tags: ['Family Friendly', 'Adventure', 'Puzzle']
   })) : [
     {

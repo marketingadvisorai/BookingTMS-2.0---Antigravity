@@ -886,7 +886,7 @@ const SystemAdminDashboard = () => {
   };
 
   return (
-    <div className={`min-h-screen ${bgClass}`}>
+    <div className={`min-h-screen ${bgClass} flex flex-col`}>
       {/* Custom Header for System Admin */}
       <SystemAdminHeader
         selectedAccount={selectedAccount}
@@ -909,7 +909,7 @@ const SystemAdminDashboard = () => {
         </div>
       )}
 
-      <div className="p-6">
+      <div className="flex-1 overflow-y-auto p-6">
         {/* Overview Metrics Section with Separator */}
         <div className={`border-b-2 ${borderColor} pb-6 mb-6`}>
           <div className="flex items-center justify-between mb-4">

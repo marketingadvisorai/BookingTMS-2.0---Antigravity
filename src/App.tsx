@@ -32,7 +32,7 @@ import Login from './pages/Login';
 import BetaLogin from './pages/BetaLogin';
 import BackendDashboard from './pages/BackendDashboard';
 import GiftVouchers from './pages/GiftVouchers';
-import { SystemAdminDashboard, SystemAdminProvider } from './features/system-admin';
+import SystemAdminDashboard from './pages/SystemAdminDashboard';
 import { Toaster } from './components/ui/sonner';
 import { FeatureFlagProvider } from './lib/featureflags/FeatureFlagContext';
 
@@ -114,11 +114,7 @@ function AppContent() {
       case 'backend-dashboard':
         return <BackendDashboard />;
       case 'system-admin':
-        return (
-          <SystemAdminProvider>
-            <SystemAdminDashboard />
-          </SystemAdminProvider>
-        );
+        return <SystemAdminDashboard />;
       case 'gift-vouchers':
         return <GiftVouchers />;
       default:

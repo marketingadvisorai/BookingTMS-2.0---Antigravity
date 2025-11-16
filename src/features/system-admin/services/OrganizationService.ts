@@ -32,10 +32,14 @@ export class OrganizationService {
           plans:plan_id (
             id,
             name,
-            price,
-            billing_period,
+            slug,
+            price_monthly,
+            price_yearly,
             features,
-            limits
+            max_venues,
+            max_staff,
+            max_bookings_per_month,
+            max_widgets
           )
         `, { count: 'exact' });
 

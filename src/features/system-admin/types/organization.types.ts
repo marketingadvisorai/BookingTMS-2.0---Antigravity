@@ -140,14 +140,36 @@ export interface OrganizationSortOptions {
 
 // Metrics
 export interface OrganizationMetrics {
+  organization_id: string;
+  
+  // Venues & Games
   total_venues: number;
+  active_venues: number;
   total_games: number;
+  
+  // Bookings
   total_bookings: number;
+  confirmed_bookings: number;
+  pending_bookings: number;
+  canceled_bookings: number;
+  
+  // Revenue
   total_revenue: number;
   mrr: number; // Monthly Recurring Revenue
+  average_booking_value: number;
+  
+  // Users
+  total_users: number;
   active_users: number;
+  
+  // Storage
   storage_used_gb: number;
-  growth_rate: number;
+  storage_limit_gb: number;
+  
+  // Timestamps
+  period_start: string;
+  period_end: string;
+  updated_at: string;
 }
 
 // List Response

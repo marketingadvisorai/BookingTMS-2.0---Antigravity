@@ -3,6 +3,10 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
+import { useAuth } from '@/hooks/useAuth';
+import { useGames } from '@/hooks/useGames';
+import { Game } from '@/types/game';
+import { supabase } from '@/lib/supabase';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Progress } from '../ui/progress';
@@ -493,40 +497,69 @@ export default function AddGameWizard({ onComplete, onCancel, initialData, mode 
         message: 'Saving to database...',
         progress: 70
       });
-      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Verify result exists
+      if (!result || !result.id) {
+        throw new Error('Game creation failed - no game ID returned from database');
+      }
+      
+      const gameId = result.id;
+      setCreatedGameId(gameId);
 
-      // Stage 4: Verifying creation
+      // Stage 4: Verifying creation in database
       setCreationStatus({
         stage: 'verifying',
-        message: 'Verifying game creation...',
+        message: 'Verifying game in database...',
         progress: 90
       });
       
-      // Extract game ID from result if available
-      const gameId = result?.id || result?.data?.id || null;
-      setCreatedGameId(gameId);
+      // Actually verify the game exists in database
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('games')
+        .select('id, name, status, venue_id')
+        .eq('id', gameId)
+        .single();
       
-      await new Promise(resolve => setTimeout(resolve, 300));
+      if (verifyError || !verifyData) {
+        throw new Error('Game verification failed - game not found in database after creation');
+      }
+      
+      console.log('✅ Game verified in database:', verifyData);
 
       // Stage 5: Complete
       setCreationStatus({
         stage: 'complete',
-        message: 'Game created successfully!',
+        message: 'Game created and verified successfully!',
         progress: 100
       });
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Show success screen
       setPublishSuccess(true);
       toast.success(mode === 'edit' ? 'Game updated successfully!' : 'Game published successfully!');
     } catch (error: any) {
-      console.error('Error publishing game:', error);
-      toast.error(error.message || 'Failed to publish game');
+      console.error('❌ Error publishing game:', error);
+      
+      // Show detailed error message
+      const errorMessage = error.message || error.details || error.hint || 'Failed to publish game';
+      toast.error(errorMessage, { duration: 6000 });
+      
+      // If it's a database error, show additional context
+      if (error.code) {
+        console.error('Database error code:', error.code);
+        toast.error(`Error code: ${error.code}`, { duration: 4000 });
+      }
+      
       setIsPublishing(false);
       setCreationStatus({
         stage: 'error',
-        message: error.message || 'Failed to create game',
+        message: errorMessage,
         progress: 0
       });
+      
+      // Don't show success screen on error
+      setPublishSuccess(false);
     }
   };
 

@@ -5,7 +5,7 @@
  * 
  * Usage:
  * ```tsx
- * import { SystemAdminProvider, useOrganizations } from '@/features/system-admin';
+ * import { SystemAdminProvider, SystemAdminDashboard } from '@/features/system-admin';
  * ```
  */
 
@@ -15,6 +15,12 @@ export {
   useSystemAdmin,
   getQueryClient,
 } from './context';
+
+// Pages
+export * from './pages';
+
+// Components
+export * from './components';
 
 // Hooks
 export {

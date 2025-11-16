@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, DollarSign, TrendingUp, Users, Crown, CheckCircle, XCircle, Eye, Edit, Trash2, Toggle, ExternalLink, Settings, Code, ChevronDown, MapPin, Copy, ChevronLeft, ChevronRight, List, Star, GripVertical, Calendar, Gamepad2, Columns3 } from 'lucide-react';
+import { Building2, DollarSign, TrendingUp, Users, Crown, CheckCircle, XCircle, Eye, Edit, Trash2, ExternalLink, Settings, Code, ChevronDown, MapPin, Copy, ChevronLeft, ChevronRight, List, Star, GripVertical, Calendar, Gamepad2, Columns3 } from 'lucide-react';
 import { KPICard } from '../components/dashboard/KPICard';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -9,7 +9,7 @@ import { Button } from '../components/ui/button';
 import { useTheme } from '../components/layout/ThemeContext';
 import { Switch } from '../components/ui/switch';
 import { useState, useMemo, useEffect } from 'react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { SystemAdminHeader } from '../components/systemadmin/SystemAdminHeader';
 import { ProfileDropdown } from '../components/systemadmin/ProfileDropdown';
 import { ProfileSettingsModal } from '../components/systemadmin/ProfileSettingsModal';
@@ -24,6 +24,9 @@ import { SystemAdminNotificationsModal } from '../components/systemadmin/SystemA
 import { useFeatureFlags } from '../lib/featureflags/FeatureFlagContext';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { Checkbox } from '../components/ui/checkbox';
+import { useVenues } from '../hooks/useVenues';
+import { useGames } from '../hooks/useGames';
+import { useBookings } from '../hooks/useBookings';
 
 // Account type for account selector
 interface Account {
@@ -504,6 +507,11 @@ const SystemAdminDashboard = () => {
   const isDark = theme === 'dark';
   const { featureFlags, toggleFeature } = useFeatureFlags();
   
+  // 🔥 REAL DATA FROM SUPABASE
+  const { venues, loading: venuesLoading } = useVenues();
+  const { games, loading: gamesLoading } = useGames();
+  const { bookings, loading: bookingsLoading } = useBookings();
+  
   // Initialize plans from localStorage or use default data
   const [plans, setPlans] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -528,7 +536,42 @@ const SystemAdminDashboard = () => {
   const [selectedOwnerForDelete, setSelectedOwnerForDelete] = useState<any>(null);
   const [showAddOwnerDialog, setShowAddOwnerDialog] = useState(false);
   const [selectedPlanForManage, setSelectedPlanForManage] = useState<any>(null);
-  const [owners, setOwners] = useState(ownersData);
+  
+  // 🔥 Convert real venues to owners format for display
+  const owners = useMemo(() => {
+    if (!venues || venues.length === 0) return ownersData; // Fallback to demo data if no venues
+    
+    // Group venues by organization (using venue name as organization for now)
+    const organizationsMap = new Map();
+    venues.forEach((venue) => {
+      const orgKey = venue.organization_id || venue.id;
+      if (!organizationsMap.has(orgKey)) {
+        organizationsMap.set(orgKey, {
+          id: venue.id,
+          accountId: 1,
+          name: venue.name || 'Unknown Organization',
+          owner: venue.created_by || 'Admin',
+          email: venue.email || 'admin@venue.com',
+          phone: venue.phone || 'N/A',
+          website: venue.address || 'N/A',
+          plan: 'free',
+          status: venue.status || 'active',
+          venues: 1,
+          locations: 1,
+          venueIds: [venue.id],
+          gameIds: []
+        });
+      } else {
+        const org = organizationsMap.get(orgKey);
+        org.venues += 1;
+        org.locations += 1;
+        org.venueIds.push(venue.id);
+      }
+    });
+    
+    return Array.from(organizationsMap.values());
+  }, [venues]);
+  
   const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
   const [locationValue, setLocationValue] = useState<number>(0);
   

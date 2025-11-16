@@ -34,6 +34,7 @@ import BackendDashboard from './pages/BackendDashboard';
 import GiftVouchers from './pages/GiftVouchers';
 import SystemAdminDashboard from './pages/SystemAdminDashboard';
 import { Toaster } from './components/ui/sonner';
+import { FeatureFlagProvider } from './lib/featureflags/FeatureFlagContext';
 
 // ============================================================================
 // DEVELOPMENT MODE CONFIGURATION
@@ -220,8 +221,10 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
-        <Toaster />
+        <FeatureFlagProvider>
+          <AppContent />
+          <Toaster />
+        </FeatureFlagProvider>
       </AuthProvider>
     </ThemeProvider>
   );

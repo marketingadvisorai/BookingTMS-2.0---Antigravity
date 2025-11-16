@@ -538,7 +538,7 @@ const SystemAdminDashboard = () => {
   const [selectedPlanForManage, setSelectedPlanForManage] = useState<any>(null);
   
   // 🔥 Convert real venues to owners format for display
-  const owners = useMemo(() => {
+  const computedOwners = useMemo(() => {
     if (!venues || venues.length === 0) return ownersData; // Fallback to demo data if no venues
     
     // Group venues by organization (using venue name as organization for now)
@@ -571,6 +571,14 @@ const SystemAdminDashboard = () => {
     
     return Array.from(organizationsMap.values());
   }, [venues]);
+  
+  // Local state for owners (allows CRUD operations)
+  const [owners, setOwners] = useState(computedOwners);
+  
+  // Update owners when computed owners change
+  useEffect(() => {
+    setOwners(computedOwners);
+  }, [computedOwners]);
   
   const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
   const [locationValue, setLocationValue] = useState<number>(0);

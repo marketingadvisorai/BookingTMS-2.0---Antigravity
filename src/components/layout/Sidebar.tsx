@@ -19,7 +19,8 @@ import {
   Database,
   Server,
   Inbox,
-  Building2
+  Building2,
+  Crown
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useAuth } from '../../lib/auth/AuthContext';
@@ -54,6 +55,16 @@ export function Sidebar({ currentPage, onNavigate = () => {}, isMobileOpen = fal
     { id: 'payment-history', label: 'Payments & History', icon: CreditCard, permission: 'payments.view' as Permission },
     { id: 'settings', label: 'Settings', icon: Settings, permission: 'settings.view' as Permission },
   ];
+
+  // Add System Admin Dashboard for system-admin only (Platform-level management)
+  if (isRole('system-admin')) {
+    navItems.push({
+      id: 'system-admin',
+      label: 'System Admin',
+      icon: Crown,
+      permission: 'system.view' as Permission
+    });
+  }
 
   // Add Account Settings for super-admin only
   if (isRole('super-admin')) {

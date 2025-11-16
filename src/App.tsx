@@ -32,6 +32,7 @@ import Login from './pages/Login';
 import BetaLogin from './pages/BetaLogin';
 import BackendDashboard from './pages/BackendDashboard';
 import GiftVouchers from './pages/GiftVouchers';
+import SystemAdminDashboard from './pages/SystemAdminDashboard';
 import { Toaster } from './components/ui/sonner';
 
 // ============================================================================
@@ -111,6 +112,8 @@ function AppContent() {
         return <AccountSettings />;
       case 'backend-dashboard':
         return <BackendDashboard />;
+      case 'system-admin':
+        return <SystemAdminDashboard />;
       case 'gift-vouchers':
         return <GiftVouchers />;
       default:

@@ -10,7 +10,78 @@ import { RoleConfig, Permission, RoutePermission } from '../../types/auth';
 // ============================================================================
 
 /**
- * Super Admin - Full system access
+ * System Admin - Platform owner with full control over all owners, venues, plans, and features
+ */
+const SYSTEM_ADMIN_PERMISSIONS: Permission[] = [
+  'system.view',
+  'system.manage',
+  'owners.view',
+  'owners.create',
+  'owners.edit',
+  'owners.delete',
+  'venues.view',
+  'venues.manage',
+  'plans.view',
+  'plans.edit',
+  'features.view',
+  'features.toggle',
+  'billing.view',
+  'billing.manage',
+  'platform.analytics',
+  'dashboard.view',
+  'dashboard.stats',
+  'bookings.view',
+  'bookings.create',
+  'bookings.edit',
+  'bookings.delete',
+  'bookings.export',
+  'games.view',
+  'games.create',
+  'games.edit',
+  'games.delete',
+  'widgets.view',
+  'widgets.edit',
+  'widgets.create',
+  'widgets.delete',
+  'widgets.calendar.view',
+  'widgets.calendar.edit',
+  'widgets.calendar.create',
+  'customers.view',
+  'customers.create',
+  'customers.edit',
+  'customers.delete',
+  'customers.export',
+  'marketing.view',
+  'marketing.edit',
+  'campaigns.view',
+  'campaigns.edit',
+  'ai-agents.view',
+  'ai-agents.edit',
+  'reports.view',
+  'reports.export',
+  'staff.view',
+  'staff.edit',
+  'staff.create',
+  'staff.delete',
+  'waivers.view',
+  'waivers.edit',
+  'waivers.create',
+  'media.view',
+  'media.upload',
+  'media.delete',
+  'settings.view',
+  'settings.edit',
+  'accounts.view',
+  'accounts.manage',
+  'accounts.roles',
+  'payments.view',
+  'payments.refund',
+  'payments.export',
+  'payments.reconcile',
+];
+
+/**
+ * Super Admin - Full system access (organization owner)
  */
 const SUPER_ADMIN_PERMISSIONS: Permission[] = [
   'dashboard.view',
@@ -165,6 +236,14 @@ const STAFF_PERMISSIONS: Permission[] = [
 ];
 
 /**
+ * Customer - End user with minimal permissions
+ */
+const CUSTOMER_PERMISSIONS: Permission[] = [
+  'bookings.view',
+  'payments.view',
+];
+
+/**
  * Beta Owner - MVP Testing Role for Escape Room Owner
  * Full access to core features for 3 venue management
  * Limited to Calendar widgets only, no staff management
@@ -234,9 +313,17 @@ const BETA_OWNER_PERMISSIONS: Permission[] = [
 
 export const ROLES: RoleConfig[] = [
   {
+    id: 'system-admin',
+    name: 'System Admin',
+    description: 'Platform owner with full control over all organizations, owners, venues, and features',
+    permissions: SYSTEM_ADMIN_PERMISSIONS,
+    color: '#dc2626', // Bright Red
+    icon: 'Crown',
+  },
+  {
     id: 'super-admin',
     name: 'Super Admin',
-    description: 'Full system access including user management and account settings',
+    description: 'Organization owner with full access to their venues and settings',
     permissions: SUPER_ADMIN_PERMISSIONS,
     color: '#ef4444', // Red
     icon: 'Shield',
@@ -272,6 +359,14 @@ export const ROLES: RoleConfig[] = [
     permissions: STAFF_PERMISSIONS,
     color: '#6b7280', // Gray
     icon: 'Briefcase',
+  },
+  {
+    id: 'customer',
+    name: 'Customer',
+    description: 'End user with booking and payment view access',
+    permissions: CUSTOMER_PERMISSIONS,
+    color: '#94a3b8', // Light Gray
+    icon: 'User',
   },
 ];
 
@@ -325,6 +420,14 @@ export const ROUTE_PERMISSIONS: RoutePermission[] = [
   
   // Payments
   { path: '/payment-history', requiredPermissions: ['payments.view'] },
+  
+  // System Admin Dashboard (System Admin only)
+  { 
+    path: '/system-admin', 
+    requiredPermissions: ['system.view'],
+    requiredRole: ['system-admin'],
+    redirectTo: '/dashboard'
+  },
   
   // Account Settings (Super Admin only)
   { 

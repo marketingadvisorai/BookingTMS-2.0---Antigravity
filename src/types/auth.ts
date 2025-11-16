@@ -12,6 +12,21 @@
  * Each permission represents a specific action or access right
  */
 export type Permission =
+  // System Admin (Platform-level)
+  | 'system.view'
+  | 'system.manage'
+  | 'owners.view'
+  | 'owners.create'
+  | 'owners.edit'
+  | 'owners.delete'
+  | 'plans.view'
+  | 'plans.edit'
+  | 'features.view'
+  | 'features.toggle'
+  | 'billing.view'
+  | 'billing.manage'
+  | 'platform.analytics'
+  
   // Dashboard
   | 'dashboard.view'
   | 'dashboard.stats'
@@ -44,6 +59,7 @@ export type Permission =
   | 'venues.edit'
   | 'venues.delete'
   | 'venues.configure'
+  | 'venues.manage'
   
   // Marketing
   | 'marketing.view'
@@ -102,8 +118,10 @@ export type Permission =
 /**
  * User role types
  * Defines the hierarchy of user roles in the system
+ * system-admin: Platform-level admin (can manage all organizations/owners)
+ * super-admin: Organization owner (can manage their own organization)
  */
-export type UserRole = 'super-admin' | 'admin' | 'beta-owner' | 'manager' | 'staff';
+export type UserRole = 'system-admin' | 'super-admin' | 'admin' | 'beta-owner' | 'manager' | 'staff' | 'customer';
 
 /**
  * Role configuration with permissions

@@ -7,35 +7,37 @@
 export interface Plan {
   id: string;
   name: string;
+  slug?: string;
   description: string;
-  price: number;
-  currency: string;
-  billing_period: 'monthly' | 'annual';
   
-  // Features
-  features: string[];
-  
-  // Limits
-  limits: PlanLimits;
-  
-  // Display
-  is_featured: boolean;
-  display_order: number;
-  color?: string;
+  // Pricing (matches actual DB schema)
+  price_monthly: number;
+  price_yearly: number;
   
   // Stripe
-  stripe_price_id?: string;
   stripe_product_id?: string;
+  stripe_price_monthly_id?: string;
+  stripe_price_yearly_id?: string;
   
-  // Status
+  // Limits (matches DB schema)
+  max_venues?: number;
+  max_staff?: number;
+  max_bookings_per_month?: number;
+  max_games?: number;
+  
+  // Features
+  features: any; // JSONB in database
+  
+  // Display
   is_active: boolean;
   is_visible: boolean;
+  sort_order?: number;
   
   // Timestamps
   created_at: string;
   updated_at: string;
   
-  // Stats
+  // Stats (computed)
   subscriber_count?: number;
 }
 
@@ -51,28 +53,35 @@ export interface PlanLimits {
 
 export interface CreatePlanDTO {
   name: string;
+  slug?: string;
   description: string;
-  price: number;
-  currency?: string;
-  billing_period: 'monthly' | 'annual';
-  features: string[];
-  limits: PlanLimits;
-  is_featured?: boolean;
-  display_order?: number;
-  color?: string;
+  price_monthly: number;
+  price_yearly: number;
+  stripe_product_id?: string;
+  max_venues?: number;
+  max_staff?: number;
+  max_bookings_per_month?: number;
+  max_games?: number;
+  features?: any;
+  is_active?: boolean;
+  is_visible?: boolean;
+  sort_order?: number;
 }
 
 export interface UpdatePlanDTO {
   name?: string;
+  slug?: string;
   description?: string;
-  price?: number;
-  features?: string[];
-  limits?: PlanLimits;
-  is_featured?: boolean;
-  display_order?: number;
-  color?: string;
+  price_monthly?: number;
+  price_yearly?: number;
+  max_venues?: number;
+  max_staff?: number;
+  max_bookings_per_month?: number;
+  max_games?: number;
+  features?: any;
   is_active?: boolean;
   is_visible?: boolean;
+  sort_order?: number;
 }
 
 export interface PlanStats {

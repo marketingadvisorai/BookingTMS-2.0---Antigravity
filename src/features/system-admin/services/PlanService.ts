@@ -102,17 +102,19 @@ export class PlanService {
         .from('plans')
         .insert([{
           name: dto.name,
+          slug: dto.slug,
           description: dto.description,
-          price: dto.price,
-          currency: dto.currency || 'USD',
-          billing_period: dto.billing_period,
+          price_monthly: dto.price_monthly,
+          price_yearly: dto.price_yearly,
+          stripe_product_id: dto.stripe_product_id,
+          max_venues: dto.max_venues,
+          max_staff: dto.max_staff,
+          max_bookings_per_month: dto.max_bookings_per_month,
+          max_games: dto.max_games,
           features: dto.features,
-          limits: dto.limits,
-          is_featured: dto.is_featured || false,
-          display_order: dto.display_order || 999,
-          color: dto.color,
-          is_active: true,
-          is_visible: true,
+          is_active: dto.is_active ?? true,
+          is_visible: dto.is_visible ?? true,
+          sort_order: dto.sort_order ?? 999,
         }])
         .select()
         .single();
@@ -204,12 +206,11 @@ export class PlanService {
       // Get plan details for MRR calculation
       const plan = await this.getById(id);
       
-      const monthlyPrice = plan.billing_period === 'annual' 
-        ? plan.price / 12 
-        : plan.price;
+      const monthlyPrice = plan.price_monthly;
+      const yearlyPrice = plan.price_yearly;
 
       const mrr = monthlyPrice * (subscriberCount || 0);
-      const arr = mrr * 12;
+      const arr = yearlyPrice * (subscriberCount || 0);
 
       // TODO: Calculate growth and churn from historical data
       const growthRate = 0;

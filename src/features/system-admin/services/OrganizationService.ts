@@ -203,38 +203,22 @@ export class OrganizationService {
    */
   static async getMetrics(id: string): Promise<OrganizationMetrics> {
     try {
-      // This would call a database function
       const { data, error } = await supabase
-        .rpc('get_organization_metrics', { org_id: id });
+        .rpc('get_organization_metrics', { org_id: id })
+        .single();
 
       if (error) {
         throw new Error(`Failed to fetch metrics: ${error.message}`);
       }
 
-      return data;
+      if (!data) {
+        throw new Error('No metrics data returned');
+      }
+
+      return data as OrganizationMetrics;
     } catch (error) {
       console.error('OrganizationService.getMetrics error:', error);
-      // Return empty metrics if function doesn't exist yet
-      return {
-        total_venues: 0,
-        active_venues: 0,
-        total_games: 0,
-        total_bookings: 0,
-        confirmed_bookings: 0,
-        pending_bookings: 0,
-        canceled_bookings: 0,
-        total_revenue: 0,
-        mrr: 0,
-        average_booking_value: 0,
-        total_users: 0,
-        active_users: 0,
-        storage_used_gb: 0,
-        storage_limit_gb: 100,
-        period_start: new Date().toISOString(),
-        period_end: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        organization_id: id,
-      };
+      throw error;
     }
   }
 }

@@ -20,6 +20,31 @@ export class MetricsService {
    */
   static async getPlatformMetrics(filters?: MetricsFilters): Promise<PlatformMetrics> {
     try {
+      // Call the database function
+      const { data, error } = await supabase
+        .rpc('get_platform_metrics')
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to fetch platform metrics: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('No platform metrics data returned');
+      }
+
+      return data as PlatformMetrics;
+    } catch (error) {
+      console.error('MetricsService.getPlatformMetrics error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get platform-wide metrics (OLD - keeping as fallback)
+   */
+  static async getPlatformMetricsManual(filters?: MetricsFilters): Promise<PlatformMetrics> {
+    try {
       // Organizations count by status
       const { data: orgData } = await supabase
         .from('organizations')

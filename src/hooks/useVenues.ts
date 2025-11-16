@@ -111,7 +111,7 @@ export function useVenues() {
   };
 
   // Update venue
-  const updateVenue = async (id: string, updates: Partial<Venue>) => {
+  const updateVenue = async (id: string, updates: Partial<Venue>, silent = false) => {
     try {
       const { data, error: updateError } = await supabase
         .from('venues')
@@ -122,7 +122,9 @@ export function useVenues() {
 
       if (updateError) throw updateError;
 
-      toast.success('Venue updated successfully!');
+      if (!silent) {
+        toast.success('Venue updated successfully!');
+      }
       await fetchVenues(); // Refresh list
       return data;
     } catch (err: any) {

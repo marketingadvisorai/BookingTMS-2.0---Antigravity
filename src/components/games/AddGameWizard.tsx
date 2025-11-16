@@ -2198,15 +2198,52 @@ function Step4MediaUpload({ gameData, updateGameData }: any) {
     if (videoInputRef.current) videoInputRef.current.value = '';
   };
 
+  const isValidVideoUrl = (url: string): boolean => {
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname.toLowerCase();
+      
+      // YouTube
+      if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
+        return true;
+      }
+      
+      // Vimeo
+      if (hostname.includes('vimeo.com')) {
+        return true;
+      }
+      
+      // Loom
+      if (hostname.includes('loom.com')) {
+        return true;
+      }
+      
+      // Wistia
+      if (hostname.includes('wistia.com') || hostname.includes('wi.st')) {
+        return true;
+      }
+      
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
   const addVideoByUrl = () => {
     const url = videoUrlInput.trim();
     if (!url) {
       toast.error('Please enter a video URL');
       return;
     }
+    
+    if (!isValidVideoUrl(url)) {
+      toast.error('Please enter a valid YouTube, Vimeo, Loom, or Wistia URL');
+      return;
+    }
+    
     updateGameData('videos', [...gameData.videos, url]);
     setVideoUrlInput('');
-    toast.success('Video URL added');
+    toast.success('Video URL added successfully');
   };
 
   const removeGalleryImage = async (index: number) => {

@@ -90,6 +90,16 @@ const loadSupabase = async () => {
 
 const MOCK_USERS: User[] = [
   {
+    id: '00000000-0000-0000-0000-000000000000',
+    email: 'systemadmin@bookingtms.com',
+    name: 'System Administrator',
+    role: 'system-admin',
+    status: 'active',
+    createdAt: '2024-01-01T00:00:00Z',
+    lastLogin: '2025-11-08T09:00:00Z',
+    organizationId: null,
+  },
+  {
     id: '00000000-0000-0000-0000-000000000001',
     email: 'superadmin@bookingtms.com',
     name: 'Super Admin User',
@@ -324,6 +334,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Mock login - support both username and email
       // Demo credentials for testing
       const demoCredentials: Record<string, { username: string; password: string; role: UserRole }> = {
+        'systemadmin': { username: 'systemadmin', password: 'demo123', role: 'system-admin' },
         'superadmin': { username: 'superadmin', password: 'demo123', role: 'super-admin' },
         'admin': { username: 'admin', password: 'demo123', role: 'admin' },
         'betaadmin': { username: 'betaadmin', password: '123admin', role: 'beta-owner' },

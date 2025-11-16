@@ -1,4 +1,4 @@
-import { Search, Bell, ChevronDown, Menu, LogOut, X } from 'lucide-react';
+import { Search, Bell, ChevronDown, Menu, LogOut, X, Settings, Crown } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
@@ -207,6 +207,8 @@ export function Header({ onNavigate, onMobileMenuToggle }: HeaderProps) {
   // Get role badge color
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
+      case 'system-admin':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
       case 'super-admin':
         return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
       case 'admin':
@@ -215,6 +217,8 @@ export function Header({ onNavigate, onMobileMenuToggle }: HeaderProps) {
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
       case 'staff':
         return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
+      case 'customer':
+        return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
     }
@@ -327,6 +331,25 @@ export function Header({ onNavigate, onMobileMenuToggle }: HeaderProps) {
               >
                 Team
               </DropdownMenuItem>
+              {currentUser?.role === 'system-admin' && (
+                <>
+                  <DropdownMenuSeparator className="bg-gray-200 dark:bg-[#2a2a2a]" />
+                  <DropdownMenuItem 
+                    onClick={() => onNavigate('system-admin')}
+                    className="text-gray-700 dark:text-[#d4d4d4] hover:bg-gray-100 dark:hover:bg-[#252525] cursor-pointer focus:bg-gray-100 dark:focus:bg-[#252525] flex items-center gap-2"
+                  >
+                    <Crown className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    System Admin Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => onNavigate('settings')}
+                    className="text-gray-700 dark:text-[#d4d4d4] hover:bg-gray-100 dark:hover:bg-[#252525] cursor-pointer focus:bg-gray-100 dark:focus:bg-[#252525] flex items-center gap-2"
+                  >
+                    <Settings className="w-4 h-4" />
+                    Platform Settings
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator className="bg-gray-200 dark:bg-[#2a2a2a]" />
               <DropdownMenuItem 
                 onClick={handleLogout}

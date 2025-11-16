@@ -6,10 +6,10 @@ import { useAuth } from '../lib/auth/AuthContext';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
-import { X, Shield, UserCog, Users, User, Building2 } from 'lucide-react';
+import { X, Shield, UserCog, Users, User, Building2, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 
-type UserRole = 'super-admin' | 'admin' | 'beta-owner' | 'manager' | 'staff' | null;
+type UserRole = 'system-admin' | 'super-admin' | 'admin' | 'beta-owner' | 'manager' | 'staff' | 'customer' | null;
 
 const Login = () => {
   const { theme } = useTheme();
@@ -36,6 +36,13 @@ const Login = () => {
   // Role configurations
   const roles = [
     {
+      id: 'system-admin' as UserRole,
+      label: 'System Admin Login',
+      description: 'Platform owner - manage all owners & venues',
+      icon: Crown,
+      color: isDark ? '#ef4444' : '#dc2626',
+    },
+    {
       id: 'super-admin' as UserRole,
       label: 'Super Admin Login',
       description: 'Full system access + user management',
@@ -50,13 +57,6 @@ const Login = () => {
       color: isDark ? '#3b82f6' : '#2563eb',
     },
     {
-      id: 'beta-owner' as UserRole,
-      label: 'Beta Owner Login',
-      description: 'Multi-venue owner access (Beta Testing)',
-      icon: Building2,
-      color: isDark ? '#f59e0b' : '#d97706',
-    },
-    {
       id: 'manager' as UserRole,
       label: 'Manager Login',
       description: 'View and limited edit access',
@@ -69,6 +69,13 @@ const Login = () => {
       description: 'Basic view-only access',
       icon: User,
       color: isDark ? '#6b7280' : '#4b5563',
+    },
+    {
+      id: 'customer' as UserRole,
+      label: 'Customer Login',
+      description: 'Access your bookings and profile',
+      icon: User,
+      color: isDark ? '#ec4899' : '#db2777',
     },
   ];
 

@@ -591,12 +591,6 @@ const SystemAdminDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5; // Show 5 organizations per page on dashboard
 
-  // Section heights for resizing
-  const [metricsHeight, setMetricsHeight] = useState(160);
-  const [tableHeight, setTableHeight] = useState(600);
-  const [plansHeight, setPlansHeight] = useState(400);
-  const [flagsHeight, setFlagsHeight] = useState(300);
-
   // Column visibility configuration
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
     if (typeof window !== 'undefined') {
@@ -924,7 +918,6 @@ const SystemAdminDashboard = () => {
             <h2 className={`text-lg font-medium ${textClass}`}>Overview Metrics</h2>
           </div>
           <div 
-            style={{ minHeight: `${metricsHeight}px` }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
             <KPICard
@@ -988,7 +981,6 @@ const SystemAdminDashboard = () => {
         {/* Owners & Venues Table - Improved Design */}
         <Card 
           className={`${cardBgClass} border ${borderColor} shadow-sm`}
-          style={{ minHeight: `${tableHeight}px` }}
         >
           {/* Enhanced Header with Better Spacing */}
           <CardHeader className="space-y-4 pb-6">
@@ -1546,7 +1538,6 @@ const SystemAdminDashboard = () => {
         {/* Plans & Features Section */}
         <div 
           className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-          style={{ minHeight: `${plansHeight}px` }}
         >
           {plans.map((plan, index) => (
             <Card key={index} className={`${cardBgClass} border ${borderColor} relative ${plan.isFeatured ? 'ring-2 ring-yellow-500' : ''}`}>
@@ -1634,7 +1625,6 @@ const SystemAdminDashboard = () => {
         {/* Feature Flags */}
         <Card 
           className={`${cardBgClass} border ${borderColor}`}
-          style={{ minHeight: `${flagsHeight}px` }}
         >
           <CardHeader className="space-y-3 pb-6">
             <div className="flex items-center justify-between">

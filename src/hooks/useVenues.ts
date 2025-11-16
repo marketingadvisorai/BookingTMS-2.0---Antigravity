@@ -135,14 +135,13 @@ export function useVenues() {
   // Delete venue
   const deleteVenue = async (id: string) => {
     try {
+      // Soft-delete: marks venue and all its games as deleted, auto-cleanup after 7 days
       const { error: deleteError } = await supabase
-        .from('venues')
-        .delete()
-        .eq('id', id);
+        .rpc('soft_delete_venue', { venue_id: id });
 
       if (deleteError) throw deleteError;
 
-      toast.success('Venue deleted successfully!');
+      toast.success('Venue and all games deleted! (Recoverable for 7 days)', { duration: 4000 });
       await fetchVenues(); // Refresh list
     } catch (err: any) {
       console.error('Error deleting venue:', err);

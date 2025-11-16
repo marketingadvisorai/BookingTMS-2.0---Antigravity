@@ -461,11 +461,9 @@ export function useGames(venueId?: string) {
         throw new Error('Game has existing bookings');
       }
 
-      // If no bookings, proceed with deletion
+      // Soft-delete: marks as deleted, auto-cleanup after 7 days
       const { error: deleteError } = await supabase
-        .from('games')
-        .delete()
-        .eq('id', id);
+        .rpc('soft_delete_game', { game_id: id });
 
       if (deleteError) {
         // Handle foreign key constraint error with user-friendly message
@@ -479,7 +477,7 @@ export function useGames(venueId?: string) {
         throw deleteError;
       }
 
-      toast.success('Game deleted successfully!');
+      toast.success('Game deleted! (Recoverable for 7 days)', { duration: 4000 });
       await fetchGames(); // Refresh list
     } catch (err: any) {
       console.error('Error deleting game:', err);

@@ -51,9 +51,9 @@ export class PlanService {
       );
 
       return plansWithCounts;
-    } catch (error) {
-      console.error('PlanService.getAll error:', error);
-      throw error;
+    } catch (error: any) {
+      console.warn('[PlanService] getAll failed:', error?.message || 'Database query failed');
+      throw new Error(error?.message || 'Failed to fetch plans');
     }
   }
 
@@ -87,8 +87,8 @@ export class PlanService {
         ...data,
         subscriber_count: count || 0,
       };
-    } catch (error) {
-      console.error('PlanService.getById error:', error);
+    } catch (error: any) {
+      console.warn('[PlanService] getById failed:', error?.message);
       throw error;
     }
   }
@@ -124,8 +124,8 @@ export class PlanService {
       }
 
       return { ...data, subscriber_count: 0 };
-    } catch (error) {
-      console.error('PlanService.create error:', error);
+    } catch (error: any) {
+      console.warn('[PlanService] create failed:', error?.message);
       throw error;
     }
   }
@@ -150,8 +150,8 @@ export class PlanService {
       }
 
       return data;
-    } catch (error) {
-      console.error('PlanService.update error:', error);
+    } catch (error: any) {
+      console.warn('[PlanService] update failed:', error?.message);
       throw error;
     }
   }
@@ -185,8 +185,8 @@ export class PlanService {
       if (error) {
         throw new Error(`Failed to delete plan: ${error.message}`);
       }
-    } catch (error) {
-      console.error('PlanService.delete error:', error);
+    } catch (error: any) {
+      console.warn('[PlanService] delete failed:', error?.message);
       throw error;
     }
   }
@@ -223,8 +223,8 @@ export class PlanService {
         growth_rate: growthRate,
         churn_rate: churnRate,
       };
-    } catch (error) {
-      console.error('PlanService.getStats error:', error);
+    } catch (error: any) {
+      console.warn('[PlanService] getStats failed:', error?.message);
       throw error;
     }
   }

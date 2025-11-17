@@ -90,9 +90,11 @@ export class OrganizationService {
         per_page: perPage,
         total_pages: Math.ceil((count || 0) / perPage),
       };
-    } catch (error) {
-      console.error('OrganizationService.getAll error:', error);
-      throw error;
+    } catch (error: any) {
+      // Suppress full error object logging
+      const msg = error?.message || 'Database query failed';
+      console.warn('[OrganizationService] getAll failed:', msg);
+      throw new Error(msg);
     }
   }
 
@@ -119,8 +121,8 @@ export class OrganizationService {
       }
 
       return data;
-    } catch (error) {
-      console.error('OrganizationService.getById error:', error);
+    } catch (error: any) {
+      console.warn('[OrganizationService] getById failed:', error?.message);
       throw error;
     }
   }
@@ -214,8 +216,8 @@ export class OrganizationService {
         ...org,
         stripe_customer_id: stripeCustomerId,
       };
-    } catch (error) {
-      console.error('OrganizationService.create error:', error);
+    } catch (error: any) {
+      console.warn('[OrganizationService] create failed:', error?.message);
       throw error;
     }
   }
@@ -240,8 +242,8 @@ export class OrganizationService {
       }
 
       return data;
-    } catch (error) {
-      console.error('OrganizationService.update error:', error);
+    } catch (error: any) {
+      console.warn('[OrganizationService] update failed:', error?.message);
       throw error;
     }
   }
@@ -259,8 +261,8 @@ export class OrganizationService {
       if (error) {
         throw new Error(`Failed to delete organization: ${error.message}`);
       }
-    } catch (error) {
-      console.error('OrganizationService.delete error:', error);
+    } catch (error: any) {
+      console.warn('[OrganizationService] delete failed:', error?.message);
       throw error;
     }
   }
@@ -283,8 +285,8 @@ export class OrganizationService {
       }
 
       return data as OrganizationMetrics;
-    } catch (error) {
-      console.error('OrganizationService.getMetrics error:', error);
+    } catch (error: any) {
+      console.warn('[OrganizationService] getMetrics failed:', error?.message);
       throw error;
     }
   }

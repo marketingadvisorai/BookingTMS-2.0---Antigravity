@@ -55,7 +55,7 @@ export const ViewAllOrganizations: React.FC<ViewAllOrganizationsProps> = ({ onBa
   const itemsPerPage = 10;
 
   // Fetch data
-  const { organizations, isLoading, refetch } = useOrganizations(
+  const { organizations, isLoading, error: orgsError, refetch } = useOrganizations(
     {
       search: searchQuery,
       status: statusFilter !== 'all' ? (statusFilter as any) : undefined,
@@ -65,7 +65,10 @@ export const ViewAllOrganizations: React.FC<ViewAllOrganizationsProps> = ({ onBa
     itemsPerPage
   );
 
-  const { plans } = usePlans(true);
+  const { plans, error: plansError } = usePlans(true);
+
+  // Check for database errors
+  const hasError = orgsError || plansError;
 
   // Calculate pagination
   const total = organizations?.length || 0;
@@ -115,6 +118,57 @@ export const ViewAllOrganizations: React.FC<ViewAllOrganizationsProps> = ({ onBa
       </span>
     );
   };
+
+  // Error state - show when database tables don't exist
+  if (hasError) {
+    return (
+      <div className={`min-h-screen ${bgClass} p-6`}>
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-6">
+            <Button variant="outline" onClick={onBack} className="mb-4">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </div>
+
+          {/* Error Card */}
+          <div className={`${cardBgClass} border ${borderColor} rounded-lg p-12`}>
+            <div className="text-center max-w-2xl mx-auto">
+              <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h2 className={`text-2xl font-bold ${textClass} mb-3`}>Database Tables Not Found</h2>
+              <p className={`${mutedTextClass} mb-6`}>
+                The organizations and plans tables don't exist in your database yet.
+              </p>
+              <div className={`text-left bg-gray-900/50 rounded-lg p-6 mb-6`}>
+                <p className="text-sm font-semibold text-white mb-3">To set up the database:</p>
+                <ol className="text-sm text-gray-300 space-y-2 list-decimal list-inside">
+                  <li>Run the database migrations: <code className="bg-black/40 px-2 py-1 rounded">supabase db push</code></li>
+                  <li>Or manually create the tables in Supabase Dashboard</li>
+                  <li>Check that you have the correct Supabase credentials in .env</li>
+                  <li>Refresh this page after setup</li>
+                </ol>
+              </div>
+              <div className="flex gap-3 justify-center">
+                <Button onClick={() => window.location.reload()} variant="outline">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Retry
+                </Button>
+                <Button onClick={onBack}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Go Back
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen ${bgClass} p-6`}>

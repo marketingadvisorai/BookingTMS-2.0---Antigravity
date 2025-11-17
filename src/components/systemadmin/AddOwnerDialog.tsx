@@ -9,13 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Separator } from '../ui/separator';
 import { Switch } from '../ui/switch';
 import { useState } from 'react';
-import { toast } from 'sonner@2.0.3';
-import { Plus, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { Plus, X, Loader2 } from 'lucide-react';
+import { useOrganizations, usePlans } from '../../features/system-admin/hooks';
+import type { CreateOrganizationDTO } from '../../features/system-admin/types';
 
 interface AddOwnerDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd?: (newOwner: any) => void;
+  onAdd?: () => void;
 }
 
 export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) => {
@@ -28,87 +30,75 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
   const borderColor = isDark ? 'border-[#333]' : 'border-gray-200';
   const secondaryBgClass = isDark ? 'bg-[#0a0a0a]' : 'bg-gray-50';
 
-  const [formData, setFormData] = useState({
-    ownerName: '',
-    organizationName: '',
-    organizationId: '',
-    email: '',
+  const { createOrganization, isCreating } = useOrganizations({}, 1, 10);
+  const { plans } = usePlans(true); // Get only active plans
+
+  const [formData, setFormData] = useState<CreateOrganizationDTO>({
+    name: '',
+    owner_name: '',
+    owner_email: '',
     website: '',
-    plan: 'Basic',
-    venues: 1,
-    status: 'active',
+    phone: '',
+    plan_id: '',
+    status: 'pending',
   });
 
-  const [enabledFeatures, setEnabledFeatures] = useState<Record<string, boolean>>({
-    'AI Agents': false,
-    'Waivers': false,
-    'Analytics': false,
-    'Marketing': false,
-    'Booking Widgets': true,
-  });
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: keyof CreateOrganizationDTO, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleFeatureToggle = (feature: string) => {
-    setEnabledFeatures(prev => ({ ...prev, [feature]: !prev[feature] }));
-  };
 
   const validateForm = () => {
-    if (!formData.ownerName.trim()) {
+    if (!formData.owner_name.trim()) {
       toast.error('Owner name is required');
       return false;
     }
-    if (!formData.organizationName.trim()) {
+    if (!formData.name.trim()) {
       toast.error('Organization name is required');
       return false;
     }
-    if (!formData.organizationId.trim()) {
-      toast.error('Organization ID is required');
-      return false;
-    }
-    if (!formData.email.trim()) {
+    if (!formData.owner_email.trim()) {
       toast.error('Email is required');
       return false;
     }
-    if (!formData.email.includes('@')) {
+    if (!formData.owner_email.includes('@')) {
       toast.error('Please enter a valid email address');
+      return false;
+    }
+    if (!formData.plan_id) {
+      toast.error('Please select a plan');
       return false;
     }
     return true;
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!validateForm()) {
       return;
     }
 
-    // Get enabled features
-    const features = Object.entries(enabledFeatures)
-      .filter(([_, enabled]) => enabled)
-      .map(([feature]) => feature);
-
-    // Generate profile slug from organization name
-    const profileSlug = formData.organizationName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
-
-    const newOwner = {
-      id: Date.now(), // In real app, this would come from backend
-      accountId: 1, // Would be assigned by backend
-      ...formData,
-      features,
-      profileSlug,
-    };
-
-    if (onAdd) {
-      onAdd(newOwner);
+    try {
+      await createOrganization(formData);
+      toast.success(`Organization "${formData.name}" has been created successfully`);
+      if (onAdd) {
+        onAdd();
+      }
+      // Reset form
+      setFormData({
+        name: '',
+        owner_name: '',
+        owner_email: '',
+        website: '',
+        phone: '',
+        plan_id: '',
+        status: 'pending',
+      });
+      onClose();
+    } catch (error) {
+      console.error('Failed to create organization:', error);
+      toast.error('Failed to create organization. Please try again.');
     }
-
-    toast.success(`Owner "${formData.organizationName}" has been added successfully`);
-    onClose();
   };
 
   return (
@@ -132,8 +122,8 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
                     Owner Name <span className="text-red-600">*</span>
                   </Label>
                   <Input
-                    value={formData.ownerName}
-                    onChange={(e) => handleInputChange('ownerName', e.target.value)}
+                    value={formData.owner_name}
+                    onChange={(e) => handleInputChange('owner_name', e.target.value)}
                     className={`h-12 bg-gray-100 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#333] placeholder:text-gray-500`}
                     placeholder="John Smith"
                   />
@@ -143,25 +133,18 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
                     Organization Name <span className="text-red-600">*</span>
                   </Label>
                   <Input
-                    value={formData.organizationName}
-                    onChange={(e) => handleInputChange('organizationName', e.target.value)}
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
                     className={`h-12 bg-gray-100 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#333] placeholder:text-gray-500`}
                     placeholder="Escape Rooms Inc."
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-gray-700 dark:text-gray-300">
-                  Organization ID <span className="text-red-600">*</span>
-                </Label>
-                <Input
-                  value={formData.organizationId}
-                  onChange={(e) => handleInputChange('organizationId', e.target.value)}
-                  className={`h-12 bg-gray-100 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#333] placeholder:text-gray-500`}
-                  placeholder="ORG-001"
-                />
-                <p className={`text-xs ${mutedTextClass}`}>Unique identifier for this organization</p>
+              <div className={`p-4 rounded-lg border ${borderColor} bg-blue-600/5`}>
+                <p className={`text-xs ${mutedTextClass}`}>
+                  📝 Organization ID will be automatically generated when you create the organization
+                </p>
               </div>
             </div>
           </div>
@@ -178,21 +161,33 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
                 </Label>
                 <Input
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  value={formData.owner_email}
+                  onChange={(e) => handleInputChange('owner_email', e.target.value)}
                   className={`h-12 bg-gray-100 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#333] placeholder:text-gray-500`}
                   placeholder="owner@example.com"
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-gray-700 dark:text-gray-300">Website</Label>
-                <Input
-                  type="url"
-                  value={formData.website}
-                  onChange={(e) => handleInputChange('website', e.target.value)}
-                  className={`h-12 bg-gray-100 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#333] placeholder:text-gray-500`}
-                  placeholder="https://example.com"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-gray-700 dark:text-gray-300">Website</Label>
+                  <Input
+                    type="url"
+                    value={formData.website || ''}
+                    onChange={(e) => handleInputChange('website', e.target.value)}
+                    className={`h-12 bg-gray-100 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#333] placeholder:text-gray-500`}
+                    placeholder="https://example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-700 dark:text-gray-300">Phone</Label>
+                  <Input
+                    type="tel"
+                    value={formData.phone || ''}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    className={`h-12 bg-gray-100 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#333] placeholder:text-gray-500`}
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -203,84 +198,56 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
           <div>
             <h4 className={`text-sm uppercase tracking-wider mb-4 ${mutedTextClass}`}>Plan & Settings</h4>
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-gray-700 dark:text-gray-300">Plan</Label>
-                  <Select value={formData.plan} onValueChange={(value) => handleInputChange('plan', value)}>
+                  <Label className="text-gray-700 dark:text-gray-300">
+                    Plan <span className="text-red-600">*</span>
+                  </Label>
+                  <Select value={formData.plan_id} onValueChange={(value) => handleInputChange('plan_id', value)}>
                     <SelectTrigger className={`h-12 bg-gray-100 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#333]`}>
-                      <SelectValue />
+                      <SelectValue placeholder="Select a plan" />
                     </SelectTrigger>
-                    <SelectContent className={`${bgClass} border ${borderColor}`}>
-                      <SelectItem value="Basic" className={textClass}>Basic - $99/mo</SelectItem>
-                      <SelectItem value="Growth" className={textClass}>Growth - $299/mo</SelectItem>
-                      <SelectItem value="Pro" className={textClass}>Pro - $599/mo</SelectItem>
+                    <SelectContent className={`${bgClass} border ${borderColor}`} position="popper" sideOffset={5}>
+                      {plans?.map((plan) => (
+                        <SelectItem key={plan.id} value={plan.id} className={textClass}>
+                          {plan.name} - ${plan.price_monthly}/mo
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-gray-700 dark:text-gray-300">Number of Venues</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={formData.venues}
-                    onChange={(e) => handleInputChange('venues', parseInt(e.target.value))}
-                    className={`h-12 bg-gray-100 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#333] placeholder:text-gray-500`}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label className="text-gray-700 dark:text-gray-300">Status</Label>
-                  <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
+                  <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value as 'active' | 'pending')}>
                     <SelectTrigger className={`h-12 bg-gray-100 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#333]`}>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className={`${bgClass} border ${borderColor}`}>
+                    <SelectContent className={`${bgClass} border ${borderColor}`} position="popper" sideOffset={5}>
+                      <SelectItem value="pending" className={textClass}>Pending</SelectItem>
                       <SelectItem value="active" className={textClass}>Active</SelectItem>
-                      <SelectItem value="inactive" className={textClass}>Inactive</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               {/* Plan Info */}
-              <div className={`p-4 rounded-lg border ${borderColor} bg-blue-600/5`}>
-                <p className={`text-sm ${mutedTextClass}`}>
-                  {formData.plan === 'Basic' && 'Basic plan includes: Up to 2 venues, Booking Widgets, Basic Analytics, Email Support'}
-                  {formData.plan === 'Growth' && 'Growth plan includes: Up to 5 venues, All Basic features, Waivers, Marketing Tools, Priority Support'}
-                  {formData.plan === 'Pro' && 'Pro plan includes: Unlimited venues, All Growth features, AI Agents, Advanced Analytics, Custom Branding, Dedicated Support'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <Separator className={borderColor} />
-
-          {/* Features */}
-          <div>
-            <h4 className={`text-sm uppercase tracking-wider mb-4 ${mutedTextClass}`}>Enabled Features</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(enabledFeatures).map(([feature, enabled]) => (
-                <div
-                  key={feature}
-                  className={`p-4 rounded-lg border ${borderColor} ${secondaryBgClass} flex items-center justify-between`}
-                >
-                  <Label className="text-gray-700 dark:text-gray-300 cursor-pointer" htmlFor={feature}>
-                    {feature}
-                  </Label>
-                  <Switch
-                    id={feature}
-                    checked={enabled}
-                    onCheckedChange={() => handleFeatureToggle(feature)}
-                  />
+              {formData.plan_id && (
+                <div className={`p-4 rounded-lg border ${borderColor} bg-blue-600/5`}>
+                  <p className={`text-sm ${mutedTextClass}`}>
+                    {plans?.find(p => p.id === formData.plan_id)?.name} plan features will be available after organization is created.
+                  </p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
+
 
           {/* Action Buttons */}
           <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-[#333]">
             <Button
               variant="outline"
               onClick={onClose}
+              disabled={isCreating}
               className={`border ${borderColor}`}
             >
               <X className="w-4 h-4 mr-2" />
@@ -288,10 +255,15 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
             </Button>
             <Button
               onClick={handleAdd}
+              disabled={isCreating}
               className="bg-indigo-600 hover:bg-indigo-700 text-white"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Owner
+              {isCreating ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4 mr-2" />
+              )}
+              {isCreating ? 'Creating...' : 'Add Owner'}
             </Button>
           </div>
         </div>

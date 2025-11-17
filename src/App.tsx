@@ -33,6 +33,7 @@ import BetaLogin from './pages/BetaLogin';
 import BackendDashboard from './pages/BackendDashboard';
 import GiftVouchers from './pages/GiftVouchers';
 import SystemAdminDashboard from './pages/SystemAdminDashboard';
+import { ViewAllOrganizations } from './pages/ViewAllOrganizations';
 import { Toaster } from './components/ui/sonner';
 import { FeatureFlagProvider } from './lib/featureflags/FeatureFlagContext';
 
@@ -116,7 +117,9 @@ function AppContent() {
       case 'backend-dashboard':
         return <BackendDashboard />;
       case 'system-admin':
-        return <SystemAdminDashboard />;
+        return <SystemAdminDashboard onNavigate={setCurrentPage} />;
+      case 'view-all-organizations':
+        return <ViewAllOrganizations onBack={() => setCurrentPage('system-admin')} />;
       case 'gift-vouchers':
         return <GiftVouchers />;
       default:

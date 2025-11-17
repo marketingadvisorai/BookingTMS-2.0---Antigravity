@@ -61,18 +61,123 @@ const defaultFeatureFlags: FeatureFlag[] = [
     category: 'Integration'
   },
   {
-    id: 'webhooks',
-    name: 'Webhooks',
-    description: 'Real-time event webhooks',
-    enabled: false,
-    category: 'Integration'
-  },
-  {
     id: 'sso',
     name: 'Single Sign-On',
     description: 'SAML/OAuth SSO support',
     enabled: false,
     category: 'Security'
+  },
+  {
+    id: 'email',
+    name: 'Email',
+    description: 'Core email messaging features',
+    enabled: true,
+    category: 'Communication'
+  },
+  {
+    id: 'marketing',
+    name: 'Marketing',
+    description: 'Enable marketing tools and automations',
+    enabled: true,
+    category: 'Marketing'
+  },
+  {
+    id: 'campaigns',
+    name: 'Campaigns',
+    description: 'Run marketing and engagement campaigns',
+    enabled: true,
+    category: 'Marketing'
+  },
+  {
+    id: 'phone-call-agent',
+    name: 'Phone Call Agent',
+    description: 'Enable phone-based agent assistance',
+    enabled: true,
+    category: 'Agents'
+  },
+  {
+    id: 'booking-agent',
+    name: 'Booking Agent',
+    description: 'Enable agent-assisted booking flows',
+    enabled: true,
+    category: 'Agents'
+  },
+  {
+    id: 'booking-widgets',
+    name: 'Booking Widgets',
+    description: 'Embed booking widgets across channels',
+    enabled: true,
+    category: 'Core'
+  },
+  {
+    id: 'inbox',
+    name: 'Inbox',
+    description: 'Unified customer communication inbox',
+    enabled: true,
+    category: 'Communication'
+  },
+  {
+    id: 'staffs',
+    name: 'Staffs',
+    description: 'Manage staff accounts and permissions',
+    enabled: true,
+    category: 'Operations'
+  },
+  {
+    id: 'reports',
+    name: 'Reports',
+    description: 'Access reporting and insights',
+    enabled: true,
+    category: 'Analytics'
+  },
+  {
+    id: 'media',
+    name: 'Media',
+    description: 'Manage media assets and galleries',
+    enabled: true,
+    category: 'Content'
+  },
+  {
+    id: 'waivers',
+    name: 'Waivers',
+    description: 'Enable digital waiver collection',
+    enabled: true,
+    category: 'Operations'
+  },
+  {
+    id: 'payments-history',
+    name: 'Payments & History',
+    description: 'View and manage payments and history',
+    enabled: true,
+    category: 'Billing'
+  },
+  {
+    id: 'promotions',
+    name: 'Promotions',
+    description: 'Create and manage promotions and offers',
+    enabled: true,
+    category: 'Marketing'
+  },
+  {
+    id: 'gift-cards',
+    name: 'Gift Cards',
+    description: 'Sell and manage gift cards',
+    enabled: true,
+    category: 'Billing'
+  },
+  {
+    id: 'venues',
+    name: 'Venues',
+    description: 'Manage venues and locations',
+    enabled: true,
+    category: 'Core'
+  },
+  {
+    id: 'events',
+    name: 'Events',
+    description: 'Manage events and experiences',
+    enabled: true,
+    category: 'Core'
   }
 ];
 

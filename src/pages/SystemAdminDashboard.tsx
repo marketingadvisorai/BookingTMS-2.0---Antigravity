@@ -32,6 +32,8 @@ import { SystemAdminProvider } from '../features/system-admin';
 import { PaymentsSubscriptionsSection } from '../components/systemadmin/PaymentsSubscriptionsSection';
 import { AccountPerformanceMetrics } from '../components/systemadmin/AccountPerformanceMetrics';
 import { UserAccountStripeConnect } from '../components/systemadmin/UserAccountStripeConnect';
+import { ConnectedAccountsManagement } from '../components/systemadmin/ConnectedAccountsManagement';
+import { RecentTransactionActivity } from '../components/systemadmin/RecentTransactionActivity';
 
 // Account type for account selector (mapped from Organization)
 interface Account {
@@ -1033,6 +1035,20 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
           platformMetrics={platformMetrics}
           accountMetrics={orgMetrics}
         />
+
+        {/* Connected Accounts Management - Show only when "All Accounts" is selected */}
+        {!selectedAccount && (
+          <div className={`border-b-2 ${borderColor} pb-6 mb-6`}>
+            <ConnectedAccountsManagement />
+          </div>
+        )}
+
+        {/* Recent Transaction Activity - Show only when "All Accounts" is selected */}
+        {!selectedAccount && (
+          <div className={`border-b-2 ${borderColor} pb-6 mb-6`}>
+            <RecentTransactionActivity limit={10} />
+          </div>
+        )}
 
         {/* Conditional: Show Organizations Management ONLY when "All Accounts" is selected */}
         {!selectedAccount && (

@@ -14,6 +14,7 @@ import configRoutes from './routes/config.routes';
 import stripeRoutes from './routes/stripe.routes';
 import stripeConnectRoutes from './routes/stripe-connect.routes';
 import stripeOAuthRoutes from './routes/stripe-oauth.routes';
+import stripeConnectAccountsRoutes from './routes/stripe-connect-accounts.routes';
 import paymentRoutes from './routes/payments.routes';
 
 /**
@@ -137,6 +138,7 @@ export function createServer(): Express {
   app.use('/api/stripe', stripeRoutes);
   app.use('/api/stripe-connect', stripeConnectRoutes);
   app.use('/api/stripe-connect', stripeOAuthRoutes);
+  app.use('/api/stripe-connect-accounts', stripeConnectAccountsRoutes);
   app.use('/api/payments', paymentRoutes);
   
   // Future routes (will be added)

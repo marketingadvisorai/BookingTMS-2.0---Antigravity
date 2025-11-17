@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, DollarSign, TrendingUp, Users, Crown, CheckCircle, XCircle, Eye, Edit, Trash2, ExternalLink, Settings, Code, ChevronDown, MapPin, Copy, ChevronLeft, ChevronRight, List, Star, GripVertical, Calendar, Gamepad2, Columns3 } from 'lucide-react';
+import { Building2, DollarSign, TrendingUp, Users, Crown, CheckCircle, XCircle, Eye, Edit, Trash2, ExternalLink, Settings, Code, ChevronDown, MapPin, Copy, ChevronLeft, ChevronRight, List, Star, GripVertical, Calendar, Gamepad2, Columns3, CreditCard } from 'lucide-react';
 import { KPICard } from '../components/dashboard/KPICard';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -31,6 +31,7 @@ import { useOrganizations as useOrgsFeature, usePlatformMetrics, useOrganization
 import { SystemAdminProvider } from '../features/system-admin';
 import { PaymentsSubscriptionsSection } from '../components/systemadmin/PaymentsSubscriptionsSection';
 import { AccountPerformanceMetrics } from '../components/systemadmin/AccountPerformanceMetrics';
+import { UserAccountStripeConnect } from '../components/systemadmin/UserAccountStripeConnect';
 
 // Account type for account selector (mapped from Organization)
 interface Account {
@@ -875,6 +876,13 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
     }
   };
 
+  // Navigation to User Stripe Accounts page
+  const handleViewUserStripeAccounts = () => {
+    if (onNavigate) {
+      onNavigate('user-stripe-accounts');
+    }
+  };
+
   const handleCancelEditLocation = () => {
     setEditingLocationId(null);
     setLocationValue(0);
@@ -988,6 +996,31 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
           </div>
         </div>
 
+        {/* Connected Account Onboarding - Show only for specific accounts */}
+        {selectedAccount && (() => {
+          // Find the full owner data for the selected account
+          const ownerData = owners.find(o => o.organizationId === selectedAccount.id);
+          if (!ownerData) return null;
+          
+          return (
+            <div className={`border-b-2 ${borderColor} pb-6 mb-6`}>
+              <UserAccountStripeConnect
+                userId={ownerData.organizationId}
+                userEmail={ownerData.email}
+                userName={ownerData.organizationName}
+                organizationId={ownerData.organizationId}
+                existingAccountId={(ownerData as any).stripeAccountId}
+                onAccountLinked={(accountId) => {
+                  toast.success('Stripe account linked!', {
+                    description: `Account ${accountId} linked to ${ownerData.organizationName}`
+                  });
+                  // Refresh data if needed
+                }}
+              />
+            </div>
+          );
+        })()}
+
         {/* Payments & Subscriptions Section */}
         <PaymentsSubscriptionsSection
           selectedAccount={selectedAccount}
@@ -1086,6 +1119,14 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
                 >
                   <List className="w-4 h-4 mr-2" />
                   View All
+                </Button>
+                <Button 
+                  onClick={handleViewUserStripeAccounts}
+                  variant="outline"
+                  className={`h-11 px-6 ${borderColor} ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50'}`}
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  User Accounts
                 </Button>
                 <Button 
                   onClick={() => setShowAddOwnerDialog(true)}

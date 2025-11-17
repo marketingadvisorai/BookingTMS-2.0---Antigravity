@@ -34,6 +34,7 @@ import BackendDashboard from './pages/BackendDashboard';
 import GiftVouchers from './pages/GiftVouchers';
 import SystemAdminDashboard from './pages/SystemAdminDashboard';
 import { ViewAllOrganizations } from './pages/ViewAllOrganizations';
+import UserStripeAccounts from './pages/UserStripeAccounts';
 import { Toaster } from './components/ui/sonner';
 import { FeatureFlagProvider } from './lib/featureflags/FeatureFlagContext';
 
@@ -120,6 +121,8 @@ function AppContent() {
         return <SystemAdminDashboard onNavigate={setCurrentPage} />;
       case 'view-all-organizations':
         return <ViewAllOrganizations onBack={() => setCurrentPage('system-admin')} />;
+      case 'user-stripe-accounts':
+        return <UserStripeAccounts />;
       case 'gift-vouchers':
         return <GiftVouchers />;
       default:

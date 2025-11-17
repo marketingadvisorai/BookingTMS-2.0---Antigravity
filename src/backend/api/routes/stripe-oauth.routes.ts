@@ -215,8 +215,9 @@ router.post(
 
       // Deauthorize the connected account
       await stripe.oauth.deauthorize({
+        client_id: process.env.STRIPE_CONNECT_CLIENT_ID || '',
         stripe_user_id,
-      });
+      } as any);
 
       // Update your database to remove the connection from the organization when provided
       if (organization_id) {

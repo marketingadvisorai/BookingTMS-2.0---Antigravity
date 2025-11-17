@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import { backendSecrets } from '../../config/secrets.config';
 
 const router = Router();
-const stripe = new Stripe(backendSecrets.STRIPE_SECRET_KEY, {
+const stripe = new Stripe(backendSecrets.stripe.secretKey, {
   apiVersion: '2023-10-16',
 });
 

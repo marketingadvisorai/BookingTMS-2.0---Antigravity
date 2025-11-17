@@ -461,7 +461,6 @@ router.get(
       const disputes = await stripeService.listDisputes({
         accountId,
         limit: limit ? parseInt(limit as string) : undefined,
-        status: status as string,
       });
 
       res.json({

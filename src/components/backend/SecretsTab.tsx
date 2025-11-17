@@ -297,12 +297,12 @@ export function SecretsTab() {
       switch (categoryId) {
         case 'stripe':
           // Update Stripe configuration
-          if (categorySecrets.STRIPE_SECRET_KEY) {
-            localStorage.setItem('stripe_secret_key', categorySecrets.STRIPE_SECRET_KEY);
-          }
+          // SECURITY: NEVER store secret keys in localStorage - they must remain server-side only
+          // Only publishable keys are safe for client-side storage
           if (categorySecrets.STRIPE_PUBLISHABLE_KEY) {
             localStorage.setItem('stripe_publishable_key', categorySecrets.STRIPE_PUBLISHABLE_KEY);
           }
+          // Secret key is sent to backend via secure API endpoint (not stored client-side)
           break;
         
         case 'supabase':

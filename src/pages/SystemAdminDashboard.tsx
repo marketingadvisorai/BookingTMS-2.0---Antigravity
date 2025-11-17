@@ -996,30 +996,158 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
           </div>
         </div>
 
-        {/* Connected Account Onboarding - Show only for specific accounts */}
-        {selectedAccount && (() => {
-          // Find the full owner data for the selected account
-          const ownerData = owners.find(o => o.organizationId === selectedAccount.id);
-          if (!ownerData) return null;
-          
-          return (
-            <div className={`border-b-2 ${borderColor} pb-6 mb-6`}>
-              <UserAccountStripeConnect
-                userId={ownerData.organizationId}
-                userEmail={ownerData.email}
-                userName={ownerData.organizationName}
-                organizationId={ownerData.organizationId}
-                existingAccountId={(ownerData as any).stripeAccountId}
-                onAccountLinked={(accountId) => {
-                  toast.success('Stripe account linked!', {
-                    description: `Account ${accountId} linked to ${ownerData.organizationName}`
-                  });
-                  // Refresh data if needed
-                }}
-              />
-            </div>
-          );
-        })()}
+        {/* Stripe Connect Setup Section */}
+        <div className={`border-b-2 ${borderColor} pb-6 mb-6`}>
+          {selectedAccount ? (
+            // Show individual account Stripe Connect for specific account
+            (() => {
+              const ownerData = owners.find(o => o.organizationId === selectedAccount.id);
+              if (!ownerData) return null;
+              
+              return (
+                <UserAccountStripeConnect
+                  userId={ownerData.organizationId}
+                  userEmail={ownerData.email}
+                  userName={ownerData.organizationName}
+                  organizationId={ownerData.organizationId}
+                  existingAccountId={(ownerData as any).stripeAccountId}
+                  onAccountLinked={(accountId) => {
+                    toast.success('Stripe account linked!', {
+                      description: `Account ${accountId} linked to ${ownerData.organizationName}`
+                    });
+                  }}
+                />
+              );
+            })()
+          ) : (
+            // Show platform-wide Stripe Connect for "All Accounts"
+            <Card className={`${cardBgClass} border ${borderColor} shadow-sm`}>
+              <CardHeader className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-3 rounded-lg ${isDark ? 'bg-indigo-500/10' : 'bg-indigo-50'}`}>
+                      <CreditCard className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                      <CardTitle className={`text-xl ${textClass}`}>
+                        Stripe Connect Setup
+                      </CardTitle>
+                      <p className={`text-sm mt-1 ${mutedTextClass}`}>
+                        Manage embedded components, onboarding, and delegated access for all accounts.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open('https://dashboard.stripe.com/settings/connect', '_blank')}
+                      className="gap-2"
+                    >
+                      <Code className="w-4 h-4" />
+                      Quickstart
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open('https://dashboard.stripe.com', '_blank')}
+                      className="gap-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Stripe Dashboard
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-6">
+                {/* Platform Connection Status */}
+                <div className={`p-6 rounded-lg border ${borderColor} ${isDark ? 'bg-gray-900/50' : 'bg-gray-50'}`}>
+                  <div className="flex items-start gap-4">
+                    <div className={`p-2 rounded-lg ${isDark ? 'bg-emerald-500/10' : 'bg-emerald-50'}`}>
+                      <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className={`font-semibold ${textClass}`}>Platform connection status</h3>
+                        <Badge 
+                          variant="outline"
+                          className={`${isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}
+                        >
+                          Live
+                        </Badge>
+                      </div>
+                      <p className={`text-sm ${mutedTextClass} mb-4`}>
+                        Controls defaults for every connected organization.
+                      </p>
+
+                      {/* Account Details Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Account ID */}
+                        <div>
+                          <p className={`text-xs font-medium ${mutedTextClass} mb-1`}>
+                            ACCOUNT ID
+                          </p>
+                          <p className={`text-sm font-mono ${textClass}`}>
+                            Platform default
+                          </p>
+                        </div>
+
+                        {/* Environment */}
+                        <div>
+                          <p className={`text-xs font-medium ${mutedTextClass} mb-1`}>
+                            ENVIRONMENT
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <p className={`text-sm ${textClass}`}>
+                              Test & Live
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Embedded Components */}
+                        <div>
+                          <p className={`text-xs font-medium ${mutedTextClass} mb-1`}>
+                            EMBEDDED COMPONENTS
+                          </p>
+                          <p className={`text-sm ${textClass}`}>
+                            Payments, Payouts
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Account Session Info */}
+                <div className={`p-5 rounded-lg border ${borderColor} ${isDark ? 'bg-gray-900/30' : 'bg-blue-50/50'}`}>
+                  <h4 className={`text-sm font-semibold ${textClass} mb-3`}>
+                    ACCOUNT SESSION
+                  </h4>
+                  <p className={`text-sm ${mutedTextClass} mb-3`}>
+                    Use <code className={`px-2 py-0.5 rounded ${isDark ? 'bg-gray-800' : 'bg-white'} text-xs font-mono`}>
+                      stripe.accountSessions.create
+                    </code> per login to delegate dashboard access.
+                  </p>
+                  <div className="space-y-2">
+                    {[
+                      'Payments',
+                      'Refund management',
+                      'Dispute workflows',
+                      'Capture controls'
+                    ].map((item, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span className={`text-sm ${textClass}`}>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Payments & Subscriptions Section */}
         <PaymentsSubscriptionsSection

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -55,6 +56,8 @@ export const PaymentsSubscriptionsSection = ({
     autoCapture: boolean;
   }>>({});
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const defaultAccountFeeConfig = useMemo(() => ({
     useGlobal: true,
     ...globalFeeConfig,
@@ -80,6 +83,41 @@ export const PaymentsSubscriptionsSection = ({
         ...updates,
       },
     }));
+  };
+
+  const handleSaveStripeSettings = async () => {
+    setIsSaving(true);
+    try {
+      // Here you would save to your backend/database
+      // For now, save to localStorage as a demonstration
+      const settingsToSave = {
+        globalFeeConfig,
+        accountFeeOverrides,
+        savedAt: new Date().toISOString(),
+      };
+
+      localStorage.setItem('stripeFeesConfig', JSON.stringify(settingsToSave));
+
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      toast.success('Settings saved successfully', {
+        description: selectedAccount 
+          ? `Stripe fee settings updated for ${selectedAccount.name}`
+          : 'Global Stripe fee settings updated',
+        duration: 3000,
+      });
+
+      console.log('Saved Stripe settings:', settingsToSave);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      toast.error('Failed to save settings', {
+        description: 'Please try again or contact support',
+        duration: 3000,
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const stripeAccountId = selectedAccount
@@ -362,8 +400,13 @@ export const PaymentsSubscriptionsSection = ({
               </p>
             )}
 
-            <Button className="w-full" variant="default">
-              Save Stripe settings
+            <Button 
+              className="w-full" 
+              variant="default"
+              onClick={handleSaveStripeSettings}
+              disabled={isSaving}
+            >
+              {isSaving ? 'Saving...' : 'Save Stripe settings'}
             </Button>
           </CardContent>
         </Card>

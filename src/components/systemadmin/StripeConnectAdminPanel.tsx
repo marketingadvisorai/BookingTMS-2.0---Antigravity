@@ -49,7 +49,27 @@ export const StripeConnectAdminPanel = () => {
 
   // Fetch connected accounts and their data
   useEffect(() => {
-    fetchConnectedAccountsData();
+    // Only fetch if backend is available
+    const checkBackendAndFetch = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:3001'}/health`, {
+          method: 'GET',
+          signal: AbortSignal.timeout(2000), // 2 second timeout
+        });
+        if (response.ok) {
+          fetchConnectedAccountsData();
+        } else {
+          setError('Backend server is not responding. Please ensure the backend is running on port 3001.');
+          setLoading(false);
+        }
+      } catch (err) {
+        console.warn('Backend not available, showing demo mode');
+        setError('Backend server is not available. Please start the backend server to manage Stripe Connect accounts.');
+        setLoading(false);
+      }
+    };
+    
+    checkBackendAndFetch();
   }, []);
 
   const fetchConnectedAccountsData = async () => {
@@ -57,8 +77,13 @@ export const StripeConnectAdminPanel = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch all connected accounts
+      // Fetch all connected accounts with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       const accountsResponse = await stripeConnectService.listAccounts({ limit: 100 });
+      clearTimeout(timeoutId);
+      
       const accounts = accountsResponse.accounts;
 
       // Fetch balances for each account
@@ -87,7 +112,8 @@ export const StripeConnectAdminPanel = () => {
             });
             disputes.push(...disputesRes.disputes);
           } catch (err) {
-            console.error(`Error fetching data for account ${account.id}:`, err);
+            // Silently fail for individual account data
+            console.warn(`Could not fetch data for account ${account.id}`);
           }
         })
       );
@@ -97,8 +123,11 @@ export const StripeConnectAdminPanel = () => {
       setRecentPayouts(payouts.slice(0, 10));
       setRecentDisputes(disputes.slice(0, 10));
     } catch (err: any) {
-      console.error('Error fetching connected accounts:', err);
-      setError(err.message || 'Failed to load connected accounts data');
+      // Don't log full error object, just the message
+      const errorMessage = err.name === 'AbortError' 
+        ? 'Request timeout - backend server may not be running'
+        : err.message || 'Failed to connect to backend server';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -216,18 +245,37 @@ export const StripeConnectAdminPanel = () => {
     );
   }
 
-  // Error state
+  // Error state - show helpful message when backend is not available
   if (error) {
     return (
       <Card className={`${cardBgClass} border ${borderColor}`}>
         <CardContent className="p-8">
-          <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-4" />
-          <p className={`${textClass} text-center mb-4`}>Error loading Stripe Connect data</p>
-          <p className={`text-sm ${mutedTextClass} text-center mb-4`}>{error}</p>
-          <Button onClick={fetchConnectedAccountsData} className="mx-auto flex gap-2">
-            <RefreshCw className="w-4 h-4" />
-            Retry
-          </Button>
+          <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-4" />
+          <p className={`${textClass} text-center mb-4 font-semibold`}>Backend Server Required</p>
+          <p className={`text-sm ${mutedTextClass} text-center mb-4 max-w-2xl mx-auto`}>
+            {error}
+          </p>
+          <div className={`p-4 rounded-lg ${secondaryBgClass} text-left max-w-2xl mx-auto mb-4`}>
+            <p className={`text-sm font-semibold ${textClass} mb-2`}>To use Stripe Connect features:</p>
+            <ol className={`text-xs ${mutedTextClass} space-y-1 list-decimal list-inside`}>
+              <li>Install backend dependencies: <code className="bg-black/20 px-1 rounded">./install-stripe-connect.sh</code></li>
+              <li>Configure environment variables in <code className="bg-black/20 px-1 rounded">.env.backend</code></li>
+              <li>Start backend server: <code className="bg-black/20 px-1 rounded">cd src/backend && npm run dev</code></li>
+              <li>Refresh this page</li>
+            </ol>
+          </div>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={fetchConnectedAccountsData} className="flex gap-2" variant="outline">
+              <RefreshCw className="w-4 h-4" />
+              Retry Connection
+            </Button>
+            <Button asChild variant="default">
+              <a href="/STRIPE_CONNECT_SETUP_GUIDE.md" target="_blank" className="flex gap-2">
+                <ExternalLink className="w-4 h-4" />
+                Setup Guide
+              </a>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -622,13 +670,11 @@ export const StripeConnectAdminPanel = () => {
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    tx.type === 'payout' ? 'bg-emerald-500/10' :
-                    tx.type === 'charge' ? 'bg-blue-500/10' :
-                    'bg-amber-500/10'
+                    tx.type === 'payout' ? 'bg-emerald-500/10' : 'bg-amber-500/10'
                   }`}>
-                    {tx.type === 'payout' ? <DollarSign className="w-5 h-5 text-emerald-500" /> :
-                     tx.type === 'charge' ? <CheckCircle className="w-5 h-5 text-blue-500" /> :
-                     <AlertTriangle className="w-5 h-5 text-amber-500" />}
+                    {tx.type === 'payout' 
+                      ? <DollarSign className="w-5 h-5 text-emerald-500" /> 
+                      : <AlertTriangle className="w-5 h-5 text-amber-500" />}
                   </div>
                   <div>
                     <p className={`text-sm font-medium ${textClass}`}>{tx.account}</p>
@@ -644,7 +690,7 @@ export const StripeConnectAdminPanel = () => {
                   <Badge
                     variant="outline"
                     className={`text-[10px] ${
-                      tx.status === 'paid' || tx.status === 'succeeded'
+                      tx.status === 'paid' || tx.status === 'won'
                         ? 'border-emerald-500 text-emerald-500'
                         : 'border-amber-500 text-amber-500'
                     }`}

@@ -95,8 +95,10 @@ class StripeConnectService {
 
       return data;
     } catch (error: any) {
-      console.error(`Stripe Connect API error (${endpoint}):`, error);
-      throw error;
+      // Don't log full error object - just the message
+      const errorMsg = error?.message || 'Request failed';
+      console.warn(`[StripeConnect] ${endpoint} failed:`, errorMsg);
+      throw new Error(errorMsg);
     }
   }
 

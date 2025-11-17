@@ -433,12 +433,12 @@ class PaymentService {
           await this.handleTransferCreated(event.data.object as Stripe.Transfer);
           break;
 
-        case 'transfer.failed':
-          await this.handleTransferFailed(event.data.object as Stripe.Transfer);
-          break;
-
         default:
           console.log(`[PaymentService] Unhandled event type: ${event.type}`);
+          // Handle transfer.failed and other events
+          if (event.type === 'transfer.failed') {
+            await this.handleTransferFailed(event.data.object as Stripe.Transfer);
+          }
       }
 
       return event;

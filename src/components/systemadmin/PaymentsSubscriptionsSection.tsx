@@ -120,8 +120,11 @@ export const PaymentsSubscriptionsSection = ({
     }
   };
 
-  const stripeAccountId = selectedAccount?.stripeAccountId || 'Platform default';
-  const stripeAccountName = selectedAccount?.name || 'Platform default';
+  // Platform/Mother Account (shown when no org selected) vs Connected Accounts (shown per org)
+  const stripeAccountId = selectedAccount?.stripeAccountId || import.meta.env.VITE_STRIPE_PLATFORM_ACCOUNT_ID || 'acct_1SPfkcFajiBPZ08x';
+  const stripeAccountName = selectedAccount 
+    ? selectedAccount.name  // Organization name when org is selected
+    : (import.meta.env.VITE_STRIPE_PLATFORM_ACCOUNT_NAME || 'Booking TMS Beta Stripe V 0.1'); // Platform name when no org selected
 
   const connectFeatures = ['Payments', 'Refund management', 'Dispute workflows', 'Capture controls'];
 

@@ -15,12 +15,17 @@ import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import Stripe from 'stripe';
 import { backendSecrets } from '../../config/secrets.config';
+import supabase from '../../config/supabase';
 
 const router = Router();
 const stripe = new Stripe(backendSecrets.stripe.secretKey, {
   apiVersion: '2023-10-16',
   typescript: true,
 });
+
+// Use an untyped alias for Supabase mutations to avoid tight coupling
+// with generated Database types (organizations table schema has evolved).
+const adminSupabase: any = supabase;
 
 /**
  * Validation middleware
@@ -108,25 +113,30 @@ router.post(
         livemode: response.livemode,
       });
 
-      // TODO: Store the following in your database:
-      // - response.stripe_user_id (connected account ID)
-      // - response.access_token (for making API calls on behalf of account)
-      // - response.refresh_token (for refreshing access token)
-      // - response.livemode (whether account is in live mode)
-      // - Link to user_id and organization_id
+      // Persist connection to Supabase organizations table when organization_id is provided
+      if (organization_id) {
+        try {
+          const { error: orgUpdateError } = await adminSupabase
+            .from('organizations')
+            .update({
+              stripe_account_id: response.stripe_user_id,
+              stripe_onboarding_status: 'complete',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', organization_id);
 
-      // Example database update (implement based on your schema):
-      /*
-      await supabase
-        .from('users')
-        .update({
-          stripe_account_id: response.stripe_user_id,
-          stripe_access_token: response.access_token, // Encrypt this!
-          stripe_refresh_token: response.refresh_token, // Encrypt this!
-          stripe_livemode: response.livemode,
-        })
-        .eq('id', user_id);
-      */
+          if (orgUpdateError) {
+            console.error('[stripe-oauth] Failed to update organization with Stripe account ID:', orgUpdateError.message || orgUpdateError);
+          } else {
+            console.log('[stripe-oauth] Organization updated with Stripe account ID:', {
+              organization_id,
+              stripe_account_id: response.stripe_user_id,
+            });
+          }
+        } catch (dbErr: any) {
+          console.error('[stripe-oauth] Unexpected error updating organization with Stripe account ID:', dbErr);
+        }
+      }
 
       res.json({
         success: true,
@@ -189,11 +199,14 @@ router.post(
       .isString()
       .notEmpty()
       .withMessage('User ID is required'),
+    body('organization_id')
+      .optional()
+      .isString(),
   ],
   validate,
   async (req: Request, res: Response) => {
     try {
-      const { stripe_user_id, user_id } = req.body;
+      const { stripe_user_id, user_id, organization_id } = req.body;
 
       console.log('[stripe-oauth] Deauthorizing account:', {
         stripe_user_id,
@@ -205,17 +218,29 @@ router.post(
         stripe_user_id,
       });
 
-      // TODO: Update your database to remove the connection
-      /*
-      await supabase
-        .from('users')
-        .update({
-          stripe_account_id: null,
-          stripe_access_token: null,
-          stripe_refresh_token: null,
-        })
-        .eq('id', user_id);
-      */
+      // Update your database to remove the connection from the organization when provided
+      if (organization_id) {
+        try {
+          const { error: orgUpdateError } = await adminSupabase
+            .from('organizations')
+            .update({
+              stripe_account_id: null,
+              stripe_onboarding_status: 'not_started',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', organization_id);
+
+          if (orgUpdateError) {
+            console.error('[stripe-oauth] Failed to clear Stripe account ID from organization:', orgUpdateError.message || orgUpdateError);
+          } else {
+            console.log('[stripe-oauth] Organization Stripe account disconnected:', {
+              organization_id,
+            });
+          }
+        } catch (dbErr: any) {
+          console.error('[stripe-oauth] Unexpected error clearing organization Stripe account:', dbErr);
+        }
+      }
 
       console.log('[stripe-oauth] Account deauthorized successfully');
 

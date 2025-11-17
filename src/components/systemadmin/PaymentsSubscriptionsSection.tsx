@@ -120,9 +120,8 @@ export const PaymentsSubscriptionsSection = ({
     }
   };
 
-  const stripeAccountId = selectedAccount
-    ? selectedAccount.stripeAccountId || `acct_${(selectedAccount.id || '').toString().slice(0, 10)}`
-    : 'Platform default';
+  const stripeAccountId = selectedAccount?.stripeAccountId || 'Platform default';
+  const stripeAccountName = selectedAccount?.name || 'Platform default';
 
   const connectFeatures = ['Payments', 'Refund management', 'Dispute workflows', 'Capture controls'];
 
@@ -263,17 +262,21 @@ export const PaymentsSubscriptionsSection = ({
               <dl className={`mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm ${textClass}`}>
                 <div>
                   <dt className={`text-xs uppercase ${mutedTextClass}`}>Account ID</dt>
-                  <dd className="font-semibold">{stripeAccountId}</dd>
+                  <dd className="font-semibold" data-component-name="PaymentsSubscriptionsSection">
+                    {stripeAccountId}
+                  </dd>
+                </div>
+                <div>
+                  <dt className={`text-xs uppercase ${mutedTextClass}`}>Account name</dt>
+                  <dd className="font-semibold">
+                    {stripeAccountName}
+                  </dd>
                 </div>
                 <div>
                   <dt className={`text-xs uppercase ${mutedTextClass}`}>Environment</dt>
                   <dd className="font-semibold flex items-center gap-2">
                     <Globe className="w-4 h-4" /> Test & Live
                   </dd>
-                </div>
-                <div>
-                  <dt className={`text-xs uppercase ${mutedTextClass}`}>Embedded components</dt>
-                  <dd className="font-semibold">Payments, Payouts</dd>
                 </div>
               </dl>
             </div>

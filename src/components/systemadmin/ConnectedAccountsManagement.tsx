@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { RefreshCw, ExternalLink, Search, Eye, DollarSign, Loader2 } from 'lucide-react';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme } from '../layout/ThemeContext';
 
 interface ConnectedAccount {
   id: string;

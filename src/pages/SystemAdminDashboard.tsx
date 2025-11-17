@@ -540,26 +540,46 @@ const SystemAdminDashboard = () => {
   // 🔥 Convert real venues to owners format for display
   const computedOwners = useMemo(() => {
     if (!venues || venues.length === 0) return ownersData; // Fallback to demo data if no venues
-    
-    // Group venues by organization (using venue name as organization for now)
-    const organizationsMap = new Map();
+
+    // Group venues by organization (prefer organization_id when available)
+    const organizationsMap = new Map<string, any>();
+
     venues.forEach((venue) => {
       const orgKey = venue.organization_id || venue.id;
+
       if (!organizationsMap.has(orgKey)) {
+        const organizationName =
+          venue.organization_name || venue.company_name || venue.name || 'Unknown Organization';
+        const ownerName = venue.company_name || venue.organization_name || 'Admin';
+        const organizationId = venue.organization_id || orgKey;
+        const website = venue.base_url || venue.address || '';
+        const profileSlug =
+          venue.slug ||
+          organizationName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '');
+
         organizationsMap.set(orgKey, {
+          // Core identity
           id: venue.id,
           accountId: 1,
-          name: venue.name || 'Unknown Organization',
-          owner: venue.created_by || 'Admin',
+          ownerName,
+          organizationName,
+          organizationId,
+          // Contact & plan info
+          website,
           email: venue.email || 'admin@venue.com',
-          phone: venue.phone || 'N/A',
-          website: venue.address || 'N/A',
-          plan: 'free',
-          status: venue.status || 'active',
+          plan: 'Basic',
+          status: venue.status === 'inactive' ? 'inactive' : 'active',
+          // Feature flags / metadata (placeholder for now)
+          features: [],
+          profileSlug,
+          // Aggregated counts
           venues: 1,
           locations: 1,
           venueIds: [venue.id],
-          gameIds: []
+          gameIds: [],
         });
       } else {
         const org = organizationsMap.get(orgKey);
@@ -568,7 +588,7 @@ const SystemAdminDashboard = () => {
         org.venueIds.push(venue.id);
       }
     });
-    
+
     return Array.from(organizationsMap.values());
   }, [venues]);
   
@@ -922,49 +942,49 @@ const SystemAdminDashboard = () => {
           >
             <KPICard
               title="Total Owners"
-              value={filteredMetrics.totalOwners}
+              value={filteredMetrics?.totalOwners ?? 0}
               icon={Users}
               trend={{ value: 12, isPositive: true }}
               period="this month"
             />
             <KPICard
               title="Active Subscriptions"
-              value={filteredMetrics.activeSubscriptions}
+              value={filteredMetrics?.activeSubscriptions ?? 0}
               icon={CheckCircle}
               trend={{ value: 8, isPositive: true }}
               period="this month"
             />
             <KPICard
               title="Active Venues"
-              value={filteredMetrics.activeVenues}
+              value={filteredMetrics?.activeVenues ?? 0}
               icon={Building2}
               trend={{ value: 15, isPositive: true }}
               period="this month"
             />
             <KPICard
               title="Total Locations"
-              value={filteredMetrics.totalLocations}
+              value={filteredMetrics?.totalLocations ?? 0}
               icon={MapPin}
               trend={{ value: 10, isPositive: true }}
               period="this month"
             />
             <KPICard
               title="Total Games"
-              value={filteredMetrics.totalGames}
+              value={filteredMetrics?.totalGames ?? 0}
               icon={Gamepad2}
               trend={{ value: 22, isPositive: true }}
               period="this month"
             />
             <KPICard
               title="Total Bookings"
-              value={filteredMetrics.totalBookings.toLocaleString()}
+              value={Number(filteredMetrics?.totalBookings ?? 0).toLocaleString()}
               icon={Calendar}
               trend={{ value: 25, isPositive: true }}
               period="this month"
             />
             <KPICard
               title="MRR"
-              value={`$${filteredMetrics.mrr.toLocaleString()}`}
+              value={`$${Number(filteredMetrics?.mrr ?? 0).toLocaleString()}`}
               icon={DollarSign}
               trend={{ value: 18, isPositive: true }}
               period="this month"

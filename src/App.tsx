@@ -45,7 +45,7 @@ const DEV_MODE = false; // Changed to false to test beta login
 
 // Protected App Content Component
 function AppContent() {
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState<string | null>(null);
   const { currentUser, isLoading, login } = useAuth();
 
   // Auto-login in DEV_MODE
@@ -63,8 +63,10 @@ function AppContent() {
     autoLogin();
   }, [currentUser, isLoading, login]);
 
+  const effectivePage = currentPage ?? (currentUser?.role === 'system-admin' ? 'system-admin' : 'dashboard');
+
   const renderPage = () => {
-    switch (currentPage) {
+    switch (effectivePage) {
       case 'dashboard':
         return <Dashboard onNavigate={setCurrentPage} />;
       case 'inbox':
@@ -153,7 +155,7 @@ function AppContent() {
   // Show protected content
   return (
     <NotificationProvider>
-      <AdminLayout currentPage={currentPage} onNavigate={setCurrentPage}>
+      <AdminLayout currentPage={effectivePage} onNavigate={setCurrentPage}>
         {renderPage()}
       </AdminLayout>
     </NotificationProvider>

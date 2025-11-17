@@ -453,7 +453,6 @@ class StripeService {
           account_onboarding: { enabled: true },
           payments: { enabled: true },
           payouts: { enabled: true },
-          balances: { enabled: true },
         },
       });
 
@@ -514,7 +513,7 @@ class StripeService {
   /**
    * Delete (deactivate) connected account
    */
-  public async deleteConnectedAccount(accountId: string): Promise<Stripe.Account> {
+  public async deleteConnectedAccount(accountId: string): Promise<Stripe.Account | Stripe.DeletedAccount> {
     try {
       const account = await this.stripe.accounts.del(accountId);
       console.log('✅ Connected account deleted:', account.id);
@@ -654,13 +653,11 @@ class StripeService {
   public async listDisputes(params: {
     accountId: string;
     limit?: number;
-    status?: string;
   }): Promise<Stripe.Dispute[]> {
     try {
       const disputes = await this.stripe.disputes.list(
         {
           limit: params.limit || 100,
-          status: params.status as any,
         },
         {
           stripeAccount: params.accountId,

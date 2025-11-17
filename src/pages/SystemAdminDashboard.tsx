@@ -28,7 +28,7 @@ import { useVenues } from '../hooks/useVenues';
 import { useGames } from '../hooks/useGames';
 import { useBookings } from '../hooks/useBookings';
 import { useOrganizations, usePlatformMetrics, useOrganizationMetrics } from '../features/system-admin/hooks';
-import type { Organization } from '../features/system-admin/types';
+import { SystemAdminProvider } from '../features/system-admin';
 
 // Account type for account selector (mapped from Organization)
 interface Account {
@@ -488,7 +488,7 @@ const plansData = [
   },
 ];
 
-const SystemAdminDashboard = () => {
+const SystemAdminDashboardInner = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { featureFlags, toggleFeature } = useFeatureFlags();
@@ -1819,6 +1819,14 @@ const SystemAdminDashboard = () => {
         onClose={() => setShowNotificationsModal(false)}
       />
     </div>
+  );
+};
+
+const SystemAdminDashboard = () => {
+  return (
+    <SystemAdminProvider>
+      <SystemAdminDashboardInner />
+    </SystemAdminProvider>
   );
 };
 

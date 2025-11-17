@@ -410,6 +410,17 @@ class StripeConnectService {
     const queryString = params ? `?${new URLSearchParams(params as any).toString()}` : '';
     return this.request(`/application-fees${queryString}`);
   }
+
+  // ==================== ACCOUNT MANAGEMENT ====================
+
+  /**
+   * Get account login link (Express Dashboard access)
+   */
+  async getAccountLoginLink(accountId: string): Promise<{ success: boolean; url: string }> {
+    return this.request(`/accounts/${accountId}/login-link`, {
+      method: 'POST',
+    });
+  }
 }
 
 export const stripeConnectService = new StripeConnectService();

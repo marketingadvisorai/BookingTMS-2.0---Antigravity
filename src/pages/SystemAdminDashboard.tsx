@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, DollarSign, TrendingUp, Users, Crown, CheckCircle, XCircle, Eye, Edit, Trash2, ExternalLink, Settings, Code, ChevronDown, MapPin, Copy, ChevronLeft, ChevronRight, List, Star, GripVertical, Calendar, Gamepad2, Columns3 } from 'lucide-react';
+import { Building2, DollarSign, TrendingUp, Users, Crown, CheckCircle, XCircle, Eye, Edit, Trash2, ExternalLink, Settings, Code, ChevronDown, MapPin, Copy, ChevronLeft, ChevronRight, List, Star, GripVertical, Calendar, Gamepad2, Columns3, CreditCard } from 'lucide-react';
 import { KPICard } from '../components/dashboard/KPICard';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -875,6 +875,13 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
     }
   };
 
+  // Navigation to User Stripe Accounts page
+  const handleViewUserStripeAccounts = () => {
+    if (onNavigate) {
+      onNavigate('user-stripe-accounts');
+    }
+  };
+
   const handleCancelEditLocation = () => {
     setEditingLocationId(null);
     setLocationValue(0);
@@ -1086,6 +1093,14 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
                 >
                   <List className="w-4 h-4 mr-2" />
                   View All
+                </Button>
+                <Button 
+                  onClick={handleViewUserStripeAccounts}
+                  variant="outline"
+                  className={`h-11 px-6 ${borderColor} ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50'}`}
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  User Accounts
                 </Button>
                 <Button 
                   onClick={() => setShowAddOwnerDialog(true)}

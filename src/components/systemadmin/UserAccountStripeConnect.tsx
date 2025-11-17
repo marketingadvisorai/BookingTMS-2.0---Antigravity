@@ -10,7 +10,8 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Link2
 } from 'lucide-react';
 import { ConnectedAccountOnboarding } from './ConnectedAccountOnboarding';
 import { stripeConnectService } from '@/services/stripeConnectService';
@@ -37,6 +38,7 @@ export const UserAccountStripeConnect: React.FC<UserAccountStripeConnectProps> =
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [accountDetails, setAccountDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [linkingExisting, setLinkingExisting] = useState(false);
 
   // Theme classes
   const isDark = theme === 'dark';
@@ -99,6 +101,51 @@ export const UserAccountStripeConnect: React.FC<UserAccountStripeConnectProps> =
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * Link existing Stripe account via OAuth
+   */
+  const handleLinkExistingAccount = () => {
+    setLinkingExisting(true);
+    try {
+      // Generate OAuth URL for connecting existing Stripe accounts
+      const clientId = import.meta.env.VITE_STRIPE_CONNECT_CLIENT_ID || 'ca_YOUR_CLIENT_ID';
+      const redirectUri = `${window.location.origin}/stripe/oauth/callback`;
+      
+      // Encode state with user info for callback
+      const state = btoa(JSON.stringify({
+        user_id: userId,
+        organization_id: organizationId || '',
+        email: userEmail,
+        name: userName,
+        return_url: window.location.href
+      }));
+
+      // Build OAuth URL
+      const oauthUrl = `https://connect.stripe.com/oauth/authorize?` +
+        `response_type=code&` +
+        `client_id=${clientId}&` +
+        `scope=read_write&` +
+        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+        `state=${state}&` +
+        `stripe_user[email]=${encodeURIComponent(userEmail)}&` +
+        `stripe_user[business_name]=${encodeURIComponent(userName)}`;
+
+      toast.success('Opening Stripe OAuth...', {
+        description: 'Connect your existing Stripe account'
+      });
+
+      // Open OAuth in new window
+      window.open(oauthUrl, '_blank', 'width=800,height=800');
+    } catch (error: any) {
+      console.error('Failed to generate OAuth link:', error);
+      toast.error('Failed to link existing account', {
+        description: error?.message || 'Unknown error'
+      });
+    } finally {
+      setLinkingExisting(false);
     }
   };
 
@@ -238,13 +285,51 @@ export const UserAccountStripeConnect: React.FC<UserAccountStripeConnectProps> =
                 This user doesn't have a Stripe Connect account yet. Create one to enable payments and payouts.
               </p>
 
-              <Button
-                onClick={() => setShowOnboarding(true)}
-                className="w-full"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Stripe Connect Account
-              </Button>
+              <div className="grid grid-cols-1 gap-3">
+                <Button
+                  onClick={() => setShowOnboarding(true)}
+                  className="w-full"
+                  disabled={loading || linkingExisting}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Stripe Connect Account
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  onClick={handleLinkExistingAccount}
+                  variant="outline"
+                  className="w-full"
+                  disabled={loading || linkingExisting}
+                >
+                  {linkingExisting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Opening OAuth...
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="w-4 h-4 mr-2" />
+                      Link Existing Stripe Account
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className={`p-3 rounded-lg ${isDark ? 'bg-blue-900/20' : 'bg-blue-50'} border ${isDark ? 'border-blue-800' : 'border-blue-200'}`}>
+                <p className={`text-xs ${mutedTextClass}`}>
+                  <strong>Create:</strong> Set up a new Stripe account with guided onboarding.{' '}
+                  <strong>Link:</strong> Connect an existing Stripe account via OAuth.
+                </p>
+              </div>
             </div>
           )}
         </CardContent>

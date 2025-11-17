@@ -35,6 +35,7 @@ import GiftVouchers from './pages/GiftVouchers';
 import SystemAdminDashboard from './pages/SystemAdminDashboard';
 import { ViewAllOrganizations } from './pages/ViewAllOrganizations';
 import UserStripeAccounts from './pages/UserStripeAccounts';
+import StripeOAuthCallback from './pages/StripeOAuthCallback';
 import { Toaster } from './components/ui/sonner';
 import { FeatureFlagProvider } from './lib/featureflags/FeatureFlagContext';
 
@@ -123,6 +124,8 @@ function AppContent() {
         return <ViewAllOrganizations onBack={() => setCurrentPage('system-admin')} />;
       case 'user-stripe-accounts':
         return <UserStripeAccounts />;
+      case 'stripe-oauth-callback':
+        return <StripeOAuthCallback />;
       case 'gift-vouchers':
         return <GiftVouchers />;
       default:

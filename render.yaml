@@ -3,7 +3,7 @@ services:
   - type: web
     name: bookingtms-frontend
     runtime: static
-    branch: booking-tms-beta-0.1.9
+    branch: main
     buildCommand: npm install --legacy-peer-deps && npm run build
     staticPublishPath: ./build
     envVars:

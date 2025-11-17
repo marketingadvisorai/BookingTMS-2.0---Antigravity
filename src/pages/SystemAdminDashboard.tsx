@@ -40,6 +40,11 @@ interface Account {
   company: string;
   phone: string;
   status: 'active' | 'inactive';
+  /**
+   * Stripe connected account ID from Supabase organizations.stripe_account_id
+   * Used by PaymentsSubscriptionsSection to display the live connected account
+   */
+  stripeAccountId?: string;
   isRecent?: boolean;
 }
 
@@ -631,7 +636,7 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
     { id: 'staffAccounts', label: 'Staff Accounts' },
   ];
 
-  // Map organizations to accounts format
+  // Map organizations to accounts format (including Stripe connected account ID)
   const allAccounts: Account[] = useMemo(() => {
     if (realOrganizations && realOrganizations.length > 0) {
       return realOrganizations.map(org => ({
@@ -640,6 +645,7 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
         company: org.owner_name || org.plan?.name || 'N/A',
         phone: org.phone || org.id,
         status: org.status === 'active' ? 'active' : 'inactive',
+        stripeAccountId: org.stripe_account_id || undefined,
         isRecent: false,
       }));
     }

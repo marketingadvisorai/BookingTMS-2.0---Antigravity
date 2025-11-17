@@ -5,7 +5,7 @@ import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 
 interface Account {
-  id: number;
+  id: string;
   name: string;
   company: string;
   phone: string;

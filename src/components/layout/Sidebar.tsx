@@ -37,7 +37,7 @@ export function Sidebar({ currentPage, onNavigate = () => {}, isMobileOpen = fal
   const { hasPermission, isRole, logout } = useAuth();
 
   // Navigation items with permission requirements
-  const navItems = [
+  let navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard.view' as Permission },
     { id: 'bookings', label: 'Bookings', icon: Calendar, permission: 'bookings.view' as Permission },
     { id: 'games', label: 'Events / Rooms', icon: Gamepad2, permission: 'games.view' as Permission },
@@ -58,12 +58,15 @@ export function Sidebar({ currentPage, onNavigate = () => {}, isMobileOpen = fal
 
   // Add System Admin Dashboard for system-admin only (Platform-level management)
   if (isRole('system-admin')) {
-    navItems.push({
-      id: 'system-admin',
-      label: 'System Admin',
-      icon: Crown,
-      permission: 'system.view' as Permission
-    });
+    navItems = [
+      {
+        id: 'system-admin',
+        label: 'System Admin',
+        icon: Crown,
+        permission: 'system.view' as Permission,
+      },
+      ...navItems,
+    ];
   }
 
   // Add Account Settings for super-admin only

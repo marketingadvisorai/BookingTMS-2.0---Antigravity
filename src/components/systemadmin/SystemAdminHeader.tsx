@@ -6,7 +6,7 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 
 interface Account {
-  id: number;
+  id: string;
   name: string;
   company: string;
   phone: string;

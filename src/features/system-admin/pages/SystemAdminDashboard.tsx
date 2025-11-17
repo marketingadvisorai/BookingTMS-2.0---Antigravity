@@ -16,7 +16,7 @@ import {
 import { useOrganizations, useSystemAdmin, usePlans } from '../hooks';
 import { OrganizationService } from '../services';
 import { toast } from 'sonner';
-import type { CreateOrganizationDTO } from '../types';
+import type { CreateOrganizationDTO, Organization } from '../types';
 
 export const SystemAdminDashboard: React.FC = () => {
   const {
@@ -39,24 +39,24 @@ export const SystemAdminDashboard: React.FC = () => {
   const { plans } = usePlans(true); // Get only active plans
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedOrg, setSelectedOrg] = useState<any>(null);
+  const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
 
   const handleAddOrganization = () => {
     setSelectedOrg(null);
     setIsModalOpen(true);
   };
 
-  const handleEditOrganization = (org: any) => {
+  const handleEditOrganization = (org: Organization) => {
     setSelectedOrg(org);
     setIsModalOpen(true);
   };
 
-  const handleViewOrganization = (org: any) => {
+  const handleViewOrganization = (org: Organization) => {
     // TODO: Navigate to organization details page
     console.log('View organization:', org);
   };
 
-  const handleDeleteOrganization = async (org: any) => {
+  const handleDeleteOrganization = async (org: Organization) => {
     if (!confirm(`Are you sure you want to delete "${org.name}"?`)) {
       return;
     }

@@ -31,6 +31,7 @@ import { useOrganizations as useOrgsFeature, usePlatformMetrics, useOrganization
 import { SystemAdminProvider } from '../features/system-admin';
 import { PaymentsSubscriptionsSection } from '../components/systemadmin/PaymentsSubscriptionsSection';
 import { AccountPerformanceMetrics } from '../components/systemadmin/AccountPerformanceMetrics';
+import { UserAccountStripeConnect } from '../components/systemadmin/UserAccountStripeConnect';
 
 // Account type for account selector (mapped from Organization)
 interface Account {
@@ -994,6 +995,31 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
             />
           </div>
         </div>
+
+        {/* Connected Account Onboarding - Show only for specific accounts */}
+        {selectedAccount && (() => {
+          // Find the full owner data for the selected account
+          const ownerData = owners.find(o => o.organizationId === selectedAccount.id);
+          if (!ownerData) return null;
+          
+          return (
+            <div className={`border-b-2 ${borderColor} pb-6 mb-6`}>
+              <UserAccountStripeConnect
+                userId={ownerData.organizationId}
+                userEmail={ownerData.email}
+                userName={ownerData.organizationName}
+                organizationId={ownerData.organizationId}
+                existingAccountId={(ownerData as any).stripeAccountId}
+                onAccountLinked={(accountId) => {
+                  toast.success('Stripe account linked!', {
+                    description: `Account ${accountId} linked to ${ownerData.organizationName}`
+                  });
+                  // Refresh data if needed
+                }}
+              />
+            </div>
+          );
+        })()}
 
         {/* Payments & Subscriptions Section */}
         <PaymentsSubscriptionsSection

@@ -13,6 +13,7 @@ import { backendSecrets, getSafeConfig } from '../config/secrets.config';
 import configRoutes from './routes/config.routes';
 import stripeRoutes from './routes/stripe.routes';
 import stripeConnectRoutes from './routes/stripe-connect.routes';
+import paymentRoutes from './routes/payments.routes';
 
 /**
  * Create and configure Express application
@@ -119,8 +120,9 @@ export function createServer(): Express {
       endpoints: {
         config: '/api/config',
         stripe: '/api/stripe',
-        auth: '/api/auth',
+        stripeConnect: '/api/stripe-connect',
         payments: '/api/payments',
+        auth: '/api/auth',
         notifications: '/api/notifications',
         ai: '/api/ai',
         bookings: '/api/bookings',
@@ -133,6 +135,7 @@ export function createServer(): Express {
   app.use('/api/config', configRoutes);
   app.use('/api/stripe', stripeRoutes);
   app.use('/api/stripe-connect', stripeConnectRoutes);
+  app.use('/api/payments', paymentRoutes);
   
   // Future routes (will be added)
   // app.use('/api/auth', authRoutes);

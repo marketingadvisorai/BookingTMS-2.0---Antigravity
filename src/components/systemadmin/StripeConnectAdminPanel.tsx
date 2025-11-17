@@ -401,7 +401,7 @@ export const StripeConnectAdminPanel = () => {
               <div>
                 <p className={`text-xs ${mutedTextClass} mb-1`}>Total Balance</p>
                 <p className={`text-2xl font-bold ${textClass}`}>
-                  ${connectedAccounts.reduce((sum, acc) => sum + acc.balance, 0).toLocaleString()}
+                  ${connectedAccounts.reduce((sum, acc) => sum + getAccountBalance(acc.id), 0).toLocaleString()}
                 </p>
               </div>
               <DollarSign className="w-8 h-8 text-emerald-500" />
@@ -587,20 +587,28 @@ export const StripeConnectAdminPanel = () => {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                       <div>
                         <span className={`text-xs ${mutedTextClass}`}>Balance</span>
-                        <p className={`font-semibold ${textClass}`}>${account.balance.toLocaleString()}</p>
+                        <p className={`font-semibold ${textClass}`}>${getAccountBalance(account.id).toLocaleString()}</p>
                       </div>
                       <div>
                         <span className={`text-xs ${mutedTextClass}`}>Pending Payouts</span>
-                        <p className={`font-semibold ${textClass}`}>{account.pendingPayouts}</p>
+                        <p className={`font-semibold ${textClass}`}>
+                          {accountBalances[account.id]?.pending?.[0]?.amount ? 
+                            `$${(accountBalances[account.id].pending[0].amount / 100).toLocaleString()}` : 
+                            '$0'}
+                        </p>
                       </div>
                       <div>
                         <span className={`text-xs ${mutedTextClass}`}>Disputes</span>
-                        <p className={`font-semibold ${textClass}`}>{account.disputes}</p>
+                        <p className={`font-semibold ${textClass}`}>
+                          {recentDisputes.filter(d => d.charge?.startsWith(account.id)).length || 0}
+                        </p>
                       </div>
                       <div>
                         <span className={`text-xs ${mutedTextClass}`}>Last Payout</span>
                         <p className={`font-semibold ${textClass}`}>
-                          {account.lastPayout || 'Never'}
+                          {recentPayouts.find(p => p.id.includes(account.id)) ? 
+                            new Date(recentPayouts.find(p => p.id.includes(account.id))!.created * 1000).toLocaleDateString() : 
+                            'Never'}
                         </p>
                       </div>
                     </div>

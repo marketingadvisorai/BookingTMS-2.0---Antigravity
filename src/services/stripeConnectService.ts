@@ -13,17 +13,34 @@ export interface ConnectedAccount {
   charges_enabled: boolean;
   payouts_enabled: boolean;
   details_submitted: boolean;
+  created?: number;
+  business_profile?: {
+    name?: string;
+    url?: string;
+  };
   requirements?: {
     currently_due?: string[];
     eventually_due?: string[];
     past_due?: string[];
   };
+  capabilities?: Record<string, string>;
+  default_currency?: string;
+  business_type?: string;
+  controller?: Record<string, unknown> | null;
+  company?: Record<string, unknown>;
+  payouts?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  object?: string;
   metadata?: Record<string, string>;
 }
 
 export interface AccountBalance {
-  available: Array<{ amount: number; currency: string }>;
-  pending: Array<{ amount: number; currency: string }>;
+  available: Array<{ amount: number; currency: string; source_types?: Record<string, number> }>;
+  pending: Array<{ amount: number; currency: string; source_types?: Record<string, number> }>;
+  instant_available?: Array<{ amount: number; currency: string }>;
+  connect_reserved?: Array<{ amount: number; currency: string }>;
+  livemode?: boolean;
+  object?: string;
 }
 
 export interface Payout {
@@ -35,6 +52,22 @@ export interface Payout {
   description?: string;
   status: 'paid' | 'pending' | 'in_transit' | 'canceled' | 'failed';
   type: 'bank_account' | 'card';
+  object?: string;
+  destination?: string | null;
+  balance_transaction?: string | null;
+  failure_balance_transaction?: string | null;
+  failure_code?: string | null;
+  failure_message?: string | null;
+  livemode?: boolean;
+  method?: 'standard' | 'instant';
+  original_payout?: string | null;
+  reversed_by?: string | null;
+  source_type?: string;
+  metadata?: Record<string, string>;
+  automatic?: boolean;
+  reconciliation_status?: string;
+  statement_descriptor?: string | null;
+  arrival_balance_transaction?: string | null;
 }
 
 export interface Charge {
@@ -52,10 +85,14 @@ export interface Dispute {
   id: string;
   amount: number;
   currency: string;
-  created: number;
-  reason: string;
   status: 'warning_needs_response' | 'warning_under_review' | 'warning_closed' | 'needs_response' | 'under_review' | 'charge_refunded' | 'won' | 'lost';
-  charge: string;
+  reason: string;
+  evidence?: Record<string, any>;
+  created: number;
+  object?: string;
+  evidence_details?: Record<string, any>;
+  is_charge_refundable?: boolean;
+  charge?: string;
 }
 
 export interface Subscription {

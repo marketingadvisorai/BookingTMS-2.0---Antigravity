@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -40,12 +41,106 @@ export const StripeConnectAdminPanel = () => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'pending' | 'restricted'>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [demoMode, setDemoMode] = useState(false);
+  const [demoActivatedAt, setDemoActivatedAt] = useState<string | null>(null);
+  const [demoReason, setDemoReason] = useState<string | null>(null);
   
   // Real data state
   const [connectedAccounts, setConnectedAccounts] = useState<any[]>([]);
   const [accountBalances, setAccountBalances] = useState<Record<string, any>>({});
   const [recentPayouts, setRecentPayouts] = useState<Payout[]>([]);
   const [recentDisputes, setRecentDisputes] = useState<Dispute[]>([]);
+
+  const demoData = useMemo(() => {
+    const now = Date.now();
+    const demoAccounts: ConnectedAccount[] = [
+      {
+        id: 'acct_demo001',
+        type: 'express',
+        email: 'demo@escapehq.com',
+        country: 'US',
+        charges_enabled: true,
+        payouts_enabled: true,
+        details_submitted: true,
+        created: Math.floor(now / 1000) - 86_400,
+        business_profile: { name: 'Escape HQ Demo', url: 'https://demo.escapehq.com' },
+        requirements: { currently_due: [] },
+        metadata: { business_name: 'Escape HQ Demo' },
+        default_currency: 'usd',
+      },
+      {
+        id: 'acct_demo002',
+        type: 'express',
+        email: 'events@mazeescape.io',
+        country: 'US',
+        charges_enabled: false,
+        payouts_enabled: false,
+        details_submitted: false,
+        created: Math.floor(now / 1000) - 172_800,
+        business_profile: { name: 'Maze Escape Labs', url: 'https://mazeescape.io' },
+        requirements: { currently_due: ['business_profile.support_address'] },
+        metadata: { business_name: 'Maze Escape Labs' },
+        default_currency: 'usd',
+      },
+    ];
+
+    const demoBalances: Record<string, AccountBalance> = {
+      acct_demo001: {
+        available: [{ amount: 452500, currency: 'usd' }],
+        pending: [{ amount: 128000, currency: 'usd' }],
+      },
+      acct_demo002: {
+        available: [{ amount: 0, currency: 'usd' }],
+        pending: [{ amount: 32500, currency: 'usd' }],
+      },
+    };
+
+    const demoPayouts: Payout[] = [
+      {
+        id: 'po_demo001',
+        amount: 325000,
+        arrival_date: Math.floor(now / 1000) - 72_000,
+        created: Math.floor(now / 1000) - 75_000,
+        currency: 'usd',
+        description: 'Weekly payout',
+        status: 'paid',
+        type: 'bank_account',
+      },
+    ];
+
+    const demoDisputes: Dispute[] = [
+      {
+        id: 'dp_demo001',
+        amount: 12500,
+        currency: 'usd',
+        created: Math.floor(now / 1000) - 48_000,
+        reason: 'product_not_received',
+        status: 'needs_response',
+        charge: 'ch_demo001',
+      },
+    ];
+
+    return { demoAccounts, demoBalances, demoPayouts, demoDisputes };
+  }, []);
+
+  const activateDemoMode = (reason?: string) => {
+    const description = reason ?? 'Backend API is not reachable. Showing sample data.';
+    setDemoMode(true);
+    setDemoReason(description);
+    setError(null);
+    setConnectedAccounts(demoData.demoAccounts);
+    setAccountBalances(demoData.demoBalances);
+    setRecentPayouts(demoData.demoPayouts);
+    setRecentDisputes(demoData.demoDisputes);
+    const timestamp = new Date().toLocaleString();
+    setDemoActivatedAt(timestamp);
+    setLoading(false);
+    if (!demoMode) {
+      toast.info('Stripe Connect demo mode enabled', {
+        description,
+      });
+    }
+  };
 
   // Fetch connected accounts and their data
   useEffect(() => {
@@ -59,16 +154,15 @@ export const StripeConnectAdminPanel = () => {
         if (response.ok) {
           fetchConnectedAccountsData();
         } else {
-          setError('Backend server is not responding. Please ensure the backend is running on port 3001.');
-          setLoading(false);
+          console.warn('Backend health check failed');
+          activateDemoMode(`Backend responded with HTTP ${response.status}`);
         }
       } catch (err) {
-        console.warn('Backend not available, showing demo mode');
-        setError('Backend server is not available. Please start the backend server to manage Stripe Connect accounts.');
-        setLoading(false);
+        console.warn('Backend not available, falling back to demo data');
+        activateDemoMode('Backend server is not available. Please start the backend server to manage Stripe Connect accounts.');
       }
     };
-    
+
     checkBackendAndFetch();
   }, []);
 
@@ -76,6 +170,7 @@ export const StripeConnectAdminPanel = () => {
     try {
       setLoading(true);
       setError(null);
+      setDemoMode(false);
 
       // Fetch all connected accounts with timeout
       const controller = new AbortController();
@@ -123,11 +218,11 @@ export const StripeConnectAdminPanel = () => {
       setRecentPayouts(payouts.slice(0, 10));
       setRecentDisputes(disputes.slice(0, 10));
     } catch (err: any) {
-      // Don't log full error object, just the message
-      const errorMessage = err.name === 'AbortError' 
+      const errorMessage = err?.name === 'AbortError'
         ? 'Request timeout - backend server may not be running'
-        : err.message || 'Failed to connect to backend server';
-      setError(errorMessage);
+        : err?.message || 'Failed to connect to backend server';
+      console.warn('[StripeConnectAdminPanel] Falling back to demo data:', errorMessage);
+      activateDemoMode(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -193,11 +288,14 @@ export const StripeConnectAdminPanel = () => {
         businessType: 'company',
       });
 
-      console.log('Account created:', account);
+      toast.success('Connected account created', {
+        description: `Stripe ID: ${account.accountId}`,
+      });
       await fetchConnectedAccountsData(); // Refresh data
     } catch (err: any) {
-      console.error('Failed to create account:', err);
-      alert('Failed to create account: ' + err.message);
+      toast.error('Failed to create account', {
+        description: err?.message || 'Unknown error',
+      });
     }
   };
 

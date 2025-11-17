@@ -33,6 +33,7 @@ import BetaLogin from './pages/BetaLogin';
 import BackendDashboard from './pages/BackendDashboard';
 import GiftVouchers from './pages/GiftVouchers';
 import SystemAdminDashboard from './pages/SystemAdminDashboard';
+import { ViewAllOrganizations } from './pages/ViewAllOrganizations';
 import { Toaster } from './components/ui/sonner';
 import { FeatureFlagProvider } from './lib/featureflags/FeatureFlagContext';
 
@@ -45,7 +46,7 @@ const DEV_MODE = false; // Changed to false to test beta login
 
 // Protected App Content Component
 function AppContent() {
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState<string | null>(null);
   const { currentUser, isLoading, login } = useAuth();
 
   // Auto-login in DEV_MODE
@@ -63,8 +64,10 @@ function AppContent() {
     autoLogin();
   }, [currentUser, isLoading, login]);
 
+  const effectivePage = currentPage ?? (currentUser?.role === 'system-admin' ? 'system-admin' : 'dashboard');
+
   const renderPage = () => {
-    switch (currentPage) {
+    switch (effectivePage) {
       case 'dashboard':
         return <Dashboard onNavigate={setCurrentPage} />;
       case 'inbox':
@@ -114,7 +117,9 @@ function AppContent() {
       case 'backend-dashboard':
         return <BackendDashboard />;
       case 'system-admin':
-        return <SystemAdminDashboard />;
+        return <SystemAdminDashboard onNavigate={setCurrentPage} />;
+      case 'view-all-organizations':
+        return <ViewAllOrganizations onBack={() => setCurrentPage('system-admin')} />;
       case 'gift-vouchers':
         return <GiftVouchers />;
       default:
@@ -153,7 +158,7 @@ function AppContent() {
   // Show protected content
   return (
     <NotificationProvider>
-      <AdminLayout currentPage={currentPage} onNavigate={setCurrentPage}>
+      <AdminLayout currentPage={effectivePage} onNavigate={setCurrentPage}>
         {renderPage()}
       </AdminLayout>
     </NotificationProvider>

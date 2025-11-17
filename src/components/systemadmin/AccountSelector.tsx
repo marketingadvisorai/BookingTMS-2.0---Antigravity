@@ -5,12 +5,14 @@ import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 
 interface Account {
-  id: number;
+  id: string;
   name: string;
   company: string;
   phone: string;
   status: 'active' | 'inactive';
   isRecent?: boolean;
+  identifier?: string;
+  ownerName?: string;
 }
 
 interface AccountSelectorProps {
@@ -99,8 +101,8 @@ export const AccountSelector = ({
       {isOpen && (
         <div
           className={`
-            absolute top-full left-0 mt-2 w-[480px] max-h-[600px] overflow-hidden
-            ${bgClass} border ${borderColor} rounded-lg shadow-2xl z-50
+            absolute top-full left-0 mt-2 w-[1280px] max-h-[520px] overflow-hidden
+            ${bgClass} border ${borderColor} rounded-2xl shadow-2xl z-50
           `}
         >
           {/* Search Bar */}
@@ -133,15 +135,18 @@ export const AccountSelector = ({
                 `}
               >
                 <Building2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                <div className="flex-1 flex items-center justify-between">
+                <div className="flex-1 flex items-center justify-between gap-4">
                   <div className="text-left">
-                    <div className={`text-sm font-medium ${textClass}`}>
+                    <div className={`text-base font-semibold ${textClass}`}>
                       All Accounts
                     </div>
                     <div className={`text-xs ${mutedTextClass}`}>
                       View all platform data
                     </div>
                   </div>
+                  <span className={`text-xs font-medium ${mutedTextClass}`}>
+                    PLATFORM
+                  </span>
                 </div>
               </button>
             </div>
@@ -170,18 +175,21 @@ export const AccountSelector = ({
                           ${account.status === 'active' ? 'bg-green-500' : 'bg-red-500'}
                         `}
                       />
-                      <div className="flex-1 flex items-center justify-between">
+                      <div className="flex-1 flex items-center justify-between gap-4">
                         <div className="text-left">
-                          <div className={`text-sm font-medium ${textClass}`}>
+                          <div className={`text-sm font-semibold ${textClass} truncate max-w-[420px]`}>
                             {account.name}
                           </div>
                           <div className={`text-xs ${mutedTextClass}`}>
-                            {account.company}
+                            {account.ownerName || account.company}
                           </div>
                         </div>
-                        <span className={`text-sm ${mutedTextClass}`}>
-                          {account.phone}
-                        </span>
+                        <div className="flex items-center gap-3 text-xs font-medium">
+                          <span className={`${mutedTextClass}`}>{account.identifier || account.phone}</span>
+                          <Badge variant="outline" className="text-[10px] px-2 py-0.5 uppercase tracking-wide">
+                            {account.status === 'active' ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
                       </div>
                     </button>
                   ))}
@@ -213,18 +221,21 @@ export const AccountSelector = ({
                           ${account.status === 'active' ? 'bg-green-500' : 'bg-red-500'}
                         `}
                       />
-                      <div className="flex-1 flex items-center justify-between">
+                      <div className="flex-1 flex items-center justify-between gap-4">
                         <div className="text-left">
-                          <div className={`text-sm font-medium ${textClass}`}>
+                          <div className={`text-sm font-semibold ${textClass} truncate max-w-[540px]`}>
                             {account.name}
                           </div>
                           <div className={`text-xs ${mutedTextClass}`}>
-                            {account.company}
+                            {account.ownerName || account.company}
                           </div>
                         </div>
-                        <span className={`text-sm ${mutedTextClass}`}>
-                          {account.phone}
-                        </span>
+                        <div className="flex items-center gap-3 text-xs font-medium">
+                          <span className={`${mutedTextClass}`}>{account.identifier || account.phone}</span>
+                          <Badge variant="outline" className="text-[10px] px-2 py-0.5 uppercase tracking-wide">
+                            {account.status === 'active' ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
                       </div>
                     </button>
                   ))}

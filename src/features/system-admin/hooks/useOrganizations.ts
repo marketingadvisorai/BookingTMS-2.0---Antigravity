@@ -30,9 +30,16 @@ export const useOrganizations = (
     isFetching,
   } = useQuery({
     queryKey: ['organizations', filters, page, perPage],
-    queryFn: () => OrganizationService.getAll(filters, page, perPage),
+    queryFn: async () => {
+      try {
+        return await OrganizationService.getAll(filters, page, perPage);
+      } catch (err: any) {
+        console.warn('Organizations query failed:', err?.message || 'Database not configured');
+        throw err;
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
+    retry: false, // Don't retry on database errors
   });
 
   // Create organization mutation

@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import { StripeService } from './StripeService';
 import type {
   Organization,
   CreateOrganizationDTO,
@@ -32,10 +33,14 @@ export class OrganizationService {
           plans:plan_id (
             id,
             name,
-            price,
-            billing_period,
+            slug,
+            price_monthly,
+            price_yearly,
             features,
-            limits
+            max_venues,
+            max_staff,
+            max_bookings_per_month,
+            max_widgets
           )
         `, { count: 'exact' });
 
@@ -85,9 +90,11 @@ export class OrganizationService {
         per_page: perPage,
         total_pages: Math.ceil((count || 0) / perPage),
       };
-    } catch (error) {
-      console.error('OrganizationService.getAll error:', error);
-      throw error;
+    } catch (error: any) {
+      // Suppress full error object logging
+      const msg = error?.message || 'Database query failed';
+      console.warn('[OrganizationService] getAll failed:', msg);
+      throw new Error(msg);
     }
   }
 
@@ -114,18 +121,19 @@ export class OrganizationService {
       }
 
       return data;
-    } catch (error) {
-      console.error('OrganizationService.getById error:', error);
+    } catch (error: any) {
+      console.warn('[OrganizationService] getById failed:', error?.message);
       throw error;
     }
   }
 
   /**
-   * Create new organization
+   * Create new organization with Stripe customer and initial owner
    */
   static async create(dto: CreateOrganizationDTO): Promise<Organization> {
     try {
-      const { data, error } = await supabase
+      // Step 1: Create organization in Supabase (UUID auto-generated)
+      const { data: org, error: orgError } = await supabase
         .from('organizations')
         .insert([{
           name: dto.name,
@@ -134,7 +142,7 @@ export class OrganizationService {
           website: dto.website,
           phone: dto.phone,
           plan_id: dto.plan_id,
-          status: dto.status || 'active',
+          status: dto.status || 'pending',
           stripe_charges_enabled: false,
           stripe_payouts_enabled: false,
           application_fee_percentage: 0.75,
@@ -142,13 +150,74 @@ export class OrganizationService {
         .select()
         .single();
 
-      if (error) {
-        throw new Error(`Failed to create organization: ${error.message}`);
+      if (orgError) {
+        throw new Error(`Failed to create organization: ${orgError.message}`);
       }
 
-      return data;
-    } catch (error) {
-      console.error('OrganizationService.create error:', error);
+      if (!org) {
+        throw new Error('Organization created but no data returned');
+      }
+
+      // Step 2: Create Stripe customer
+      let stripeCustomerId: string | null = null;
+      try {
+        const stripeCustomer = await StripeService.createCustomer({
+          email: dto.owner_email,
+          name: dto.owner_name || dto.name,
+          metadata: {
+            organization_id: org.id,
+            organization_name: dto.name,
+          },
+        });
+        stripeCustomerId = stripeCustomer.id;
+
+        // Step 3: Update organization with Stripe customer ID
+        const { error: updateError } = await supabase
+          .from('organizations')
+          .update({ 
+            stripe_customer_id: stripeCustomerId,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', org.id);
+
+        if (updateError) {
+          console.error('Failed to update org with Stripe ID:', updateError);
+        }
+      } catch (stripeError) {
+        // Log but don't fail organization creation
+        console.error('Stripe customer creation failed:', stripeError);
+      }
+
+      // Step 4: Create initial organization member (owner)
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          const { error: memberError } = await supabase
+            .from('organization_members')
+            .insert([{
+              organization_id: org.id,
+              user_id: user.id,
+              role: 'owner',
+              permissions: { all: true },
+            }]);
+
+          if (memberError) {
+            console.error('Failed to create organization member:', memberError);
+          }
+        }
+      } catch (memberErr) {
+        // Log but don't fail organization creation
+        console.error('Organization member creation failed:', memberErr);
+      }
+
+      // Return complete organization data
+      return {
+        ...org,
+        stripe_customer_id: stripeCustomerId,
+      };
+    } catch (error: any) {
+      console.warn('[OrganizationService] create failed:', error?.message);
       throw error;
     }
   }
@@ -173,8 +242,8 @@ export class OrganizationService {
       }
 
       return data;
-    } catch (error) {
-      console.error('OrganizationService.update error:', error);
+    } catch (error: any) {
+      console.warn('[OrganizationService] update failed:', error?.message);
       throw error;
     }
   }
@@ -192,8 +261,8 @@ export class OrganizationService {
       if (error) {
         throw new Error(`Failed to delete organization: ${error.message}`);
       }
-    } catch (error) {
-      console.error('OrganizationService.delete error:', error);
+    } catch (error: any) {
+      console.warn('[OrganizationService] delete failed:', error?.message);
       throw error;
     }
   }
@@ -216,8 +285,8 @@ export class OrganizationService {
       }
 
       return data as OrganizationMetrics;
-    } catch (error) {
-      console.error('OrganizationService.getMetrics error:', error);
+    } catch (error: any) {
+      console.warn('[OrganizationService] getMetrics failed:', error?.message);
       throw error;
     }
   }

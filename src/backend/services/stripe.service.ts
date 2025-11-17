@@ -378,6 +378,485 @@ class StripeService {
       throw new Error('Failed to list Stripe products');
     }
   }
+
+  // ==================== STRIPE CONNECT METHODS ====================
+
+  /**
+   * Create a connected account (Express or Custom)
+   */
+  public async createConnectedAccount(params: {
+    type: 'express' | 'custom' | 'standard';
+    email: string;
+    country: string;
+    businessType?: 'individual' | 'company';
+    capabilities?: string[];
+    metadata?: Record<string, string>;
+  }): Promise<Stripe.Account> {
+    try {
+      const capabilities: any = {};
+      
+      // Set default capabilities
+      const defaultCapabilities = params.capabilities || ['card_payments', 'transfers'];
+      defaultCapabilities.forEach(cap => {
+        capabilities[cap] = { requested: true };
+      });
+
+      const account = await this.stripe.accounts.create({
+        type: params.type,
+        email: params.email,
+        country: params.country,
+        business_type: params.businessType || 'company',
+        capabilities,
+        metadata: params.metadata || {},
+      });
+
+      console.log('✅ Connected account created:', account.id);
+      return account;
+    } catch (error) {
+      console.error('Connected account creation failed:', error);
+      throw new Error('Failed to create connected account');
+    }
+  }
+
+  /**
+   * Generate account link for onboarding
+   */
+  public async createAccountLink(params: {
+    accountId: string;
+    refreshUrl: string;
+    returnUrl: string;
+    type?: 'account_onboarding' | 'account_update';
+  }): Promise<Stripe.AccountLink> {
+    try {
+      const accountLink = await this.stripe.accountLinks.create({
+        account: params.accountId,
+        refresh_url: params.refreshUrl,
+        return_url: params.returnUrl,
+        type: params.type || 'account_onboarding',
+      });
+
+      return accountLink;
+    } catch (error) {
+      console.error('Account link creation failed:', error);
+      throw new Error('Failed to create account link');
+    }
+  }
+
+  /**
+   * Create account session for embedded components
+   */
+  public async createAccountSession(accountId: string): Promise<Stripe.AccountSession> {
+    try {
+      const accountSession = await this.stripe.accountSessions.create({
+        account: accountId,
+        components: {
+          account_onboarding: { enabled: true },
+          payments: { enabled: true },
+          payouts: { enabled: true },
+          balances: { enabled: true },
+        },
+      });
+
+      return accountSession;
+    } catch (error) {
+      console.error('Account session creation failed:', error);
+      throw new Error('Failed to create account session');
+    }
+  }
+
+  /**
+   * Get connected account details
+   */
+  public async getConnectedAccount(accountId: string): Promise<Stripe.Account> {
+    try {
+      const account = await this.stripe.accounts.retrieve(accountId);
+      return account;
+    } catch (error) {
+      console.error('Connected account retrieval failed:', error);
+      throw new Error('Failed to retrieve connected account');
+    }
+  }
+
+  /**
+   * List all connected accounts
+   */
+  public async listConnectedAccounts(params?: {
+    limit?: number;
+  }): Promise<Stripe.Account[]> {
+    try {
+      const accounts = await this.stripe.accounts.list({
+        limit: params?.limit || 100,
+      });
+      return accounts.data;
+    } catch (error) {
+      console.error('Connected accounts listing failed:', error);
+      throw new Error('Failed to list connected accounts');
+    }
+  }
+
+  /**
+   * Update connected account
+   */
+  public async updateConnectedAccount(
+    accountId: string,
+    params: Stripe.AccountUpdateParams
+  ): Promise<Stripe.Account> {
+    try {
+      const account = await this.stripe.accounts.update(accountId, params);
+      console.log('✅ Connected account updated:', account.id);
+      return account;
+    } catch (error) {
+      console.error('Connected account update failed:', error);
+      throw new Error('Failed to update connected account');
+    }
+  }
+
+  /**
+   * Delete (deactivate) connected account
+   */
+  public async deleteConnectedAccount(accountId: string): Promise<Stripe.Account> {
+    try {
+      const account = await this.stripe.accounts.del(accountId);
+      console.log('✅ Connected account deleted:', account.id);
+      return account;
+    } catch (error) {
+      console.error('Connected account deletion failed:', error);
+      throw new Error('Failed to delete connected account');
+    }
+  }
+
+  /**
+   * Get balance for a connected account
+   */
+  public async getConnectedAccountBalance(accountId: string): Promise<Stripe.Balance> {
+    try {
+      const balance = await this.stripe.balance.retrieve({
+        stripeAccount: accountId,
+      });
+      return balance;
+    } catch (error) {
+      console.error('Balance retrieval failed:', error);
+      throw new Error('Failed to retrieve balance');
+    }
+  }
+
+  /**
+   * Create manual payout for connected account
+   */
+  public async createPayout(params: {
+    accountId: string;
+    amount: number;
+    currency?: string;
+    description?: string;
+    metadata?: Record<string, string>;
+  }): Promise<Stripe.Payout> {
+    try {
+      const payout = await this.stripe.payouts.create(
+        {
+          amount: Math.round(params.amount * 100),
+          currency: params.currency || this.config.currency,
+          description: params.description,
+          metadata: params.metadata || {},
+        },
+        {
+          stripeAccount: params.accountId,
+        }
+      );
+
+      console.log('✅ Payout created:', payout.id);
+      return payout;
+    } catch (error) {
+      console.error('Payout creation failed:', error);
+      throw new Error('Failed to create payout');
+    }
+  }
+
+  /**
+   * List payouts for connected account
+   */
+  public async listPayouts(params: {
+    accountId: string;
+    limit?: number;
+    status?: string;
+  }): Promise<Stripe.Payout[]> {
+    try {
+      const payouts = await this.stripe.payouts.list(
+        {
+          limit: params.limit || 100,
+          status: params.status as any,
+        },
+        {
+          stripeAccount: params.accountId,
+        }
+      );
+      return payouts.data;
+    } catch (error) {
+      console.error('Payouts listing failed:', error);
+      throw new Error('Failed to list payouts');
+    }
+  }
+
+  /**
+   * List charges for connected account
+   */
+  public async listCharges(params: {
+    accountId: string;
+    limit?: number;
+    created?: { gte?: number; lte?: number };
+  }): Promise<Stripe.Charge[]> {
+    try {
+      const charges = await this.stripe.charges.list(
+        {
+          limit: params.limit || 100,
+          created: params.created,
+        },
+        {
+          stripeAccount: params.accountId,
+        }
+      );
+      return charges.data;
+    } catch (error) {
+      console.error('Charges listing failed:', error);
+      throw new Error('Failed to list charges');
+    }
+  }
+
+  /**
+   * List balance transactions for connected account
+   */
+  public async listBalanceTransactions(params: {
+    accountId: string;
+    limit?: number;
+    type?: string;
+    payout?: string;
+  }): Promise<Stripe.BalanceTransaction[]> {
+    try {
+      const transactions = await this.stripe.balanceTransactions.list(
+        {
+          limit: params.limit || 100,
+          type: params.type as any,
+          payout: params.payout,
+        },
+        {
+          stripeAccount: params.accountId,
+        }
+      );
+      return transactions.data;
+    } catch (error) {
+      console.error('Balance transactions listing failed:', error);
+      throw new Error('Failed to list balance transactions');
+    }
+  }
+
+  /**
+   * List disputes for connected account
+   */
+  public async listDisputes(params: {
+    accountId: string;
+    limit?: number;
+    status?: string;
+  }): Promise<Stripe.Dispute[]> {
+    try {
+      const disputes = await this.stripe.disputes.list(
+        {
+          limit: params.limit || 100,
+          status: params.status as any,
+        },
+        {
+          stripeAccount: params.accountId,
+        }
+      );
+      return disputes.data;
+    } catch (error) {
+      console.error('Disputes listing failed:', error);
+      throw new Error('Failed to list disputes');
+    }
+  }
+
+  /**
+   * Get dispute details
+   */
+  public async getDispute(params: {
+    accountId: string;
+    disputeId: string;
+  }): Promise<Stripe.Dispute> {
+    try {
+      const dispute = await this.stripe.disputes.retrieve(
+        params.disputeId,
+        {},
+        {
+          stripeAccount: params.accountId,
+        }
+      );
+      return dispute;
+    } catch (error) {
+      console.error('Dispute retrieval failed:', error);
+      throw new Error('Failed to retrieve dispute');
+    }
+  }
+
+  /**
+   * Update dispute evidence
+   */
+  public async updateDispute(params: {
+    accountId: string;
+    disputeId: string;
+    evidence?: Stripe.DisputeUpdateParams.Evidence;
+    metadata?: Record<string, string>;
+  }): Promise<Stripe.Dispute> {
+    try {
+      const dispute = await this.stripe.disputes.update(
+        params.disputeId,
+        {
+          evidence: params.evidence,
+          metadata: params.metadata,
+        },
+        {
+          stripeAccount: params.accountId,
+        }
+      );
+      console.log('✅ Dispute updated:', dispute.id);
+      return dispute;
+    } catch (error) {
+      console.error('Dispute update failed:', error);
+      throw new Error('Failed to update dispute');
+    }
+  }
+
+  /**
+   * Create subscription for connected account
+   */
+  public async createSubscription(params: {
+    accountId: string;
+    customerId: string;
+    priceId: string;
+    applicationFeePercent?: number;
+    metadata?: Record<string, string>;
+  }): Promise<Stripe.Subscription> {
+    try {
+      const subscription = await this.stripe.subscriptions.create(
+        {
+          customer: params.customerId,
+          items: [{ price: params.priceId }],
+          application_fee_percent: params.applicationFeePercent,
+          metadata: params.metadata || {},
+        },
+        {
+          stripeAccount: params.accountId,
+        }
+      );
+
+      console.log('✅ Subscription created:', subscription.id);
+      return subscription;
+    } catch (error) {
+      console.error('Subscription creation failed:', error);
+      throw new Error('Failed to create subscription');
+    }
+  }
+
+  /**
+   * List subscriptions for connected account
+   */
+  public async listSubscriptions(params: {
+    accountId: string;
+    limit?: number;
+    status?: string;
+  }): Promise<Stripe.Subscription[]> {
+    try {
+      const subscriptions = await this.stripe.subscriptions.list(
+        {
+          limit: params.limit || 100,
+          status: params.status as any,
+        },
+        {
+          stripeAccount: params.accountId,
+        }
+      );
+      return subscriptions.data;
+    } catch (error) {
+      console.error('Subscriptions listing failed:', error);
+      throw new Error('Failed to list subscriptions');
+    }
+  }
+
+  /**
+   * Update payout schedule for connected account
+   */
+  public async updatePayoutSchedule(params: {
+    accountId: string;
+    interval: 'manual' | 'daily' | 'weekly' | 'monthly';
+    weeklyAnchor?: string;
+    monthlyAnchor?: number;
+    delayDays?: number;
+  }): Promise<Stripe.Account> {
+    try {
+      const account = await this.stripe.accounts.update(params.accountId, {
+        settings: {
+          payouts: {
+            schedule: {
+              interval: params.interval,
+              weekly_anchor: params.weeklyAnchor as any,
+              monthly_anchor: params.monthlyAnchor,
+              delay_days: params.delayDays || 2,
+            },
+          },
+        },
+      });
+      console.log('✅ Payout schedule updated for:', account.id);
+      return account;
+    } catch (error) {
+      console.error('Payout schedule update failed:', error);
+      throw new Error('Failed to update payout schedule');
+    }
+  }
+
+  /**
+   * Create transfer to connected account (for separate charges and transfers pattern)
+   */
+  public async createTransfer(params: {
+    amount: number;
+    currency: string;
+    destination: string;
+    transferGroup?: string;
+    description?: string;
+    metadata?: Record<string, string>;
+  }): Promise<Stripe.Transfer> {
+    try {
+      const transfer = await this.stripe.transfers.create({
+        amount: Math.round(params.amount * 100),
+        currency: params.currency,
+        destination: params.destination,
+        transfer_group: params.transferGroup,
+        description: params.description,
+        metadata: params.metadata || {},
+      });
+
+      console.log('✅ Transfer created:', transfer.id);
+      return transfer;
+    } catch (error) {
+      console.error('Transfer creation failed:', error);
+      throw new Error('Failed to create transfer');
+    }
+  }
+
+  /**
+   * Get platform application fees
+   */
+  public async listApplicationFees(params?: {
+    limit?: number;
+    charge?: string;
+  }): Promise<Stripe.ApplicationFee[]> {
+    try {
+      const fees = await this.stripe.applicationFees.list({
+        limit: params?.limit || 100,
+        charge: params?.charge,
+      });
+      return fees.data;
+    } catch (error) {
+      console.error('Application fees listing failed:', error);
+      throw new Error('Failed to list application fees');
+    }
+  }
 }
 
 // Export singleton instance

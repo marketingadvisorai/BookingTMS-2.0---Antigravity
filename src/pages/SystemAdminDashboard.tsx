@@ -27,32 +27,20 @@ import { Checkbox } from '../components/ui/checkbox';
 import { useVenues } from '../hooks/useVenues';
 import { useGames } from '../hooks/useGames';
 import { useBookings } from '../hooks/useBookings';
+import { useOrganizations as useOrgsFeature, usePlatformMetrics, useOrganizationMetrics } from '../features/system-admin/hooks';
+import { SystemAdminProvider } from '../features/system-admin';
+import { PaymentsSubscriptionsSection } from '../components/systemadmin/PaymentsSubscriptionsSection';
+import { AccountPerformanceMetrics } from '../components/systemadmin/AccountPerformanceMetrics';
 
-// Account type for account selector
+// Account type for account selector (mapped from Organization)
 interface Account {
-  id: number;
+  id: string;
   name: string;
   company: string;
   phone: string;
   status: 'active' | 'inactive';
   isRecent?: boolean;
 }
-
-// Mock accounts data
-const allAccounts: Account[] = [
-  { id: 1, name: 'Riddle Me This', company: 'Escape Room PPC Manager', phone: '732-865-9397', status: 'active', isRecent: true },
-  { id: 2, name: 'Xperience Games - Calgary', company: 'Escape Room PPC Manager', phone: '912-442-2090', status: 'active', isRecent: true },
-  { id: 3, name: 'Xperience Games - Kelowna', company: 'Escape Room PPC Manager', phone: '243-872-8621', status: 'active', isRecent: true },
-  { id: 4, name: 'Real Escape | Mike', company: 'Escape Room Business', phone: '284-664-5090', status: 'inactive' },
-  { id: 5, name: 'Michael D Gr', company: 'Adventure Zone', phone: '425-752-6100', status: 'inactive' },
-  { id: 6, name: 'Jill Coleman Larkins', company: 'Mystery Games', phone: '521-298-9064', status: 'active' },
-  { id: 7, name: 'Alexa | Mind Break Escape Room', company: 'Mind Break', phone: '824-072-2968', status: 'inactive' },
-  { id: 8, name: 'conundroom | Aleksei', company: 'Conundroom', phone: '870-449-9358', status: 'active' },
-  { id: 9, name: 'Amaze', company: 'Amaze Escape Rooms', phone: '677-998-9738', status: 'active' },
-  { id: 10, name: 'Contraptions Escape Rooms', company: 'Contraptions', phone: '985-998-2837', status: 'inactive' },
-  { id: 11, name: 'Etoy Escape Room', company: 'Etoy', phone: '798-149-2513', status: 'inactive' },
-  { id: 12, name: 'Portland Escape Rooms', company: 'Portland ER', phone: '125-681-3187', status: 'active' },
-];
 
 // Mock data for owners and venues (with accountId for filtering)
 const ownersData = [
@@ -502,7 +490,11 @@ const plansData = [
   },
 ];
 
-const SystemAdminDashboard = () => {
+interface SystemAdminDashboardInnerProps {
+  onNavigate?: (page: string) => void;
+}
+
+const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProps) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { featureFlags, toggleFeature } = useFeatureFlags();
@@ -511,6 +503,13 @@ const SystemAdminDashboard = () => {
   const { venues, loading: venuesLoading } = useVenues();
   const { games, loading: gamesLoading } = useGames();
   const { bookings, loading: bookingsLoading } = useBookings();
+  
+  // 🔥 SYSTEM ADMIN REAL DATA (will be fetched below)
+  const { metrics: platformMetrics, isLoading: platformMetricsLoading } = usePlatformMetrics();
+  
+  // Selected organization state
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
+  const { metrics: orgMetrics, isLoading: orgMetricsLoading } = useOrganizationMetrics(selectedOrgId || undefined);
   
   // Initialize plans from localStorage or use default data
   const [plans, setPlans] = useState(() => {
@@ -537,40 +536,39 @@ const SystemAdminDashboard = () => {
   const [showAddOwnerDialog, setShowAddOwnerDialog] = useState(false);
   const [selectedPlanForManage, setSelectedPlanForManage] = useState<any>(null);
   
-  // 🔥 Convert real venues to owners format for display
-  const owners = useMemo(() => {
-    if (!venues || venues.length === 0) return ownersData; // Fallback to demo data if no venues
-    
-    // Group venues by organization (using venue name as organization for now)
-    const organizationsMap = new Map();
-    venues.forEach((venue) => {
-      const orgKey = venue.organization_id || venue.id;
-      if (!organizationsMap.has(orgKey)) {
-        organizationsMap.set(orgKey, {
-          id: venue.id,
-          accountId: 1,
-          name: venue.name || 'Unknown Organization',
-          owner: venue.created_by || 'Admin',
-          email: venue.email || 'admin@venue.com',
-          phone: venue.phone || 'N/A',
-          website: venue.address || 'N/A',
-          plan: 'free',
-          status: venue.status || 'active',
-          venues: 1,
-          locations: 1,
-          venueIds: [venue.id],
-          gameIds: []
-        });
-      } else {
-        const org = organizationsMap.get(orgKey);
-        org.venues += 1;
-        org.locations += 1;
-        org.venueIds.push(venue.id);
-      }
-    });
-    
-    return Array.from(organizationsMap.values());
-  }, [venues]);
+  // 🔥 Use real organizations from Supabase
+  const { organizations: realOrganizations, isLoading: orgsLoading, refetch: refetchOrgs } = useOrgsFeature({}, 1, 100);
+  
+  // Convert organizations to owners format for display
+  const computedOwners = useMemo(() => {
+    if (!realOrganizations || realOrganizations.length === 0) return ownersData; // Fallback to demo data
+
+    return realOrganizations.map(org => ({
+      id: org.id,
+      accountId: 1,
+      ownerName: org.owner_name || 'Admin',
+      organizationName: org.name,
+      organizationId: org.id,
+      website: org.website || '',
+      email: org.owner_email || 'admin@organization.com',
+      plan: org.plan?.name || 'Basic',
+      status: org.status,
+      features: [],
+      profileSlug: org.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      venues: 0, // Will be fetched from metrics
+      locations: 0,
+      venueIds: [],
+      gameIds: [],
+    }));
+  }, [realOrganizations]);
+  
+  // Local state for owners (allows CRUD operations)
+  const [owners, setOwners] = useState(computedOwners);
+  
+  // Update owners when computed owners change
+  useEffect(() => {
+    setOwners(computedOwners);
+  }, [computedOwners]);
   
   const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
   const [locationValue, setLocationValue] = useState<number>(0);
@@ -582,12 +580,6 @@ const SystemAdminDashboard = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5; // Show 5 organizations per page on dashboard
-
-  // Section heights for resizing
-  const [metricsHeight, setMetricsHeight] = useState(160);
-  const [tableHeight, setTableHeight] = useState(600);
-  const [plansHeight, setPlansHeight] = useState(400);
-  const [flagsHeight, setFlagsHeight] = useState(300);
 
   // Column visibility configuration
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
@@ -638,8 +630,32 @@ const SystemAdminDashboard = () => {
     { id: 'staffAccounts', label: 'Staff Accounts' },
   ];
 
-  // Recent accounts (last 3 accessed)
-  const recentAccounts = allAccounts.filter(a => a.isRecent);
+  // Map organizations to accounts format
+  const allAccounts: Account[] = useMemo(() => {
+    if (realOrganizations && realOrganizations.length > 0) {
+      return realOrganizations.map(org => ({
+        id: org.id,
+        name: org.name,
+        company: org.owner_name || org.plan?.name || 'N/A',
+        phone: org.phone || org.id,
+        status: org.status === 'active' ? 'active' : 'inactive',
+        isRecent: false,
+      }));
+    }
+
+    // Fallback to current owners list when Supabase data is unavailable
+    return owners.map(owner => ({
+      id: owner.organizationId?.toString() || owner.id?.toString() || '',
+      name: owner.organizationName,
+      company: owner.ownerName,
+      phone: owner.phone || owner.organizationId,
+      status: owner.status === 'active' ? 'active' : 'inactive',
+      isRecent: false,
+    }));
+  }, [realOrganizations, owners]);
+  
+  // Recent accounts (top 3). Eventually replace with server-side recent tracking
+  const recentAccounts = useMemo(() => allAccounts.slice(0, 3), [allAccounts]);
 
   // Save plans to localStorage whenever they change
   useEffect(() => {
@@ -662,10 +678,11 @@ const SystemAdminDashboard = () => {
   const mutedTextClass = isDark ? 'text-gray-400' : 'text-gray-600';
   const borderColor = isDark ? 'border-[#333]' : 'border-gray-200';
 
-  // Filter data based on selected account
+  // Filter data based on selected organization
   const filteredOwners = useMemo(() => {
     if (!selectedAccount) return owners;
-    return owners.filter(owner => owner.accountId === selectedAccount.id);
+    // Filter owners by organization ID
+    return owners.filter(owner => owner.organizationId === selectedAccount.id);
   }, [selectedAccount, owners]);
 
   // Pagination calculations
@@ -679,21 +696,27 @@ const SystemAdminDashboard = () => {
     setCurrentPage(1);
   }, [selectedAccount]);
 
-  // Calculate filtered metrics
+  // Calculate filtered metrics using real data
   const filteredMetrics = useMemo(() => {
     if (!selectedAccount) {
-      // Calculate from all owners
-      const totalVenues = owners.reduce((sum, owner) => sum + owner.venues, 0);
+      // Use platform-wide metrics
+      if (platformMetrics) {
+        return {
+          totalOwners: platformMetrics.total_organizations || 0,
+          activeSubscriptions: platformMetrics.active_organizations || 0,
+          activeVenues: platformMetrics.total_venues || 0,
+          totalLocations: platformMetrics.total_venues || 0, // Using venues as locations
+          totalGames: platformMetrics.total_games || 0,
+          totalBookings: platformMetrics.total_bookings || 0,
+          mrr: platformMetrics.mrr || 0,
+        };
+      }
+      // Fallback to calculating from owners if platform metrics not loaded
+      const totalVenues = owners.reduce((sum, owner) => sum + (owner.venues || 0), 0);
       const totalLocations = owners.reduce((sum, owner) => sum + (owner.locations || 0), 0);
       const activeOwners = owners.filter(o => o.status === 'active').length;
-      
-      // Calculate total games from all venues
-      const totalGames = venuesData.reduce((sum, venue) => sum + venue.games, 0);
-      
-      // Estimate total bookings (average 50 bookings per venue)
+      const totalGames = venuesData.reduce((sum, venue) => sum + (venue.games || 0), 0);
       const totalBookings = totalVenues * 50;
-      
-      // Estimate MRR based on plans
       const mrr = owners.reduce((sum, owner) => {
         const plan = plansData.find(p => p.name === owner.plan);
         return sum + (plan?.price || 0);
@@ -710,16 +733,27 @@ const SystemAdminDashboard = () => {
       };
     }
 
-    // Calculate metrics for selected account
+    // Use organization-specific metrics
+    if (orgMetrics) {
+      return {
+        totalOwners: 1, // Single organization
+        activeSubscriptions: 1,
+        activeVenues: orgMetrics.total_venues || 0,
+        totalLocations: orgMetrics.active_venues || 0,
+        totalGames: orgMetrics.total_games || 0,
+        totalBookings: orgMetrics.total_bookings || 0,
+        mrr: orgMetrics.mrr || 0,
+      };
+    }
+    
+    // Fallback to calculating from filtered owners
     const accountOwners = filteredOwners;
-    const totalVenues = accountOwners.reduce((sum, owner) => sum + owner.venues, 0);
+    const totalVenues = accountOwners.reduce((sum, owner) => sum + (owner.venues || 0), 0);
     const totalLocations = accountOwners.reduce((sum, owner) => sum + (owner.locations || 0), 0);
     const activeOwners = accountOwners.filter(o => o.status === 'active').length;
-    
-    // Calculate total games for this account's venues
     const accountOrgIds = accountOwners.map(o => o.organizationId);
     const accountVenues = venuesData.filter(v => accountOrgIds.includes(v.organizationId));
-    const totalGames = accountVenues.reduce((sum, venue) => sum + venue.games, 0);
+    const totalGames = accountVenues.reduce((sum, venue) => sum + (venue.games || 0), 0);
     
     // Estimate total bookings (average 50 bookings per venue)
     const totalBookings = totalVenues * 50;
@@ -739,7 +773,7 @@ const SystemAdminDashboard = () => {
       totalBookings: totalBookings,
       mrr: mrr,
     };
-  }, [selectedAccount, filteredOwners]);
+  }, [selectedAccount, filteredOwners, platformMetrics, orgMetrics, owners, venuesData, plansData]);
 
   const handleToggleFeature = (featureId: string) => {
     const feature = featureFlags.find(f => f.id === featureId);
@@ -779,8 +813,9 @@ const SystemAdminDashboard = () => {
     setSelectedOwnerForEdit(null);
   };
 
-  const handleAddOwner = (newOwner: any) => {
-    setOwners(prev => [...prev, newOwner]);
+  const handleAddOwner = () => {
+    // Refetch organizations to update the list
+    refetchOrgs();
     setShowAddOwnerDialog(false);
   };
 
@@ -791,6 +826,8 @@ const SystemAdminDashboard = () => {
 
   const handleAccountSelect = (account: Account | null) => {
     setSelectedAccount(account);
+    // Sync with organization ID for metrics
+    setSelectedOrgId(account?.id || null);
     if (account) {
       toast.info(`Viewing data for: ${account.name}`);
     } else {
@@ -833,7 +870,9 @@ const SystemAdminDashboard = () => {
 
   // Navigation to View All Organizations page
   const handleViewAllOrganizations = () => {
-    window.location.href = '/?page=view-all-organizations';
+    if (onNavigate) {
+      onNavigate('view-all-organizations');
+    }
   };
 
   const handleCancelEditLocation = () => {
@@ -886,7 +925,7 @@ const SystemAdminDashboard = () => {
   };
 
   return (
-    <div className={`min-h-screen ${bgClass}`}>
+    <div className={`min-h-screen ${bgClass} flex flex-col`}>
       {/* Custom Header for System Admin */}
       <SystemAdminHeader
         selectedAccount={selectedAccount}
@@ -909,61 +948,39 @@ const SystemAdminDashboard = () => {
         </div>
       )}
 
-      <div className="p-6">
+      <div className="flex-1 overflow-y-auto p-6">
         {/* Overview Metrics Section with Separator */}
         <div className={`border-b-2 ${borderColor} pb-6 mb-6`}>
           <div className="flex items-center justify-between mb-4">
             <h2 className={`text-lg font-medium ${textClass}`}>Overview Metrics</h2>
           </div>
           <div 
-            style={{ minHeight: `${metricsHeight}px` }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
             <KPICard
               title="Total Owners"
-              value={filteredMetrics.totalOwners}
+              value={filteredMetrics?.totalOwners ?? 0}
               icon={Users}
               trend={{ value: 12, isPositive: true }}
               period="this month"
             />
             <KPICard
               title="Active Subscriptions"
-              value={filteredMetrics.activeSubscriptions}
+              value={filteredMetrics?.activeSubscriptions ?? 0}
               icon={CheckCircle}
               trend={{ value: 8, isPositive: true }}
               period="this month"
             />
             <KPICard
               title="Active Venues"
-              value={filteredMetrics.activeVenues}
+              value={filteredMetrics?.activeVenues ?? 0}
               icon={Building2}
               trend={{ value: 15, isPositive: true }}
               period="this month"
             />
             <KPICard
-              title="Total Locations"
-              value={filteredMetrics.totalLocations}
-              icon={MapPin}
-              trend={{ value: 10, isPositive: true }}
-              period="this month"
-            />
-            <KPICard
-              title="Total Games"
-              value={filteredMetrics.totalGames}
-              icon={Gamepad2}
-              trend={{ value: 22, isPositive: true }}
-              period="this month"
-            />
-            <KPICard
-              title="Total Bookings"
-              value={filteredMetrics.totalBookings.toLocaleString()}
-              icon={Calendar}
-              trend={{ value: 25, isPositive: true }}
-              period="this month"
-            />
-            <KPICard
               title="MRR"
-              value={`$${filteredMetrics.mrr.toLocaleString()}`}
+              value={`$${Number(filteredMetrics?.mrr ?? 0).toLocaleString()}`}
               icon={DollarSign}
               trend={{ value: 18, isPositive: true }}
               period="this month"
@@ -971,16 +988,23 @@ const SystemAdminDashboard = () => {
           </div>
         </div>
 
-        {/* Organizations Table Section with Separator */}
-        <div className={`border-b-2 ${borderColor} pb-6 mb-6`}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className={`text-lg font-medium ${textClass}`}>Organizations Management</h2>
-          </div>
-          
-        {/* Owners & Venues Table - Improved Design */}
+        {/* Payments & Subscriptions Section */}
+        <PaymentsSubscriptionsSection
+          selectedAccount={selectedAccount}
+          platformMetrics={platformMetrics}
+          accountMetrics={orgMetrics}
+        />
+
+        {/* Conditional: Show Organizations Management ONLY when "All Accounts" is selected */}
+        {!selectedAccount && (
+          <div className={`border-b-2 ${borderColor} pb-6 mb-6`}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`text-lg font-medium ${textClass}`}>Organizations Management</h2>
+            </div>
+            
+          {/* Owners & Venues Table - Improved Design */}
         <Card 
           className={`${cardBgClass} border ${borderColor} shadow-sm`}
-          style={{ minHeight: `${tableHeight}px` }}
         >
           {/* Enhanced Header with Better Spacing */}
           <CardHeader className="space-y-4 pb-6">
@@ -1524,6 +1548,15 @@ const SystemAdminDashboard = () => {
           </CardContent>
         </Card>
         </div>
+        )}
+
+        {/* Conditional: Show Account Performance Metrics ONLY when a specific account is selected */}
+        {selectedAccount && (
+          <AccountPerformanceMetrics
+            account={selectedAccount}
+            metrics={orgMetrics}
+          />
+        )}
 
         {/* Subscription Plans Section with Separator */}
         <div className={`border-b-2 ${borderColor} pb-6 mb-6`}>
@@ -1538,7 +1571,6 @@ const SystemAdminDashboard = () => {
         {/* Plans & Features Section */}
         <div 
           className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-          style={{ minHeight: `${plansHeight}px` }}
         >
           {plans.map((plan, index) => (
             <Card key={index} className={`${cardBgClass} border ${borderColor} relative ${plan.isFeatured ? 'ring-2 ring-yellow-500' : ''}`}>
@@ -1617,7 +1649,7 @@ const SystemAdminDashboard = () => {
         </div>
         </div>
 
-        {/* Feature Flags Section with Separator */}
+        {/* Feature Flags Section - Context-Aware */}
         <div className={`pb-6`}>
           <div className="flex items-center justify-between mb-4">
             <h2 className={`text-lg font-medium ${textClass}`}>Feature Flags</h2>
@@ -1626,27 +1658,33 @@ const SystemAdminDashboard = () => {
         {/* Feature Flags */}
         <Card 
           className={`${cardBgClass} border ${borderColor}`}
-          style={{ minHeight: `${flagsHeight}px` }}
         >
           <CardHeader className="space-y-3 pb-6">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className={`text-xl ${textClass}`}>Platform Features</CardTitle>
+                <CardTitle className={`text-xl ${textClass}`}>
+                  {selectedAccount ? `Active Features - ${selectedAccount.name}` : 'Platform Features'}
+                </CardTitle>
                 <p className={`text-sm mt-2 ${mutedTextClass}`}>
-                  Enable or disable features across all organizations
+                  {selectedAccount 
+                    ? `Features enabled for this account (Plan: ${selectedAccount.company || 'N/A'})`
+                    : 'Enable or disable features across all organizations'}
                 </p>
               </div>
               <Badge 
                 variant="outline" 
                 className={`px-3 py-1 ${isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-indigo-50 text-indigo-700 border-indigo-200'}`}
               >
-                {featureFlags.filter(f => f.enabled).length} / {featureFlags.length} Active
+                {selectedAccount 
+                  ? `${featureFlags.filter(f => f.enabled).length} Active Features`
+                  : `${featureFlags.filter(f => f.enabled).length} / ${featureFlags.length} Active`}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="px-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {featureFlags.map((feature) => (
+              {/* Show ALL flags with toggles when "All Accounts", or only ACTIVE flags when specific account */}
+              {(selectedAccount ? featureFlags.filter(f => f.enabled) : featureFlags).map((feature) => (
                 <div
                   key={feature.id}
                   className={`p-5 rounded-lg border ${borderColor} ${
@@ -1662,11 +1700,14 @@ const SystemAdminDashboard = () => {
                         </p>
                       )}
                     </div>
-                    <Switch
-                      checked={feature.enabled}
-                      onCheckedChange={() => handleToggleFeature(feature.id)}
-                      className="flex-shrink-0"
-                    />
+                    {/* Only show toggle for "All Accounts" mode, hide for specific account */}
+                    {!selectedAccount && (
+                      <Switch
+                        checked={feature.enabled}
+                        onCheckedChange={() => handleToggleFeature(feature.id)}
+                        className="flex-shrink-0"
+                      />
+                    )}
                   </div>
                   <div className="flex items-center pt-3 border-t border-opacity-50" style={{ borderColor: isDark ? '#333' : '#e5e7eb' }}>
                     <div className="flex items-center space-x-2">
@@ -1775,6 +1816,18 @@ const SystemAdminDashboard = () => {
         onClose={() => setShowNotificationsModal(false)}
       />
     </div>
+  );
+};
+
+interface SystemAdminDashboardProps {
+  onNavigate?: (page: string) => void;
+}
+
+const SystemAdminDashboard = ({ onNavigate }: SystemAdminDashboardProps) => {
+  return (
+    <SystemAdminProvider>
+      <SystemAdminDashboardInner onNavigate={onNavigate} />
+    </SystemAdminProvider>
   );
 };
 

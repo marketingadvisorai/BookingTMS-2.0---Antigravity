@@ -95,11 +95,7 @@ BEGIN
      WHERE v.organization_id = org_id AND b.status = 'confirmed' AND b.deleted_at IS NULL), 0) AS total_revenue,
     
     -- MRR (from plan price)
-    COALESCE((SELECT 
-      CASE 
-        WHEN p.billing_period = 'annual' THEN p.price / 12
-        ELSE p.price
-      END
+    COALESCE((SELECT p.price_monthly
      FROM plans p
      INNER JOIN organizations o ON o.plan_id = p.id
      WHERE o.id = org_id), 0) AS mrr,
@@ -185,26 +181,16 @@ BEGIN
     COUNT(*) FILTER (WHERE o.status = 'pending' AND o.deleted_at IS NULL) AS pending_organizations,
     
     -- Revenue - MRR calculation
-    COALESCE(SUM(
-      CASE 
-        WHEN p.billing_period = 'annual' THEN p.price / 12
-        ELSE p.price
-      END
-    ) FILTER (WHERE o.status = 'active'), 0) AS mrr,
+    COALESCE(SUM(p.price_monthly) FILTER (WHERE o.status = 'active'), 0) AS mrr,
     
     -- ARR calculation
-    COALESCE(SUM(
-      CASE 
-        WHEN p.billing_period = 'annual' THEN p.price
-        ELSE p.price * 12
-      END
-    ) FILTER (WHERE o.status = 'active'), 0) AS arr,
+    COALESCE(SUM(COALESCE(p.price_yearly, p.price_monthly * 12)) FILTER (WHERE o.status = 'active'), 0) AS arr,
     
     -- Total revenue from bookings
     COALESCE((SELECT SUM(b.total_price) FROM bookings b WHERE b.status = 'confirmed' AND b.deleted_at IS NULL), 0) AS total_revenue,
     
-    -- Platform fee revenue (0.75% of bookings)
-    COALESCE((SELECT SUM(pr.fee_collected) FROM platform_revenue pr), 0) AS platform_fee_revenue,
+    -- Platform fee revenue (application fees)
+    COALESCE((SELECT SUM(pr.amount) FROM platform_revenue pr WHERE pr.revenue_type = 'application_fee'), 0) AS platform_fee_revenue,
     
     -- Usage counts
     (SELECT COUNT(*) FROM venues WHERE deleted_at IS NULL) AS total_venues,
@@ -274,15 +260,15 @@ BEGIN
   SELECT
     org_id AS organization_id,
     COALESCE(SUM(b.total_price), 0) AS total_revenue,
-    COALESCE(SUM(pr.fee_collected), 0) AS platform_fee_revenue,
-    COALESCE(SUM(b.total_price) - SUM(pr.fee_collected), 0) AS net_revenue,
+    COALESCE(SUM(pr.amount), 0) AS platform_fee_revenue,
+    COALESCE(SUM(b.total_price) - SUM(pr.amount), 0) AS net_revenue,
     'USD'::TEXT AS currency,
     (NOW() - INTERVAL '30 days')::TIMESTAMP AS period_start,
     NOW()::TIMESTAMP AS period_end
   FROM bookings b
   INNER JOIN games g ON b.game_id = g.id
   INNER JOIN venues v ON g.venue_id = v.id
-  LEFT JOIN platform_revenue pr ON pr.booking_id = b.id
+  LEFT JOIN platform_revenue pr ON pr.booking_id = b.id AND pr.revenue_type = 'application_fee'
   WHERE v.organization_id = org_id 
     AND b.status = 'confirmed' 
     AND b.deleted_at IS NULL;
@@ -400,6 +386,10 @@ COMMENT ON FUNCTION get_organization_usage_summary(UUID) IS
 -- Index for organization lookups
 CREATE INDEX IF NOT EXISTS idx_organizations_plan_id ON organizations(plan_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_organizations_status ON organizations(status) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_organizations_owner_email ON organizations(owner_email) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_organizations_owner_name ON organizations(owner_name) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_organizations_name ON organizations(name) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_organizations_created_at ON organizations(created_at DESC) WHERE deleted_at IS NULL;
 
 -- Index for venue organization lookups
 CREATE INDEX IF NOT EXISTS idx_venues_organization_id ON venues(organization_id) WHERE deleted_at IS NULL;

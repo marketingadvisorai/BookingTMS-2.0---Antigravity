@@ -24,8 +24,16 @@ export const usePlans = (activeOnly: boolean = false) => {
     refetch,
   } = useQuery({
     queryKey: ['plans', activeOnly],
-    queryFn: () => PlanService.getAll(activeOnly),
+    queryFn: async () => {
+      try {
+        return await PlanService.getAll(activeOnly);
+      } catch (err: any) {
+        console.warn('Plans query failed:', err?.message || 'Database not configured');
+        throw err;
+      }
+    },
     staleTime: 10 * 60 * 1000, // 10 minutes (plans don't change often)
+    retry: false, // Don't retry on database errors
   });
 
   // Create plan mutation

@@ -12,6 +12,7 @@ import rateLimit from 'express-rate-limit';
 import { backendSecrets, getSafeConfig } from '../config/secrets.config';
 import configRoutes from './routes/config.routes';
 import stripeRoutes from './routes/stripe.routes';
+import stripeConnectRoutes from './routes/stripe-connect.routes';
 
 /**
  * Create and configure Express application
@@ -131,6 +132,7 @@ export function createServer(): Express {
   // API Routes
   app.use('/api/config', configRoutes);
   app.use('/api/stripe', stripeRoutes);
+  app.use('/api/stripe-connect', stripeConnectRoutes);
   
   // Future routes (will be added)
   // app.use('/api/auth', authRoutes);

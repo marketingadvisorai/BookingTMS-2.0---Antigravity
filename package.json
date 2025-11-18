@@ -76,6 +76,7 @@
     "@vitejs/plugin-react-swc": "^3.10.2",
     "husky": "^9.1.7",
     "patch-package": "^8.0.0",
+    "typescript": "^5.9.3",
     "vite": "6.3.5"
   },
   "scripts": {

@@ -5,7 +5,7 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Switch } from '../ui/switch';
-import { CreditCard, DollarSign, TrendingUp, CheckCircle, Link2, ShieldCheck, Globe, Percent, Settings } from 'lucide-react';
+import { CreditCard, DollarSign, TrendingUp, CheckCircle, Link2, ShieldCheck, Globe, Percent, Settings, AlertCircle } from 'lucide-react';
 import { useTheme } from '../layout/ThemeContext';
 import { StripeConnectAdminPanel } from './StripeConnectAdminPanel';
 
@@ -120,11 +120,19 @@ export const PaymentsSubscriptionsSection = ({
     }
   };
 
-  // Platform/Mother Account (shown when no org selected) vs Connected Accounts (shown per org)
-  const stripeAccountId = selectedAccount?.stripeAccountId || import.meta.env.VITE_STRIPE_PLATFORM_ACCOUNT_ID || 'acct_1SPfkcFajiBPZ08x';
-  const stripeAccountName = selectedAccount 
-    ? selectedAccount.name  // Organization name when org is selected
-    : (import.meta.env.VITE_STRIPE_PLATFORM_ACCOUNT_NAME || 'Booking TMS Beta Stripe V 0.1'); // Platform name when no org selected
+  // Determine connection status and account details
+  // For organizations: Only show data if they have a connected Stripe account
+  // For platform view (no org selected): Show platform account
+  const isOrgSelected = !!selectedAccount;
+  const hasConnectedAccount = isOrgSelected ? !!selectedAccount.stripeAccountId : true;
+  
+  const stripeAccountId = isOrgSelected
+    ? (selectedAccount.stripeAccountId || 'Not connected')
+    : (import.meta.env.VITE_STRIPE_PLATFORM_ACCOUNT_ID || 'Not configured');
+    
+  const stripeAccountName = isOrgSelected
+    ? (selectedAccount.stripeAccountId ? selectedAccount.name : 'No account linked')
+    : (import.meta.env.VITE_STRIPE_PLATFORM_ACCOUNT_NAME || 'Platform account not configured');
 
   const connectFeatures = ['Payments', 'Refund management', 'Dispute workflows', 'Capture controls'];
 
@@ -196,8 +204,17 @@ export const PaymentsSubscriptionsSection = ({
                 {paymentData.activeSubscriptions}
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <CheckCircle className="w-3 h-3 text-green-500" />
-                <span className="text-xs text-green-500">All payments up to date</span>
+                {hasConnectedAccount ? (
+                  <>
+                    <CheckCircle className="w-3 h-3 text-green-500" />
+                    <span className="text-xs text-green-500">All payments up to date</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="w-3 h-3 text-orange-500" />
+                    <span className="text-xs text-orange-500">No Stripe account connected</span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -249,17 +266,28 @@ export const PaymentsSubscriptionsSection = ({
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    {hasConnectedAccount ? (
+                      <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-orange-500" />
+                    )}
                     <span className={`text-sm font-medium ${textClass}`}>
                       {selectedAccount ? 'Connected account status' : 'Platform connection status'}
                     </span>
                   </div>
                   <p className={`text-xs mt-1 ${mutedTextClass}`}>
-                    {selectedAccount ? 'Syncing payouts, refunds, and disputes for this account.' : 'Controls defaults for every connected organization.'}
+                    {hasConnectedAccount
+                      ? (selectedAccount ? 'Syncing payouts, refunds, and disputes for this account.' : 'Controls defaults for every connected organization.')
+                      : 'No Stripe account connected. Connect an account to enable payments.'}
                   </p>
                 </div>
-                <Badge variant="outline" className="px-3 py-1 border-emerald-500 text-emerald-500">
-                  {selectedAccount ? 'Connected' : 'Live' }
+                <Badge 
+                  variant="outline" 
+                  className={hasConnectedAccount 
+                    ? "px-3 py-1 border-emerald-500 text-emerald-500 bg-emerald-50 dark:bg-emerald-950" 
+                    : "px-3 py-1 border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-950"}
+                >
+                  {hasConnectedAccount ? (selectedAccount ? 'Connected' : 'Live') : 'Not Connected'}
                 </Badge>
               </div>
               <dl className={`mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm ${textClass}`}>

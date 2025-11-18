@@ -36,6 +36,7 @@ import SystemAdminDashboard from './pages/SystemAdminDashboard';
 import { ViewAllOrganizations } from './pages/ViewAllOrganizations';
 import UserStripeAccounts from './pages/UserStripeAccounts';
 import StripeOAuthCallback from './pages/StripeOAuthCallback';
+import BookingWidgetPreview from './pages/BookingWidgetPreview';
 import { Toaster } from './components/ui/sonner';
 import { FeatureFlagProvider } from './lib/featureflags/FeatureFlagContext';
 
@@ -128,6 +129,8 @@ function AppContent() {
         return <StripeOAuthCallback />;
       case 'gift-vouchers':
         return <GiftVouchers />;
+      case 'booking-widget-preview':
+        return <BookingWidgetPreview />;
       default:
         return <Dashboard onNavigate={setCurrentPage} />;
     }

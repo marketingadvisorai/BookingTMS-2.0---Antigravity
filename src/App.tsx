@@ -45,11 +45,12 @@ import { FeatureFlagProvider } from './lib/featureflags/FeatureFlagContext';
 // ============================================================================
 // Set DEV_MODE to true to bypass login (auto-login as Super Admin)
 // Set DEV_MODE to false to require authentication (production-like behavior)
-const DEV_MODE = false; // Changed to false to test beta login
+const DEV_MODE = true; // TEMPORARY: Enabled for booking widget preview
 
 // Protected App Content Component
 function AppContent() {
-  const [currentPage, setCurrentPage] = useState<string | null>(null);
+  // TEMPORARY: Default to booking widget preview for testing
+  const [currentPage, setCurrentPage] = useState<string | null>('booking-widget-preview');
   const { currentUser, isLoading, login } = useAuth();
 
   // Auto-login in DEV_MODE

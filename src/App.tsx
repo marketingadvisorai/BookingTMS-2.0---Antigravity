@@ -36,6 +36,7 @@ import SystemAdminDashboard from './pages/SystemAdminDashboard';
 import { ViewAllOrganizations } from './pages/ViewAllOrganizations';
 import UserStripeAccounts from './pages/UserStripeAccounts';
 import StripeOAuthCallback from './pages/StripeOAuthCallback';
+import BookingWidgetPreview from './pages/BookingWidgetPreview';
 import { Toaster } from './components/ui/sonner';
 import { FeatureFlagProvider } from './lib/featureflags/FeatureFlagContext';
 
@@ -44,11 +45,12 @@ import { FeatureFlagProvider } from './lib/featureflags/FeatureFlagContext';
 // ============================================================================
 // Set DEV_MODE to true to bypass login (auto-login as Super Admin)
 // Set DEV_MODE to false to require authentication (production-like behavior)
-const DEV_MODE = false; // Changed to false to test beta login
+const DEV_MODE = true; // TEMPORARY: Enabled for booking widget preview
 
 // Protected App Content Component
 function AppContent() {
-  const [currentPage, setCurrentPage] = useState<string | null>(null);
+  // TEMPORARY: Default to booking widget preview for testing
+  const [currentPage, setCurrentPage] = useState<string | null>('booking-widget-preview');
   const { currentUser, isLoading, login } = useAuth();
 
   // Auto-login in DEV_MODE
@@ -128,6 +130,8 @@ function AppContent() {
         return <StripeOAuthCallback />;
       case 'gift-vouchers':
         return <GiftVouchers />;
+      case 'booking-widget-preview':
+        return <BookingWidgetPreview />;
       default:
         return <Dashboard onNavigate={setCurrentPage} />;
     }

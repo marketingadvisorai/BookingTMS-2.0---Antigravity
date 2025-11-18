@@ -19,6 +19,8 @@ import { BookingProgressBar } from './shared/BookingProgressBar';
 import { BookingSummaryCard } from './shared/BookingSummaryCard';
 import { Step1_GameSelection } from './steps/Step1_GameSelection';
 import { Step2_DateTimeSelection } from './steps/Step2_DateTimeSelection';
+import { Step3_PartyDetails } from './steps/Step3_PartyDetails';
+import { Step4_PaymentCheckout } from './steps/Step4_PaymentCheckout';
 import { useBookingFlow } from './hooks/useBookingFlow';
 import type { EscapeRoomBookingWidgetProps } from './types';
 
@@ -96,32 +98,40 @@ function EscapeRoomBookingWidgetInner({
               />
             )}
             
-            {/* Step 3: Party Details (Placeholder) */}
-            {booking.state.currentStep === 'party-details' && (
-              <div className="text-center py-12">
-                <h2 className="text-2xl font-bold mb-4">Step 3: Party Details</h2>
-                <p className="text-gray-600 mb-4">Coming soon...</p>
-                <button
-                  onClick={booking.backStep}
-                  className="px-4 py-2 bg-gray-200 rounded"
-                >
-                  Back
-                </button>
-              </div>
+            {/* Step 3: Party Details */}
+            {booking.state.currentStep === 'party-details' && booking.state.selectedGame && (
+              <Step3_PartyDetails
+                bookingState={booking.state}
+                onNext={booking.nextStep}
+                onBack={booking.backStep}
+                onUpdate={(action) => {
+                  if (action.type === 'SET_PARTY_SIZE') {
+                    booking.setPartySize(action.payload);
+                  } else if (action.type === 'UPDATE_CUSTOMER_INFO') {
+                    booking.updateCustomerInfo(action.payload);
+                  }
+                }}
+                minPlayers={booking.state.selectedGame.min_players}
+                maxPlayers={booking.state.selectedGame.max_players}
+                basePrice={booking.state.selectedGame.price}
+              />
             )}
             
-            {/* Step 4: Payment (Placeholder) */}
+            {/* Step 4: Payment */}
             {booking.state.currentStep === 'payment' && (
-              <div className="text-center py-12">
-                <h2 className="text-2xl font-bold mb-4">Step 4: Payment</h2>
-                <p className="text-gray-600 mb-4">Coming soon...</p>
-                <button
-                  onClick={booking.backStep}
-                  className="px-4 py-2 bg-gray-200 rounded"
-                >
-                  Back
-                </button>
-              </div>
+              <Step4_PaymentCheckout
+                bookingState={booking.state}
+                onNext={booking.nextStep}
+                onBack={booking.backStep}
+                onUpdate={(action) => {
+                  // Handle any payment-related actions
+                }}
+                onPaymentSuccess={(bookingId) => {
+                  console.log('Payment successful:', bookingId);
+                  onBookingComplete?.(bookingId);
+                  booking.goToStep('confirmation');
+                }}
+              />
             )}
             
             {/* Error Display */}

@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
+import { useBookingSubmit } from '../hooks/useBookingSubmit';
 import type { PaymentStepProps } from '../types';
 
 // =============================================================================
@@ -34,8 +35,7 @@ export function Step4_PaymentCheckout({
   onPaymentSuccess,
 }: PaymentStepProps) {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const bookingSubmit = useBookingSubmit();
   
   const {
     selectedGame,
@@ -49,24 +49,18 @@ export function Step4_PaymentCheckout({
   // Handle payment submission
   const handleSubmitPayment = async () => {
     if (!agreedToTerms) {
-      setError('Please accept the terms and conditions');
       return;
     }
     
-    setIsProcessing(true);
-    setError(null);
-    
     try {
-      // TODO: Implement actual Stripe payment
-      // For now, simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const result = await bookingSubmit.submitBookingAsync({ bookingState });
       
-      // Mock success
-      const mockBookingId = `booking_${Date.now()}`;
-      onPaymentSuccess(mockBookingId);
+      if (result.status === 'success') {
+        onPaymentSuccess(result.bookingId);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Payment failed');
-      setIsProcessing(false);
+      // Error handled by hook
+      console.error('Payment failed:', err);
     }
   };
   
@@ -211,7 +205,7 @@ export function Step4_PaymentCheckout({
           </Card>
           
           {/* Error Message */}
-          {error && (
+          {bookingSubmit.error && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -221,7 +215,9 @@ export function Step4_PaymentCheckout({
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                 <div>
                   <div className="font-medium text-red-900 mb-1">Payment Error</div>
-                  <div className="text-sm text-red-700">{error}</div>
+                  <div className="text-sm text-red-700">
+                    {bookingSubmit.error instanceof Error ? bookingSubmit.error.message : 'Payment failed'}
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -232,9 +228,9 @@ export function Step4_PaymentCheckout({
             size="lg"
             className="w-full"
             onClick={handleSubmitPayment}
-            disabled={isProcessing || !agreedToTerms}
+            disabled={bookingSubmit.isSubmitting || !agreedToTerms}
           >
-            {isProcessing ? (
+            {bookingSubmit.isSubmitting ? (
               <>
                 <motion.div
                   animate={{ rotate: 360 }}
@@ -267,7 +263,7 @@ export function Step4_PaymentCheckout({
           variant="outline"
           size="lg"
           onClick={onBack}
-          disabled={isProcessing}
+          disabled={bookingSubmit.isSubmitting}
         >
           Back
         </Button>

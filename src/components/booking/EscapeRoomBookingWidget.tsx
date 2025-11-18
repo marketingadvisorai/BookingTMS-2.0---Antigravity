@@ -14,6 +14,7 @@
  * @module components/booking
  */
 
+import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BookingProgressBar } from './shared/BookingProgressBar';
 import { BookingSummaryCard } from './shared/BookingSummaryCard';
@@ -21,6 +22,7 @@ import { Step1_GameSelection } from './steps/Step1_GameSelection';
 import { Step2_DateTimeSelection } from './steps/Step2_DateTimeSelection';
 import { Step3_PartyDetails } from './steps/Step3_PartyDetails';
 import { Step4_PaymentCheckout } from './steps/Step4_PaymentCheckout';
+import { BookingConfirmation } from './steps/BookingConfirmation';
 import { useBookingFlow } from './hooks/useBookingFlow';
 import type { EscapeRoomBookingWidgetProps } from './types';
 
@@ -35,6 +37,22 @@ const queryClient = new QueryClient({
 });
 
 // =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Generate a random confirmation code
+ */
+function generateConfirmationCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+// =============================================================================
 // MAIN WIDGET COMPONENT (with QueryClient)
 // =============================================================================
 
@@ -47,6 +65,8 @@ function EscapeRoomBookingWidgetInner({
   className = '',
 }: EscapeRoomBookingWidgetProps) {
   const booking = useBookingFlow();
+  const [confirmationCode, setConfirmationCode] = useState<string>('');
+  const [bookingId, setBookingId] = useState<string>('');
   
   return (
     <div className={`booking-widget ${className}`} style={{ '--primary': primaryColor } as any}>
@@ -126,11 +146,24 @@ function EscapeRoomBookingWidgetInner({
                 onUpdate={(action) => {
                   // Handle any payment-related actions
                 }}
-                onPaymentSuccess={(bookingId) => {
-                  console.log('Payment successful:', bookingId);
-                  onBookingComplete?.(bookingId);
+                onPaymentSuccess={(completedBookingId) => {
+                  console.log('Payment successful:', completedBookingId);
+                  // Generate a confirmation code (would come from backend)
+                  const code = generateConfirmationCode();
+                  setConfirmationCode(code);
+                  setBookingId(completedBookingId);
+                  onBookingComplete?.(completedBookingId);
                   booking.goToStep('confirmation');
                 }}
+              />
+            )}
+            
+            {/* Step 5: Confirmation */}
+            {booking.state.currentStep === 'confirmation' && (
+              <BookingConfirmation
+                bookingState={booking.state}
+                confirmationCode={confirmationCode}
+                bookingId={bookingId}
               />
             )}
             

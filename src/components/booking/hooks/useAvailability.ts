@@ -24,7 +24,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { supabase } from '@/lib/supabase/client';
+import { generateMockTimeSlots } from '@/lib/mock/mockDataService';
 import type { TimeSlot, AvailableSlotResponse } from '../types';
 
 // =============================================================================
@@ -67,35 +67,29 @@ function transformSlotResponse(response: AvailableSlotResponse): TimeSlot {
 }
 
 /**
- * Fetch available slots from Supabase RPC function
+ * Fetch available slots
+ * Currently using mock data - replace with Supabase RPC when ready
  */
 async function fetchAvailableSlots(
   gameId: string,
   date: Date,
   organizationId: string
 ): Promise<TimeSlot[]> {
-  const formattedDate = format(date, 'yyyy-MM-dd');
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 800));
   
-  // Call Supabase RPC function
-  // Note: Type casting needed until Supabase types are generated
-  const { data, error } = await supabase
-    .rpc('get_available_slots', {
-      p_game_id: gameId,
-      p_date: formattedDate,
-      p_organization_id: organizationId,
-    } as any);
+  // Generate mock time slots
+  const mockSlots = generateMockTimeSlots(date);
   
-  if (error) {
-    console.error('Failed to fetch available slots:', error);
-    throw new Error(`Unable to load available times: ${error.message}`);
-  }
-  
-  if (!data) {
-    return [];
-  }
-  
-  // Transform response to match our TypeScript types
-  const slots: TimeSlot[] = (data as AvailableSlotResponse[]).map(transformSlotResponse);
+  // Transform to TimeSlot format
+  const slots: TimeSlot[] = mockSlots.map(slot => ({
+    time: slot.time,
+    endTime: slot.endTime,
+    availableSpots: slot.availableSpots,
+    totalCapacity: slot.totalCapacity,
+    isAvailable: slot.isAvailable,
+    price: slot.price,
+  }));
   
   // Filter out past time slots if date is today
   const now = new Date();

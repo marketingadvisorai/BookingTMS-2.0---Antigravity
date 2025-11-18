@@ -31,11 +31,11 @@ import {
   TrendingUp,
   Sparkles,
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
+import { MOCK_GAMES } from '@/lib/mock/mockDataService';
 import type { Game, GameSelectionStepProps } from '../types';
 
 // =============================================================================
@@ -44,21 +44,14 @@ import type { Game, GameSelectionStepProps } from '../types';
 
 /**
  * Fetch active games for organization
+ * Currently using mock data - replace with Supabase when ready
  */
 async function fetchGames(organizationId: string): Promise<Game[]> {
-  const { data, error } = await supabase
-    .from('games')
-    .select('*')
-    .eq('organization_id', organizationId)
-    .eq('is_active', true)
-    .order('name', { ascending: true });
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
   
-  if (error) {
-    console.error('Failed to fetch games:', error);
-    throw new Error('Unable to load games. Please try again.');
-  }
-  
-  return data || [];
+  // Return mock games
+  return MOCK_GAMES.filter(game => game.is_active);
 }
 
 /**

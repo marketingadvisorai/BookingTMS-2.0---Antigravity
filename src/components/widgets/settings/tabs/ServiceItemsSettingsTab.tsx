@@ -39,6 +39,7 @@ const generateSlug = (value: string | undefined) => {
 };
 
 export const ServiceItemsSettingsTab: React.FC<ServiceItemsSettingsTabProps> = ({ config, onConfigChange, embedContext }) => {
+    console.log('ServiceItemsSettingsTab: rendering', { config, embedContext });
     const [showWizard, setShowWizard] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [duplicatingItemId, setDuplicatingItemId] = useState<string | null>(null);

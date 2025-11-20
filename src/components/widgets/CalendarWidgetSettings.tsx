@@ -18,20 +18,14 @@ import { SEOSettingsTab } from './settings/tabs/SEOSettingsTab';
 import { AdvancedSettingsTab } from './settings/tabs/AdvancedSettingsTab';
 import { useTerminology } from '../../hooks/useTerminology';
 
-interface EmbedContext {
-  embedKey?: string;
-  primaryColor?: string;
-  venueName?: string;
-  baseUrl?: string;
-  venueId?: string;
-  venueType?: string;
-}
-
 interface CalendarWidgetSettingsProps {
   config: any;
-  onConfigChange: (config: any) => void;
+  onConfigChange: (newConfig: any) => void;
   onPreview: () => void;
-  embedContext?: EmbedContext;
+  embedContext?: {
+    venueType?: string;
+    venueId?: string;
+  };
   saveStatus?: 'idle' | 'saving' | 'saved' | 'error';
 }
 
@@ -42,7 +36,6 @@ export default function CalendarWidgetSettings({
   embedContext,
   saveStatus = 'idle'
 }: CalendarWidgetSettingsProps) {
-  const [activeTab, setActiveTab] = useState('general');
   const t = useTerminology(embedContext?.venueType || 'escape_room');
 
   return (
@@ -80,8 +73,8 @@ export default function CalendarWidgetSettings({
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 gap-1">
+      <Tabs defaultValue="general">
+        <TabsList className="flex w-full gap-1 overflow-x-auto">
           <TabsTrigger value="general" className="text-xs sm:text-sm">General</TabsTrigger>
           <TabsTrigger value="games" className="text-xs sm:text-sm">{t.plural}</TabsTrigger>
           <TabsTrigger value="availability" className="text-xs sm:text-sm">Availability</TabsTrigger>

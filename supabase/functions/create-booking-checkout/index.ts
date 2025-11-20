@@ -44,7 +44,7 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+
     if (authError || !user) throw new Error("Unauthorized");
 
     const {
@@ -122,7 +122,7 @@ serve(async (req) => {
 
     // Get or create Stripe customer
     let stripe_customer_id: string;
-    
+
     const { data: existingCustomer } = await supabase
       .from("customers")
       .select("stripe_customer_id")
@@ -146,7 +146,7 @@ serve(async (req) => {
       }, {
         stripeAccount: org.stripe_account_id,
       });
-      
+
       stripe_customer_id = customer.id;
 
       // Save customer to database
@@ -162,12 +162,30 @@ serve(async (req) => {
       });
     }
 
+    // Get Time Slot ID
+    const { data: timeSlot, error: slotError } = await supabase
+      .from("time_slots")
+      .select("id, is_available, current_bookings, max_bookings")
+      .eq("game_id", game_id)
+      .eq("slot_date", booking_date)
+      .eq("start_time", booking_time)
+      .single();
+
+    if (slotError || !timeSlot) {
+      throw new Error("Time slot not found or invalid");
+    }
+
+    if (!timeSlot.is_available) {
+      throw new Error("Time slot is no longer available");
+    }
+
     // Create pending booking in database
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
       .insert({
         venue_id,
         game_id,
+        time_slot_id: timeSlot.id, // Link to time slot
         organization_id,
         booking_date,
         booking_time,
@@ -278,7 +296,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Checkout creation error:", error);
-    
+
     return new Response(
       JSON.stringify({
         error: (error as Error).message || "Failed to create checkout session",

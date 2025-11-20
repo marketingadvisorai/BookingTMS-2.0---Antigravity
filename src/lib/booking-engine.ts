@@ -71,17 +71,13 @@ export type CreateBookingInput = z.infer<typeof BookingSchema>;
 export class BookingEngine {
 
     /**
-     * Calculate available time slots for a specific service item on a given date.
-     * Takes into account:
-     * - Operating hours (standard & custom)
-     * - Blocked dates
-     * - Existing bookings
-     * - Slot interval & duration
+     * @deprecated Use BookingService.getAvailability instead. This method calculates availability on the fly and ignores database-managed time slots.
      */
     static async getAvailability(
         serviceItemId: string,
         date: string
     ): Promise<TimeSlot[]> {
+        console.warn('BookingEngine.getAvailability is deprecated. Use BookingService.getAvailability instead.');
         console.log(`[BookingEngine] Checking availability for ${serviceItemId} on ${date}`);
 
         // 1. Fetch Service Item Details & Settings
@@ -183,10 +179,10 @@ export class BookingEngine {
     }
 
     /**
-     * Create a new booking.
-     * Performs a final availability check before insertion to prevent race conditions.
+     * @deprecated Use BookingService.createBooking instead. This method does not handle Stripe payments or time slot reservations correctly.
      */
     static async createBooking(input: CreateBookingInput) {
+        console.warn('BookingEngine.createBooking is deprecated. Use BookingService.createBooking instead.');
         // Validate input
         const validated = BookingSchema.parse(input);
 
@@ -209,13 +205,15 @@ export class BookingEngine {
 
         // 2. Create Customer (if needed) - simplified for now
         // In a real app, we'd lookup by email or auth ID
+        const normalizedEmail = validated.customer.email.toLowerCase().trim();
+
         const { data: rawCustomer, error: customerError } = await supabase
             .from('customers')
             .select('id')
-            .eq('email', validated.customer.email)
+            .eq('email', normalizedEmail)
             .single();
 
-        let customerId = rawCustomer?.id;
+        let customerId = (rawCustomer as any)?.id;
 
         // Fetch organization_id from service item
         const { data: rawServiceItem } = await supabase
@@ -234,7 +232,7 @@ export class BookingEngine {
                 .insert({
                     organization_id: organizationId,
                     full_name: `${validated.customer.firstName} ${validated.customer.lastName}`,
-                    email: validated.customer.email,
+                    email: normalizedEmail,
                     phone: validated.customer.phone,
                     total_bookings: 0,
                     total_spent: 0,
@@ -313,7 +311,23 @@ export class BookingEngine {
         }
 
         // 2. Check Past Time
-        // TODO: Implement past time check
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+
+        if (date < todayStr) {
+            return { available: false, reason: 'past', remainingCapacity: 0 };
+        }
+
+        if (date === todayStr) {
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            const slotStartMinutes = this.timeToMinutes(startTime);
+
+            // Add a small buffer (e.g., 15 mins) to prevent booking immediately starting slots if desired
+            // For now, strict check: if slot start time is less than current time, it's past.
+            if (slotStartMinutes < currentMinutes) {
+                return { available: false, reason: 'past', remainingCapacity: 0 };
+            }
+        }
 
         // 3. Check Capacity against Bookings
         // Find overlapping bookings

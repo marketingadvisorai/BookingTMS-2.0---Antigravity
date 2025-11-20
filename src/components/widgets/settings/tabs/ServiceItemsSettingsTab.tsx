@@ -9,7 +9,7 @@ import {
 } from '../../../ui/dropdown-menu';
 import { Plus, Trash2, MoreVertical, Edit, Copy, Settings } from 'lucide-react';
 import { toast } from 'sonner';
-import AddServiceItemWizard from '../../../games/AddServiceItemWizard';
+import AddServiceItemWizard from '../../../events/AddServiceItemWizard';
 import { useServiceItems } from '../../../../hooks/useServiceItems';
 import { useTerminology } from '../../../../hooks/useTerminology';
 

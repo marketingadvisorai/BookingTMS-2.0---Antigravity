@@ -1,16 +1,20 @@
 /**
  * Games Hook
- * Manages game data using TanStack Query and GameService
+ * Manages game data using TanStack Query and inventoryService
  * Provides optimistic updates and caching
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { GameService, Game } from '../services/GameService';
+import { inventoryService } from '../modules/inventory/services/inventoryService';
+import { Game, CreateGameDTO, UpdateGameDTO } from '../modules/inventory/types';
 import { toast } from 'sonner';
+import { useAuth } from '../lib/auth/AuthContext';
 
 export function useGames(venueId?: string) {
   const queryClient = useQueryClient();
-  const queryKey = ['games', venueId];
+  const { currentUser } = useAuth();
+  const organizationId = currentUser?.organizationId || '';
+  const queryKey = ['games', venueId, organizationId];
 
   // Query: Fetch Games
   const {
@@ -19,14 +23,25 @@ export function useGames(venueId?: string) {
     error
   } = useQuery({
     queryKey,
-    queryFn: () => GameService.getGames(venueId),
+    queryFn: () => inventoryService.getGames(organizationId, venueId),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   // Mutation: Create Game
   const createMutation = useMutation({
-    mutationFn: (gameData: Omit<Game, 'id' | 'created_at' | 'updated_at' | 'created_by'>) =>
-      GameService.createGame(gameData),
+    mutationFn: (gameData: Omit<Game, 'id' | 'created_at' | 'updated_at'>) => {
+      // Ensure required fields are present. 
+      // Note: The caller should ideally provide a complete CreateGameDTO.
+      // We cast here assuming the input matches what's needed or we might need to map it.
+      // For now, we pass it through, but we might need to inject organization_id if missing.
+      const payload = {
+        ...gameData,
+        organization_id: gameData.organization_id || organizationId,
+        venue_id: gameData.venue_id || venueId || '',
+      } as CreateGameDTO;
+
+      return inventoryService.createGame(payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast.success('Game created successfully!');
@@ -39,7 +54,7 @@ export function useGames(venueId?: string) {
   // Mutation: Update Game (Optimistic)
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Game> }) =>
-      GameService.updateGame(id, updates),
+      inventoryService.updateGame(id, updates as UpdateGameDTO),
     onMutate: async ({ id, updates }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey });
@@ -73,7 +88,7 @@ export function useGames(venueId?: string) {
 
   // Mutation: Delete Game
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => GameService.deleteGame(id),
+    mutationFn: (id: string) => inventoryService.deleteGame(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast.success('Game deleted successfully!');

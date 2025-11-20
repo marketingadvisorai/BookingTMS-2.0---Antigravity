@@ -25,7 +25,117 @@ export const router = createBrowserRouter([
       </ThemeProvider>
     ),
   },
-  
+
+  // Explicit Admin Routes (to avoid being caught by /:slug)
+  {
+    path: '/dashboard',
+    element: <App />,
+  },
+  {
+    path: '/bookings',
+    element: <App />,
+  },
+  {
+    path: '/events',
+    element: <App />,
+  },
+  {
+    path: '/customers',
+    element: <App />,
+  },
+  {
+    path: '/staff',
+    element: <App />,
+  },
+  {
+    path: '/reports',
+    element: <App />,
+  },
+  {
+    path: '/settings',
+    element: <App />,
+  },
+  {
+    path: '/venues',
+    element: <App />,
+  },
+  {
+    path: '/inbox',
+    element: <App />,
+  },
+  {
+    path: '/campaigns',
+    element: <App />,
+  },
+  {
+    path: '/marketing',
+    element: <App />,
+  },
+  {
+    path: '/aiagents',
+    element: <App />,
+  },
+  {
+    path: '/media',
+    element: <App />,
+  },
+  {
+    path: '/waivers',
+    element: <App />,
+  },
+  {
+    path: '/widgets',
+    element: <App />,
+  },
+  {
+    path: '/notifications',
+    element: <App />,
+  },
+  {
+    path: '/myaccount',
+    element: <App />,
+  },
+  {
+    path: '/account',
+    element: <App />,
+  },
+  {
+    path: '/profile',
+    element: <App />,
+  },
+  {
+    path: '/billing',
+    element: <App />,
+  },
+  {
+    path: '/team',
+    element: <App />,
+  },
+  {
+    path: '/account-settings',
+    element: <App />,
+  },
+  {
+    path: '/backend-dashboard',
+    element: <App />,
+  },
+  {
+    path: '/view-all-organizations',
+    element: <App />,
+  },
+  {
+    path: '/user-stripe-accounts',
+    element: <App />,
+  },
+  {
+    path: '/gift-vouchers',
+    element: <App />,
+  },
+  {
+    path: '/booking-test',
+    element: <App />,
+  },
+
   // Slug-based Public Venue Profile Routes
   {
     path: '/:slug',
@@ -37,7 +147,7 @@ export const router = createBrowserRouter([
       </HelmetProvider>
     ),
   },
-  
+
   // Slug-based Owner Admin Login
   {
     path: '/:slug/admin',
@@ -49,19 +159,19 @@ export const router = createBrowserRouter([
       </HelmetProvider>
     ),
   },
-  
+
   // Slug-based Owner Admin Dashboard (after login)
   {
     path: '/:slug/admin/dashboard',
     element: <App />, // Reuse existing app with owner context
   },
-  
+
   // Fallback to main app
   {
     path: '/',
     element: <App />,
   },
-  
+
   // 404 catch-all
   {
     path: '*',

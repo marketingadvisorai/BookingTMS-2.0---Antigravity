@@ -1,13 +1,13 @@
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  Gamepad2, 
-  Users, 
-  BarChart3, 
-  Image, 
-  FileText, 
+import {
+  LayoutDashboard,
+  Calendar,
+  Gamepad2,
+  Users,
+  BarChart3,
+  Image,
+  FileText,
   Code,
-  Settings, 
+  Settings,
   LogOut,
   Megaphone,
   Bot,
@@ -33,14 +33,14 @@ interface SidebarProps {
   onMobileClose?: () => void;
 }
 
-export function Sidebar({ currentPage, onNavigate = () => {}, isMobileOpen = false, onMobileClose }: SidebarProps) {
+export function Sidebar({ currentPage, onNavigate = () => { }, isMobileOpen = false, onMobileClose }: SidebarProps) {
   const { hasPermission, isRole, logout } = useAuth();
 
   // Navigation items with permission requirements
   let navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard.view' as Permission },
     { id: 'bookings', label: 'Bookings', icon: Calendar, permission: 'bookings.view' as Permission },
-    { id: 'games', label: 'Events / Rooms', icon: Gamepad2, permission: 'games.view' as Permission },
+    { id: 'events', label: 'Events / Rooms', icon: Gamepad2, permission: 'games.view' as Permission },
     { id: 'venues', label: 'Venues', icon: Building2, permission: 'venues.view' as Permission },
     { id: 'widgets', label: 'Booking Widgets', icon: Code, permission: 'widgets.view' as Permission },
     { id: 'customers', label: 'Customers / Guests', icon: UserCircle, permission: 'customers.view' as Permission },
@@ -100,7 +100,7 @@ export function Sidebar({ currentPage, onNavigate = () => {}, isMobileOpen = fal
     <>
       {/* Mobile Overlay */}
       {isMobileOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={onMobileClose}
         />
@@ -137,15 +137,15 @@ export function Sidebar({ currentPage, onNavigate = () => {}, isMobileOpen = fal
           {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id;
-            
+
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavigation(item.id)}
                 className={`
                   w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all
-                  ${isActive 
-                    ? 'bg-blue-600 dark:bg-[#4f46e5] text-white shadow-lg shadow-blue-500/20 dark:shadow-[#4f46e5]/20' 
+                  ${isActive
+                    ? 'bg-blue-600 dark:bg-[#4f46e5] text-white shadow-lg shadow-blue-500/20 dark:shadow-[#4f46e5]/20'
                     : 'text-gray-600 dark:text-[#737373] hover:bg-gray-100 dark:hover:bg-[#161616] hover:text-gray-900 dark:hover:text-white'
                   }
                 `}
@@ -159,8 +159,8 @@ export function Sidebar({ currentPage, onNavigate = () => {}, isMobileOpen = fal
 
         {/* Logout */}
         <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-[#1e1e1e]">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="w-full justify-start text-gray-600 dark:text-[#737373] hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#161616] h-11"
             onClick={async () => {
               try {

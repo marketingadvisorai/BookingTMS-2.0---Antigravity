@@ -7,7 +7,7 @@ import { NotificationProvider } from './lib/notifications/NotificationContext';
 import { Dashboard } from './pages/Dashboard';
 import Inbox from './pages/Inbox';
 import { Bookings } from './pages/Bookings';
-import { Games } from './pages/Games';
+import { Events } from './pages/Events';
 import Customers from './pages/Customers';
 import { Campaigns } from './pages/Campaigns';
 import { Marketing } from './pages/Marketing';
@@ -80,8 +80,8 @@ function AppContent() {
         return <Inbox />;
       case 'bookings':
         return <Bookings />;
-      case 'games':
-        return <Games onNavigate={setCurrentPage} />;
+      case 'events':
+        return <Events />;
       case 'customers':
         return <Customers />;
       case 'payment-history':

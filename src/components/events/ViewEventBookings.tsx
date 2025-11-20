@@ -3,11 +3,11 @@ import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { 
-  Calendar, 
-  Clock, 
-  Users, 
-  DollarSign, 
+import {
+  Calendar,
+  Clock,
+  Users,
+  DollarSign,
   Search,
   Filter,
   Download,
@@ -20,15 +20,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 interface ViewGameBookingsProps {
   game: {
-    id: number;
+    id: string;
     name: string;
-    description: string;
+    description?: string;
   };
   onClose: () => void;
 }
 
 // Mock bookings data
-const generateMockBookings = (gameId: number, gameName: string) => [
+const generateMockBookings = (gameId: string, gameName: string) => [
   {
     id: 1,
     bookingRef: 'BK-001234',
@@ -111,7 +111,7 @@ const generateMockBookings = (gameId: number, gameName: string) => [
   },
 ];
 
-export function ViewGameBookings({ game, onClose }: ViewGameBookingsProps) {
+export function ViewEventBookings({ game, onClose }: ViewGameBookingsProps) {
   const [bookings] = useState(generateMockBookings(game.id, game.name));
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -119,19 +119,19 @@ export function ViewGameBookings({ game, onClose }: ViewGameBookingsProps) {
 
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = booking.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         booking.bookingRef.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         booking.email.toLowerCase().includes(searchTerm.toLowerCase());
+      booking.bookingRef.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
     });
   };
 
@@ -245,8 +245,8 @@ export function ViewGameBookings({ game, onClose }: ViewGameBookingsProps) {
       <div className="flex-1 overflow-auto p-6">
         <div className="space-y-3">
           {filteredBookings.map((booking) => (
-            <Card 
-              key={booking.id} 
+            <Card
+              key={booking.id}
               className="border-gray-200 dark:border-[#2a2a2a] hover:shadow-md dark:hover:shadow-[0_0_15px_rgba(79,70,229,0.1)] transition-all cursor-pointer"
               onClick={() => setSelectedBooking(selectedBooking?.id === booking.id ? null : booking)}
             >
@@ -262,7 +262,7 @@ export function ViewGameBookings({ game, onClose }: ViewGameBookingsProps) {
                         {booking.paymentStatus}
                       </Badge>
                     </div>
-                    
+
                     <div className="grid grid-cols-4 gap-4 text-sm text-gray-600 dark:text-[#a3a3a3] mb-3">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
@@ -331,8 +331,8 @@ export function ViewGameBookings({ game, onClose }: ViewGameBookingsProps) {
               <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-600">No bookings found</p>
               <p className="text-sm text-gray-500 mt-1">
-                {searchTerm || statusFilter !== 'all' 
-                  ? 'Try adjusting your filters' 
+                {searchTerm || statusFilter !== 'all'
+                  ? 'Try adjusting your filters'
                   : 'No bookings have been made for this game yet'}
               </p>
             </div>

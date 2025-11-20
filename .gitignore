@@ -1,0 +1,24 @@
+# Node/Vite build output
+dist/
+
+# Dependencies
+node_modules/
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Env files
+.env
+.env.*
+
+# Logs and reports
+*.log
+coverage/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Local Netlify folder
+.netlify

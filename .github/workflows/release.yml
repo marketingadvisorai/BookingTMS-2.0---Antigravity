@@ -1,0 +1,32 @@
+name: Create GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'managers-media-*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve release notes path (prefer dedicated waiver notes)
+        id: notes
+        run: |
+          if [ -f WAIVER_0_1_RELEASE_NOTES.md ]; then
+            echo "body_path=WAIVER_0_1_RELEASE_NOTES.md" >> $GITHUB_OUTPUT
+          else
+            echo "body_path=CHANGELOG.md" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create release with notes
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: ${{ steps.notes.outputs.body_path }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

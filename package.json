@@ -74,7 +74,7 @@
     "@types/node": "^20.10.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
-    "@vitejs/plugin-react-swc": "^3.10.2",
+    "@vitejs/plugin-react-swc": "^4.2.2",
     "husky": "^9.1.7",
     "patch-package": "^8.0.0",
     "typescript": "^5.9.3",

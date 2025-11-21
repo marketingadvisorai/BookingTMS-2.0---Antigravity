@@ -54,7 +54,7 @@ interface EmbedContext {
 }
 
 interface AddServiceItemWizardProps {
-  onComplete: (gameData: any) => void;
+  onComplete: (gameData: GameData) => void;
   onCancel: () => void;
   initialData?: GameData;
   mode?: 'create' | 'edit';
@@ -63,7 +63,7 @@ interface AddServiceItemWizardProps {
   venueType?: string;
 }
 
-interface GameData {
+export interface GameData {
   // Step 1: Basic Info
   name: string;
   description: string;
@@ -151,7 +151,7 @@ interface GameData {
     startTime: string;
     endTime: string;
   }>;
-  blockedDates: string[];
+  blockedDates: Array<string | { date: string; startTime: string; endTime: string; reason?: string }>;
 
   // Step 6: Payment Settings
   stripeProductId?: string;
@@ -173,6 +173,15 @@ interface GameData {
   cancellationWindow: number;
   specialInstructions: string;
   slug?: string;
+
+  // Allow for other dynamic fields
+  [key: string]: any;
+}
+
+interface StepProps {
+  gameData: GameData;
+  updateGameData: (field: keyof GameData, value: any) => void;
+  t: any;
 }
 
 const STEPS = [
@@ -346,7 +355,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
 
   const progress = (currentStep / STEPS.length) * 100;
 
-  const updateGameData = (field: string, value: any) => {
+  const updateGameData = (field: keyof GameData, value: any) => {
     setGameData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -814,7 +823,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
 }
 
 // Step 1: Basic Information
-function Step1BasicInfo({ gameData, updateGameData, t }: any) {
+function Step1BasicInfo({ gameData, updateGameData, t }: StepProps) {
   return (
     <div className="space-y-6">
       <Card>
@@ -956,7 +965,7 @@ function Step1BasicInfo({ gameData, updateGameData, t }: any) {
 }
 
 // Step 2: Capacity & Pricing
-function Step2CapacityPricing({ gameData, updateGameData, t }: any) {
+function Step2CapacityPricing({ gameData, updateGameData, t }: StepProps) {
   const addCustomField = () => {
     const newField = {
       id: `custom-${Date.now()}`,
@@ -1245,7 +1254,7 @@ function Step2CapacityPricing({ gameData, updateGameData, t }: any) {
 }
 
 // Dynamic Pricing Section
-function DynamicPricingSection({ gameData, updateGameData }: any) {
+function DynamicPricingSection({ gameData, updateGameData }: { gameData: GameData; updateGameData: (field: keyof GameData, value: any) => void }) {
   const addGroupTier = () => {
     const newTier = {
       minSize: gameData.groupTiers.length > 0 ? gameData.groupTiers[gameData.groupTiers.length - 1].maxSize + 1 : 5,
@@ -1437,7 +1446,7 @@ function DynamicPricingSection({ gameData, updateGameData }: any) {
 }
 
 // Step 3: Game Details
-function Step3GameDetails({ gameData, updateGameData, t }: any) {
+function Step3GameDetails({ gameData, updateGameData, t }: StepProps) {
   const handleLanguageToggle = (lang: string) => {
     const languages = gameData.language.includes(lang)
       ? gameData.language.filter((l: string) => l !== lang)
@@ -2074,7 +2083,7 @@ function WaiverSection({ gameData, updateGameData }: any) {
 }
 
 // Step 4: Media Upload
-function Step4MediaUpload({ gameData, updateGameData, t }: any) {
+function Step4MediaUpload({ gameData, updateGameData, t }: StepProps) {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'cover' | 'gallery') => {
     const file = e.target.files?.[0];
     if (file) {
@@ -2228,7 +2237,7 @@ function Step4MediaUpload({ gameData, updateGameData, t }: any) {
 
 
 // Step 5: Schedule & Availability
-function Step5Schedule({ gameData, updateGameData, t }: any) {
+function Step5Schedule({ gameData, updateGameData, t }: StepProps) {
   const [customDateTime, setCustomDateTime] = useState({ startTime: '10:00', endTime: '22:00' });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [blockedDate, setBlockedDate] = useState<Date | undefined>(undefined);
@@ -2724,7 +2733,7 @@ function Step5Schedule({ gameData, updateGameData, t }: any) {
 }
 
 // Step 7: Widget & Embed
-function Step7WidgetEmbed({ gameData, updateGameData, theme, embedContext, t }: any) {
+function Step7WidgetEmbed({ gameData, updateGameData, theme, embedContext, t }: StepProps & { theme?: string; embedContext?: EmbedContext }) {
   return (
     <div className="space-y-6">
       <Card className="border-amber-200 bg-amber-50">
@@ -2746,7 +2755,7 @@ function Step7WidgetEmbed({ gameData, updateGameData, theme, embedContext, t }: 
 }
 
 // Step 8: Review & Publish
-function Step8Review({ gameData, t }: any) {
+function Step8Review({ gameData, t }: { gameData: GameData; t: any }) {
   // Validation function
   const validateGameData = () => {
     const errors: string[] = [];

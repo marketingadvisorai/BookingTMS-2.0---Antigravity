@@ -45,10 +45,11 @@ import { StripeProductService } from '../../../lib/stripe/stripeProductService';
 import { StripeDirectApi } from '../../../lib/stripe/stripeDirectApi';
 import { supabase } from '../../../lib/supabase/client';
 import { StripeConfigurationModal } from '../StripeConfigurationModal';
+import { GameData } from '../AddServiceItemWizard';
 
 interface PaymentSettingsProps {
-  gameData: any;
-  onUpdate: (data: any) => void;
+  gameData: GameData;
+  onUpdate: (data: GameData) => void;
   onNext: () => void;
   onPrevious: () => void;
   t: any;
@@ -225,13 +226,14 @@ export default function Step6PaymentSettings({
 
           // Update parent component with fresh data
           onUpdate({
-            stripeProductId: stripeProductId,
-            stripePriceId: stripePriceId,
+            ...gameData,
+            stripeProductId: stripeProductId || undefined,
+            stripePriceId: stripePriceId || undefined,
             stripePrices: (freshGame as any).stripe_prices,
-            stripeCheckoutUrl: widgetCheckoutUrl || (freshGame as any).stripe_checkout_url,
-            stripeSyncStatus: (freshGame as any).stripe_sync_status || (hasStripeProduct ? 'synced' : 'not_synced'),
+            stripeCheckoutUrl: (widgetCheckoutUrl || (freshGame as any).stripe_checkout_url) || undefined,
+            stripeSyncStatus: ((freshGame as any).stripe_sync_status || (hasStripeProduct ? 'synced' : 'not_synced')) as SyncStatus,
             stripeLastSync: new Date().toISOString(),
-            foundInWidget: foundInWidget, // Add flag for UI feedback
+            foundInWidget: foundInWidget,
           });
         }
       }
@@ -335,7 +337,7 @@ export default function Step6PaymentSettings({
         ...gameData,
         stripeProductId: result.productId,
         stripePriceId: result.priceId,
-        stripeSyncStatus: 'synced' as const,
+        stripeSyncStatus: 'synced' as SyncStatus,
         stripeLastSync: new Date().toISOString(),
       };
 
@@ -379,7 +381,7 @@ export default function Step6PaymentSettings({
       const updatedData = {
         ...gameData,
         stripeCheckoutUrl: checkoutUrl,
-        stripeSyncStatus: 'synced' as const,
+        stripeSyncStatus: 'synced' as SyncStatus,
         stripeLastSync: new Date().toISOString(),
       };
 
@@ -421,7 +423,7 @@ export default function Step6PaymentSettings({
         stripePrices: result.prices, // Store all available prices
         stripePriceId: result.priceId || result.prices[0]?.priceId, // Use specified or first price
         stripeCheckoutUrl: stripeCheckoutUrl.trim() || undefined, // Store custom checkout URL
-        stripeSyncStatus: 'synced' as const,
+        stripeSyncStatus: 'synced' as SyncStatus,
         stripeLastSync: new Date().toISOString(),
       };
 
@@ -471,7 +473,7 @@ export default function Step6PaymentSettings({
       toast.loading('Refreshing prices from Stripe...', { id: 'stripe-sync' });
 
       // Fetch all current prices for the product
-      const prices = await StripeProductService.getProductPrices(gameData.stripeProductId);
+      const prices = await StripeProductService.getProductPrices(gameData.stripeProductId || '');
 
       // Transform prices to match expected format
       const transformedPrices = prices.map(p => ({
@@ -485,7 +487,7 @@ export default function Step6PaymentSettings({
       const updatedData = {
         ...gameData,
         stripePrices: transformedPrices, // Update with latest prices
-        stripeSyncStatus: 'synced',
+        stripeSyncStatus: 'synced' as SyncStatus,
         stripeLastSync: new Date().toISOString(),
       };
 
@@ -553,7 +555,7 @@ export default function Step6PaymentSettings({
           stripePrices: result.prices,
           stripePriceId: result.priceId || result.prices[0]?.priceId,
           stripeCheckoutUrl: editCheckoutUrl.trim() || undefined,
-          stripeSyncStatus: 'synced' as const,
+          stripeSyncStatus: 'synced' as SyncStatus,
           stripeLastSync: new Date().toISOString(),
         };
 
@@ -601,7 +603,7 @@ export default function Step6PaymentSettings({
       stripePriceId: undefined,
       stripePrices: undefined,
       stripeCheckoutUrl: undefined,
-      stripeSyncStatus: 'not_synced',
+      stripeSyncStatus: 'not_synced' as SyncStatus,
       stripeLastSync: undefined,
     };
 
@@ -1115,7 +1117,7 @@ export default function Step6PaymentSettings({
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                              navigator.clipboard.writeText(gameData.stripeCheckoutUrl);
+                              navigator.clipboard.writeText(gameData.stripeCheckoutUrl || '');
                               toast.success('Checkout URL copied!');
                             }}
                           >

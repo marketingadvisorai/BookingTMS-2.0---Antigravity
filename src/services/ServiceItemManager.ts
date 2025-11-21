@@ -9,6 +9,19 @@ import { supabase } from '../lib/supabase';
 import { StripeProductService } from '../lib/stripe/stripeProductService';
 import { toast } from 'sonner';
 
+// Define the Schedule interface explicitly
+export interface ServiceItemSchedule {
+    operatingDays: string[];
+    startTime: string;
+    endTime: string;
+    slotInterval: number;
+    advanceBooking: number;
+    customHoursEnabled: boolean;
+    customHours: Record<string, { enabled: boolean; startTime: string; endTime: string }>;
+    customDates: Array<{ id: string; date: string; startTime: string; endTime: string }>;
+    blockedDates: Array<string | { date: string; startTime: string; endTime: string; reason?: string }>;
+}
+
 export interface ServiceItem {
     id: string;
     organization_id?: string;
@@ -44,17 +57,7 @@ export interface ServiceItem {
     pricing_tiers?: any[];
     child_price?: number; // Backwards compatibility
     // Schedule fields (stored in schedule JSONB column)
-    schedule?: {
-        operatingDays: string[];
-        startTime: string;
-        endTime: string;
-        slotInterval: number;
-        advanceBooking: number;
-        customHoursEnabled: boolean;
-        customHours: Record<string, { enabled: boolean; startTime: string; endTime: string }>;
-        customDates: Array<{ id: string; date: string; startTime: string; endTime: string }>;
-        blockedDates: Array<string | { date: string; startTime: string; endTime: string; reason?: string }>;
-    };
+    schedule?: ServiceItemSchedule;
     // Flattened schedule fields for easier access (UI convenience)
     operatingDays?: string[];
     startTime?: string;
@@ -66,6 +69,9 @@ export interface ServiceItem {
     customDates?: Array<{ id: string; date: string; startTime: string; endTime: string }>;
     blockedDates?: Array<string | { date: string; startTime: string; endTime: string; reason?: string }>;
 }
+
+// Input type for creation, allowing flat schedule fields
+export type CreateServiceItemInput = Omit<ServiceItem, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'schedule'> & Partial<ServiceItemSchedule>;
 
 export class ServiceItemManager {
     /**
@@ -87,18 +93,21 @@ export class ServiceItemManager {
             if (error) throw error;
 
             // Unpack schedule data from JSONB column to flat structure for UI consumption
-            return (data || []).map(item => ({
-                ...item,
-                operatingDays: item.schedule?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-                startTime: item.schedule?.startTime || '10:00',
-                endTime: item.schedule?.endTime || '22:00',
-                slotInterval: item.schedule?.slotInterval || 60,
-                advanceBooking: item.schedule?.advanceBooking || 30,
-                customHoursEnabled: item.schedule?.customHoursEnabled || false,
-                customHours: item.schedule?.customHours || {},
-                customDates: item.schedule?.customDates || [],
-                blockedDates: item.schedule?.blockedDates || []
-            }));
+            return (data || []).map(item => {
+                const schedule = item.schedule as ServiceItemSchedule | undefined;
+                return {
+                    ...item,
+                    operatingDays: schedule?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+                    startTime: schedule?.startTime || '10:00',
+                    endTime: schedule?.endTime || '22:00',
+                    slotInterval: schedule?.slotInterval || 60,
+                    advanceBooking: schedule?.advanceBooking || 30,
+                    customHoursEnabled: schedule?.customHoursEnabled || false,
+                    customHours: schedule?.customHours || {},
+                    customDates: schedule?.customDates || [],
+                    blockedDates: schedule?.blockedDates || []
+                };
+            });
         } catch (error: any) {
             console.error('Error fetching service items:', error);
             throw new Error(error.message || 'Failed to fetch service items');
@@ -120,18 +129,20 @@ export class ServiceItemManager {
 
             if (!data) return null;
 
+            const schedule = data.schedule as ServiceItemSchedule | undefined;
+
             // Unpack schedule
             return {
                 ...data,
-                operatingDays: data.schedule?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-                startTime: data.schedule?.startTime || '10:00',
-                endTime: data.schedule?.endTime || '22:00',
-                slotInterval: data.schedule?.slotInterval || 60,
-                advanceBooking: data.schedule?.advanceBooking || 30,
-                customHoursEnabled: data.schedule?.customHoursEnabled || false,
-                customHours: data.schedule?.customHours || {},
-                customDates: data.schedule?.customDates || [],
-                blockedDates: data.schedule?.blockedDates || []
+                operatingDays: schedule?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+                startTime: schedule?.startTime || '10:00',
+                endTime: schedule?.endTime || '22:00',
+                slotInterval: schedule?.slotInterval || 60,
+                advanceBooking: schedule?.advanceBooking || 30,
+                customHoursEnabled: schedule?.customHoursEnabled || false,
+                customHours: schedule?.customHours || {},
+                customDates: schedule?.customDates || [],
+                blockedDates: schedule?.blockedDates || []
             };
         } catch (error: any) {
             console.error('Error fetching service item:', error);
@@ -142,7 +153,7 @@ export class ServiceItemManager {
     /**
      * Create a new service item
      */
-    static async createServiceItem(itemData: Omit<ServiceItem, 'id' | 'created_at' | 'updated_at' | 'created_by'>): Promise<ServiceItem> {
+    static async createServiceItem(itemData: CreateServiceItemInput): Promise<ServiceItem> {
         let stripeProductId: string | null = null;
         let stripePriceId: string | null = null;
         let venueData: any = null;
@@ -206,24 +217,25 @@ export class ServiceItemManager {
             const userId = session?.user?.id || null;
 
             // 5. Prepare Schedule Data
-            const schedule = {
-                operatingDays: (itemData as any).operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-                startTime: (itemData as any).startTime || '10:00',
-                endTime: (itemData as any).endTime || '22:00',
-                slotInterval: (itemData as any).slotInterval || 60,
-                advanceBooking: (itemData as any).advanceBooking || 30,
-                customHoursEnabled: (itemData as any).customHoursEnabled || false,
-                customHours: (itemData as any).customHours || {},
-                customDates: (itemData as any).customDates || [],
-                blockedDates: (itemData as any).blockedDates || []
+            const schedule: ServiceItemSchedule = {
+                operatingDays: itemData.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+                startTime: itemData.startTime || '10:00',
+                endTime: itemData.endTime || '22:00',
+                slotInterval: itemData.slotInterval || 60,
+                advanceBooking: itemData.advanceBooking || 30,
+                customHoursEnabled: itemData.customHoursEnabled || false,
+                customHours: itemData.customHours || {},
+                customDates: itemData.customDates || [],
+                blockedDates: itemData.blockedDates || []
             };
 
             // 6. Clean Data for Insert
+            // Destructure to remove flat schedule fields from the insert object
             const {
                 operatingDays, startTime, endTime, slotInterval, advanceBooking,
                 customHoursEnabled, customHours, customDates, blockedDates,
                 ...cleanedItemData
-            } = itemData as any;
+            } = itemData;
 
             const insertData = {
                 ...cleanedItemData,
@@ -247,7 +259,7 @@ export class ServiceItemManager {
 
             // 8. Create Default Pricing Tiers (Optional)
             try {
-                const childPrice = (itemData as any).child_price || (itemData as any).childPrice;
+                const childPrice = itemData.child_price || (itemData as any).childPrice;
                 if (childPrice && childPrice > 0) {
                     await supabase.rpc('create_default_pricing_tiers', {
                         p_game_id: data.id, // keeping p_game_id as RPC parameter name likely hasn't changed
@@ -286,7 +298,7 @@ export class ServiceItemManager {
     /**
      * Update an existing service item
      */
-    static async updateServiceItem(id: string, updates: Partial<ServiceItem>): Promise<ServiceItem> {
+    static async updateServiceItem(id: string, updates: Partial<CreateServiceItemInput>): Promise<ServiceItem> {
         try {
             // 1. Get current item to check for Stripe updates
             const currentItem = await this.getServiceItemById(id);
@@ -331,24 +343,25 @@ export class ServiceItemManager {
             }
 
             // 3. Handle Schedule Updates
-            const scheduleFields = ['operatingDays', 'startTime', 'endTime', 'slotInterval', 'advanceBooking', 'customHoursEnabled', 'customHours', 'customDates', 'blockedDates'];
-            const hasScheduleUpdate = scheduleFields.some(field => (updates as any)[field] !== undefined);
+            const scheduleFields = ['operatingDays', 'startTime', 'endTime', 'slotInterval', 'advanceBooking', 'customHoursEnabled', 'customHours', 'customDates', 'blockedDates'] as const;
+            const hasScheduleUpdate = scheduleFields.some(field => updates[field] !== undefined);
 
             if (hasScheduleUpdate) {
-                const updatedSchedule = {
-                    operatingDays: (updates as any).operatingDays || currentItem.schedule?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-                    startTime: (updates as any).startTime || currentItem.schedule?.startTime || '10:00',
-                    endTime: (updates as any).endTime || currentItem.schedule?.endTime || '22:00',
-                    slotInterval: (updates as any).slotInterval || currentItem.schedule?.slotInterval || 60,
-                    advanceBooking: (updates as any).advanceBooking || currentItem.schedule?.advanceBooking || 30,
-                    customHoursEnabled: (updates as any).customHoursEnabled !== undefined ? (updates as any).customHoursEnabled : currentItem.schedule?.customHoursEnabled || false,
-                    customHours: (updates as any).customHours || currentItem.schedule?.customHours || {},
-                    customDates: (updates as any).customDates || currentItem.schedule?.customDates || [],
-                    blockedDates: (updates as any).blockedDates || currentItem.schedule?.blockedDates || []
+                const currentSchedule = currentItem.schedule || {} as ServiceItemSchedule;
+                const updatedSchedule: ServiceItemSchedule = {
+                    operatingDays: updates.operatingDays || currentSchedule.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+                    startTime: updates.startTime || currentSchedule.startTime || '10:00',
+                    endTime: updates.endTime || currentSchedule.endTime || '22:00',
+                    slotInterval: updates.slotInterval || currentSchedule.slotInterval || 60,
+                    advanceBooking: updates.advanceBooking || currentSchedule.advanceBooking || 30,
+                    customHoursEnabled: updates.customHoursEnabled !== undefined ? updates.customHoursEnabled : currentSchedule.customHoursEnabled || false,
+                    customHours: updates.customHours || currentSchedule.customHours || {},
+                    customDates: updates.customDates || currentSchedule.customDates || [],
+                    blockedDates: updates.blockedDates || currentSchedule.blockedDates || []
                 };
 
-                // Clean up flat fields
-                scheduleFields.forEach(field => delete (updates as any)[field]);
+                // Clean up flat fields from updates object
+                scheduleFields.forEach(field => delete updates[field]);
                 (updates as any).schedule = updatedSchedule;
             }
 

@@ -1,9 +1,11 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import Stripe from 'https://esm.sh/stripe@14.0.0'
+import Stripe from 'https://esm.sh/stripe@14.21.0'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2024-11-20.acacia',
+  httpClient: Stripe.createFetchHttpClient(),
 })
 
 const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')!
@@ -41,10 +43,6 @@ serve(async (req) => {
         await handlePaymentFailed(event.data.object as Stripe.PaymentIntent, supabase)
         break
 
-      case 'charge.refunded':
-        await handleRefund(event.data.object as Stripe.Charge, supabase)
-        break
-
       case 'payment_intent.canceled':
         await handlePaymentCanceled(event.data.object as Stripe.PaymentIntent, supabase)
         break
@@ -72,136 +70,61 @@ async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent, supabas
   console.log('Processing successful payment:', paymentIntent.id)
 
   const bookingId = paymentIntent.metadata.booking_id
-  const customerId = paymentIntent.metadata.customer_id
 
-  // Update payment record
-  await supabase
-    .from('payments')
-    .update({
-      status: 'succeeded',
-      stripe_charge_id: paymentIntent.latest_charge,
-      payment_method_type: paymentIntent.payment_method_types?.[0],
-      paid_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    })
-    .eq('stripe_payment_intent_id', paymentIntent.id)
+  if (!bookingId) {
+    console.error('No booking_id in metadata for payment intent:', paymentIntent.id);
+    return;
+  }
 
   // Update booking status
-  await supabase
+  const { error } = await supabase
     .from('bookings')
     .update({
       payment_status: 'paid',
-      status: 'confirmed',
+      status: 'confirmed', // Confirm the booking now that payment is secured
+      stripe_payment_intent_id: paymentIntent.id,
       updated_at: new Date().toISOString()
     })
     .eq('id', bookingId)
 
-  console.log('Payment successful, booking confirmed:', bookingId)
+  if (error) {
+    console.error('Failed to update booking status:', error);
+    throw error;
+  }
 
-  // TODO: Send confirmation email with QR code
-  // You can call the send-email Edge Function here
+  console.log('Payment successful, booking confirmed:', bookingId)
 }
 
 async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent, supabase: any) {
   console.log('Processing failed payment:', paymentIntent.id)
 
   const bookingId = paymentIntent.metadata.booking_id
-
-  // Update payment record
-  await supabase
-    .from('payments')
-    .update({
-      status: 'failed',
-      updated_at: new Date().toISOString()
-    })
-    .eq('stripe_payment_intent_id', paymentIntent.id)
+  if (!bookingId) return;
 
   // Update booking status
   await supabase
     .from('bookings')
     .update({
       payment_status: 'failed',
-      status: 'payment_failed',
+      status: 'payment_failed', // Or 'cancelled' depending on business logic
       updated_at: new Date().toISOString()
     })
     .eq('id', bookingId)
 
+  // Note: If we reserved capacity, we might want to release it here.
+  // However, 'payment_failed' status should be treated as "not counting towards capacity" 
+  // in availability queries if we filter by status.
+  // The current availability check usually counts 'confirmed' and 'pending_payment'.
+  // We should ensure 'payment_failed' bookings don't block slots.
+
   console.log('Payment failed for booking:', bookingId)
-}
-
-async function handleRefund(charge: Stripe.Charge, supabase: any) {
-  console.log('Processing refund for charge:', charge.id)
-
-  const paymentIntentId = charge.payment_intent as string
-
-  // Get payment record
-  const { data: payment } = await supabase
-    .from('payments')
-    .select('*')
-    .eq('stripe_payment_intent_id', paymentIntentId)
-    .single()
-
-  if (!payment) {
-    console.error('Payment not found for refund')
-    return
-  }
-
-  // Calculate refund status
-  const refundedAmount = charge.amount_refunded / 100
-  const totalAmount = charge.amount / 100
-  const isFullRefund = refundedAmount >= totalAmount
-
-  // Update payment status
-  await supabase
-    .from('payments')
-    .update({
-      status: isFullRefund ? 'refunded' : 'partially_refunded',
-      updated_at: new Date().toISOString()
-    })
-    .eq('stripe_payment_intent_id', paymentIntentId)
-
-  // Create refund record
-  await supabase
-    .from('refunds')
-    .insert({
-      payment_id: payment.id,
-      booking_id: payment.booking_id,
-      stripe_refund_id: charge.refunds?.data[0]?.id,
-      stripe_payment_intent_id: paymentIntentId,
-      amount: refundedAmount,
-      currency: charge.currency.toUpperCase(),
-      status: 'succeeded',
-      reason: 'requested_by_customer'
-    })
-
-  // Update booking if full refund
-  if (isFullRefund) {
-    await supabase
-      .from('bookings')
-      .update({
-        payment_status: 'refunded',
-        status: 'canceled',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', payment.booking_id)
-  }
-
-  console.log('Refund processed:', { amount: refundedAmount, isFullRefund })
 }
 
 async function handlePaymentCanceled(paymentIntent: Stripe.PaymentIntent, supabase: any) {
   console.log('Processing canceled payment:', paymentIntent.id)
 
   const bookingId = paymentIntent.metadata.booking_id
-
-  // Update payment record
-  await supabase
-    .from('payments')
-    .update({
-      status: 'canceled',
-      updated_at: new Date().toISOString()
-    })
-    .eq('stripe_payment_intent_id', paymentIntent.id)
+  if (!bookingId) return;
 
   // Update booking status
   await supabase

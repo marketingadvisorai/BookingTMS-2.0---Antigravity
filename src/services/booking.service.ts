@@ -37,8 +37,51 @@ export type CreateBookingInput = z.infer<typeof CreateBookingSchema>;
 export class BookingService {
 
     /**
+     * Initiates a booking via the secure Edge Function.
+     * This creates a Stripe Payment Intent and a pending booking.
+     */
+    static async initiateBooking(params: {
+        sessionId: string;
+        activityId: string;
+        organizationId: string;
+        partySize: number;
+        customerDetails: {
+            email: string;
+            name: string;
+            phone?: string;
+        };
+        customerId?: string;
+    }): Promise<{ clientSecret: string; bookingId: string }> {
+        const { data, error } = await supabase.functions.invoke('create-booking', {
+            body: {
+                session_id: params.sessionId,
+                activity_id: params.activityId,
+                organization_id: params.organizationId,
+                party_size: params.partySize,
+                customer_id: params.customerId,
+                customer_details: params.customerDetails
+            }
+        });
+
+        if (error) {
+            console.error('Edge Function Error:', error);
+            throw new Error(`Booking initiation failed: ${error.message}`);
+        }
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        return {
+            clientSecret: data.clientSecret,
+            bookingId: data.bookingId
+        };
+    }
+
+    /**
      * Create a new booking using the atomic transaction RPC.
      * Handles customer creation/lookup automatically.
+     * @deprecated Use initiateBooking for public widgets to ensure payment security.
      */
     static async createBooking(input: CreateBookingInput): Promise<Booking> {
         try {
@@ -46,7 +89,6 @@ export class BookingService {
             const validated = CreateBookingSchema.parse(input);
 
             // 2. Get Session to verify Organization ID
-            // We could pass orgId in input, but safer to derive from session/activity
             const { data: sessionData, error: sessionError } = await supabase
                 .from('activity_sessions')
                 .select('organization_id, price_at_generation')

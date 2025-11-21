@@ -45,6 +45,36 @@ export default function BookingEngineTest() {
         }
     };
 
+    // Realtime Subscription
+    useEffect(() => {
+        if (!selectedServiceId) return;
+
+        const channel = supabase
+            .channel('schema-db-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'activity_sessions',
+                    filter: `activity_id=eq.${selectedServiceId}`
+                },
+                (payload) => {
+                    console.log('Realtime update:', payload);
+                    const updatedSession = payload.new as Session;
+                    setSessions(prev => prev.map(s => s.id === updatedSession.id ? updatedSession : s));
+                    toast.info('Session capacity updated!');
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [selectedServiceId]);
+
+    const [useSecureFlow, setUseSecureFlow] = useState(false);
+
     const handleBook = async (session: Session) => {
         const startTimeStr = format(new Date(session.start_time), 'HH:mm');
         if (!confirm(`Book ${startTimeStr}?`)) return;
@@ -57,26 +87,47 @@ export default function BookingEngineTest() {
 
         setLoading(true);
         try {
-            const result = await BookingService.createBooking({
-                sessionId: session.id,
-                venueId: selectedItem.venue_id,
-                activityId: selectedServiceId,
-                partySize: 2,
-                customer: {
-                    firstName: 'Test',
-                    lastName: 'User',
-                    email: 'test@example.com',
-                    phone: '1234567890'
-                }
-            });
+            let result;
+            const customerDetails = {
+                firstName: 'Test',
+                lastName: 'User',
+                email: 'test@example.com',
+                phone: '1234567890'
+            };
+
+            if (useSecureFlow) {
+                // Use Edge Function + Stripe
+                const { clientSecret, bookingId } = await BookingService.initiateBooking({
+                    sessionId: session.id,
+                    activityId: selectedServiceId,
+                    organizationId: selectedItem.organization_id || '64fa1946-3cdd-43af-b7de-cc4708cd4b80', // Fallback if not loaded
+                    partySize: 2,
+                    customerDetails: {
+                        name: `${customerDetails.firstName} ${customerDetails.lastName}`,
+                        email: customerDetails.email,
+                        phone: customerDetails.phone
+                    }
+                });
+                result = { success: true, bookingId, clientSecret, message: 'Payment Intent Created. Ready for Stripe Elements.' };
+            } else {
+                // Use Direct RPC (Internal/Admin)
+                result = await BookingService.createBooking({
+                    sessionId: session.id,
+                    venueId: selectedItem.venue_id,
+                    activityId: selectedServiceId,
+                    partySize: 2,
+                    customer: customerDetails
+                });
+            }
 
             setBookingResult(result);
-            toast.success('Booking confirmed!');
+            toast.success(useSecureFlow ? 'Payment Initiated!' : 'Booking confirmed!');
 
-            checkAvailability(); // Refresh sessions
+            if (!useSecureFlow) checkAvailability(); // Refresh sessions immediately for direct booking
         } catch (error: any) {
             console.error(error);
             toast.error(error.message);
+            setBookingResult({ error: error.message });
         } finally {
             setLoading(false);
         }

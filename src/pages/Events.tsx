@@ -238,6 +238,10 @@ export function Events() {
           <Button
             className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] w-full sm:w-auto h-11"
             onClick={() => {
+              if (!activeVenueId) {
+                toast.error("No venue found. Please create a venue first.");
+                return;
+              }
               setEditingServiceItem(null);
               setIsAddWizardOpen(true);
             }}
@@ -271,14 +275,15 @@ export function Events() {
             </DialogDescription>
           </VisuallyHidden>
           <AddServiceItemWizard
-            onComplete={handleAddComplete}
-            onCancel={() => {
+            isOpen={true}
+            onClose={() => {
               setIsAddWizardOpen(false);
               setEditingServiceItem(null);
+              refreshServiceItems();
             }}
-            mode={editingServiceItem ? "edit" : "create"}
             initialData={getInitialWizardData(editingServiceItem)}
             venueType="escape_room" // Default or fetch from context
+            venueId={activeVenueId || ''}
           />
         </DialogContent>
       </Dialog>

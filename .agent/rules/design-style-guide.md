@@ -187,3 +187,5 @@ Review everything in the project and apply improvements following the rules abov
 - Ensure tenant isolation and booking reliability
 
 Do NOT change foundational tech or visual design unless required to make something work correctly.
+
+Push the updates in exicuted properly in github branch with proper tag. 

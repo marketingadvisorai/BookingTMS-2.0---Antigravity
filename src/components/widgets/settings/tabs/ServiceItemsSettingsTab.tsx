@@ -325,8 +325,8 @@ export const ServiceItemsSettingsTab: React.FC<ServiceItemsSettingsTabProps> = (
 
             {showWizard && (
                 <AddServiceItemWizard
-                    onCancel={() => setShowWizard(false)}
-                    onComplete={handleWizardComplete}
+                    isOpen={true}
+                    onClose={() => setShowWizard(false)}
                     initialData={editingItem ? {
                         ...editingItem,
                         minAdults: editingItem.min_players,
@@ -338,8 +338,8 @@ export const ServiceItemsSettingsTab: React.FC<ServiceItemsSettingsTabProps> = (
                         coverImage: editingItem.image_url,
                         ...editingItem.settings
                     } : undefined}
-                    mode={editingItem ? 'edit' : 'create'}
-                    venueType={embedContext?.venueType}
+                    venueType={embedContext?.venueType as any}
+                    venueId={embedContext?.venueId || ''}
                 />
             )}
         </div>

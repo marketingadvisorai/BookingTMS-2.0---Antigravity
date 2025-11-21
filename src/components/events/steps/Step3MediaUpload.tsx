@@ -8,7 +8,7 @@ import { StepProps } from '../types';
 import { supabase } from '../../../lib/supabase';
 import { toast } from 'sonner';
 
-export default function Step4MediaUpload({ gameData, updateGameData, t }: StepProps) {
+export default function Step3MediaUpload({ gameData, updateGameData, t }: StepProps) {
     const [uploading, setUploading] = useState(false);
 
     const uploadFile = async (file: File): Promise<string | null> => {

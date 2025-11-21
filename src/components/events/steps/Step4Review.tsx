@@ -6,7 +6,7 @@ import { Separator } from '../../ui/separator';
 import { Check, Edit, AlertTriangle } from 'lucide-react';
 import { StepProps } from '../types';
 
-export default function Step8Review({ gameData, t }: StepProps & { onEditStep: (step: number) => void }) {
+export default function Step4Review({ gameData, t }: StepProps & { onEditStep: (step: number) => void }) {
     // Helper to check if a section is complete (basic check)
     const isBasicInfoComplete = gameData.name && gameData.description && gameData.category;
     const isPricingComplete = gameData.adultPrice > 0;

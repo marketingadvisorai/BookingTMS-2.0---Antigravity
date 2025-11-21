@@ -4,15 +4,17 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { BookingService, TimeSlot } from '../services/BookingService';
+import { BookingService } from '../services/booking.service';
+import { SessionService, Session } from '../services/session.service';
 import { supabase } from '../lib/supabase/client';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 export default function BookingEngineTest() {
     const [serviceItems, setServiceItems] = useState<any[]>([]);
     const [selectedServiceId, setSelectedServiceId] = useState<string>('');
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-    const [slots, setSlots] = useState<TimeSlot[]>([]);
+    const [sessions, setSessions] = useState<Session[]>([]);
     const [loading, setLoading] = useState(false);
     const [bookingResult, setBookingResult] = useState<any>(null);
 
@@ -21,7 +23,7 @@ export default function BookingEngineTest() {
     }, []);
 
     const fetchServiceItems = async () => {
-        const { data, error } = await supabase.from('games').select('id, name, venue_id');
+        const { data, error } = await supabase.from('activities').select('id, name, venue_id');
         if (data) setServiceItems(data);
     };
 
@@ -29,9 +31,13 @@ export default function BookingEngineTest() {
         if (!selectedServiceId) return;
         setLoading(true);
         try {
-            const availableSlots = await BookingService.getAvailability(selectedServiceId, selectedDate);
-            setSlots(availableSlots);
-            toast.success(`Found ${availableSlots.length} slots`);
+            const startDate = new Date(selectedDate);
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + 1);
+
+            const availableSessions = await SessionService.listAvailableSessions(selectedServiceId, startDate, endDate);
+            setSessions(availableSessions);
+            toast.success(`Found ${availableSessions.length} sessions`);
         } catch (error: any) {
             toast.error(error.message);
         } finally {
@@ -39,8 +45,9 @@ export default function BookingEngineTest() {
         }
     };
 
-    const handleBook = async (slot: TimeSlot) => {
-        if (!confirm(`Book ${slot.start_time}?`)) return;
+    const handleBook = async (session: Session) => {
+        const startTimeStr = format(new Date(session.start_time), 'HH:mm');
+        if (!confirm(`Book ${startTimeStr}?`)) return;
 
         const selectedItem = serviceItems.find(i => i.id === selectedServiceId);
         if (!selectedItem?.venue_id) {
@@ -51,32 +58,22 @@ export default function BookingEngineTest() {
         setLoading(true);
         try {
             const result = await BookingService.createBooking({
+                sessionId: session.id,
                 venueId: selectedItem.venue_id,
-                gameId: selectedServiceId,
-                date: selectedDate,
-                time: slot.start_time.substring(0, 5), // Ensure HH:MM format
+                activityId: selectedServiceId,
                 partySize: 2,
                 customer: {
                     firstName: 'Test',
                     lastName: 'User',
                     email: 'test@example.com',
                     phone: '1234567890'
-                },
-                successUrl: window.location.origin + '/booking/success',
-                cancelUrl: window.location.origin + '/booking/cancel',
+                }
             });
 
             setBookingResult(result);
+            toast.success('Booking confirmed!');
 
-            if (result.success && result.checkout_url) {
-                toast.success('Booking initialized! Redirecting to payment...');
-                // In a real app, we would redirect here:
-                // window.location.href = result.checkout_url;
-            } else {
-                toast.error('Booking failed: ' + result.message);
-            }
-
-            checkAvailability(); // Refresh slots
+            checkAvailability(); // Refresh sessions
         } catch (error: any) {
             console.error(error);
             toast.error(error.message);
@@ -87,7 +84,7 @@ export default function BookingEngineTest() {
 
     return (
         <div className="p-8 max-w-4xl mx-auto space-y-6">
-            <h1 className="text-2xl font-bold">Booking Engine Verification (v2)</h1>
+            <h1 className="text-2xl font-bold">Booking Engine Verification (v3 - Sessions)</h1>
 
             <Card>
                 <CardHeader>
@@ -95,10 +92,10 @@ export default function BookingEngineTest() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div>
-                        <Label>Service Item</Label>
+                        <Label>Activity</Label>
                         <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select Service Item" />
+                                <SelectValue placeholder="Select Activity" />
                             </SelectTrigger>
                             <SelectContent>
                                 {serviceItems.map(item => (
@@ -119,20 +116,22 @@ export default function BookingEngineTest() {
                 </CardContent>
             </Card>
 
-            {slots.length > 0 && (
+            {sessions.length > 0 && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Available Slots (Database)</CardTitle>
+                        <CardTitle>Available Sessions</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-3 gap-4">
-                            {slots.map((slot, i) => (
-                                <div key={i} className={`p-4 border rounded flex flex-col gap-2 ${slot.is_available ? 'bg-green-50 border-green-200' : 'bg-gray-50 opacity-50'}`}>
-                                    <div className="font-bold">{slot.start_time.substring(0, 5)} - {slot.end_time.substring(0, 5)}</div>
-                                    <div className="text-sm">Bookings: {slot.current_bookings} / {slot.max_bookings}</div>
-                                    <div className="text-sm font-semibold">${slot.final_price}</div>
-                                    {slot.is_available ? (
-                                        <Button size="sm" onClick={() => handleBook(slot)}>Book</Button>
+                            {sessions.map((session, i) => (
+                                <div key={i} className={`p-4 border rounded flex flex-col gap-2 ${!session.is_closed && session.capacity_remaining > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 opacity-50'}`}>
+                                    <div className="font-bold">
+                                        {format(new Date(session.start_time), 'HH:mm')} - {format(new Date(session.end_time), 'HH:mm')}
+                                    </div>
+                                    <div className="text-sm">Capacity: {session.capacity_remaining} / {session.capacity_total}</div>
+                                    <div className="text-sm font-semibold">${session.price_at_generation}</div>
+                                    {!session.is_closed && session.capacity_remaining > 0 ? (
+                                        <Button size="sm" onClick={() => handleBook(session)}>Book</Button>
                                     ) : (
                                         <span className="text-red-500 text-sm">Unavailable</span>
                                     )}
@@ -148,18 +147,6 @@ export default function BookingEngineTest() {
                     <CardHeader><CardTitle>Booking Result</CardTitle></CardHeader>
                     <CardContent>
                         <pre className="text-xs overflow-auto">{JSON.stringify(bookingResult, null, 2)}</pre>
-                        {bookingResult.checkout_url && (
-                            <div className="mt-4">
-                                <a
-                                    href={bookingResult.checkout_url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-                                >
-                                    Proceed to Payment (Stripe)
-                                </a>
-                            </div>
-                        )}
                     </CardContent>
                 </Card>
             )}

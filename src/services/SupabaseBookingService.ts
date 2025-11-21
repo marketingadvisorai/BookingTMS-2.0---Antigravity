@@ -6,9 +6,18 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { BookingService } from './booking.service';
+import { SessionService, Session } from './session.service';
 
 // Feature flag to enable/disable Supabase bookings
 export const USE_SUPABASE_BOOKINGS = true;
+
+// ... (rest of the file)
+
+let sessionId = '';
+let matchedSession: Session | null = null;
+
+// Simple check: if we have sessions, try to match the time part?
 
 export interface VenueConfig {
   id: string;
@@ -222,33 +231,116 @@ export class SupabaseBookingService {
    */
   static async createWidgetBooking(params: CreateBookingParams): Promise<BookingResult | null> {
     try {
-      const { data, error } = await supabase.rpc('create_widget_booking', {
-        p_venue_id: params.venue_id,
-        p_game_id: params.game_id,
-        p_customer_name: params.customer_name,
-        p_customer_email: params.customer_email,
-        p_customer_phone: params.customer_phone,
-        p_booking_date: params.booking_date,
-        p_start_time: params.start_time,
-        p_end_time: params.end_time,
-        p_party_size: params.party_size,
-        p_ticket_types: params.ticket_types,
-        p_total_amount: params.total_amount,
-        p_final_amount: params.final_amount,
-        p_promo_code: params.promo_code || null,
-        p_notes: params.notes || null,
+      // 1. Fetch Venue to get Timezone
+      const { data: venue, error: venueError } = await supabase
+        .from('venues')
+        .select('timezone, organization_id')
+        .eq('id', params.venue_id)
+        .single();
+
+      if (venueError || !venue) {
+        throw new Error('Venue not found');
+      }
+
+      // 2. Resolve Session
+      // We need to convert the input date/time to the stored session start_time (UTC ISO)
+      // This requires knowing how sessions were generated.
+      // For now, let's assume we can find it by matching the start time.
+      // Ideally, the widget should pass the session_id if it fetched sessions.
+      // If the widget is legacy, we try to find a matching session.
+
+      // Construct a timestamp. This part is tricky without date-fns-tz.
+      // We'll try to find a session that starts at the requested time on the requested date.
+      // We can use a range query on activity_sessions if exact match fails.
+
+      // Let's try to find a session that overlaps or starts at this time.
+      // We'll search for sessions on this date for this activity.
+
+      // Construct search range for the day (in UTC? No, we need to be careful).
+      // Let's use the date string and time string to construct a local ISO-like string
+      // and let the database handle the timezone comparison if possible, OR
+      // just fetch all sessions for the day and match in code.
+
+      const searchDate = new Date(params.booking_date);
+      const nextDate = new Date(searchDate);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      const sessions = await SessionService.listAvailableSessions(
+        params.game_id,
+        searchDate,
+        nextDate
+      );
+
+      // Find matching session
+      // We need to match params.start_time (HH:MM) to session.start_time (ISO)
+      // We need to convert session.start_time to Venue Time to compare.
+      // This is complex without a library on the client side if we don't trust the input.
+      // BUT, if we assume the widget logic is consistent with how we display times...
+
+      // Let's try to match loosely:
+      // session.start_time is UTC.
+      // We need to see if that UTC time corresponds to params.start_time in venue.timezone.
+
+      let sessionId = '';
+      let matchedSession: Session | null = null;
+
+      // Simple check: if we have sessions, try to match the time part?
+      // Or better: The widget SHOULD be updated to pass session_id.
+      // But for backward compatibility/refactoring step 1:
+
+      // We will iterate and check.
+      for (const session of sessions) {
+        // Convert session UTC to Venue Time
+        // We can use the Intl API as we did in SessionService (but that was for generation).
+        // Here we just want to check if the time matches.
+
+        const sessionDate = new Date(session.start_time);
+        const timeString = sessionDate.toLocaleTimeString('en-US', {
+          timeZone: venue.timezone || 'UTC',
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        if (timeString === params.start_time) {
+          sessionId = session.id;
+          matchedSession = session;
+          break;
+        }
+      }
+
+      if (!sessionId) {
+        // Fallback: If no session found, maybe it's a legacy game without sessions?
+        // But we migrated everything.
+        // If we can't find a session, we can't use the new BookingService fully.
+        // However, we can try to create a booking with just activity_id if we relax constraints,
+        // but BookingService requires sessionId.
+
+        // If we are in "Open Time" mode (no specific slots), we might need a "Day Session" or similar.
+        // For now, throw error to enforce slots.
+        throw new Error(`No available session found for ${params.start_time} on ${params.booking_date}`);
+      }
+
+      // 3. Create Booking using BookingService
+      const booking = await BookingService.createBooking({
+        sessionId: sessionId,
+        activityId: params.game_id,
+        venueId: params.venue_id,
+        customer: {
+          firstName: params.customer_name.split(' ')[0],
+          lastName: params.customer_name.split(' ').slice(1).join(' ') || 'Customer',
+          email: params.customer_email,
+          phone: params.customer_phone
+        },
+        partySize: params.party_size
       });
 
-      if (error) {
-        console.error('Error creating widget booking:', error);
-        throw new Error(error.message || 'Failed to create booking');
-      }
+      return {
+        booking_id: booking.id,
+        confirmation_code: booking.booking_number,
+        message: 'Booking confirmed successfully'
+      };
 
-      if (!data || data.length === 0) {
-        throw new Error('No booking data returned');
-      }
-
-      return data[0] as BookingResult;
     } catch (error: any) {
       console.error('Exception creating widget booking:', error);
       throw error;

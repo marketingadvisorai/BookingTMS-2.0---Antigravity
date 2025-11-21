@@ -61,20 +61,22 @@ export class StripeProductService {
   // Auto-detect backend URL based on environment
   private static BACKEND_API_URL = (() => {
     // 1. Check env variable first
-    if (import.meta.env.VITE_BACKEND_API_URL) {
-      return import.meta.env.VITE_BACKEND_API_URL;
-    }
-    
+    // @ts-ignore
+    // if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_BACKEND_API_URL) {
+    // @ts-ignore
+    // return import.meta.env.VITE_BACKEND_API_URL;
+    // }
+
     // 2. If on Render frontend, use Render backend
-    if (window.location.hostname.includes('onrender.com')) {
+    if (typeof window !== 'undefined' && window.location.hostname.includes('onrender.com')) {
       return 'https://bookingtms-backend-api.onrender.com';
     }
-    
+
     // 3. If on localhost, check common ports
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
       return 'http://localhost:3001';
     }
-    
+
     // 4. Default fallback
     return 'http://localhost:3001';
   })();
@@ -96,7 +98,7 @@ export class StripeProductService {
       throw new Error('Unexpected response format from Stripe service');
     }
   }
-  
+
   /**
    * Create both Stripe product and price for a game
    * Includes support for child pricing, custom capacity fields, and group discounts
@@ -109,13 +111,13 @@ export class StripeProductService {
       // Add identification metadata for easy Stripe dashboard viewing
       const enhancedMetadata: Record<string, string> = {
         ...(params.metadata || {}),
-        
+
         // === IDENTIFICATION DATA ===
         product_name: params.name,
         product_type: 'game',
         created_at: new Date().toISOString(),
         currency: params.currency || 'usd',
-        
+
         // === MULTI-TENANT DATA ===
         ...(params.metadata?.organization_id && { organization_id: params.metadata.organization_id }),
         ...(params.metadata?.organization_name && { organization_name: params.metadata.organization_name }),
@@ -126,11 +128,11 @@ export class StripeProductService {
         ...(params.metadata?.calendar_name && { calendar_name: params.metadata.calendar_name }),
         ...(params.metadata?.venue_calendar_id && { venue_calendar_id: params.metadata.venue_calendar_id }),
         ...(params.metadata?.game_name && { game_name: params.metadata.game_name }),
-        
+
         // === MEDIA DATA ===
         // Add cover image URL if provided in metadata
         ...(params.metadata?.image_url && { image_url: params.metadata.image_url }),
-        
+
         // === PRICING DATA ===
         adult_price: params.price.toString(),
         adult_price_display: `$${params.price.toFixed(2)}`,
@@ -149,7 +151,7 @@ export class StripeProductService {
       if (params.customCapacityFields && params.customCapacityFields.length > 0) {
         enhancedMetadata.custom_capacity_enabled = 'true';
         enhancedMetadata.custom_capacity_count = params.customCapacityFields.length.toString();
-        
+
         // Store each custom field with display names
         params.customCapacityFields.forEach((field, index) => {
           enhancedMetadata[`custom_${index}_name`] = field.name;
@@ -159,7 +161,7 @@ export class StripeProductService {
           enhancedMetadata[`custom_${index}_max`] = field.max.toString();
           enhancedMetadata[`custom_${index}_range`] = `${field.min}-${field.max} ${field.name}`;
         });
-        
+
         // Create summary for dashboard
         const customFieldsSummary = params.customCapacityFields
           .map(f => `${f.name}: $${f.price.toFixed(2)}`)
@@ -173,7 +175,7 @@ export class StripeProductService {
       if (params.groupDiscountEnabled && params.groupTiers && params.groupTiers.length > 0) {
         enhancedMetadata.group_discount_enabled = 'true';
         enhancedMetadata.group_tiers_count = params.groupTiers.length.toString();
-        
+
         // Store each group tier with display info
         params.groupTiers.forEach((tier, index) => {
           enhancedMetadata[`tier_${index}_min`] = tier.minSize.toString();
@@ -181,7 +183,7 @@ export class StripeProductService {
           enhancedMetadata[`tier_${index}_discount`] = tier.discountPercent.toString();
           enhancedMetadata[`tier_${index}_display`] = `${tier.minSize}-${tier.maxSize} people: ${tier.discountPercent}% off`;
         });
-        
+
         // Create summary for dashboard
         const tiersSummary = params.groupTiers
           .map(t => `${t.minSize}-${t.maxSize}: ${t.discountPercent}%`)
@@ -190,7 +192,7 @@ export class StripeProductService {
       } else {
         enhancedMetadata.group_discount_enabled = 'false';
       }
-      
+
       // Add pricing summary for quick dashboard view
       let pricingSummary = `Adult: $${params.price.toFixed(2)}`;
       if (params.childPrice && params.childPrice > 0) {
@@ -254,7 +256,7 @@ export class StripeProductService {
       const headers = this.getAuthHeaders();
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-      
+
       let response;
       try {
         response = await fetch(url, {
@@ -277,7 +279,7 @@ export class StripeProductService {
       clearTimeout(timeoutId);
 
       console.log('📡 Response status:', response.status, response.statusText);
-      
+
       const data = await this.parseResponse(response);
       console.log('📥 Response data:', data);
 
@@ -466,7 +468,7 @@ export class StripeProductService {
   static async getProductPrices(productId: string): Promise<any[]> {
     try {
       console.log('🔍 Fetching prices for product:', productId);
-      
+
       const headers = this.getAuthHeaders();
       const response = await fetch(`${this.BACKEND_API_URL}/api/stripe/products/${productId}/prices`, {
         method: 'GET',
@@ -503,7 +505,7 @@ export class StripeProductService {
 
       // Get product details
       const product = await this.getProduct(params.productId);
-      
+
       // Get all prices for the product
       const prices = await this.getProductPrices(params.productId);
 
@@ -535,14 +537,14 @@ export class StripeProductService {
   ): Promise<string> {
     try {
       console.log('Updating price via lookup key:', { lookupKey, newAmount, productId });
-      
+
       // Create new price with same lookup key (Stripe will deactivate old)
       const newPriceId = await this.createPrice(productId, {
         amount: newAmount,
         currency: 'usd',
         lookup_key: lookupKey,
       });
-      
+
       console.log('New price created with lookup key:', newPriceId);
       return newPriceId;
     } catch (error) {

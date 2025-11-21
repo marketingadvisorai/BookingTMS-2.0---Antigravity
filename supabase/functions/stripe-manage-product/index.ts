@@ -23,6 +23,18 @@ serve(async (req) => {
     let result;
 
     switch (action) {
+      case 'get_product':
+        result = await getProduct(params);
+        break;
+
+      case 'get_prices':
+        result = await getPrices(params);
+        break;
+
+      case 'get_price_by_lookup_key':
+        result = await getPriceByLookupKey(params);
+        break;
+
       case 'create_product':
         result = await createProduct(params);
         break;
@@ -108,4 +120,27 @@ async function archiveProduct(params: { productId: string }) {
   });
 
   return { productId: product.id, archived: true };
+}
+
+async function getProduct(params: { productId: string }) {
+  const product = await stripe.products.retrieve(params.productId);
+  return { product };
+}
+
+async function getPrices(params: { productId: string }) {
+  const prices = await stripe.prices.list({
+    product: params.productId,
+    active: true,
+    limit: 100,
+  });
+  return { prices: prices.data };
+}
+
+async function getPriceByLookupKey(params: { lookupKey: string }) {
+  const prices = await stripe.prices.list({
+    lookup_keys: [params.lookupKey],
+    active: true,
+    limit: 1,
+  });
+  return { price: prices.data[0] || null };
 }

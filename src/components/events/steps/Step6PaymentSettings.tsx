@@ -45,7 +45,7 @@ import { StripeProductService } from '../../../lib/stripe/stripeProductService';
 import { StripeDirectApi } from '../../../lib/stripe/stripeDirectApi';
 import { supabase } from '../../../lib/supabase/client';
 import { StripeConfigurationModal } from '../StripeConfigurationModal';
-import { GameData } from '../AddServiceItemWizard';
+import { GameData } from '../types';
 
 interface PaymentSettingsProps {
   gameData: GameData;

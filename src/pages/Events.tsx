@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../compon
 import { VisuallyHidden } from '../components/ui/visually-hidden';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { toast } from 'sonner';
+import BookingsDialog from '../components/events/BookingsDialog';
 
 export function Events() {
   const t = useTerminology();
@@ -23,15 +24,17 @@ export function Events() {
   const activeVenueId = useMemo(() => venues.length > 0 ? venues[0].id : undefined, [venues]);
 
   // Use the new hook with the active venue ID
-  const { serviceItems, loading: itemsLoading, createServiceItem, updateServiceItem, deleteServiceItem } = useServiceItems(activeVenueId);
+  const { serviceItems, loading: itemsLoading, createServiceItem, updateServiceItem, deleteServiceItem, refreshServiceItems } = useServiceItems(activeVenueId);
 
   const loading = venuesLoading || itemsLoading;
 
   // Local state for wizard and dialogs
-  const [showAddWizard, setShowAddWizard] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isAddWizardOpen, setIsAddWizardOpen] = useState(false);
+  const [editingServiceItem, setEditingServiceItem] = useState<any>(null);
   const [deletingItem, setDeletingItem] = useState<any>(null);
-  const [viewingBookingsItem, setViewingBookingsItem] = useState<any>(null);
+  const [selectedBookingService, setSelectedBookingService] = useState<{ id: string; name: string } | null>(null);
 
   // Map ServiceItems to Game format for GameGrid compatibility
   const games = useMemo(() => {
@@ -133,12 +136,14 @@ export function Events() {
       };
 
       let result;
-      if (editingItem) {
-        result = await updateServiceItem({ id: editingItem.id, updates: serviceItemData });
+      if (editingServiceItem) {
+        result = await updateServiceItem({ id: editingServiceItem.id, updates: serviceItemData });
       } else {
         result = await createServiceItem(serviceItemData as any);
       }
-
+      await refreshServiceItems();
+      setIsAddWizardOpen(false);
+      setEditingServiceItem(null);
       return result;
     } catch (error) {
       console.error("Failed to save game:", error);
@@ -146,22 +151,11 @@ export function Events() {
     }
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!deletingItem) return;
-    try {
-      await deleteServiceItem(deletingItem.id);
-      setDeletingItem(null);
-    } catch (error) {
-      console.error("Failed to delete game:", error);
-    }
-  };
-
   const handleEdit = (game: any) => {
-    // Find the full service item
     const item = serviceItems.find((i: any) => i.id === game.id);
     if (item) {
-      setEditingItem(item);
-      setShowAddWizard(true);
+      setEditingServiceItem(item);
+      setIsAddWizardOpen(true);
     }
   };
 
@@ -200,6 +194,16 @@ export function Events() {
     });
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!deletingItem) return;
+    try {
+      await deleteServiceItem(deletingItem.id);
+      setDeletingItem(null);
+    } catch (error) {
+      console.error("Failed to delete game:", error);
+    }
+  };
+
   // Convert ServiceItem to Wizard Data format
   const getInitialWizardData = (item: any) => {
     if (!item) return undefined;
@@ -216,6 +220,14 @@ export function Events() {
     };
   };
 
+  // Function to handle viewing bookings for a service item
+  const handleViewBookings = (game: any) => {
+    setSelectedBookingService({
+      id: game.id,
+      name: game.name
+    });
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <PageHeader
@@ -226,8 +238,8 @@ export function Events() {
           <Button
             className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] w-full sm:w-auto h-11"
             onClick={() => {
-              setEditingItem(null);
-              setShowAddWizard(true);
+              setEditingServiceItem(null);
+              setIsAddWizardOpen(true);
             }}
           >
             <Plus className="w-5 h-5 sm:w-4 sm:h-4 sm:mr-2" />
@@ -242,30 +254,30 @@ export function Events() {
         games={games}
         isLoading={loading}
         onEdit={handleEdit}
-        onViewBookings={(game) => setViewingBookingsItem(game)} // We might need to implement ViewBookings for ServiceItem
+        onViewBookings={handleViewBookings} // Implemented onViewBookings
         onDuplicate={handleDuplicate}
         onDelete={(game) => setDeletingItem(game)}
         onToggleStatus={handleToggleStatus}
-        onAddGame={() => setShowAddWizard(true)}
+        onAddGame={() => setIsAddWizardOpen(true)}
       />
 
       {/* Add/Edit Wizard Dialog */}
-      <Dialog open={showAddWizard} onOpenChange={setShowAddWizard}>
+      <Dialog open={isAddWizardOpen} onOpenChange={setIsAddWizardOpen}>
         <DialogContent className="!w-[90vw] !max-w-[1000px] h-[90vh] !max-h-[90vh] overflow-hidden p-0 flex flex-col">
           <VisuallyHidden>
-            <DialogTitle>{editingItem ? 'Edit' : 'Add New'} {t.singular}</DialogTitle>
+            <DialogTitle>{editingServiceItem ? 'Edit' : 'Add New'} {t.singular}</DialogTitle>
             <DialogDescription>
-              Complete the multi-step wizard to {editingItem ? 'edit' : 'add'} a {t.singular.toLowerCase()}
+              Complete the multi-step wizard to {editingServiceItem ? 'edit' : 'add'} a {t.singular.toLowerCase()}
             </DialogDescription>
           </VisuallyHidden>
           <AddServiceItemWizard
             onComplete={handleAddComplete}
             onCancel={() => {
-              setShowAddWizard(false);
-              setEditingItem(null);
+              setIsAddWizardOpen(false);
+              setEditingServiceItem(null);
             }}
-            mode={editingItem ? "edit" : "create"}
-            initialData={getInitialWizardData(editingItem)}
+            mode={editingServiceItem ? "edit" : "create"}
+            initialData={getInitialWizardData(editingServiceItem)}
             venueType="escape_room" // Default or fetch from context
           />
         </DialogContent>
@@ -292,6 +304,14 @@ export function Events() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bookings Dialog */}
+      <BookingsDialog
+        isOpen={!!selectedBookingService}
+        onClose={() => setSelectedBookingService(null)}
+        serviceItemId={selectedBookingService?.id || null}
+        serviceItemName={selectedBookingService?.name || ''}
+      />
     </div>
   );
 }

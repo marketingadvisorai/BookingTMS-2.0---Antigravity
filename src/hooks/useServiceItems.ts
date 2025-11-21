@@ -7,7 +7,7 @@ export const useServiceItems = (venueId?: string) => {
     const queryKey = ['service-items', venueId];
 
     // Fetch Service Items
-    const { data: serviceItems = [], isLoading, error } = useQuery({
+    const { data: serviceItems = [], isLoading, error, refetch } = useQuery({
         queryKey,
         queryFn: () => ServiceItemManager.getServiceItems(venueId),
         enabled: !!venueId,
@@ -83,6 +83,7 @@ export const useServiceItems = (venueId?: string) => {
         deleteServiceItem: deleteServiceItemMutation.mutateAsync,
         isCreating: createServiceItemMutation.isPending,
         isUpdating: updateServiceItemMutation.isPending,
-        isDeleting: deleteServiceItemMutation.isPending
+        isDeleting: deleteServiceItemMutation.isPending,
+        refreshServiceItems: refetch
     };
 };

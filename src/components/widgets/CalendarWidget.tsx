@@ -37,8 +37,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { VisuallyHidden } from '../ui/visually-hidden';
 import { ScrollArea } from '../ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { 
-  Calendar, Clock, Users, ChevronLeft, ChevronRight, Star, Play, Info, 
+import {
+  Calendar, Clock, Users, ChevronLeft, ChevronRight, Star, Play, Info,
   X, ShoppingCart, CreditCard, Lock, CheckCircle2, Mail, Phone, User,
   Target, Zap, Award, Shield, MapPin, ChevronDown, ChevronUp, HelpCircle,
   Sparkles, TrendingUp, Heart, FileText, Camera, Languages, Briefcase,
@@ -55,6 +55,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { validateCheckoutForm, sanitizeEmail, sanitizeName, sanitizePhone, validateEmail, validateName, validatePhone } from '../../lib/validation/formValidation';
 import { validatePromoCode as validatePromoCodeService, validateGiftCard as validateGiftCardService, recordPromoCodeUsage, recordGiftCardUsage, applyPromoDiscount, applyGiftCardBalance } from '../../lib/validation/codeValidation';
+import { useWidgetData } from '../../hooks/useWidgetData';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -85,7 +86,7 @@ export function CalendarWidget({ primaryColor = '#2563eb', config }: CalendarWid
   });
   const [bookingsCount, setBookingsCount] = useState(0);
   const [confirmationCode, setConfirmationCode] = useState<string>('');
-  
+
   // Payment and validation state
   const [clientSecret, setClientSecret] = useState<string>('');
   const [bookingId, setBookingId] = useState<string>('');
@@ -96,10 +97,10 @@ export function CalendarWidget({ primaryColor = '#2563eb', config }: CalendarWid
     phone?: string;
   }>({});
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   // Promo code and gift card state
   const [showPromoCodeInput, setShowPromoCodeInput] = useState(false);
-const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discount: number; type: 'percentage' | 'fixed' } | null>(null);
+  const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discount: number; type: 'percentage' | 'fixed' } | null>(null);
   const [showGiftCardInput, setShowGiftCardInput] = useState(false);
   const [appliedGiftCard, setAppliedGiftCard] = useState<{ code: string; amount: number } | null>(null);
   const [showSecuredDialog, setShowSecuredDialog] = useState(false);
@@ -112,11 +113,25 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
   const allowGiftSection = config?.showGiftCardInput ?? true;
   const cs = config?.customSettings || {};
 
-  const games = (Array.isArray(config?.games) ? config.games : []).map((g: any) => {
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+
+  // Fetch real data if venueId is present
+  const { venue, activities: fetchedActivities, sessions: fetchedSessions, loading: dataLoading } = useWidgetData({
+    venueId: config?.venueId,
+    activityId: selectedGame || undefined,
+    date: new Date(currentYear, currentMonth, selectedDate)
+  });
+
+  const rawGames = config?.venueId && fetchedActivities.length > 0 ? fetchedActivities : (Array.isArray(config?.games) ? config.games : []);
+
+  const games = rawGames.map((g: any) => {
     const difficultyLabel = typeof g?.difficulty === 'number'
       ? (g.difficulty <= 2 ? 'Easy' : g.difficulty === 3 ? 'Medium' : g.difficulty === 4 ? 'Hard' : 'Extreme')
       : (g?.difficultyLabel || g?.difficulty || 'Medium');
     const difficultyLevelMap: Record<string, number> = { Easy: 2, Medium: 3, Hard: 4, Extreme: 5 };
+
+    // Map DB fields to Widget fields
     return {
       id: g?.id,
       name: g?.name,
@@ -126,10 +141,10 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
       reviewCount: g?.reviews ?? 0,
       difficulty: difficultyLabel,
       difficultyLevel: typeof g?.difficulty === 'number' ? g.difficulty : (difficultyLevelMap[String(difficultyLabel)] ?? 3),
-      players: g?.players || '',
+      players: g?.players || (g?.max_players ? `1-${g.max_players}` : '') || (g?.capacity ? `1-${g.capacity}` : ''),
       minAge: g?.minAge,
       ageRecommendation: g?.ageRange || '',
-      image: g?.image || g?.imageUrl || g?.coverImage || 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=800&h=500&fit=crop',
+      image: g?.image || g?.imageUrl || g?.coverImage || g?.image_url || 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=800&h=500&fit=crop',
       gallery: g?.galleryImages || g?.gallery || [],
       description: g?.description || '',
       longDescription: g?.longDescription || g?.description || '',
@@ -150,11 +165,11 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
       accessibility: g?.accessibility || { strollerAccessible: false, wheelchairAccessible: false },
       location: g?.location || '',
       // Schedule & Availability fields
-      operatingDays: g?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      startTime: g?.startTime || '10:00',
-      endTime: g?.endTime || '22:00',
-      slotInterval: g?.slotInterval || 60,
-      advanceBooking: g?.advanceBooking || 30,
+      operatingDays: g?.operatingDays || g?.schedule?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      startTime: g?.startTime || g?.schedule?.startTime || '10:00',
+      endTime: g?.endTime || g?.schedule?.endTime || '22:00',
+      slotInterval: g?.slotInterval || g?.schedule?.slotInterval || 60,
+      advanceBooking: g?.advanceBooking || g?.schedule?.advanceBooking || 30,
       // Stripe integration fields
       stripe_price_id: g?.stripe_price_id || null,
       stripe_product_id: g?.stripe_product_id || null,
@@ -165,42 +180,78 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const selectedGameData = selectedGame ? (games.find(g => g.id === selectedGame) || games[0]) : games[0];
-  
+
   // Use actual game duration for slot display, not config
-  const slotDurationMinutes = selectedGameData?.duration 
-    ? (typeof selectedGameData.duration === 'string' 
-        ? parseInt(selectedGameData.duration) 
-        : selectedGameData.duration)
+  const slotDurationMinutes = selectedGameData?.duration
+    ? (typeof selectedGameData.duration === 'string'
+      ? parseInt(selectedGameData.duration)
+      : selectedGameData.duration)
     : (typeof config?.slotDurationMinutes === 'number' ? config.slotDurationMinutes : 90);
 
-  // Get current month and year for calendar
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  
+  // (Moved to top of component)
+
+  interface TimeSlot {
+    time: string;
+    available: boolean;
+    capacity?: number;
+    totalCapacity?: number;
+    sessionId?: string;
+    spots?: number;
+    reason?: string;
+  }
+
   // Calculate time slots dynamically based on selected game's schedule
-  const timeSlots = useMemo(() => {
+  const timeSlots: TimeSlot[] = useMemo(() => {
     if (!selectedGameData) return [];
-    
+
+    // If using real data (Venue Mode), map sessions to slots
+    if (config?.venueId && fetchedSessions.length > 0) {
+      return fetchedSessions.map(session => {
+        const date = new Date(session.start_time);
+        const timeZone = venue?.timezone || 'UTC';
+        const timeString = date.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          timeZone: venue?.timezone
+        });
+
+        return {
+          time: timeString,
+          available: session.capacity_remaining > 0,
+          capacity: session.capacity_remaining,
+          totalCapacity: session.capacity_total,
+          sessionId: session.id
+        };
+      });
+    }
+
     const selectedDateObj = new Date(currentYear, currentMonth, selectedDate);
-    // Use game schedule data from database (via useGames hook)
     const blockedDates = selectedGameData?.blockedDates || config?.blockedDates || [];
     const customAvailableDates = selectedGameData?.customDates || config?.customAvailableDates || [];
-    
-    return generateTimeSlots(
+
+    const schedule = selectedGameData.schedule || {
+      operatingDays: selectedGameData.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      startTime: selectedGameData.startTime || '10:00',
+      endTime: selectedGameData.endTime || '22:00',
+      slotInterval: selectedGameData.slotInterval || 60,
+      duration: typeof selectedGameData.duration === 'string' ? parseInt(selectedGameData.duration) : (selectedGameData.duration || 90),
+      advanceBooking: selectedGameData.advanceBooking || 30
+    };
+
+    const generatedSlots = generateTimeSlots(
       selectedDateObj,
-      {
-        operatingDays: selectedGameData.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-        startTime: selectedGameData.startTime || '10:00',
-        endTime: selectedGameData.endTime || '22:00',
-        slotInterval: selectedGameData.slotInterval || 60,
-        duration: typeof selectedGameData.duration === 'string' ? parseInt(selectedGameData.duration) : (selectedGameData.duration || 90),
-        advanceBooking: selectedGameData.advanceBooking || 30
-      },
+      schedule,
       blockedDates,
       [], // TODO: Load existing bookings from database
       customAvailableDates
     );
-  }, [selectedDate, currentMonth, currentYear, selectedGameData, config]);
+
+    return generatedSlots.map((slot: any) => ({
+      ...slot,
+      sessionId: undefined
+    }));
+  }, [selectedDate, currentMonth, currentYear, selectedGameData, config, fetchedSessions, venue?.timezone]);
 
   // Compute address details from config with sensible fallbacks (parity with single-game page)
   const streetAddress = (config?.streetAddress || config?.address || (selectedGameData as any)?.location?.address) as string | undefined;
@@ -317,7 +368,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
       console.error('Error loading bookings from localStorage:', error);
     }
   }, []);
-  
+
   // Handlers for promo code and gift card
   const handleApplyPromoCode = (code: string, discount: number, type: 'percentage' | 'fixed') => {
     setAppliedPromoCode({ code, discount, type });
@@ -339,27 +390,27 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
 
   // Calculate prices
   const calculateSubtotal = () => (selectedGameData?.price ?? 0) * partySize;
-  
+
   const calculateDiscount = () => {
     if (!appliedPromoCode) return 0;
     return appliedPromoCode.type === 'fixed'
       ? appliedPromoCode.discount
       : (calculateSubtotal() * appliedPromoCode.discount) / 100;
   };
-  
+
   const calculateGiftCardDiscount = () => {
     if (!appliedGiftCard) return 0;
     const afterPromo = calculateSubtotal() - calculateDiscount();
     return Math.min(appliedGiftCard.amount, afterPromo);
   };
-  
+
   const totalPrice = calculateSubtotal() - calculateDiscount() - calculateGiftCardDiscount();
   const bookingNumber = `BK-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
 
   const canAddToCart = selectedTime !== null;
-  
+
   const canCheckout = customerData.name !== '' && customerData.email !== '' && customerData.phone !== '';
-  
+
   // Only require contact info for Stripe Checkout redirect
   const canCompletePay = customerData.name !== '' && customerData.email !== '' && customerData.phone !== '';
 
@@ -435,7 +486,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
 
       // Step 3: Calculate final amount with discounts
       let finalAmount = totalPrice;
-      
+
       if (appliedPromoCode) {
         const promoValidation = await validatePromoCodeService(appliedPromoCode.code, finalAmount);
         if (!promoValidation.isValid) {
@@ -482,15 +533,15 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
       // Step 6: Parse and calculate time
       let startTime = selectedTime;
       let endTime = '';
-      
+
       const cleanedTime = selectedTime.trim().replace(/\s+/g, ' ');
       const timeMatch = cleanedTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-      
+
       if (timeMatch) {
         let hours = parseInt(timeMatch[1]);
         const minutes = parseInt(timeMatch[2]);
         const period = timeMatch[3];
-        
+
         if (period) {
           if (period.toUpperCase() === 'PM' && hours !== 12) {
             hours += 12;
@@ -498,13 +549,13 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
             hours = 0;
           }
         }
-        
+
         startTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-        
+
         const startDate = new Date();
         startDate.setHours(hours, minutes, 0, 0);
-        const duration = typeof selectedGameData?.duration === 'string' 
-          ? parseInt(selectedGameData.duration) 
+        const duration = typeof selectedGameData?.duration === 'string'
+          ? parseInt(selectedGameData.duration)
           : selectedGameData?.duration || 60;
         const endDate = new Date(startDate.getTime() + duration * 60000);
         endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
@@ -521,9 +572,14 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
         return;
       }
 
+      // Find selected slot to get sessionId
+      const selectedSlot = timeSlots.find((s: any) => s.time === selectedTime);
+      const sessionId = selectedSlot?.sessionId;
+
       const baseParams = {
         venueId: config.venueId,
         gameId: selectedGameData.id,
+        sessionId, // Pass sessionId
         bookingDate: isoDate,
         startTime,
         endTime,
@@ -537,23 +593,23 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
       if (paymentMethod === 'checkout') {
         // Check if game has a custom checkout URL configured
         const checkoutUrl = selectedGameData.stripeCheckoutUrl || selectedGameData.stripe_checkout_url;
-        
+
         if (checkoutUrl) {
           // OPTION 1A: Direct Stripe Checkout URL (Custom Payment Link) ⭐
           toast.success('Redirecting to checkout...', { id: 'booking-process' });
           console.log('Using custom checkout URL:', checkoutUrl);
-          
+
           // Redirect to custom Stripe checkout URL
           setTimeout(() => {
             window.location.href = checkoutUrl;
           }, 500);
           return;
         }
-        
+
         // OPTION 1B: Checkout Sessions (Stripe-hosted) ⭐
         try {
           toast.loading('Creating secure checkout...', { id: 'booking-process' });
-          
+
           console.log('Creating checkout with params:', {
             ...baseParams,
             priceId: baseParams.priceId // Log priceId
@@ -567,7 +623,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
 
           setBookingId(result.booking.id);
           toast.success('Redirecting to secure checkout...', { id: 'booking-process' });
-          
+
           // Redirect to Stripe Checkout
           setTimeout(() => {
             window.location.href = result.checkoutUrl;
@@ -578,21 +634,21 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
           setIsProcessing(false);
           return;
         }
-        
+
       } else if (paymentMethod === 'payment-link') {
         // OPTION 2: Payment Link (Email/SMS)
         try {
           toast.loading('Creating payment link...', { id: 'booking-process' });
-          
+
           const result = await CheckoutService.createBookingWithPaymentLink(baseParams);
-          
+
           setBookingId(result.booking.id);
           setConfirmationCode(`BK-${result.booking.id.substring(0, 8).toUpperCase()}`);
-          
+
           toast.success('Booking created! Payment link sent to your email.', { id: 'booking-process' });
           setCurrentStep('success');
           setIsProcessing(false);
-          
+
           // TODO: Send email with payment link
           console.log('Payment Link:', result.paymentLink);
         } catch (error: any) {
@@ -601,14 +657,14 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
           setIsProcessing(false);
           return;
         }
-        
+
       } else {
         // OPTION 3: Embedded Payment Element (fallback)
         try {
           toast.loading('Creating payment intent...', { id: 'booking-process' });
-          
+
           const bookingResult = await BookingService.createBookingWithPayment(baseParams);
-          
+
           setBookingId(bookingResult.bookingId);
           setClientSecret(bookingResult.clientSecret);
           toast.success('Proceeding to payment...', { id: 'booking-process' });
@@ -633,12 +689,12 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
   const handlePaymentSuccess = async (paymentIntent: any) => {
     try {
       console.log('Payment successful:', paymentIntent);
-      
+
       // Record promo code usage
       if (appliedPromoCode && bookingId) {
         await recordPromoCodeUsage(appliedPromoCode.code, bookingId);
       }
-      
+
       // Record gift card usage
       if (appliedGiftCard && bookingId) {
         await recordGiftCardUsage(appliedGiftCard.code, appliedGiftCard.amount, bookingId);
@@ -646,11 +702,11 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
 
       // Set confirmation code
       setConfirmationCode(bookingId);
-      
+
       // Move to success page
       setCurrentStep('success');
       toast.success('Payment successful! Booking confirmed.');
-      
+
     } catch (error) {
       console.error('Post-payment error:', error);
       // Payment succeeded but tracking failed (non-critical)
@@ -748,7 +804,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
     return (
       <form onSubmit={handlePaymentSubmit} className="space-y-6">
         <div className="space-y-4">
-          <PaymentElement 
+          <PaymentElement
             options={{
               layout: 'tabs',
               fields: {
@@ -766,7 +822,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
               }
             }}
           />
-          
+
           {paymentError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-800 flex items-center gap-2">
@@ -776,7 +832,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
             </div>
           )}
         </div>
-        
+
         <Button
           type="submit"
           disabled={!stripe || processing}
@@ -805,9 +861,8 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
-            className={`w-3 h-3 transition-all ${
-              star <= level ? 'fill-orange-400 text-orange-400 scale-100' : 'fill-gray-200 text-gray-200 scale-90'
-            }`}
+            className={`w-3 h-3 transition-all ${star <= level ? 'fill-orange-400 text-orange-400 scale-100' : 'fill-gray-200 text-gray-200 scale-90'
+              }`}
           />
         ))}
       </div>
@@ -998,1364 +1053,1363 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
               </DialogDescription>
             </DialogHeader>
           </VisuallyHidden>
-          
+
           <div className="flex-1 overflow-hidden">
             <ScrollArea className="h-full w-full">
               {/* Hero Cover Section */}
               <div className="relative w-full h-[400px] sm:h-[500px] overflow-hidden">
-              {/* Background Image with Overlay */}
-              <div className="absolute inset-0">
-                <ImageWithFallback
-                  src={selectedGameData.image}
-                  alt={selectedGameData.name}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
-              </div>
+                {/* Background Image with Overlay */}
+                <div className="absolute inset-0">
+                  <ImageWithFallback
+                    src={selectedGameData.image}
+                    alt={selectedGameData.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
+                </div>
 
-              {/* Hero Content */}
-              <div className="relative h-full flex flex-col justify-end p-6 sm:p-10 lg:p-12">
-                {/* Badges */}
-                <div className="flex items-center gap-3 mb-4">
-                  {selectedGameData.featured && (
-                    <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-0 px-3 py-1 text-sm">
-                      ⭐ Featured
+                {/* Hero Content */}
+                <div className="relative h-full flex flex-col justify-end p-6 sm:p-10 lg:p-12">
+                  {/* Badges */}
+                  <div className="flex items-center gap-3 mb-4">
+                    {selectedGameData.featured && (
+                      <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-0 px-3 py-1 text-sm">
+                        ⭐ Featured
+                      </Badge>
+                    )}
+                    <Badge className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm px-3 py-1 text-sm">
+                      <Star className="w-3 h-3 fill-white mr-1" />
+                      {selectedGameData.rating} ({selectedGameData.reviewCount} reviews)
                     </Badge>
-                  )}
-                  <Badge className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm px-3 py-1 text-sm">
-                    <Star className="w-3 h-3 fill-white mr-1" />
-                    {selectedGameData.rating} ({selectedGameData.reviewCount} reviews)
-                  </Badge>
-                </div>
+                  </div>
 
-                {/* Title */}
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl text-white mb-3 sm:mb-4">
-                  {selectedGameData.name}
-                </h1>
+                  {/* Title */}
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl text-white mb-3 sm:mb-4">
+                    {selectedGameData.name}
+                  </h1>
 
-                {/* Description */}
-                <p className="text-base sm:text-lg text-gray-200 mb-6 sm:mb-8 max-w-3xl">
-                  {selectedGameData.description}
-                </p>
+                  {/* Description */}
+                  <p className="text-base sm:text-lg text-gray-200 mb-6 sm:mb-8 max-w-3xl">
+                    {selectedGameData.description}
+                  </p>
 
-                {/* Quick Info Pills */}
-                <div className="flex flex-wrap gap-3 mb-6">
-                  <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-white" />
-                    <div>
-                      <div className="text-xs text-gray-300">Duration</div>
-                      <div className="text-sm text-white">{selectedGameData.duration}</div>
+                  {/* Quick Info Pills */}
+                  <div className="flex flex-wrap gap-3 mb-6">
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-white" />
+                      <div>
+                        <div className="text-xs text-gray-300">Duration</div>
+                        <div className="text-sm text-white">{selectedGameData.duration}</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
+                      <Users className="w-5 h-5 text-white" />
+                      <div>
+                        <div className="text-xs text-gray-300">Players</div>
+                        <div className="text-sm text-white">{selectedGameData.players}</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
+                      <Target className="w-5 h-5 text-white" />
+                      <div>
+                        <div className="text-xs text-gray-300">Difficulty</div>
+                        <div className="text-sm text-white">{selectedGameData.difficulty}</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
+                      <Award className="w-5 h-5 text-white" />
+                      <div>
+                        <div className="text-xs text-gray-300">Type</div>
+                        <div className="text-sm text-white">{selectedGameData.gameType}</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-white" />
+                      <div>
+                        <div className="text-xs text-gray-300">Location</div>
+                        <div className="text-sm text-white">Downtown</div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-white" />
-                    <div>
-                      <div className="text-xs text-gray-300">Players</div>
-                      <div className="text-sm text-white">{selectedGameData.players}</div>
-                    </div>
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      className="bg-white/10 hover:bg-white/20 text-white border border-white/30 backdrop-blur-md transition-all"
+                      variant="outline"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      View Gallery
+                    </Button>
+                    <Button
+                      className="bg-white/10 hover:bg-white/20 text-white border border-white/30 backdrop-blur-md transition-all"
+                      variant="outline"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Watch Video
+                    </Button>
                   </div>
-
-                  <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
-                    <Target className="w-5 h-5 text-white" />
-                    <div>
-                      <div className="text-xs text-gray-300">Difficulty</div>
-                      <div className="text-sm text-white">{selectedGameData.difficulty}</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
-                    <Award className="w-5 h-5 text-white" />
-                    <div>
-                      <div className="text-xs text-gray-300">Type</div>
-                      <div className="text-sm text-white">{selectedGameData.gameType}</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-white" />
-                    <div>
-                      <div className="text-xs text-gray-300">Location</div>
-                      <div className="text-sm text-white">Downtown</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-3">
-                  <Button 
-                    className="bg-white/10 hover:bg-white/20 text-white border border-white/30 backdrop-blur-md transition-all"
-                    variant="outline"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    View Gallery
-                  </Button>
-                  <Button 
-                    className="bg-white/10 hover:bg-white/20 text-white border border-white/30 backdrop-blur-md transition-all"
-                    variant="outline"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Watch Video
-                  </Button>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-8 sm:space-y-10 p-4 sm:p-6 lg:p-8 pb-20">
-              {/* Hero Gallery */}
-              <section aria-label="Photo gallery">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  {selectedGameData.gallery.map((image, index) => (
-                    <div 
-                      key={index} 
-                      className="group aspect-video rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 relative"
-                    >
-                      <ImageWithFallback
-                        src={image}
-                        alt={`${selectedGameData.name} escape room - View ${index + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* Overview */}
-              <section aria-labelledby="overview-heading" className="scroll-mt-20">
-                <div className="flex items-center justify-between mb-4 sm:mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
-                      <Sparkles className="w-5 h-5" style={{ color: primaryColor }} />
-                    </div>
-                    <h2 id="overview-heading" className="text-2xl sm:text-3xl text-gray-900">
-                      Overview
-                    </h2>
-                  </div>
-                </div>
-                <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100">
-                  <p className="text-base sm:text-lg text-gray-700 leading-relaxed mb-6">
-                    {selectedGameData.longDescription}
-                  </p>
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 sm:p-5 rounded-r-lg">
-                    <div className="flex items-start gap-3">
-                      <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm sm:text-base text-gray-700">
-                        <strong className="text-blue-900">At a Glance:</strong> {selectedGameData.description}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Collapsible Information Sections - SEO & LLM Optimized */}
-              <section aria-labelledby="detailed-info-heading" className="scroll-mt-20">
-                <VisuallyHidden>
-                  <h2 id="detailed-info-heading">Detailed Activity Information</h2>
-                </VisuallyHidden>
-                
-                <Accordion type="single" collapsible defaultValue="activity-details" className="space-y-4">
-                  {/* Activity Details */}
-                  <AccordionItem 
-                    value="activity-details" 
-                    className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
-                    data-seo-section="activity-details"
-                  >
-                    <AccordionTrigger className="px-6 py-4 hover:bg-gray-50 transition-colors [&[data-state=open]]:bg-gray-50">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100">
-                          <Briefcase className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <span className="text-lg text-gray-900">Activity Details</span>
+              <div className="space-y-8 sm:space-y-10 p-4 sm:p-6 lg:p-8 pb-20">
+                {/* Hero Gallery */}
+                <section aria-label="Photo gallery">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {selectedGameData.gallery.map((image, index) => (
+                      <div
+                        key={index}
+                        className="group aspect-video rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 relative"
+                      >
+                        <ImageWithFallback
+                          src={image}
+                          alt={`${selectedGameData.name} escape room - View ${index + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-6 pb-6">
-                      <div className="space-y-6 pt-2">
-                        {/* Duration & Group Size */}
-                        <div className="grid sm:grid-cols-2 gap-6">
-                          <div itemScope itemType="https://schema.org/Duration">
-                            <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
-                              <Clock className="w-5 h-5" style={{ color: primaryColor }} />
-                              Duration
-                            </h3>
-                            <p className="text-gray-700" itemProp="duration">
-                              <strong className="text-xl" style={{ color: primaryColor }}>{selectedGameData.duration}</strong>
-                            </p>
-                            <p className="text-sm text-gray-600 mt-1">
-                              Total experience time including briefing and debriefing
-                            </p>
-                          </div>
+                    ))}
+                  </div>
+                </section>
 
-                          <div itemScope itemType="https://schema.org/QuantitativeValue">
-                            <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
-                              <Users className="w-5 h-5" style={{ color: primaryColor }} />
-                              Group Size
-                            </h3>
-                            <p className="text-gray-700" itemProp="value">
-                              <strong className="text-xl" style={{ color: primaryColor }}>{selectedGameData.players}</strong>
-                            </p>
-                            <p className="text-sm text-gray-600 mt-1">
-                              Private experience - your group only
-                            </p>
+                {/* Overview */}
+                <section aria-labelledby="overview-heading" className="scroll-mt-20">
+                  <div className="flex items-center justify-between mb-4 sm:mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
+                        <Sparkles className="w-5 h-5" style={{ color: primaryColor }} />
+                      </div>
+                      <h2 id="overview-heading" className="text-2xl sm:text-3xl text-gray-900">
+                        Overview
+                      </h2>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100">
+                    <p className="text-base sm:text-lg text-gray-700 leading-relaxed mb-6">
+                      {selectedGameData.longDescription}
+                    </p>
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 sm:p-5 rounded-r-lg">
+                      <div className="flex items-start gap-3">
+                        <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm sm:text-base text-gray-700">
+                          <strong className="text-blue-900">At a Glance:</strong> {selectedGameData.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Collapsible Information Sections - SEO & LLM Optimized */}
+                <section aria-labelledby="detailed-info-heading" className="scroll-mt-20">
+                  <VisuallyHidden>
+                    <h2 id="detailed-info-heading">Detailed Activity Information</h2>
+                  </VisuallyHidden>
+
+                  <Accordion type="single" collapsible defaultValue="activity-details" className="space-y-4">
+                    {/* Activity Details */}
+                    <AccordionItem
+                      value="activity-details"
+                      className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+                      data-seo-section="activity-details"
+                    >
+                      <AccordionTrigger className="px-6 py-4 hover:bg-gray-50 transition-colors [&[data-state=open]]:bg-gray-50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100">
+                            <Briefcase className="w-5 h-5 text-blue-600" />
                           </div>
+                          <span className="text-lg text-gray-900">Activity Details</span>
                         </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-6 pb-6">
+                        <div className="space-y-6 pt-2">
+                          {/* Duration & Group Size */}
+                          <div className="grid sm:grid-cols-2 gap-6">
+                            <div itemScope itemType="https://schema.org/Duration">
+                              <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
+                                <Clock className="w-5 h-5" style={{ color: primaryColor }} />
+                                Duration
+                              </h3>
+                              <p className="text-gray-700" itemProp="duration">
+                                <strong className="text-xl" style={{ color: primaryColor }}>{selectedGameData.duration}</strong>
+                              </p>
+                              <p className="text-sm text-gray-600 mt-1">
+                                Total experience time including briefing and debriefing
+                              </p>
+                            </div>
 
-                        <Separator />
+                            <div itemScope itemType="https://schema.org/QuantitativeValue">
+                              <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
+                                <Users className="w-5 h-5" style={{ color: primaryColor }} />
+                                Group Size
+                              </h3>
+                              <p className="text-gray-700" itemProp="value">
+                                <strong className="text-xl" style={{ color: primaryColor }}>{selectedGameData.players}</strong>
+                              </p>
+                              <p className="text-sm text-gray-600 mt-1">
+                                Private experience - your group only
+                              </p>
+                            </div>
+                          </div>
 
-                        {/* Difficulty Level */}
-                        <div>
-                          <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
-                            <Target className="w-5 h-5" style={{ color: primaryColor }} />
-                            Difficulty Level
-                          </h3>
-                          <div className="flex items-center gap-3">
-                            <div className="flex gap-1">
-                              {[1, 2, 3, 4, 5].map((level) => (
-                                <div
-                                  key={level}
-                                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-                                    level <= selectedGameData.difficulty
+                          <Separator />
+
+                          {/* Difficulty Level */}
+                          <div>
+                            <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
+                              <Target className="w-5 h-5" style={{ color: primaryColor }} />
+                              Difficulty Level
+                            </h3>
+                            <div className="flex items-center gap-3">
+                              <div className="flex gap-1">
+                                {[1, 2, 3, 4, 5].map((level) => (
+                                  <div
+                                    key={level}
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${level <= selectedGameData.difficulty
                                       ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md'
                                       : 'bg-gray-200 text-gray-400'
-                                  }`}
-                                >
-                                  <span className="text-xs">{level}</span>
-                                </div>
+                                      }`}
+                                  >
+                                    <span className="text-xs">{level}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <span className="text-gray-700">
+                                <strong style={{ color: primaryColor }}>{selectedGameData.difficulty}/5</strong> - {selectedGameData.difficulty <= 2 ? 'Beginner Friendly' : selectedGameData.difficulty <= 3 ? 'Moderate Challenge' : 'Advanced Puzzlers'}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-2">
+                              {selectedGameData.difficulty <= 2
+                                ? 'Perfect for first-time escape room enthusiasts and families'
+                                : selectedGameData.difficulty <= 3
+                                  ? 'Suitable for those with some escape room experience'
+                                  : 'Recommended for experienced escape room teams'}
+                            </p>
+                          </div>
+
+                          <Separator />
+
+                          {/* What's Included */}
+                          <div>
+                            <h3 className="text-base text-gray-900 mb-4 flex items-center gap-2">
+                              <CheckCircle2 className="w-5 h-5 text-green-600" />
+                              What's Included
+                            </h3>
+                            <ul className="space-y-3">
+                              {selectedGameData.whatToExpect.map((item: string, index: number) => (
+                                <li key={index} className="flex items-start gap-3">
+                                  <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-600" />
+                                  <span className="text-gray-700">{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          <Separator />
+
+                          {/* Meeting Point */}
+                          <div itemScope itemType="https://schema.org/Place">
+                            <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
+                              <MapPin className="w-5 h-5" style={{ color: primaryColor }} />
+                              Meeting Point
+                            </h3>
+                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                              <p className="text-gray-700" itemProp="address">
+                                <strong>123 Adventure Street, Downtown District</strong><br />
+                                New York, NY 10001
+                              </p>
+                              <p className="text-sm text-gray-600 mt-2">
+                                Please arrive <strong className="text-blue-900">15 minutes before</strong> your scheduled time for check-in and game briefing
+                              </p>
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* Languages Offered */}
+                          <div>
+                            <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
+                              <Languages className="w-5 h-5" style={{ color: primaryColor }} />
+                              Available Languages
+                            </h3>
+                            <div className="flex flex-wrap gap-2">
+                              {['English', 'Spanish', 'French', 'German'].map((lang) => (
+                                <Badge key={lang} variant="secondary" className="text-sm px-3 py-1">
+                                  {lang}
+                                </Badge>
                               ))}
                             </div>
-                            <span className="text-gray-700">
-                              <strong style={{ color: primaryColor }}>{selectedGameData.difficulty}/5</strong> - {selectedGameData.difficulty <= 2 ? 'Beginner Friendly' : selectedGameData.difficulty <= 3 ? 'Moderate Challenge' : 'Advanced Puzzlers'}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-2">
-                            {selectedGameData.difficulty <= 2 
-                              ? 'Perfect for first-time escape room enthusiasts and families' 
-                              : selectedGameData.difficulty <= 3 
-                              ? 'Suitable for those with some escape room experience'
-                              : 'Recommended for experienced escape room teams'}
-                          </p>
-                        </div>
-
-                        <Separator />
-
-                        {/* What's Included */}
-                        <div>
-                          <h3 className="text-base text-gray-900 mb-4 flex items-center gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-green-600" />
-                            What's Included
-                          </h3>
-                          <ul className="space-y-3">
-                            {selectedGameData.whatToExpect.map((item: string, index: number) => (
-                              <li key={index} className="flex items-start gap-3">
-                                <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-600" />
-                                <span className="text-gray-700">{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        <Separator />
-
-                        {/* Meeting Point */}
-                        <div itemScope itemType="https://schema.org/Place">
-                          <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
-                            <MapPin className="w-5 h-5" style={{ color: primaryColor }} />
-                            Meeting Point
-                          </h3>
-                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                            <p className="text-gray-700" itemProp="address">
-                              <strong>123 Adventure Street, Downtown District</strong><br />
-                              New York, NY 10001
-                            </p>
                             <p className="text-sm text-gray-600 mt-2">
-                              Please arrive <strong className="text-blue-900">15 minutes before</strong> your scheduled time for check-in and game briefing
+                              Game master can provide hints and instructions in multiple languages
                             </p>
                           </div>
-                        </div>
 
-                        <Separator />
-
-                        {/* Languages Offered */}
-                        <div>
-                          <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
-                            <Languages className="w-5 h-5" style={{ color: primaryColor }} />
-                            Available Languages
-                          </h3>
-                          <div className="flex flex-wrap gap-2">
-                            {['English', 'Spanish', 'French', 'German'].map((lang) => (
-                              <Badge key={lang} variant="secondary" className="text-sm px-3 py-1">
-                                {lang}
-                              </Badge>
-                            ))}
-                          </div>
-                          <p className="text-sm text-gray-600 mt-2">
-                            Game master can provide hints and instructions in multiple languages
-                          </p>
-                        </div>
-
-                        {/* Age Recommendation */}
-                        <div className="bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 dark:border-amber-600 p-3 sm:p-4 rounded-r-lg">
-                          <div className="flex items-start gap-2 sm:gap-3">
-                            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 break-words">
-                                <strong className="text-amber-900 dark:text-amber-200">Age Requirement:</strong> Recommended for ages {selectedGameData.ageRecommendation}. Children under 16 must be accompanied by an adult.
-                              </p>
+                          {/* Age Recommendation */}
+                          <div className="bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 dark:border-amber-600 p-3 sm:p-4 rounded-r-lg">
+                            <div className="flex items-start gap-2 sm:gap-3">
+                              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 break-words">
+                                  <strong className="text-amber-900 dark:text-amber-200">Age Requirement:</strong> Recommended for ages {selectedGameData.ageRecommendation}. Children under 16 must be accompanied by an adult.
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                  {/* Additional Information */}
-                  <AccordionItem 
-                    value="additional-info" 
-                    className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
-                    data-seo-section="additional-information"
-                  >
-                    <AccordionTrigger className="px-6 py-4 hover:bg-gray-50 transition-colors [&[data-state=open]]:bg-gray-50">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-purple-100">
-                          <Info className="w-5 h-5 text-purple-600" />
+                    {/* Additional Information */}
+                    <AccordionItem
+                      value="additional-info"
+                      className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+                      data-seo-section="additional-information"
+                    >
+                      <AccordionTrigger className="px-6 py-4 hover:bg-gray-50 transition-colors [&[data-state=open]]:bg-gray-50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-purple-100">
+                            <Info className="w-5 h-5 text-purple-600" />
+                          </div>
+                          <span className="text-lg text-gray-900">Additional Information</span>
                         </div>
-                        <span className="text-lg text-gray-900">Additional Information</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-6 pb-6">
-                      <div className="space-y-6 pt-2">
-                        {/* Accessibility */}
-                        <div>
-                          <h3 className="text-base text-gray-900 mb-4 flex items-center gap-2">
-                            <Shield className="w-5 h-5 text-blue-600" />
-                            Accessibility & Accommodations
-                          </h3>
-                          <ul className="space-y-2 text-gray-700">
-                            <li className="flex items-start gap-2">
-                              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                              <span>Wheelchair accessible facility with elevator access</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                              <span>Accessible restroom facilities available</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                              <span>Service animals are welcome</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                              <span>Special accommodations available - contact us in advance</span>
-                            </li>
-                          </ul>
-                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-6 pb-6">
+                        <div className="space-y-6 pt-2">
+                          {/* Accessibility */}
+                          <div>
+                            <h3 className="text-base text-gray-900 mb-4 flex items-center gap-2">
+                              <Shield className="w-5 h-5 text-blue-600" />
+                              Accessibility & Accommodations
+                            </h3>
+                            <ul className="space-y-2 text-gray-700">
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                                <span>Wheelchair accessible facility with elevator access</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                                <span>Accessible restroom facilities available</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                                <span>Service animals are welcome</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                                <span>Special accommodations available - contact us in advance</span>
+                              </li>
+                            </ul>
+                          </div>
 
-                        <Separator />
+                          <Separator />
 
-                        {/* Health & Safety */}
-                        <div>
-                          <h3 className="text-base text-gray-900 mb-4 flex items-center gap-2">
-                            <Heart className="w-5 h-5 text-red-500" />
-                            Health & Safety Protocols
-                          </h3>
-                          <ul className="space-y-2 text-gray-700">
-                            <li className="flex items-start gap-2">
-                              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                              <span>Rooms sanitized and disinfected between each group</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                              <span>Emergency exits clearly marked and accessible at all times</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                              <span>Game master monitoring via live camera feed</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                              <span>First aid certified staff on-site during all operating hours</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                              <span>Climate-controlled environment for your comfort</span>
-                            </li>
-                          </ul>
-                        </div>
+                          {/* Health & Safety */}
+                          <div>
+                            <h3 className="text-base text-gray-900 mb-4 flex items-center gap-2">
+                              <Heart className="w-5 h-5 text-red-500" />
+                              Health & Safety Protocols
+                            </h3>
+                            <ul className="space-y-2 text-gray-700">
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                                <span>Rooms sanitized and disinfected between each group</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                                <span>Emergency exits clearly marked and accessible at all times</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                                <span>Game master monitoring via live camera feed</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                                <span>First aid certified staff on-site during all operating hours</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                                <span>Climate-controlled environment for your comfort</span>
+                              </li>
+                            </ul>
+                          </div>
 
-                        <Separator />
+                          <Separator />
 
-                        {/* What to Bring/Wear */}
-                        <div>
-                          <h3 className="text-base text-gray-900 mb-4 flex items-center gap-2">
-                            <User className="w-5 h-5" style={{ color: primaryColor }} />
-                            What to Bring & Wear
-                          </h3>
-                          <div className="grid sm:grid-cols-2 gap-4">
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                              <h4 className="text-sm text-green-900 mb-2 flex items-center gap-2">
-                                <CheckCircle2 className="w-4 h-4" />
-                                Recommended
-                              </h4>
-                              <ul className="space-y-1 text-sm text-gray-700">
-                                <li>• Comfortable casual clothing</li>
-                                <li>• Closed-toe shoes (required)</li>
-                                <li>• Enthusiasm and team spirit!</li>
-                                <li>• Your confirmation email/QR code</li>
-                              </ul>
+                          {/* What to Bring/Wear */}
+                          <div>
+                            <h3 className="text-base text-gray-900 mb-4 flex items-center gap-2">
+                              <User className="w-5 h-5" style={{ color: primaryColor }} />
+                              What to Bring & Wear
+                            </h3>
+                            <div className="grid sm:grid-cols-2 gap-4">
+                              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <h4 className="text-sm text-green-900 mb-2 flex items-center gap-2">
+                                  <CheckCircle2 className="w-4 h-4" />
+                                  Recommended
+                                </h4>
+                                <ul className="space-y-1 text-sm text-gray-700">
+                                  <li>• Comfortable casual clothing</li>
+                                  <li>• Closed-toe shoes (required)</li>
+                                  <li>• Enthusiasm and team spirit!</li>
+                                  <li>• Your confirmation email/QR code</li>
+                                </ul>
+                              </div>
+                              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <h4 className="text-sm text-red-900 mb-2 flex items-center gap-2">
+                                  <XCircle className="w-4 h-4" />
+                                  Not Recommended
+                                </h4>
+                                <ul className="space-y-1 text-sm text-gray-700">
+                                  <li>• Loose jewelry or accessories</li>
+                                  <li>• High heels or open-toed shoes</li>
+                                  <li>• Large bags (lockers provided)</li>
+                                  <li>• Outside food or beverages</li>
+                                </ul>
+                              </div>
                             </div>
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                              <h4 className="text-sm text-red-900 mb-2 flex items-center gap-2">
-                                <XCircle className="w-4 h-4" />
-                                Not Recommended
-                              </h4>
-                              <ul className="space-y-1 text-sm text-gray-700">
-                                <li>• Loose jewelry or accessories</li>
-                                <li>• High heels or open-toed shoes</li>
-                                <li>• Large bags (lockers provided)</li>
-                                <li>• Outside food or beverages</li>
-                              </ul>
+                            <p className="text-sm text-gray-600 mt-3 bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r-lg">
+                              <strong className="text-blue-900">Note:</strong> You may need to kneel, reach, crawl, or perform light physical activity. All puzzles can be solved through teamwork and creativity.
+                            </p>
+                          </div>
+
+                          <Separator />
+
+                          {/* Restrictions */}
+                          <div>
+                            <h3 className="text-base text-gray-900 mb-4 flex items-center gap-2">
+                              <AlertCircle className="w-5 h-5 text-amber-600" />
+                              Important Restrictions
+                            </h3>
+                            <ul className="space-y-2 text-gray-700">
+                              <li className="flex items-start gap-2">
+                                <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" />
+                                <span>Not suitable for individuals with severe claustrophobia</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" />
+                                <span>No outside food, drinks, or smoking permitted in game rooms</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" />
+                                <span>Photography/video recording not allowed inside game room (lobby photos OK)</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" />
+                                <span>All participants must sign waiver (minors need parent/guardian signature)</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" />
+                                <span>Pregnant individuals should consult with staff before participating</span>
+                              </li>
+                            </ul>
+                          </div>
+
+                          {/* Photography Policy */}
+                          <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-l-4 border-purple-500 p-4 rounded-r-lg">
+                            <div className="flex items-start gap-3">
+                              <Camera className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <h4 className="text-sm text-purple-900 mb-1">Photography Policy</h4>
+                                <p className="text-sm text-gray-700">
+                                  Photos and videos welcome in our lobby! Inside the game room, photography is not permitted to preserve the mystery for future players. We'll take a professional victory photo for successful teams!
+                                </p>
+                              </div>
                             </div>
                           </div>
-                          <p className="text-sm text-gray-600 mt-3 bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r-lg">
-                            <strong className="text-blue-900">Note:</strong> You may need to kneel, reach, crawl, or perform light physical activity. All puzzles can be solved through teamwork and creativity.
-                          </p>
                         </div>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                        <Separator />
-
-                        {/* Restrictions */}
-                        <div>
-                          <h3 className="text-base text-gray-900 mb-4 flex items-center gap-2">
-                            <AlertCircle className="w-5 h-5 text-amber-600" />
-                            Important Restrictions
-                          </h3>
-                          <ul className="space-y-2 text-gray-700">
-                            <li className="flex items-start gap-2">
-                              <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" />
-                              <span>Not suitable for individuals with severe claustrophobia</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" />
-                              <span>No outside food, drinks, or smoking permitted in game rooms</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" />
-                              <span>Photography/video recording not allowed inside game room (lobby photos OK)</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" />
-                              <span>All participants must sign waiver (minors need parent/guardian signature)</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" />
-                              <span>Pregnant individuals should consult with staff before participating</span>
-                            </li>
-                          </ul>
-                        </div>
-
-                        {/* Photography Policy */}
-                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-l-4 border-purple-500 p-4 rounded-r-lg">
-                          <div className="flex items-start gap-3">
-                            <Camera className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <h4 className="text-sm text-purple-900 mb-1">Photography Policy</h4>
-                              <p className="text-sm text-gray-700">
-                                Photos and videos welcome in our lobby! Inside the game room, photography is not permitted to preserve the mystery for future players. We'll take a professional victory photo for successful teams!
-                              </p>
-                            </div>
+                    {/* FAQs */}
+                    <AccordionItem
+                      value="faqs"
+                      className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+                      data-seo-section="frequently-asked-questions"
+                      itemScope
+                      itemType="https://schema.org/FAQPage"
+                    >
+                      <AccordionTrigger className="px-6 py-4 hover:bg-gray-50 transition-colors [&[data-state=open]]:bg-gray-50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100">
+                            <HelpCircle className="w-5 h-5 text-green-600" />
                           </div>
+                          <span className="text-lg text-gray-900">Frequently Asked Questions</span>
                         </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-6 pb-6">
+                        <div className="space-y-5 pt-2">
+                          {selectedGameData.faq.map((item: any, index: number) => (
+                            <div
+                              key={index}
+                              className="bg-gradient-to-br from-white to-gray-50 rounded-lg p-5 border border-gray-200"
+                              itemScope
+                              itemProp="mainEntity"
+                              itemType="https://schema.org/Question"
+                            >
+                              <h3 className="text-base text-gray-900 mb-2 flex items-start gap-2" itemProp="name">
+                                <HelpCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: primaryColor }} />
+                                <span>{item.question}</span>
+                              </h3>
+                              <div
+                                itemScope
+                                itemProp="acceptedAnswer"
+                                itemType="https://schema.org/Answer"
+                              >
+                                <p className="text-gray-700 ml-7" itemProp="text">
+                                  {item.answer}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
 
-                  {/* FAQs */}
-                  <AccordionItem 
-                    value="faqs" 
-                    className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
-                    data-seo-section="frequently-asked-questions"
-                    itemScope 
-                    itemType="https://schema.org/FAQPage"
-                  >
-                    <AccordionTrigger className="px-6 py-4 hover:bg-gray-50 transition-colors [&[data-state=open]]:bg-gray-50">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100">
-                          <HelpCircle className="w-5 h-5 text-green-600" />
-                        </div>
-                        <span className="text-lg text-gray-900">Frequently Asked Questions</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-6 pb-6">
-                      <div className="space-y-5 pt-2">
-                        {selectedGameData.faq.map((item: any, index: number) => (
-                          <div 
-                            key={index} 
-                            className="bg-gradient-to-br from-white to-gray-50 rounded-lg p-5 border border-gray-200"
-                            itemScope 
-                            itemProp="mainEntity" 
-                            itemType="https://schema.org/Question"
-                          >
+                          {/* Additional Universal FAQs */}
+                          <Separator className="my-4" />
+
+                          <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg p-5 border border-gray-200" itemScope itemProp="mainEntity" itemType="https://schema.org/Question">
                             <h3 className="text-base text-gray-900 mb-2 flex items-start gap-2" itemProp="name">
                               <HelpCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: primaryColor }} />
-                              <span>{item.question}</span>
+                              <span>Do I need to book in advance?</span>
                             </h3>
-                            <div 
-                              itemScope 
-                              itemProp="acceptedAnswer" 
-                              itemType="https://schema.org/Answer"
-                            >
+                            <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
                               <p className="text-gray-700 ml-7" itemProp="text">
-                                {item.answer}
+                                Yes, advance booking is required. We recommend booking at least 2-3 days in advance, especially for weekends and evenings. Walk-ins are accepted only if we have availability.
                               </p>
                             </div>
                           </div>
-                        ))}
 
-                        {/* Additional Universal FAQs */}
-                        <Separator className="my-4" />
-                        
-                        <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg p-5 border border-gray-200" itemScope itemProp="mainEntity" itemType="https://schema.org/Question">
-                          <h3 className="text-base text-gray-900 mb-2 flex items-start gap-2" itemProp="name">
-                            <HelpCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: primaryColor }} />
-                            <span>Do I need to book in advance?</span>
-                          </h3>
-                          <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
-                            <p className="text-gray-700 ml-7" itemProp="text">
-                              Yes, advance booking is required. We recommend booking at least 2-3 days in advance, especially for weekends and evenings. Walk-ins are accepted only if we have availability.
-                            </p>
+                          <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg p-5 border border-gray-200" itemScope itemProp="mainEntity" itemType="https://schema.org/Question">
+                            <h3 className="text-base text-gray-900 mb-2 flex items-start gap-2" itemProp="name">
+                              <HelpCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: primaryColor }} />
+                              <span>Can I change my booking date/time?</span>
+                            </h3>
+                            <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
+                              <p className="text-gray-700 ml-7" itemProp="text">
+                                Yes! You can reschedule your booking free of charge up to 48 hours before your scheduled time. Contact us via phone or email with your booking reference.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg p-5 border border-gray-200" itemScope itemProp="mainEntity" itemType="https://schema.org/Question">
+                            <h3 className="text-base text-gray-900 mb-2 flex items-start gap-2" itemProp="name">
+                              <HelpCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: primaryColor }} />
+                              <span>Is this escape room scary or horror-themed?</span>
+                            </h3>
+                            <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
+                              <p className="text-gray-700 ml-7" itemProp="text">
+                                {selectedGameData.difficulty <= 2
+                                  ? 'This room has a mysterious atmosphere but is designed to be family-friendly without jump scares or intense horror elements.'
+                                  : 'While this room has some atmospheric elements, it focuses on puzzles and mystery rather than horror. There are no actors or jump scares.'}
+                              </p>
+                            </div>
                           </div>
                         </div>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                        <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg p-5 border border-gray-200" itemScope itemProp="mainEntity" itemType="https://schema.org/Question">
-                          <h3 className="text-base text-gray-900 mb-2 flex items-start gap-2" itemProp="name">
-                            <HelpCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: primaryColor }} />
-                            <span>Can I change my booking date/time?</span>
-                          </h3>
-                          <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
-                            <p className="text-gray-700 ml-7" itemProp="text">
-                              Yes! You can reschedule your booking free of charge up to 48 hours before your scheduled time. Contact us via phone or email with your booking reference.
-                            </p>
+                    {/* Cancellation Policy */}
+                    <AccordionItem
+                      value="cancellation"
+                      className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+                      data-seo-section="cancellation-refund-policy"
+                    >
+                      <AccordionTrigger className="px-6 py-4 hover:bg-gray-50 transition-colors [&[data-state=open]]:bg-gray-50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-orange-100">
+                            <RefreshCw className="w-5 h-5 text-orange-600" />
                           </div>
+                          <span className="text-lg text-gray-900">Cancellation & Refund Policy</span>
                         </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-6 pb-6">
+                        <div className="space-y-6 pt-2">
+                          {/* Cancellation Timeline */}
+                          <div>
+                            <h3 className="text-base text-gray-900 mb-4 flex items-center gap-2">
+                              <Clock className="w-5 h-5" style={{ color: primaryColor }} />
+                              Cancellation Timeline & Refunds
+                            </h3>
+                            <div className="space-y-4">
+                              <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                                <div className="flex items-start gap-3">
+                                  <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <h4 className="text-sm text-green-900 mb-1">48+ Hours Before</h4>
+                                    <p className="text-sm text-gray-700">
+                                      <strong>Free cancellation</strong> - Full 100% refund to original payment method or free rescheduling to any available time slot
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
 
-                        <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg p-5 border border-gray-200" itemScope itemProp="mainEntity" itemType="https://schema.org/Question">
-                          <h3 className="text-base text-gray-900 mb-2 flex items-start gap-2" itemProp="name">
-                            <HelpCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: primaryColor }} />
-                            <span>Is this escape room scary or horror-themed?</span>
-                          </h3>
-                          <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
-                            <p className="text-gray-700 ml-7" itemProp="text">
-                              {selectedGameData.difficulty <= 2 
-                                ? 'This room has a mysterious atmosphere but is designed to be family-friendly without jump scares or intense horror elements.' 
-                                : 'While this room has some atmospheric elements, it focuses on puzzles and mystery rather than horror. There are no actors or jump scares.'}
-                            </p>
+                              <div className="bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 dark:border-amber-600 p-3 sm:p-4 rounded-r-lg">
+                                <div className="flex items-start gap-2 sm:gap-3">
+                                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="text-xs sm:text-sm text-amber-900 dark:text-amber-200 mb-1 font-semibold">24-48 Hours Before</h4>
+                                    <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 break-words">
+                                      <strong>50% refund</strong> or <strong>free rescheduling</strong> - Your choice of partial refund or move to another available date/time
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                                <div className="flex items-start gap-3">
+                                  <XCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <h4 className="text-sm text-red-900 mb-1">Less than 24 Hours</h4>
+                                    <p className="text-sm text-gray-700">
+                                      <strong>No refund</strong> - However, you may reschedule <strong>one time</strong> for a $25 rescheduling fee (subject to availability)
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                                <div className="flex items-start gap-3">
+                                  <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <h4 className="text-sm text-blue-900 mb-1">No-Show Policy</h4>
+                                    <p className="text-sm text-gray-700">
+                                      If you don't arrive for your scheduled booking and haven't contacted us, <strong>no refund or rescheduling</strong> will be offered. Full booking fee is forfeited.
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
                           </div>
+
+                          <Separator />
+
+                          {/* How to Cancel or Reschedule */}
+                          <div>
+                            <h3 className="text-base text-gray-900 mb-4 flex items-center gap-2">
+                              <Phone className="w-5 h-5" style={{ color: primaryColor }} />
+                              How to Cancel or Reschedule
+                            </h3>
+                            <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg p-5 border border-gray-200">
+                              <ol className="space-y-3">
+                                <li className="flex items-start gap-3">
+                                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
+                                    <span className="text-sm" style={{ color: primaryColor }}>1</span>
+                                  </div>
+                                  <div>
+                                    <strong className="text-gray-900">Contact Us</strong>
+                                    <p className="text-sm text-gray-700 mt-1">
+                                      {contactPhone || contactEmail ? (
+                                        <>
+                                          {contactPhone && (
+                                            <>Call us at <strong className="text-blue-600">{contactPhone}</strong></>
+                                          )}
+                                          {contactPhone && contactEmail && <> or </>}
+                                          {contactEmail && (
+                                            <>email <strong className="text-blue-600">{contactEmail}</strong></>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <>Contact us to cancel or reschedule — details are in your confirmation email.</>
+                                      )}
+                                    </p>
+                                  </div>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
+                                    <span className="text-sm" style={{ color: primaryColor }}>2</span>
+                                  </div>
+                                  <div>
+                                    <strong className="text-gray-900">Provide Booking Details</strong>
+                                    <p className="text-sm text-gray-700 mt-1">
+                                      Have your booking reference number, name, and scheduled date/time ready
+                                    </p>
+                                  </div>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
+                                    <span className="text-sm" style={{ color: primaryColor }}>3</span>
+                                  </div>
+                                  <div>
+                                    <strong className="text-gray-900">Choose Option</strong>
+                                    <p className="text-sm text-gray-700 mt-1">
+                                      Select to either cancel for a refund (if eligible) or reschedule to a new date/time
+                                    </p>
+                                  </div>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
+                                    <span className="text-sm" style={{ color: primaryColor }}>4</span>
+                                  </div>
+                                  <div>
+                                    <strong className="text-gray-900">Receive Confirmation</strong>
+                                    <p className="text-sm text-gray-700 mt-1">
+                                      You'll receive email confirmation of your cancellation/refund or new booking details
+                                    </p>
+                                  </div>
+                                </li>
+                              </ol>
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* Important Notes */}
+                          <div>
+                            <h3 className="text-base text-gray-900 mb-4">Important Notes</h3>
+                            <ul className="space-y-2 text-sm text-gray-700">
+                              <li className="flex items-start gap-2">
+                                <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
+                                <span>Refunds are processed to the original payment method within 5-7 business days</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
+                                <span>Gift card purchases and promotional bookings may have different cancellation terms</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
+                                <span>Group bookings (10+ people) may have special cancellation policies - contact us for details</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
+                                <span>We reserve the right to cancel bookings due to unforeseen circumstances and will offer full refund or alternative dates</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
+                                <span>Weather-related closures: Full refund or free rescheduling if we must close due to severe weather</span>
+                              </li>
+                            </ul>
+                          </div>
+
+                          {/* Emergency Contact */}
+                          <div className="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                            <div className="flex items-start gap-3">
+                              <Phone className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <h4 className="text-sm text-red-900 mb-1">Running Late or Emergency?</h4>
+                                <p className="text-sm text-gray-700">
+                                  {contactPhone ? (
+                                    <>If you're running late or have an emergency, please call us immediately at <strong className="text-red-900">{contactPhone}</strong>. We'll do our best to accommodate you, though we cannot guarantee your full playing time if you arrive late.</>
+                                  ) : (
+                                    <>If you're running late or have an emergency, please reach out to us. We'll do our best to accommodate you, though we cannot guarantee your full playing time if you arrive late.</>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Business Cancellation Policy (from configuration) */}
+                          {config?.cancellationPolicy && (
+                            <div className="mt-6 bg-gray-50 rounded-lg p-5 border border-gray-200">
+                              <h3 className="text-base text-gray-900 mb-2">Business Cancellation Policy</h3>
+                              <p className="text-sm text-gray-700">{config.cancellationPolicy}</p>
+                            </div>
+                          )}
                         </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </section>
+
+                {/* Location & Directions - GEO Optimized */}
+                {(config?.showLocationBlock !== false) && (fullAddress || config?.phoneNumber || config?.emailAddress || config?.parkingInfo) && (
+                  <section aria-labelledby="location-heading" className="scroll-mt-20">
+                    <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
+                        <MapPin className="w-5 h-5" style={{ color: primaryColor }} />
                       </div>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  {/* Cancellation Policy */}
-                  <AccordionItem 
-                    value="cancellation" 
-                    className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
-                    data-seo-section="cancellation-refund-policy"
-                  >
-                    <AccordionTrigger className="px-6 py-4 hover:bg-gray-50 transition-colors [&[data-state=open]]:bg-gray-50">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-orange-100">
-                          <RefreshCw className="w-5 h-5 text-orange-600" />
-                        </div>
-                        <span className="text-lg text-gray-900">Cancellation & Refund Policy</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-6 pb-6">
-                      <div className="space-y-6 pt-2">
-                        {/* Cancellation Timeline */}
+                      <h2 id="location-heading" className="text-2xl sm:text-3xl text-gray-900">
+                        Location & Directions
+                      </h2>
+                    </div>
+                    <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-4">
+                      <div className="grid sm:grid-cols-2 gap-6">
                         <div>
-                          <h3 className="text-base text-gray-900 mb-4 flex items-center gap-2">
-                            <Clock className="w-5 h-5" style={{ color: primaryColor }} />
-                            Cancellation Timeline & Refunds
+                          <h3 className="text-lg text-gray-900 mb-3 flex items-center gap-2">
+                            <MapPin className="w-5 h-5" style={{ color: primaryColor }} />
+                            Address
                           </h3>
-                          <div className="space-y-4">
-                            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
-                              <div className="flex items-start gap-3">
-                                <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                                <div>
-                                  <h4 className="text-sm text-green-900 mb-1">48+ Hours Before</h4>
-                                  <p className="text-sm text-gray-700">
-                                    <strong>Free cancellation</strong> - Full 100% refund to original payment method or free rescheduling to any available time slot
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 dark:border-amber-600 p-3 sm:p-4 rounded-r-lg">
-                              <div className="flex items-start gap-2 sm:gap-3">
-                                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
-                                <div className="min-w-0 flex-1">
-                                  <h4 className="text-xs sm:text-sm text-amber-900 dark:text-amber-200 mb-1 font-semibold">24-48 Hours Before</h4>
-                                  <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 break-words">
-                                    <strong>50% refund</strong> or <strong>free rescheduling</strong> - Your choice of partial refund or move to another available date/time
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
-                              <div className="flex items-start gap-3">
-                                <XCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                                <div>
-                                  <h4 className="text-sm text-red-900 mb-1">Less than 24 Hours</h4>
-                                  <p className="text-sm text-gray-700">
-                                    <strong>No refund</strong> - However, you may reschedule <strong>one time</strong> for a $25 rescheduling fee (subject to availability)
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                              <div className="flex items-start gap-3">
-                                <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                                <div>
-                                  <h4 className="text-sm text-blue-900 mb-1">No-Show Policy</h4>
-                                  <p className="text-sm text-gray-700">
-                                    If you don't arrive for your scheduled booking and haven't contacted us, <strong>no refund or rescheduling</strong> will be offered. Full booking fee is forfeited.
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                          {streetAddress && (<p className="text-gray-700 mb-2">{streetAddress}</p>)}
+                          {(city || state || zipCode) && (
+                            <p className="text-gray-700 mb-2">{[city, state, zipCode].filter(Boolean).join(', ')}</p>
+                          )}
+                          {country && (<p className="text-gray-700 mb-4">{country}</p>)}
+                          {(config?.nearbyLandmarks || config?.landmarkInfo) && (
+                            <p className="text-sm text-gray-600">{config.nearbyLandmarks || config.landmarkInfo}</p>
+                          )}
+                          {fullAddress && (
+                            <p className="pt-2">
+                              <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-sm font-medium hover:underline"
+                                style={{ color: primaryColor }}
+                              >
+                                Get directions
+                              </a>
+                            </p>
+                          )}
                         </div>
-
-                        <Separator />
-
-                        {/* How to Cancel or Reschedule */}
                         <div>
-                          <h3 className="text-base text-gray-900 mb-4 flex items-center gap-2">
-                            <Phone className="w-5 h-5" style={{ color: primaryColor }} />
-                            How to Cancel or Reschedule
-                          </h3>
-                          <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg p-5 border border-gray-200">
-                            <ol className="space-y-3">
-                              <li className="flex items-start gap-3">
-                                <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
-                                  <span className="text-sm" style={{ color: primaryColor }}>1</span>
-                                </div>
-                                <div>
-                                  <strong className="text-gray-900">Contact Us</strong>
-                                  <p className="text-sm text-gray-700 mt-1">
-                                    {contactPhone || contactEmail ? (
-                                      <>
-                                        {contactPhone && (
-                                          <>Call us at <strong className="text-blue-600">{contactPhone}</strong></>
-                                        )}
-                                        {contactPhone && contactEmail && <> or </>}
-                                        {contactEmail && (
-                                          <>email <strong className="text-blue-600">{contactEmail}</strong></>
-                                        )}
-                                      </>
-                                    ) : (
-                                      <>Contact us to cancel or reschedule — details are in your confirmation email.</>
-                                    )}
-                                  </p>
-                                </div>
-                              </li>
-                              <li className="flex items-start gap-3">
-                                <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
-                                  <span className="text-sm" style={{ color: primaryColor }}>2</span>
-                                </div>
-                                <div>
-                                  <strong className="text-gray-900">Provide Booking Details</strong>
-                                  <p className="text-sm text-gray-700 mt-1">
-                                    Have your booking reference number, name, and scheduled date/time ready
-                                  </p>
-                                </div>
-                              </li>
-                              <li className="flex items-start gap-3">
-                                <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
-                                  <span className="text-sm" style={{ color: primaryColor }}>3</span>
-                                </div>
-                                <div>
-                                  <strong className="text-gray-900">Choose Option</strong>
-                                  <p className="text-sm text-gray-700 mt-1">
-                                    Select to either cancel for a refund (if eligible) or reschedule to a new date/time
-                                  </p>
-                                </div>
-                              </li>
-                              <li className="flex items-start gap-3">
-                                <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
-                                  <span className="text-sm" style={{ color: primaryColor }}>4</span>
-                                </div>
-                                <div>
-                                  <strong className="text-gray-900">Receive Confirmation</strong>
-                                  <p className="text-sm text-gray-700 mt-1">
-                                    You'll receive email confirmation of your cancellation/refund or new booking details
-                                  </p>
-                                </div>
-                              </li>
-                            </ol>
-                          </div>
-                        </div>
-
-                        <Separator />
-
-                        {/* Important Notes */}
-                        <div>
-                          <h3 className="text-base text-gray-900 mb-4">Important Notes</h3>
+                          <h3 className="text-lg text-gray-900 mb-3">Parking & Transportation</h3>
                           <ul className="space-y-2 text-sm text-gray-700">
-                            <li className="flex items-start gap-2">
-                              <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
-                              <span>Refunds are processed to the original payment method within 5-7 business days</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
-                              <span>Gift card purchases and promotional bookings may have different cancellation terms</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
-                              <span>Group bookings (10+ people) may have special cancellation policies - contact us for details</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
-                              <span>We reserve the right to cancel bookings due to unforeseen circumstances and will offer full refund or alternative dates</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
-                              <span>Weather-related closures: Full refund or free rescheduling if we must close due to severe weather</span>
-                            </li>
+                            {config?.parkingInfo && (
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
+                                <span>{config.parkingInfo}</span>
+                              </li>
+                            )}
+                            {config?.phoneNumber && (
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
+                                <span>Questions? Call us at {config.phoneNumber}</span>
+                              </li>
+                            )}
+                            {config?.emailAddress && (
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
+                                <span>Email: {config.emailAddress}</span>
+                              </li>
+                            )}
+                            {!(config?.parkingInfo || config?.phoneNumber || config?.emailAddress) && (
+                              <li className="flex items-start gap-2">
+                                <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
+                                <span>Parking and transport details will be shared upon booking.</span>
+                              </li>
+                            )}
                           </ul>
                         </div>
-
-                        {/* Emergency Contact */}
-                        <div className="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 p-4 rounded-r-lg">
-                          <div className="flex items-start gap-3">
-                            <Phone className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <h4 className="text-sm text-red-900 mb-1">Running Late or Emergency?</h4>
-                              <p className="text-sm text-gray-700">
-                                {contactPhone ? (
-                                  <>If you're running late or have an emergency, please call us immediately at <strong className="text-red-900">{contactPhone}</strong>. We'll do our best to accommodate you, though we cannot guarantee your full playing time if you arrive late.</>
-                                ) : (
-                                  <>If you're running late or have an emergency, please reach out to us. We'll do our best to accommodate you, though we cannot guarantee your full playing time if you arrive late.</>
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Business Cancellation Policy (from configuration) */}
-                        {config?.cancellationPolicy && (
-                          <div className="mt-6 bg-gray-50 rounded-lg p-5 border border-gray-200">
-                            <h3 className="text-base text-gray-900 mb-2">Business Cancellation Policy</h3>
-                            <p className="text-sm text-gray-700">{config.cancellationPolicy}</p>
-                          </div>
-                        )}
                       </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </section>
+                    </div>
+                  </section>
+                )}
 
-              {/* Location & Directions - GEO Optimized */}
-              {(config?.showLocationBlock !== false) && (fullAddress || config?.phoneNumber || config?.emailAddress || config?.parkingInfo) && (
-              <section aria-labelledby="location-heading" className="scroll-mt-20">
-                <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
-                    <MapPin className="w-5 h-5" style={{ color: primaryColor }} />
+                {/* What's Included */}
+                <section aria-labelledby="included-heading" className="scroll-mt-20">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    </div>
+                    <h2 id="included-heading" className="text-2xl sm:text-3xl text-gray-900">
+                      What's Included
+                    </h2>
                   </div>
-                  <h2 id="location-heading" className="text-2xl sm:text-3xl text-gray-900">
-                    Location & Directions
-                  </h2>
-                </div>
-                <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-4">
-                  <div className="grid sm:grid-cols-2 gap-6">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {[
+                      'Professional game master guidance throughout',
+                      'Private escape room for your group only',
+                      'All puzzles, clues, and props included',
+                      'Pre-game briefing and safety orientation',
+                      'Victory photo opportunity after escape',
+                      'Complimentary water and refreshments',
+                      'Climate-controlled comfortable environment',
+                      'Free Wi-Fi in lobby and waiting area'
+                    ].map((item, index) => (
+                      <div key={index} className="flex items-start gap-3 p-4 bg-white rounded-lg border border-gray-200">
+                        <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-600" />
+                        <span className="text-gray-700">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Booking & Cancellation Policy */}
+                <section aria-labelledby="policy-heading" className="scroll-mt-20">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-orange-100">
+                      <FileText className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <h2 id="policy-heading" className="text-2xl sm:text-3xl text-gray-900">
+                      Booking & Cancellation Policy
+                    </h2>
+                  </div>
+                  <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-6">
                     <div>
                       <h3 className="text-lg text-gray-900 mb-3 flex items-center gap-2">
-                        <MapPin className="w-5 h-5" style={{ color: primaryColor }} />
-                        Address
+                        <Clock className="w-5 h-5" style={{ color: primaryColor }} />
+                        Cancellation & Rescheduling
                       </h3>
-                      {streetAddress && (<p className="text-gray-700 mb-2">{streetAddress}</p>)}
-                      {(city || state || zipCode) && (
-                        <p className="text-gray-700 mb-2">{[city, state, zipCode].filter(Boolean).join(', ')}</p>
-                      )}
-                      {country && (<p className="text-gray-700 mb-4">{country}</p>)}
-                      {(config?.nearbyLandmarks || config?.landmarkInfo) && (
-                        <p className="text-sm text-gray-600">{config.nearbyLandmarks || config.landmarkInfo}</p>
-                      )}
-                      {fullAddress && (
-                        <p className="pt-2">
-                          <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sm font-medium hover:underline"
-                            style={{ color: primaryColor }}
-                          >
-                            Get directions
-                          </a>
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="text-lg text-gray-900 mb-3">Parking & Transportation</h3>
-                      <ul className="space-y-2 text-sm text-gray-700">
-                        {config?.parkingInfo && (
-                          <li className="flex items-start gap-2">
-                            <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
-                            <span>{config.parkingInfo}</span>
-                          </li>
-                        )}
-                        {config?.phoneNumber && (
-                          <li className="flex items-start gap-2">
-                            <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
-                            <span>Questions? Call us at {config.phoneNumber}</span>
-                          </li>
-                        )}
-                        {config?.emailAddress && (
-                          <li className="flex items-start gap-2">
-                            <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
-                            <span>Email: {config.emailAddress}</span>
-                          </li>
-                        )}
-                        {!(config?.parkingInfo || config?.phoneNumber || config?.emailAddress) && (
-                          <li className="flex items-start gap-2">
-                            <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
-                            <span>Parking and transport details will be shared upon booking.</span>
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </section>
-              )}
-
-              {/* What's Included */}
-              <section aria-labelledby="included-heading" className="scroll-mt-20">
-                <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  </div>
-                  <h2 id="included-heading" className="text-2xl sm:text-3xl text-gray-900">
-                    What's Included
-                  </h2>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {[
-                    'Professional game master guidance throughout',
-                    'Private escape room for your group only',
-                    'All puzzles, clues, and props included',
-                    'Pre-game briefing and safety orientation',
-                    'Victory photo opportunity after escape',
-                    'Complimentary water and refreshments',
-                    'Climate-controlled comfortable environment',
-                    'Free Wi-Fi in lobby and waiting area'
-                  ].map((item, index) => (
-                    <div key={index} className="flex items-start gap-3 p-4 bg-white rounded-lg border border-gray-200">
-                      <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-600" />
-                      <span className="text-gray-700">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* Booking & Cancellation Policy */}
-              <section aria-labelledby="policy-heading" className="scroll-mt-20">
-                <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-orange-100">
-                    <FileText className="w-5 h-5 text-orange-600" />
-                  </div>
-                  <h2 id="policy-heading" className="text-2xl sm:text-3xl text-gray-900">
-                    Booking & Cancellation Policy
-                  </h2>
-                </div>
-                <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-6">
-                  <div>
-                    <h3 className="text-lg text-gray-900 mb-3 flex items-center gap-2">
-                      <Clock className="w-5 h-5" style={{ color: primaryColor }} />
-                      Cancellation & Rescheduling
-                    </h3>
-                    <ul className="space-y-3 text-gray-700">
-                      <li className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
-                          <span className="text-sm" style={{ color: primaryColor }}>1</span>
-                        </div>
-                        <div>
-                          <strong className="text-gray-900">Free cancellation:</strong> Cancel or reschedule up to 48 hours before your booking for a full refund
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
-                          <span className="text-sm" style={{ color: primaryColor }}>2</span>
-                        </div>
-                        <div>
-                          <strong className="text-gray-900">24-48 hours notice:</strong> 50% refund or free rescheduling to another available time
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
-                          <span className="text-sm" style={{ color: primaryColor }}>3</span>
-                        </div>
-                        <div>
-                          <strong className="text-gray-900">Less than 24 hours:</strong> No refund, but you can reschedule once for a $25 fee
-                        </div>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <Separator />
-
-                  <div>
-                    <h3 className="text-lg text-gray-900 mb-3">Late Arrival Policy</h3>
-                    <p className="text-gray-700 mb-3">Please arrive 15 minutes before your scheduled time for check-in and briefing.</p>
-                    <ul className="space-y-2 text-sm text-gray-600 ml-5 list-disc">
-                      <li>Arriving late may reduce your playing time (game still ends at scheduled time)</li>
-                      <li>If you're more than 15 minutes late, we may need to reschedule your booking</li>
-                      <li>No refunds for time lost due to late arrival</li>
-                      <li>
-                        {contactPhone ? (
-                          <>Please call us if you're running late: {contactPhone}</>
-                        ) : (
-                          <>Please contact us if you're running late.</>
-                        )}
-                      </li>
-                    </ul>
-                  </div>
-
-                  <Separator />
-
-                  <div>
-                    <h3 className="text-lg text-gray-900 mb-3">Group Booking Policy</h3>
-                    <ul className="space-y-2 text-gray-700">
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
-                        <span>Minimum of {selectedGameData.players.split('-')[0]} players required</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
-                        <span>You can add or remove players up to 24 hours before your booking</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
-                        <span>Private room guaranteed - you won't be grouped with strangers</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
-                        <span>Corporate and team building discounts available for groups of 10+</span>
-                      </li>
-                    </ul>
-                  </div>
-                  {/* Configured Business Policy Summary */}
-                  {config?.cancellationPolicy && (
-                    <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
-                      <h4 className="text-sm text-gray-900 mb-1">Business Cancellation Policy</h4>
-                      <p className="text-sm text-gray-700">{config.cancellationPolicy}</p>
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              {/* Safety & Accessibility */}
-              <section aria-labelledby="safety-heading" className="scroll-mt-20">
-                <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100">
-                    <Shield className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <h2 id="safety-heading" className="text-2xl sm:text-3xl text-gray-900">
-                    Safety & Accessibility
-                  </h2>
-                </div>
-                <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100">
-                  <div className="grid sm:grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <h3 className="text-lg text-gray-900 mb-3">Health & Safety</h3>
-                      <ul className="space-y-2 text-sm text-gray-700">
-                        <li className="flex items-start gap-2">
-                          <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                          <span>Regular sanitization between games</span>
+                      <ul className="space-y-3 text-gray-700">
+                        <li className="flex items-start gap-3">
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
+                            <span className="text-sm" style={{ color: primaryColor }}>1</span>
+                          </div>
+                          <div>
+                            <strong className="text-gray-900">Free cancellation:</strong> Cancel or reschedule up to 48 hours before your booking for a full refund
+                          </div>
                         </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                          <span>Emergency exit available at all times</span>
+                        <li className="flex items-start gap-3">
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
+                            <span className="text-sm" style={{ color: primaryColor }}>2</span>
+                          </div>
+                          <div>
+                            <strong className="text-gray-900">24-48 hours notice:</strong> 50% refund or free rescheduling to another available time
+                          </div>
                         </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                          <span>Game master monitoring via camera</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                          <span>First aid trained staff on-site</span>
+                        <li className="flex items-start gap-3">
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
+                            <span className="text-sm" style={{ color: primaryColor }}>3</span>
+                          </div>
+                          <div>
+                            <strong className="text-gray-900">Less than 24 hours:</strong> No refund, but you can reschedule once for a $25 fee
+                          </div>
                         </li>
                       </ul>
                     </div>
+
+                    <Separator />
+
                     <div>
-                      <h3 className="text-lg text-gray-900 mb-3">Accessibility</h3>
-                      <ul className="space-y-2 text-sm text-gray-700">
-                        <li className="flex items-start gap-2">
-                          <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                          <span>Wheelchair accessible facility</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                          <span>Elevator access to all floors</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                          <span>Accessible restrooms available</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                          <span>Service animals welcome</span>
+                      <h3 className="text-lg text-gray-900 mb-3">Late Arrival Policy</h3>
+                      <p className="text-gray-700 mb-3">Please arrive 15 minutes before your scheduled time for check-in and briefing.</p>
+                      <ul className="space-y-2 text-sm text-gray-600 ml-5 list-disc">
+                        <li>Arriving late may reduce your playing time (game still ends at scheduled time)</li>
+                        <li>If you're more than 15 minutes late, we may need to reschedule your booking</li>
+                        <li>No refunds for time lost due to late arrival</li>
+                        <li>
+                          {contactPhone ? (
+                            <>Please call us if you're running late: {contactPhone}</>
+                          ) : (
+                            <>Please contact us if you're running late.</>
+                          )}
                         </li>
                       </ul>
                     </div>
-                  </div>
-                  
-                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                    <p className="text-sm text-gray-700">
-                      <strong className="text-blue-900">Note:</strong> If you have specific accessibility needs or health concerns, please contact us before booking at (555) 123-4567 so we can ensure the best experience for your group.
-                    </p>
-                  </div>
-                </div>
-              </section>
 
-              {/* Additional Information */}
-              <section aria-labelledby="additional-heading" className="scroll-mt-20">
-                <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
-                    <Info className="w-5 h-5" style={{ color: primaryColor }} />
-                  </div>
-                  <h2 id="additional-heading" className="text-2xl sm:text-3xl text-gray-900">
-                    Good to Know
-                  </h2>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="bg-white p-5 rounded-xl border border-gray-200">
-                    <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
-                      <Camera className="w-5 h-5" style={{ color: primaryColor }} />
-                      Photography Policy
-                    </h3>
-                    <p className="text-sm text-gray-700">Photos and videos are allowed in the lobby area. Inside the game room, photography is not permitted to preserve the experience for future players. We'll take a victory photo for you after completion!</p>
-                  </div>
-                  
-                  <div className="bg-white p-5 rounded-xl border border-gray-200">
-                    <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
-                      <User className="w-5 h-5" style={{ color: primaryColor }} />
-                      What to Wear
-                    </h3>
-                    <p className="text-sm text-gray-700">Comfortable casual clothing recommended. Closed-toe shoes required. You may need to kneel, reach, or crawl. Avoid loose jewelry that could get caught. Temperature controlled environment.</p>
-                  </div>
-                  
-                  <div className="bg-white p-5 rounded-xl border border-gray-200">
-                    <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
-                      <ShoppingCart className="w-5 h-5" style={{ color: primaryColor }} />
-                      What to Bring
-                    </h3>
-                    <p className="text-sm text-gray-700">Just bring yourself and your team! All puzzles and clues are provided. Lockers available for personal belongings. We recommend leaving valuables at home or in your vehicle.</p>
-                  </div>
-                  
-                  <div className="bg-white p-5 rounded-xl border border-gray-200">
-                    <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
-                      <Users className="w-5 h-5" style={{ color: primaryColor }} />
-                      Age Restrictions
-                    </h3>
-                    <p className="text-sm text-gray-700">Recommended for ages {selectedGameData.ageRecommendation}. Children under 16 must be accompanied by an adult. All participants must sign a waiver (parents/guardians sign for minors).</p>
-                  </div>
-                </div>
-              </section>
+                    <Separator />
 
-            {/* Key Details Grid */}
-            <section aria-labelledby="details-heading" className="scroll-mt-20">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
-                  <Award className="w-5 h-5" style={{ color: primaryColor }} />
-                </div>
-                <h2 id="details-heading" className="text-2xl sm:text-3xl text-gray-900">
-                  Key Details
-                </h2>
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="group text-center p-4 sm:p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-blue-200">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                    <Clock className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" />
-                  </div>
-                  <div className="text-xs sm:text-sm text-blue-700 mb-1">Duration</div>
-                  <div className="text-base sm:text-lg text-blue-900">{selectedGameData.duration}</div>
-                </div>
-                <div className="group text-center p-4 sm:p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-purple-200">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                    <Users className="w-6 h-6 sm:w-7 sm:h-7 text-purple-600" />
-                  </div>
-                  <div className="text-xs sm:text-sm text-purple-700 mb-1">Group Size</div>
-                  <div className="text-base sm:text-lg text-purple-900">{selectedGameData.players}</div>
-                </div>
-                <div className="group text-center p-4 sm:p-6 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-orange-200">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                    <Target className="w-6 h-6 sm:w-7 sm:h-7 text-orange-600" />
-                  </div>
-                  <div className="text-xs sm:text-sm text-orange-700 mb-1">Difficulty</div>
-                  <div className="text-base sm:text-lg text-orange-900 mb-2">{selectedGameData.difficulty}</div>
-                  <div className="flex justify-center">
-                    {renderDifficultyStars(selectedGameData.difficultyLevel)}
-                  </div>
-                </div>
-                <div className="group text-center p-4 sm:p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-green-200">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                    <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-green-600" />
-                  </div>
-                  <div className="text-xs sm:text-sm text-green-700 mb-1">Min Age</div>
-                  <div className="text-base sm:text-lg text-green-900">{selectedGameData.ageRecommendation}</div>
-                </div>
-              </div>
-            </section>
-
-            {/* The Story */}
-            <section aria-labelledby="story-heading" className="scroll-mt-20">
-              <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-6 sm:p-8 lg:p-10 rounded-2xl shadow-2xl">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"></div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-                      <Play className="w-5 h-5 text-white" />
+                    <div>
+                      <h3 className="text-lg text-gray-900 mb-3">Group Booking Policy</h3>
+                      <ul className="space-y-2 text-gray-700">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
+                          <span>Minimum of {selectedGameData.players.split('-')[0]} players required</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
+                          <span>You can add or remove players up to 24 hours before your booking</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
+                          <span>Private room guaranteed - you won't be grouped with strangers</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
+                          <span>Corporate and team building discounts available for groups of 10+</span>
+                        </li>
+                      </ul>
                     </div>
-                    <h2 id="story-heading" className="text-2xl sm:text-3xl">The Story</h2>
-                  </div>
-                  <p className="text-base sm:text-lg leading-relaxed text-gray-200">
-                    {selectedGameData.story}
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* What to Expect */}
-            <section aria-labelledby="expect-heading" className="scroll-mt-20">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
-                  <Zap className="w-5 h-5" style={{ color: primaryColor }} />
-                </div>
-                <h2 id="expect-heading" className="text-2xl sm:text-3xl text-gray-900">
-                  What to Expect
-                </h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                {selectedGameData.whatToExpect.map((item, index) => (
-                  <div 
-                    key={index} 
-                    className="group flex items-start gap-3 p-4 sm:p-5 bg-gradient-to-br from-white to-gray-50 rounded-xl border border-gray-200 hover:border-green-300 hover:shadow-lg transition-all duration-300"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                      <CheckCircle2 className="w-4 h-4 text-green-600" />
-                    </div>
-                    <span className="text-sm sm:text-base text-gray-700 leading-relaxed">{item}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Highlights */}
-            <section aria-labelledby="highlights-heading" className="scroll-mt-20">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
-                  <Heart className="w-5 h-5" style={{ color: primaryColor }} />
-                </div>
-                <h2 id="highlights-heading" className="text-2xl sm:text-3xl text-gray-900">
-                  Experience Highlights
-                </h2>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                {selectedGameData.highlights.map((highlight, index) => (
-                  <div 
-                    key={index} 
-                    className="group relative overflow-hidden text-center p-4 sm:p-5 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-xl border border-blue-200 hover:border-purple-300 hover:shadow-lg transition-all duration-300"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-400/0 to-purple-400/0 group-hover:from-blue-400/5 group-hover:to-purple-400/5 transition-all duration-300"></div>
-                    <Sparkles className="w-5 h-5 mx-auto mb-2 text-purple-500 opacity-50 group-hover:opacity-100 transition-opacity" />
-                    <div className="relative text-sm sm:text-base text-gray-900">{highlight}</div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Requirements & Guidelines */}
-            <section aria-labelledby="requirements-heading" className="scroll-mt-20">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-100">
-                  <Shield className="w-5 h-5 text-amber-600" />
-                </div>
-                <h2 id="requirements-heading" className="text-2xl sm:text-3xl text-gray-900">
-                  Requirements & Guidelines
-                </h2>
-              </div>
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5 sm:p-7 shadow-sm">
-                <ul className="space-y-3">
-                  {selectedGameData.requirements.map((req, index) => (
-                    <li key={index} className="flex items-start gap-3 text-sm sm:text-base text-gray-700">
-                      <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Info className="w-4 h-4 text-amber-600" />
-                      </div>
-                      <span className="leading-relaxed">{req}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </section>
-
-            {/* Success Tips */}
-            <section aria-labelledby="tips-heading" className="scroll-mt-20">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100">
-                  <TrendingUp className="w-5 h-5 text-green-600" />
-                </div>
-                <h2 id="tips-heading" className="text-2xl sm:text-3xl text-gray-900">
-                  Tips for Success
-                </h2>
-              </div>
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5 sm:p-7 shadow-sm">
-                <ul className="space-y-4">
-                  {selectedGameData.successTips.map((tip, index) => (
-                    <li key={index} className="flex items-start gap-4 text-sm sm:text-base text-gray-700">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white flex items-center justify-center shadow-md">
-                        {index + 1}
-                      </div>
-                      <span className="leading-relaxed pt-1">{tip}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </section>
-
-            {/* Customer Reviews */}
-            <section aria-labelledby="reviews-heading" className="scroll-mt-20">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-yellow-100">
-                  <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
-                </div>
-                <h2 id="reviews-heading" className="text-2xl sm:text-3xl text-gray-900">
-                  Customer Reviews
-                </h2>
-              </div>
-              <div className="space-y-4 sm:space-y-5">
-                {selectedGameData.reviews.map((review, index) => (
-                  <div 
-                    key={index} 
-                    className="group bg-white p-5 sm:p-7 rounded-xl border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:border-gray-300"
-                  >
-                    <div className="flex items-start justify-between mb-4 gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white shadow-md">
-                          <span className="text-lg">{review.name.charAt(0)}</span>
-                        </div>
-                        <div>
-                          <div className="text-base sm:text-lg text-gray-900">{review.name}</div>
-                          <div className="text-xs sm:text-sm text-gray-500">{review.date}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-200">
-                        {Array.from({ length: review.rating }).map((_, i) => (
-                          <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-sm sm:text-base text-gray-700 leading-relaxed italic">
-                      "{review.comment}"
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* FAQ Section */}
-            <section aria-labelledby="faq-heading" className="scroll-mt-20">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
-                  <HelpCircle className="w-5 h-5" style={{ color: primaryColor }} />
-                </div>
-                <h2 id="faq-heading" className="text-2xl sm:text-3xl text-gray-900">
-                  Frequently Asked Questions
-                </h2>
-              </div>
-              <div className="space-y-3 sm:space-y-4">
-                {selectedGameData.faq.map((item, index) => (
-                  <div 
-                    key={index} 
-                    className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
-                  >
-                    <button
-                      onClick={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
-                      className="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-gray-50 transition-colors group"
-                    >
-                      <span className="text-sm sm:text-base text-gray-900 pr-4 group-hover:text-blue-600 transition-colors">
-                        {item.question}
-                      </span>
-                      <div 
-                        className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300"
-                        style={{ 
-                          backgroundColor: expandedFAQ === index ? `${primaryColor}15` : 'transparent'
-                        }}
-                      >
-                        {expandedFAQ === index ? (
-                          <ChevronUp className="w-5 h-5 transition-transform duration-300" style={{ color: primaryColor }} />
-                        ) : (
-                          <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                        )}
-                      </div>
-                    </button>
-                    {expandedFAQ === index && (
-                      <div className="px-4 sm:px-5 pb-4 sm:pb-5 text-sm sm:text-base text-gray-600 leading-relaxed animate-in slide-in-from-top-2 duration-200">
-                        <div className="pt-3 border-t border-gray-100">
-                          {item.answer}
-                        </div>
+                    {/* Configured Business Policy Summary */}
+                    {config?.cancellationPolicy && (
+                      <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <h4 className="text-sm text-gray-900 mb-1">Business Cancellation Policy</h4>
+                        <p className="text-sm text-gray-700">{config.cancellationPolicy}</p>
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
-            </section>
+                </section>
 
-            {/* Pricing CTA */}
-            <section aria-labelledby="pricing-heading" className="scroll-mt-20">
-              <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 text-white p-8 sm:p-12 rounded-2xl shadow-2xl text-center">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
-                <div className="relative z-10">
-                  <Sparkles className="w-12 h-12 mx-auto mb-4 text-yellow-300" />
-                  <h2 id="pricing-heading" className="text-2xl sm:text-3xl lg:text-4xl mb-3">
-                    Ready for the Adventure?
-                  </h2>
-                  <p className="text-base sm:text-lg text-blue-100 mb-6">
-                    Book your escape room experience today
-                  </p>
-                  <div className="inline-block bg-white/20 backdrop-blur-sm rounded-2xl px-8 py-4 mb-8">
-                    <div className="text-sm text-blue-100 mb-1">Starting from</div>
-                    <div className="text-5xl sm:text-6xl lg:text-7xl mb-1">
-                      ${selectedGameData.price}
+                {/* Safety & Accessibility */}
+                <section aria-labelledby="safety-heading" className="scroll-mt-20">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100">
+                      <Shield className="w-5 h-5 text-blue-600" />
                     </div>
-                    <div className="text-lg sm:text-xl text-blue-100">per person</div>
+                    <h2 id="safety-heading" className="text-2xl sm:text-3xl text-gray-900">
+                      Safety & Accessibility
+                    </h2>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <Button
-                      onClick={() => setShowGameDetails(false)}
-                      size="lg"
-                      className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-6 text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
-                    >
-                      <ShoppingCart className="w-5 h-5 mr-2" />
-                      Book Now
-                    </Button>
-                    <Button
-                      onClick={() => setShowGameDetails(false)}
-                      size="lg"
-                      variant="outline"
-                      className="bg-white/10 backdrop-blur-sm text-white border-white/30 hover:bg-white/20 px-8 py-6 text-lg"
-                    >
-                      <Info className="w-5 h-5 mr-2" />
-                      View Calendar
-                    </Button>
+                  <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100">
+                    <div className="grid sm:grid-cols-2 gap-6 mb-6">
+                      <div>
+                        <h3 className="text-lg text-gray-900 mb-3">Health & Safety</h3>
+                        <ul className="space-y-2 text-sm text-gray-700">
+                          <li className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>Regular sanitization between games</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>Emergency exit available at all times</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>Game master monitoring via camera</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>First aid trained staff on-site</span>
+                          </li>
+                        </ul>
+                      </div>
+                      <div>
+                        <h3 className="text-lg text-gray-900 mb-3">Accessibility</h3>
+                        <ul className="space-y-2 text-sm text-gray-700">
+                          <li className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>Wheelchair accessible facility</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>Elevator access to all floors</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>Accessible restrooms available</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                            <span>Service animals welcome</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                      <p className="text-sm text-gray-700">
+                        <strong className="text-blue-900">Note:</strong> If you have specific accessibility needs or health concerns, please contact us before booking at (555) 123-4567 so we can ensure the best experience for your group.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </section>
+                </section>
+
+                {/* Additional Information */}
+                <section aria-labelledby="additional-heading" className="scroll-mt-20">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
+                      <Info className="w-5 h-5" style={{ color: primaryColor }} />
+                    </div>
+                    <h2 id="additional-heading" className="text-2xl sm:text-3xl text-gray-900">
+                      Good to Know
+                    </h2>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="bg-white p-5 rounded-xl border border-gray-200">
+                      <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
+                        <Camera className="w-5 h-5" style={{ color: primaryColor }} />
+                        Photography Policy
+                      </h3>
+                      <p className="text-sm text-gray-700">Photos and videos are allowed in the lobby area. Inside the game room, photography is not permitted to preserve the experience for future players. We'll take a victory photo for you after completion!</p>
+                    </div>
+
+                    <div className="bg-white p-5 rounded-xl border border-gray-200">
+                      <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
+                        <User className="w-5 h-5" style={{ color: primaryColor }} />
+                        What to Wear
+                      </h3>
+                      <p className="text-sm text-gray-700">Comfortable casual clothing recommended. Closed-toe shoes required. You may need to kneel, reach, or crawl. Avoid loose jewelry that could get caught. Temperature controlled environment.</p>
+                    </div>
+
+                    <div className="bg-white p-5 rounded-xl border border-gray-200">
+                      <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
+                        <ShoppingCart className="w-5 h-5" style={{ color: primaryColor }} />
+                        What to Bring
+                      </h3>
+                      <p className="text-sm text-gray-700">Just bring yourself and your team! All puzzles and clues are provided. Lockers available for personal belongings. We recommend leaving valuables at home or in your vehicle.</p>
+                    </div>
+
+                    <div className="bg-white p-5 rounded-xl border border-gray-200">
+                      <h3 className="text-base text-gray-900 mb-3 flex items-center gap-2">
+                        <Users className="w-5 h-5" style={{ color: primaryColor }} />
+                        Age Restrictions
+                      </h3>
+                      <p className="text-sm text-gray-700">Recommended for ages {selectedGameData.ageRecommendation}. Children under 16 must be accompanied by an adult. All participants must sign a waiver (parents/guardians sign for minors).</p>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Key Details Grid */}
+                <section aria-labelledby="details-heading" className="scroll-mt-20">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
+                      <Award className="w-5 h-5" style={{ color: primaryColor }} />
+                    </div>
+                    <h2 id="details-heading" className="text-2xl sm:text-3xl text-gray-900">
+                      Key Details
+                    </h2>
+                  </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="group text-center p-4 sm:p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-blue-200">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                        <Clock className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" />
+                      </div>
+                      <div className="text-xs sm:text-sm text-blue-700 mb-1">Duration</div>
+                      <div className="text-base sm:text-lg text-blue-900">{selectedGameData.duration}</div>
+                    </div>
+                    <div className="group text-center p-4 sm:p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-purple-200">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                        <Users className="w-6 h-6 sm:w-7 sm:h-7 text-purple-600" />
+                      </div>
+                      <div className="text-xs sm:text-sm text-purple-700 mb-1">Group Size</div>
+                      <div className="text-base sm:text-lg text-purple-900">{selectedGameData.players}</div>
+                    </div>
+                    <div className="group text-center p-4 sm:p-6 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-orange-200">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                        <Target className="w-6 h-6 sm:w-7 sm:h-7 text-orange-600" />
+                      </div>
+                      <div className="text-xs sm:text-sm text-orange-700 mb-1">Difficulty</div>
+                      <div className="text-base sm:text-lg text-orange-900 mb-2">{selectedGameData.difficulty}</div>
+                      <div className="flex justify-center">
+                        {renderDifficultyStars(selectedGameData.difficultyLevel)}
+                      </div>
+                    </div>
+                    <div className="group text-center p-4 sm:p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-green-200">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                        <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-green-600" />
+                      </div>
+                      <div className="text-xs sm:text-sm text-green-700 mb-1">Min Age</div>
+                      <div className="text-base sm:text-lg text-green-900">{selectedGameData.ageRecommendation}</div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* The Story */}
+                <section aria-labelledby="story-heading" className="scroll-mt-20">
+                  <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-6 sm:p-8 lg:p-10 rounded-2xl shadow-2xl">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"></div>
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+                          <Play className="w-5 h-5 text-white" />
+                        </div>
+                        <h2 id="story-heading" className="text-2xl sm:text-3xl">The Story</h2>
+                      </div>
+                      <p className="text-base sm:text-lg leading-relaxed text-gray-200">
+                        {selectedGameData.story}
+                      </p>
+                    </div>
+                  </div>
+                </section>
+
+                {/* What to Expect */}
+                <section aria-labelledby="expect-heading" className="scroll-mt-20">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
+                      <Zap className="w-5 h-5" style={{ color: primaryColor }} />
+                    </div>
+                    <h2 id="expect-heading" className="text-2xl sm:text-3xl text-gray-900">
+                      What to Expect
+                    </h2>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                    {selectedGameData.whatToExpect.map((item, index) => (
+                      <div
+                        key={index}
+                        className="group flex items-start gap-3 p-4 sm:p-5 bg-gradient-to-br from-white to-gray-50 rounded-xl border border-gray-200 hover:border-green-300 hover:shadow-lg transition-all duration-300"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        </div>
+                        <span className="text-sm sm:text-base text-gray-700 leading-relaxed">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Highlights */}
+                <section aria-labelledby="highlights-heading" className="scroll-mt-20">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
+                      <Heart className="w-5 h-5" style={{ color: primaryColor }} />
+                    </div>
+                    <h2 id="highlights-heading" className="text-2xl sm:text-3xl text-gray-900">
+                      Experience Highlights
+                    </h2>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                    {selectedGameData.highlights.map((highlight, index) => (
+                      <div
+                        key={index}
+                        className="group relative overflow-hidden text-center p-4 sm:p-5 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-xl border border-blue-200 hover:border-purple-300 hover:shadow-lg transition-all duration-300"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-400/0 to-purple-400/0 group-hover:from-blue-400/5 group-hover:to-purple-400/5 transition-all duration-300"></div>
+                        <Sparkles className="w-5 h-5 mx-auto mb-2 text-purple-500 opacity-50 group-hover:opacity-100 transition-opacity" />
+                        <div className="relative text-sm sm:text-base text-gray-900">{highlight}</div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Requirements & Guidelines */}
+                <section aria-labelledby="requirements-heading" className="scroll-mt-20">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-100">
+                      <Shield className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <h2 id="requirements-heading" className="text-2xl sm:text-3xl text-gray-900">
+                      Requirements & Guidelines
+                    </h2>
+                  </div>
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5 sm:p-7 shadow-sm">
+                    <ul className="space-y-3">
+                      {selectedGameData.requirements.map((req, index) => (
+                        <li key={index} className="flex items-start gap-3 text-sm sm:text-base text-gray-700">
+                          <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Info className="w-4 h-4 text-amber-600" />
+                          </div>
+                          <span className="leading-relaxed">{req}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+
+                {/* Success Tips */}
+                <section aria-labelledby="tips-heading" className="scroll-mt-20">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100">
+                      <TrendingUp className="w-5 h-5 text-green-600" />
+                    </div>
+                    <h2 id="tips-heading" className="text-2xl sm:text-3xl text-gray-900">
+                      Tips for Success
+                    </h2>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5 sm:p-7 shadow-sm">
+                    <ul className="space-y-4">
+                      {selectedGameData.successTips.map((tip, index) => (
+                        <li key={index} className="flex items-start gap-4 text-sm sm:text-base text-gray-700">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white flex items-center justify-center shadow-md">
+                            {index + 1}
+                          </div>
+                          <span className="leading-relaxed pt-1">{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+
+                {/* Customer Reviews */}
+                <section aria-labelledby="reviews-heading" className="scroll-mt-20">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-yellow-100">
+                      <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
+                    </div>
+                    <h2 id="reviews-heading" className="text-2xl sm:text-3xl text-gray-900">
+                      Customer Reviews
+                    </h2>
+                  </div>
+                  <div className="space-y-4 sm:space-y-5">
+                    {selectedGameData.reviews.map((review, index) => (
+                      <div
+                        key={index}
+                        className="group bg-white p-5 sm:p-7 rounded-xl border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:border-gray-300"
+                      >
+                        <div className="flex items-start justify-between mb-4 gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white shadow-md">
+                              <span className="text-lg">{review.name.charAt(0)}</span>
+                            </div>
+                            <div>
+                              <div className="text-base sm:text-lg text-gray-900">{review.name}</div>
+                              <div className="text-xs sm:text-sm text-gray-500">{review.date}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-200">
+                            {Array.from({ length: review.rating }).map((_, i) => (
+                              <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-sm sm:text-base text-gray-700 leading-relaxed italic">
+                          "{review.comment}"
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* FAQ Section */}
+                <section aria-labelledby="faq-heading" className="scroll-mt-20">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}15` }}>
+                      <HelpCircle className="w-5 h-5" style={{ color: primaryColor }} />
+                    </div>
+                    <h2 id="faq-heading" className="text-2xl sm:text-3xl text-gray-900">
+                      Frequently Asked Questions
+                    </h2>
+                  </div>
+                  <div className="space-y-3 sm:space-y-4">
+                    {selectedGameData.faq.map((item, index) => (
+                      <div
+                        key={index}
+                        className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+                      >
+                        <button
+                          onClick={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
+                          className="w-full p-4 sm:p-5 flex items-center justify-between text-left hover:bg-gray-50 transition-colors group"
+                        >
+                          <span className="text-sm sm:text-base text-gray-900 pr-4 group-hover:text-blue-600 transition-colors">
+                            {item.question}
+                          </span>
+                          <div
+                            className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300"
+                            style={{
+                              backgroundColor: expandedFAQ === index ? `${primaryColor}15` : 'transparent'
+                            }}
+                          >
+                            {expandedFAQ === index ? (
+                              <ChevronUp className="w-5 h-5 transition-transform duration-300" style={{ color: primaryColor }} />
+                            ) : (
+                              <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                            )}
+                          </div>
+                        </button>
+                        {expandedFAQ === index && (
+                          <div className="px-4 sm:px-5 pb-4 sm:pb-5 text-sm sm:text-base text-gray-600 leading-relaxed animate-in slide-in-from-top-2 duration-200">
+                            <div className="pt-3 border-t border-gray-100">
+                              {item.answer}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Pricing CTA */}
+                <section aria-labelledby="pricing-heading" className="scroll-mt-20">
+                  <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 text-white p-8 sm:p-12 rounded-2xl shadow-2xl text-center">
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+                    <div className="relative z-10">
+                      <Sparkles className="w-12 h-12 mx-auto mb-4 text-yellow-300" />
+                      <h2 id="pricing-heading" className="text-2xl sm:text-3xl lg:text-4xl mb-3">
+                        Ready for the Adventure?
+                      </h2>
+                      <p className="text-base sm:text-lg text-blue-100 mb-6">
+                        Book your escape room experience today
+                      </p>
+                      <div className="inline-block bg-white/20 backdrop-blur-sm rounded-2xl px-8 py-4 mb-8">
+                        <div className="text-sm text-blue-100 mb-1">Starting from</div>
+                        <div className="text-5xl sm:text-6xl lg:text-7xl mb-1">
+                          ${selectedGameData.price}
+                        </div>
+                        <div className="text-lg sm:text-xl text-blue-100">per person</div>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                        <Button
+                          onClick={() => setShowGameDetails(false)}
+                          size="lg"
+                          className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-6 text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+                        >
+                          <ShoppingCart className="w-5 h-5 mr-2" />
+                          Book Now
+                        </Button>
+                        <Button
+                          onClick={() => setShowGameDetails(false)}
+                          size="lg"
+                          variant="outline"
+                          className="bg-white/10 backdrop-blur-sm text-white border-white/30 hover:bg-white/20 px-8 py-6 text-lg"
+                        >
+                          <Info className="w-5 h-5 mr-2" />
+                          View Calendar
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
               </div>
             </ScrollArea>
           </div>
@@ -2406,9 +2460,8 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                   <div
                     key={game.id}
                     onClick={() => setSelectedGame(game.id)}
-                    className={`group rounded-2xl border-2 overflow-hidden transition-all duration-300 hover:shadow-xl cursor-pointer bg-white ${
-                      selectedGame === game.id ? 'shadow-xl border-blue-600' : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                    className={`group rounded-2xl border-2 overflow-hidden transition-all duration-300 hover:shadow-xl cursor-pointer bg-white ${selectedGame === game.id ? 'shadow-xl border-blue-600' : 'border-gray-200 hover:border-gray-300'
+                      }`}
                   >
                     <div className="aspect-video relative overflow-hidden">
                       <Badge className={`absolute top-3 left-3 ${getDifficultyColor(game.difficulty)} border-0 shadow-md z-10`}>
@@ -2429,7 +2482,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                         <span className="text-gray-900">{game.rating}</span>
                         <span className="text-gray-500">({game.reviewCount})</span>
                       </div>
-                      
+
                       <div className="space-y-2 mb-4">
                         <div className="flex items-center justify-between text-sm text-gray-600">
                           <div className="flex items-center gap-2">
@@ -2451,7 +2504,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-100">
                         <div className="text-xl text-blue-600">
                           ${game.price}
@@ -2485,9 +2538,9 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                   <div className="flex items-center justify-between mb-6 gap-2">
                     <h2 className="text-lg sm:text-xl text-gray-900">Select Date</h2>
                     <div className="flex items-center gap-3">
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
+                      <Button
+                        variant="outline"
+                        size="icon"
                         className="h-10 w-10 rounded-lg border-gray-300 hover:bg-gray-50"
                         onClick={() => {
                           if (currentMonth === 0) {
@@ -2503,9 +2556,9 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                       <span className="text-sm sm:text-base text-gray-900 px-2 whitespace-nowrap min-w-[140px] text-center">
                         {new Date(currentYear, currentMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                       </span>
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
+                      <Button
+                        variant="outline"
+                        size="icon"
                         className="h-10 w-10 rounded-lg border-gray-300 hover:bg-gray-50"
                         onClick={() => {
                           if (currentMonth === 11) {
@@ -2533,19 +2586,19 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                       const today = new Date();
                       const isToday = dateObj.toDateString() === today.toDateString();
                       const isPast = dateObj < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                      
+
                       // Check if date is available based on game schedule and blocked dates
                       // Use game schedule data from database (via useGames hook)
                       const blockedDates = selectedGameData?.blockedDates || config?.blockedDates || [];
                       const customAvailableDates = selectedGameData?.customDates || config?.customAvailableDates || [];
                       const operatingDays = selectedGameData?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                      
+
                       // Check advance booking limit from game schedule
                       const advanceBookingDays = selectedGameData?.advanceBooking || 30;
                       const maxBookingDate = new Date(today);
                       maxBookingDate.setDate(maxBookingDate.getDate() + advanceBookingDays);
                       const isBeyondAdvanceBooking = dateObj > maxBookingDate;
-                      
+
                       const isBlockedDate = isDateBlocked(dateObj, blockedDates);
                       const isOperatingDay = isDayOperating(dateObj, operatingDays, customAvailableDates);
                       const customDate = isCustomAvailableDate(dateObj, customAvailableDates);
@@ -2559,11 +2612,11 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                           className={`
                             aspect-square rounded-xl text-base transition-all flex items-center justify-center relative
                             ${isToday && !isSelected
-                              ? 'text-white shadow-md' 
-                              : isSelected 
-                                ? 'text-gray-900 border-2 shadow-sm bg-white hover:bg-gray-50' 
-                                : isAvailable 
-                                  ? 'text-gray-700 hover:bg-gray-50 border border-green-300 bg-green-50' 
+                              ? 'text-white shadow-md'
+                              : isSelected
+                                ? 'text-gray-900 border-2 shadow-sm bg-white hover:bg-gray-50'
+                                : isAvailable
+                                  ? 'text-gray-700 hover:bg-gray-50 border border-green-300 bg-green-50'
                                   : 'text-gray-400 cursor-not-allowed border border-red-200 bg-red-50 opacity-60'
                             }
                           `}
@@ -2584,7 +2637,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                       );
                     })}
                   </div>
-                  
+
                   {/* Calendar Legend */}
                   <div className="mt-4 flex items-center justify-center gap-4 text-xs text-gray-600">
                     <div className="flex items-center gap-1.5">
@@ -2605,7 +2658,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                       Available Times - {new Date(currentYear, currentMonth, selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </h2>
                     <div className="text-xs text-gray-500 mb-4">Timezone: {timezoneLabel}</div>
-                    
+
                     {timeSlots.length === 0 ? (
                       <div className="text-center py-12">
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
@@ -2619,46 +2672,44 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                         {timeSlots.map((slot) => (
-                        <button
-                          key={slot.time}
-                          onClick={() => slot.available && setSelectedTime(slot.time)}
-                          disabled={!slot.available}
-                          className={`
+                          <button
+                            key={slot.time}
+                            onClick={() => slot.available && setSelectedTime(slot.time)}
+                            disabled={!slot.available}
+                            className={`
                             p-4 sm:p-5 rounded-xl border-2 text-center transition-all
                             ${selectedTime === slot.time
-                              ? 'shadow-lg transform scale-105'
-                              : slot.available
-                                ? 'border-gray-200 hover:border-gray-300 hover:shadow-md hover:scale-102'
-                                : 'border-gray-100 cursor-not-allowed opacity-50'
-                            }
+                                ? 'shadow-lg transform scale-105'
+                                : slot.available
+                                  ? 'border-gray-200 hover:border-gray-300 hover:shadow-md hover:scale-102'
+                                  : 'border-gray-100 cursor-not-allowed opacity-50'
+                              }
                           `}
-                          style={{
-                            backgroundColor: selectedTime === slot.time ? primaryColor : undefined,
-                            borderColor: selectedTime === slot.time ? primaryColor : undefined,
-                          }}
-                        >
-                          <div className={`text-sm sm:text-base mb-2 ${
-                            selectedTime === slot.time ? 'text-white' : slot.available ? 'text-gray-900' : 'text-gray-400'
-                          }`}>
-                            {slot.time}
-                          </div>
-                          <div className={`text-xs flex items-center justify-center gap-1 ${
-                            selectedTime === slot.time ? 'text-white/90' : slot.available ? 'text-green-600' : 'text-red-500'
-                          }`}>
-                            {slot.available ? (
-                              <>
-                                <Users className="w-3 h-3" />
-                                <span>{slot.spots} spots</span>
-                              </>
-                            ) : (
-                              <span>Sold out</span>
-                            )}
-                          </div>
-                          <div className={`mt-2 text-[11px] ${selectedTime === slot.time ? 'text-white/80' : 'text-gray-500'}`}>
-                            Duration: {slotDurationMinutes} min
-                          </div>
-                        </button>
-                      ))}
+                            style={{
+                              backgroundColor: selectedTime === slot.time ? primaryColor : undefined,
+                              borderColor: selectedTime === slot.time ? primaryColor : undefined,
+                            }}
+                          >
+                            <div className={`text-sm sm:text-base mb-2 ${selectedTime === slot.time ? 'text-white' : slot.available ? 'text-gray-900' : 'text-gray-400'
+                              }`}>
+                              {slot.time}
+                            </div>
+                            <div className={`text-xs flex items-center justify-center gap-1 ${selectedTime === slot.time ? 'text-white/90' : slot.available ? 'text-green-600' : 'text-red-500'
+                              }`}>
+                              {slot.available ? (
+                                <>
+                                  <Users className="w-3 h-3" />
+                                  <span>{slot.spots} spots</span>
+                                </>
+                              ) : (
+                                <span>Sold out</span>
+                              )}
+                            </div>
+                            <div className={`mt-2 text-[11px] ${selectedTime === slot.time ? 'text-white/80' : 'text-gray-500'}`}>
+                              Duration: {slotDurationMinutes} min
+                            </div>
+                          </button>
+                        ))}
                       </div>
                     )}
                   </Card>
@@ -2676,7 +2727,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                         </div>
                         <h2 className="text-xl text-gray-900">Your Booking</h2>
                       </div>
-                      
+
                       {/* Party Size */}
                       <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
                         <label className="text-sm text-gray-700 mb-3 flex items-center gap-2">
@@ -2775,7 +2826,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
                           onClick={() => setCurrentStep('cart')}
                           disabled={!canAddToCart}
                           className="w-full text-white h-14 text-lg shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition-all relative overflow-hidden group"
-                          style={{ 
+                          style={{
                             backgroundColor: canAddToCart ? primaryColor : undefined,
                             opacity: canAddToCart ? 1 : 0.5
                           }}
@@ -2844,68 +2895,68 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
 
             {/* Promo Code and Gift Card Section */}
             {(allowPromoSection || allowGiftSection) && (
-            <div className="mb-6 space-y-4">
-              {/* Promo Code */}
-              {allowPromoSection && (
-              <div>
-                {!appliedPromoCode && !showPromoCodeInput && (
-                  <button 
-                    onClick={() => setShowPromoCodeInput(true)}
-                    className="text-sm md:text-base hover:underline"
-                    style={{ color: primaryColor }}
-                  >
-                    Add promo code
-                  </button>
+              <div className="mb-6 space-y-4">
+                {/* Promo Code */}
+                {allowPromoSection && (
+                  <div>
+                    {!appliedPromoCode && !showPromoCodeInput && (
+                      <button
+                        onClick={() => setShowPromoCodeInput(true)}
+                        className="text-sm md:text-base hover:underline"
+                        style={{ color: primaryColor }}
+                      >
+                        Add promo code
+                      </button>
+                    )}
+                    {showPromoCodeInput && !appliedPromoCode && (
+                      <PromoCodeInput
+                        onApply={handleApplyPromoCode}
+                        className="mb-4"
+                      />
+                    )}
+                    {appliedPromoCode && (
+                      <PromoCodeInput
+                        onApply={handleApplyPromoCode}
+                        onRemove={handleRemovePromoCode}
+                        appliedCode={appliedPromoCode.code}
+                        appliedDiscount={appliedPromoCode.discount}
+                        appliedType={appliedPromoCode.type}
+                        className="mb-4"
+                      />
+                    )}
+                  </div>
                 )}
-                {showPromoCodeInput && !appliedPromoCode && (
-                  <PromoCodeInput
-                    onApply={handleApplyPromoCode}
-                    className="mb-4"
-                  />
-                )}
-                {appliedPromoCode && (
-                  <PromoCodeInput
-                    onApply={handleApplyPromoCode}
-                    onRemove={handleRemovePromoCode}
-                    appliedCode={appliedPromoCode.code}
-                    appliedDiscount={appliedPromoCode.discount}
-                    appliedType={appliedPromoCode.type}
-                    className="mb-4"
-                  />
-                )}
-              </div>
-              )}
 
-              {/* Gift Card */}
-              {allowGiftSection && (
-              <div>
-                {!appliedGiftCard && !showGiftCardInput && (
-                  <button 
-                    onClick={() => setShowGiftCardInput(true)}
-                    className="text-sm md:text-base hover:underline"
-                    style={{ color: primaryColor }}
-                  >
-                    Apply gift card
-                  </button>
-                )}
-                {showGiftCardInput && !appliedGiftCard && (
-                  <GiftCardInput
-                    onApply={handleApplyGiftCard}
-                    className="mb-4"
-                  />
-                )}
-                {appliedGiftCard && (
-                  <GiftCardInput
-                    onApply={handleApplyGiftCard}
-                    onRemove={handleRemoveGiftCard}
-                    appliedCode={appliedGiftCard.code}
-                    appliedAmount={appliedGiftCard.amount}
-                    className="mb-4"
-                  />
+                {/* Gift Card */}
+                {allowGiftSection && (
+                  <div>
+                    {!appliedGiftCard && !showGiftCardInput && (
+                      <button
+                        onClick={() => setShowGiftCardInput(true)}
+                        className="text-sm md:text-base hover:underline"
+                        style={{ color: primaryColor }}
+                      >
+                        Apply gift card
+                      </button>
+                    )}
+                    {showGiftCardInput && !appliedGiftCard && (
+                      <GiftCardInput
+                        onApply={handleApplyGiftCard}
+                        className="mb-4"
+                      />
+                    )}
+                    {appliedGiftCard && (
+                      <GiftCardInput
+                        onApply={handleApplyGiftCard}
+                        onRemove={handleRemoveGiftCard}
+                        appliedCode={appliedGiftCard.code}
+                        appliedAmount={appliedGiftCard.amount}
+                        className="mb-4"
+                      />
+                    )}
+                  </div>
                 )}
               </div>
-              )}
-            </div>
             )}
 
             <div className="space-y-3 mb-6">
@@ -2937,14 +2988,14 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
             <Button
               onClick={() => {
                 // Check if game has a custom checkout URL configured
-                const checkoutUrl = selectedGameData?.stripeCheckoutUrl || 
-                                    selectedGameData?.stripe_checkout_url ||
-                                    (selectedGameData as any)?.stripe_checkout_url;
-                
+                const checkoutUrl = selectedGameData?.stripeCheckoutUrl ||
+                  selectedGameData?.stripe_checkout_url ||
+                  (selectedGameData as any)?.stripe_checkout_url;
+
                 console.log('🔍 Proceed to Checkout clicked');
                 console.log('Selected Game Data:', selectedGameData);
                 console.log('Checkout URL found:', checkoutUrl);
-                
+
                 if (checkoutUrl) {
                   // Direct redirect to Stripe checkout URL
                   console.log('✅ Redirecting to Stripe URL:', checkoutUrl);
@@ -2982,7 +3033,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
             <div className="lg:col-span-2 space-y-4 sm:space-y-6">
               <Card className="p-3 sm:p-4 md:p-6 bg-white border border-gray-200 shadow-sm">
                 <h2 className="text-gray-900 mb-4 sm:mb-6 text-lg sm:text-xl">Contact Information</h2>
-                
+
                 <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                   <p className="text-xs text-green-900 font-medium mb-1">✅ Required Format:</p>
                   <ul className="text-xs text-green-800 space-y-0.5">
@@ -3229,7 +3280,7 @@ const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discoun
       {currentStep === 'success' && (
         <div className="max-w-4xl mx-auto p-4 md:p-8">
           <div className="flex flex-col items-center justify-center py-8 md:py-12">
-            <div 
+            <div
               className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
               style={{ backgroundColor: `${primaryColor}15` }}
             >

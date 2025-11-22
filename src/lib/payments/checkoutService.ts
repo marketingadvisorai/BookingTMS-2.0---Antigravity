@@ -96,6 +96,7 @@ export class CheckoutService {
   static async createBookingWithCheckout(params: {
     venueId: string;
     gameId: string;
+    sessionId?: string; // Added sessionId
     bookingDate: string;
     startTime: string;
     endTime: string;
@@ -118,6 +119,7 @@ export class CheckoutService {
         .insert({
           venue_id: params.venueId,
           game_id: params.gameId,
+          session_id: params.sessionId || null, // Use session_id
           booking_date: params.bookingDate,
           start_time: params.startTime,
           end_time: params.endTime,
@@ -154,7 +156,7 @@ export class CheckoutService {
       await supabase
         .from('bookings')
         .update({
-          stripe_session_id: session.sessionId,
+          stripe_session_id: session.sessionId, // Map to stripe_session_id
         })
         .eq('id', booking.id);
 
@@ -176,6 +178,7 @@ export class CheckoutService {
   static async createBookingWithPaymentLink(params: {
     venueId: string;
     gameId: string;
+    sessionId?: string; // Added sessionId
     bookingDate: string;
     startTime: string;
     endTime: string;
@@ -196,6 +199,7 @@ export class CheckoutService {
         .insert({
           venue_id: params.venueId,
           game_id: params.gameId,
+          time_slot_id: params.sessionId || null, // Map sessionId to time_slot_id
           booking_date: params.bookingDate,
           start_time: params.startTime,
           end_time: params.endTime,
@@ -223,6 +227,14 @@ export class CheckoutService {
           party_size: params.partySize.toString(),
         },
       });
+
+      // Update booking with payment link
+      await supabase
+        .from('bookings')
+        .update({
+          payment_link: paymentLink.url,
+        })
+        .eq('id', booking.id);
 
       // Update booking with payment link
       await supabase

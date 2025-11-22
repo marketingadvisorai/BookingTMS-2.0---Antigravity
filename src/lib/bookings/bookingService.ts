@@ -4,6 +4,7 @@ import { PaymentService } from '../payments/paymentService';
 export interface CreateBookingParams {
   venueId: string;
   gameId: string;
+  sessionId?: string; // Added sessionId
   bookingDate: string;
   startTime: string;
   endTime: string;
@@ -39,6 +40,7 @@ export class BookingService {
       const booking = await this.createBooking({
         venueId: params.venueId,
         gameId: params.gameId,
+        sessionId: params.sessionId, // Pass sessionId
         customerId: customer.id,
         bookingDate: params.bookingDate,
         startTime: params.startTime,
@@ -115,6 +117,7 @@ export class BookingService {
   static async createBooking(data: {
     venueId: string;
     gameId: string;
+    sessionId?: string; // Added sessionId
     customerId: string;
     bookingDate: string;
     startTime: string;
@@ -129,6 +132,7 @@ export class BookingService {
       .insert({
         venue_id: data.venueId,
         game_id: data.gameId,
+        session_id: data.sessionId || null, // Use session_id
         customer_id: data.customerId,
         booking_date: data.bookingDate,
         start_time: data.startTime,

@@ -16,6 +16,7 @@ import { ServiceItemsSettingsTab } from './settings/tabs/ServiceItemsSettingsTab
 import { AvailabilitySettingsTab } from './settings/tabs/AvailabilitySettingsTab';
 import { SEOSettingsTab } from './settings/tabs/SEOSettingsTab';
 import { AdvancedSettingsTab } from './settings/tabs/AdvancedSettingsTab';
+import { VenueSettingsTab } from './settings/tabs/VenueSettingsTab';
 import { useTerminology } from '../../hooks/useTerminology';
 
 interface CalendarWidgetSettingsProps {
@@ -76,6 +77,7 @@ export default function CalendarWidgetSettings({
       <Tabs defaultValue="general">
         <TabsList className="flex w-full gap-1 overflow-x-auto">
           <TabsTrigger value="general" className="text-xs sm:text-sm">General</TabsTrigger>
+          <TabsTrigger value="venue" className="text-xs sm:text-sm">Venue</TabsTrigger>
           <TabsTrigger value="games" className="text-xs sm:text-sm">{t.plural}</TabsTrigger>
           <TabsTrigger value="availability" className="text-xs sm:text-sm">Availability</TabsTrigger>
           <TabsTrigger value="custom" className="text-xs sm:text-sm">Custom</TabsTrigger>
@@ -85,6 +87,14 @@ export default function CalendarWidgetSettings({
 
         <TabsContent value="general">
           <GeneralSettingsTab config={config} onConfigChange={onConfigChange} />
+        </TabsContent>
+
+        <TabsContent value="venue">
+          <VenueSettingsTab
+            config={config}
+            onConfigChange={onConfigChange}
+            embedContext={embedContext}
+          />
         </TabsContent>
 
         <TabsContent value="games">

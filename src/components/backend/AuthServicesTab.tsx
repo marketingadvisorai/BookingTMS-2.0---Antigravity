@@ -9,11 +9,11 @@ import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Switch } from '../ui/switch';
 import { Separator } from '../ui/separator';
-import { toast } from 'sonner@2.0.3';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  AlertCircle, 
+import { toast } from 'sonner';
+import {
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
   Loader2,
   Database,
   Mail,
@@ -207,7 +207,7 @@ export const AuthServicesTab: React.FC = () => {
     };
     setGoogleConfig(configToSave);
     localStorage.setItem('google_auth_config', JSON.stringify(configToSave));
-    
+
     if (configToSave.configured) {
       setGoogleStatus('active');
       toast.success('Google OAuth configured successfully');

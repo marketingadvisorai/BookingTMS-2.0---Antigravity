@@ -99,18 +99,20 @@ export class AdminBookingService {
       );
 
       // Check availability
-      const { data: isAvailable, error: availError } = await supabase
-        .rpc('check_game_availability', {
-          p_game_id: params.game_id,
-          p_booking_date: params.booking_date,
-          p_start_time: params.start_time,
-          p_end_time: params.end_time,
-          p_exclude_booking_id: null,
-        });
+      // Check availability directly from activity_sessions
+      const { data: session, error: sessionError } = await supabase
+        .from('activity_sessions')
+        .select('capacity_remaining')
+        .eq('activity_id', params.game_id)
+        .eq('start_time', `${params.booking_date}T${params.start_time}:00Z`) // Assuming UTC or handling timezone appropriately
+        .single();
 
-      if (availError) throw availError;
-      if (!isAvailable) {
-        throw new Error('Selected time slot is not available');
+      if (sessionError && sessionError.code !== 'PGRST116') { // PGRST116 is "not found"
+        throw sessionError;
+      }
+
+      if (!session || session.capacity_remaining < (params.adults + params.children)) {
+        throw new Error('Selected time slot is not available or has insufficient capacity');
       }
 
       // Generate booking number
@@ -123,9 +125,9 @@ export class AdminBookingService {
           venue_id: params.venue_id,
           confirmation_code: bookingNumber,
           customer_id: customerId,
-          game_id: params.game_id,
+          activity_id: params.game_id,
           booking_date: params.booking_date,
-          booking_time: params.start_time,
+          start_time: params.start_time,
           end_time: params.end_time,
           players: params.adults + params.children,
           status: 'confirmed',
@@ -163,21 +165,20 @@ export class AdminBookingService {
     endTime: string
   ): Promise<boolean> {
     try {
-      const { data, error } = await supabase
-        .rpc('check_game_availability', {
-          p_game_id: gameId,
-          p_booking_date: date,
-          p_start_time: startTime,
-          p_end_time: endTime,
-          p_exclude_booking_id: null,
-        });
+      const { data: session, error } = await supabase
+        .from('activity_sessions')
+        .select('capacity_remaining')
+        .eq('activity_id', gameId)
+        .eq('start_time', `${date}T${startTime}:00Z`) // Assuming UTC
+        .single();
 
       if (error) {
+        if (error.code === 'PGRST116') return false; // Session not found means not available
         console.error('Error checking availability:', error);
         return false;
       }
 
-      return data === true;
+      return session.capacity_remaining > 0;
     } catch (error) {
       console.error('Exception checking availability:', error);
       return false;

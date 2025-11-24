@@ -94,7 +94,92 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
-      }
+      },
+      venues: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          address: string | null
+          timezone: string
+          capacity: number
+          images: string[] | null
+          operating_hours: Json | null
+          status: 'active' | 'inactive' | 'maintenance'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+          address?: string | null
+          timezone?: string
+          capacity?: number
+          images?: string[] | null
+          operating_hours?: Json | null
+          status?: 'active' | 'inactive' | 'maintenance'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          name?: string
+          address?: string | null
+          timezone?: string
+          capacity?: number
+          images?: string[] | null
+          operating_hours?: Json | null
+          status?: 'active' | 'inactive' | 'maintenance'
+          created_at?: string
+          updated_at?: string
+        }
+      },
+      activity_sessions: {
+        Row: {
+          id: string
+          activity_id: string
+          venue_id: string
+          organization_id: string
+          start_time: string
+          end_time: string
+          capacity_total: number
+          capacity_remaining: number
+          price_at_generation: number | null
+          is_closed: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          activity_id: string
+          venue_id: string
+          organization_id: string
+          start_time: string
+          end_time: string
+          capacity_total: number
+          capacity_remaining: number
+          price_at_generation?: number | null
+          is_closed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          activity_id?: string
+          venue_id?: string
+          organization_id?: string
+          start_time?: string
+          end_time?: string
+          capacity_total?: number
+          capacity_remaining?: number
+          price_at_generation?: number | null
+          is_closed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      },
       activities: {
         Row: {
           id: string
@@ -246,7 +331,7 @@ export interface Database {
           organization_id: string
           booking_number: string
           customer_id: string
-          game_id: string
+          activity_id: string
           booking_date: string
           start_time: string
           end_time: string
@@ -268,7 +353,7 @@ export interface Database {
           organization_id: string
           booking_number: string
           customer_id: string
-          game_id: string
+          activity_id: string
           booking_date: string
           start_time: string
           end_time: string
@@ -290,7 +375,7 @@ export interface Database {
           organization_id?: string
           booking_number?: string
           customer_id?: string
-          game_id?: string
+          activity_id?: string
           booking_date?: string
           start_time?: string
           end_time?: string

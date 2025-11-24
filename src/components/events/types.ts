@@ -5,14 +5,14 @@ export interface EmbedContext {
     baseUrl?: string;
 }
 
-export interface GameData {
+export interface ActivityData {
     // Step 1: Basic Info
     name: string;
     description: string;
     category: string;
     tagline?: string;
     eventType: 'public' | 'private';
-    gameType: 'physical' | 'virtual' | 'hybrid';
+    activityType: 'physical' | 'virtual' | 'hybrid';
     organizationId?: string;
     venueId?: string;
     timezone?: string;
@@ -46,7 +46,7 @@ export interface GameData {
         discountPercent: number;
     }>;
 
-    // Step 3: Game Details
+    // Step 3: Activity Details
     duration: number;
     difficulty: number;
     minAge: number;
@@ -124,7 +124,7 @@ export interface GameData {
 }
 
 export interface StepProps {
-    gameData: GameData;
-    updateGameData: (field: keyof GameData, value: any) => void;
+    activityData: ActivityData;
+    updateActivityData: (field: keyof ActivityData, value: any) => void;
     t: any;
 }

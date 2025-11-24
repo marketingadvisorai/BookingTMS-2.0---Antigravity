@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { ChangeEvent, KeyboardEvent } from 'react';
 import { useTheme } from '../layout/ThemeContext';
 import {
@@ -121,7 +121,7 @@ const GAMES = [
 
 // Time slots
 const TIME_SLOTS = [
-  '10:00 AM', '11:30 AM', '1:00 PM', '2:30 PM', 
+  '10:00 AM', '11:30 AM', '1:00 PM', '2:30 PM',
   '4:00 PM', '5:30 PM', '7:00 PM', '8:30 PM'
 ];
 
@@ -144,10 +144,10 @@ export function BookingChatAssistant({
   model,
   onOpenHistory,
   onOpenSettings
-}: BookingChatAssistantProps): JSX.Element {
+}: BookingChatAssistantProps): React.JSX.Element {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  
+
   const textClass = isDark ? 'text-white' : 'text-gray-900';
   const textMutedClass = isDark ? 'text-[#a3a3a3]' : 'text-gray-600';
   const bgClass = isDark ? 'bg-[#161616]' : 'bg-white';
@@ -172,7 +172,7 @@ export function BookingChatAssistant({
       timestamp: new Date()
     }
   ]);
-  
+
   const [inputValue, setInputValue] = useState('');
   const [selectedGame, setSelectedGame] = useState<typeof GAMES[0] | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -180,7 +180,7 @@ export function BookingChatAssistant({
   const [participantCount, setParticipantCount] = useState(2);
   const [isTyping, setIsTyping] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -246,7 +246,7 @@ export function BookingChatAssistant({
         messages,
         timestamp: new Date()
       };
-      
+
       // Keep only last 20 conversations
       const updatedConversations = [currentConversation, ...conversations].slice(0, 20);
       localStorage.setItem('chatConversations', JSON.stringify(updatedConversations));
@@ -435,22 +435,22 @@ export function BookingChatAssistant({
   const handleSendMessage = async (customMessage?: string): Promise<void> => {
     const messageToSend = customMessage || inputValue;
     if (!messageToSend.trim()) return;
-    
+
     const userMsg = messageToSend;
     addUserMessage(userMsg);
     setInputValue('');
-    
+
     // Get AI response
     setIsTyping(true);
     const aiResponse = await callLLMAPI(userMsg);
     setIsTyping(false);
-    
+
     // Analyze response to determine if we should show UI components
     const lowerResponse = aiResponse.toLowerCase();
     const lowerInput = userMsg.toLowerCase();
-    
-    if (lowerInput.includes('book') || lowerInput.includes('room') || lowerInput.includes('game') || 
-        lowerResponse.includes('games') || lowerResponse.includes('available')) {
+
+    if (lowerInput.includes('book') || lowerInput.includes('room') || lowerInput.includes('game') ||
+      lowerResponse.includes('games') || lowerResponse.includes('available')) {
       addBotMessage(
         aiResponse,
         'game-selector'
@@ -476,7 +476,7 @@ export function BookingChatAssistant({
     }
   };
 
-  const renderComponent = (message: Message): JSX.Element | null => {
+  const renderComponent = (message: Message): React.JSX.Element | null => {
     switch (message.component) {
       case 'game-selector':
         return (
@@ -485,25 +485,23 @@ export function BookingChatAssistant({
               <button
                 key={game.id}
                 onClick={() => handleGameSelect(game)}
-                className={`w-full p-3 rounded-lg border text-left transition-all ${ 
-                  isDark 
-                    ? 'bg-[#1e1e1e] border-[#2a2a2a] hover:border-[#4f46e5]' 
-                    : 'bg-white border-gray-200 hover:border-blue-400 hover:shadow-md'
-                }`}
+                className={`w-full p-3 rounded-lg border text-left transition-all ${isDark
+                  ? 'bg-[#1e1e1e] border-[#2a2a2a] hover:border-[#4f46e5]'
+                  : 'bg-white border-gray-200 hover:border-blue-400 hover:shadow-md'
+                  }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className={`text-sm ${textClass}`}>{game.name}</h4>
-                      <Badge 
-                        variant="secondary" 
-                        className={`text-xs ${
-                          game.difficulty === 'Easy' 
-                            ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-700'
-                            : game.difficulty === 'Medium'
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs ${game.difficulty === 'Easy'
+                          ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-700'
+                          : game.difficulty === 'Medium'
                             ? isDark ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-700'
                             : isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700'
-                        }`}
+                          }`}
                       >
                         {game.difficulty}
                       </Badge>
@@ -519,9 +517,9 @@ export function BookingChatAssistant({
                         {game.minPlayers}-{game.maxPlayers}
                       </span>
                       {assistantConfig?.behavior?.showPrices !== false && (
-                      <span className={`font-semibold ${isDark ? 'text-[#6366f1]' : 'text-blue-600'}`}>
-                        ${game.price}/person
-                      </span>
+                        <span className={`font-semibold ${isDark ? 'text-[#6366f1]' : 'text-blue-600'}`}>
+                          ${game.price}/person
+                        </span>
                       )}
                     </div>
                   </div>
@@ -552,11 +550,10 @@ export function BookingChatAssistant({
               <button
                 key={time}
                 onClick={() => handleTimeSelect(time)}
-                className={`p-3 rounded-lg border text-center transition-all ${ 
-                  isDark 
-                    ? 'bg-[#1e1e1e] border-[#2a2a2a] hover:border-[#4f46e5] hover:bg-[#4f46e5]/20' 
-                    : 'bg-white border-gray-200 hover:border-blue-400 hover:bg-blue-50'
-                }`}
+                className={`p-3 rounded-lg border text-center transition-all ${isDark
+                  ? 'bg-[#1e1e1e] border-[#2a2a2a] hover:border-[#4f46e5] hover:bg-[#4f46e5]/20'
+                  : 'bg-white border-gray-200 hover:border-blue-400 hover:bg-blue-50'
+                  }`}
               >
                 <Clock className={`w-4 h-4 mx-auto mb-1 ${textMutedClass}`} />
                 <span className={`text-sm ${textClass}`}>{time}</span>
@@ -569,18 +566,17 @@ export function BookingChatAssistant({
         const minPlayers = selectedGame?.minPlayers || 2;
         const maxPlayers = selectedGame?.maxPlayers || 8;
         const playerOptions = Array.from({ length: maxPlayers - minPlayers + 1 }, (_, i) => minPlayers + i);
-        
+
         return (
           <div className="grid grid-cols-4 gap-2 mt-3">
             {playerOptions.map((count: number) => (
               <button
                 key={count}
                 onClick={() => handleParticipantSelect(count)}
-                className={`p-3 rounded-lg border text-center transition-all ${ 
-                  isDark 
-                    ? 'bg-[#1e1e1e] border-[#2a2a2a] hover:border-[#4f46e5] hover:bg-[#4f46e5]/20' 
-                    : 'bg-white border-gray-200 hover:border-blue-400 hover:bg-blue-50'
-                }`}
+                className={`p-3 rounded-lg border text-center transition-all ${isDark
+                  ? 'bg-[#1e1e1e] border-[#2a2a2a] hover:border-[#4f46e5] hover:bg-[#4f46e5]/20'
+                  : 'bg-white border-gray-200 hover:border-blue-400 hover:bg-blue-50'
+                  }`}
               >
                 <Users className={`w-4 h-4 mx-auto mb-1 ${textMutedClass}`} />
                 <span className={`text-sm ${textClass}`}>{count}</span>
@@ -607,7 +603,7 @@ export function BookingChatAssistant({
                   </div>
                 </div>
               </div>
-              
+
               <div className={`border-t pt-3 ${borderClass}`}>
                 {assistantConfig?.behavior?.showPrices !== false && (
                   <>
@@ -662,7 +658,7 @@ export function BookingChatAssistant({
   return (
     <div className={`w-[380px] rounded-2xl shadow-2xl overflow-hidden border ${isDark ? 'bg-[#161616] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
       {/* Chat Header */}
-      <div 
+      <div
         className="p-4 text-white flex items-center justify-between"
         style={{ backgroundColor: chatColor }}
       >
@@ -681,7 +677,7 @@ export function BookingChatAssistant({
         </div>
         <div className="flex items-center gap-1">
           {onOpenHistory && (
-            <button 
+            <button
               onClick={onOpenHistory}
               className="hover:bg-white/20 p-1.5 rounded transition-colors"
               title="Chat History"
@@ -690,7 +686,7 @@ export function BookingChatAssistant({
             </button>
           )}
           {onOpenSettings && (
-            <button 
+            <button
               onClick={onOpenSettings}
               className="hover:bg-white/20 p-1.5 rounded transition-colors"
               title="Settings"
@@ -698,7 +694,7 @@ export function BookingChatAssistant({
               <Settings className="w-4 h-4" />
             </button>
           )}
-          <button 
+          <button
             onClick={onToggle}
             className="hover:bg-white/20 p-1.5 rounded transition-colors"
           >
@@ -713,8 +709,8 @@ export function BookingChatAssistant({
           <div key={message.id}>
             {message.type === 'bot' ? (
               <div className="flex gap-2">
-                <div 
-                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" 
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: chatColor }}
                 >
                   <Bot className="w-4 h-4 text-white" />
@@ -730,7 +726,7 @@ export function BookingChatAssistant({
               </div>
             ) : (
               <div className="flex gap-2 justify-end">
-                <div 
+                <div
                   className="rounded-2xl rounded-tr-sm p-3 shadow-sm max-w-[75%]"
                   style={{ backgroundColor: chatColor }}
                 >
@@ -743,11 +739,11 @@ export function BookingChatAssistant({
             )}
           </div>
         ))}
-        
+
         {isTyping && (
           <div className="flex gap-2">
-            <div 
-              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" 
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: chatColor }}
             >
               <Bot className="w-4 h-4 text-white" />
@@ -774,11 +770,10 @@ export function BookingChatAssistant({
                 <button
                   key={idx}
                   onClick={() => handleSuggestionClick(suggestion.text)}
-                  className={`p-2 rounded-lg border text-left text-xs transition-all ${
-                    isDark 
-                      ? 'bg-[#1e1e1e] border-[#2a2a2a] hover:border-[#4f46e5] hover:bg-[#4f46e5]/10' 
-                      : 'bg-white border-gray-200 hover:border-blue-400 hover:bg-blue-50'
-                  }`}
+                  className={`p-2 rounded-lg border text-left text-xs transition-all ${isDark
+                    ? 'bg-[#1e1e1e] border-[#2a2a2a] hover:border-[#4f46e5] hover:bg-[#4f46e5]/10'
+                    : 'bg-white border-gray-200 hover:border-blue-400 hover:bg-blue-50'
+                    }`}
                 >
                   <span className="mr-1">{suggestion.icon}</span>
                   <span className={textClass}>{suggestion.text}</span>
@@ -787,21 +782,21 @@ export function BookingChatAssistant({
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 
       {/* Chat Input */}
       <div className={`p-3 border-t ${isDark ? 'border-[#2a2a2a] bg-[#161616]' : 'border-gray-200 bg-white'}`}>
         <div className="flex gap-2">
-          <Input 
+          <Input
             placeholder="Type your message..."
             className={`flex-1 text-sm h-10 ${isDark ? 'bg-[#0a0a0a] border-[#2a2a2a]' : 'bg-gray-50 border-gray-200'}`}
             value={inputValue}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setInputValue(e.target.value)}
             onKeyPress={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleSendMessage()}
           />
-          <Button 
+          <Button
             size="icon"
             style={{ backgroundColor: chatColor }}
             onClick={() => handleSendMessage()}

@@ -6,7 +6,7 @@ export const basicInfoSchema = z.object({
     category: z.string().min(1, 'Category is required'),
     tagline: z.string().optional(),
     eventType: z.enum(['public', 'private']),
-    gameType: z.enum(['physical', 'virtual', 'hybrid']),
+    activityType: z.enum(['physical', 'virtual', 'hybrid']),
     organizationId: z.string().optional(),
     venueId: z.string().optional(),
     timezone: z.string().min(1, "Time zone is required"),
@@ -45,7 +45,7 @@ export const capacityPricingSchema = z.object({
     path: ["maxAdults"],
 });
 
-export const gameDetailsSchema = z.object({
+export const activityDetailsSchema = z.object({
     duration: z.number().min(1, 'Duration must be greater than 0'),
     difficulty: z.number().min(1).max(5),
     minAge: z.number().min(0),
@@ -127,12 +127,12 @@ export const widgetSchema = z.object({
     slug: z.string().optional(),
 });
 
-export const gameDataSchema = z.intersection(
+export const activityDataSchema = z.intersection(
     basicInfoSchema,
     z.intersection(
         capacityPricingSchema,
         z.intersection(
-            gameDetailsSchema,
+            activityDetailsSchema,
             z.intersection(
                 mediaSchema,
                 z.intersection(
@@ -147,4 +147,4 @@ export const gameDataSchema = z.intersection(
     )
 );
 
-export type GameDataSchema = z.infer<typeof gameDataSchema>;
+export type ActivityDataSchema = z.infer<typeof activityDataSchema>;

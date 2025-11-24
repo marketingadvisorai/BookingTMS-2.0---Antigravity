@@ -164,9 +164,10 @@ export class SupabaseBookingService {
    */
   static async getVenueByEmbedKey(embedKey: string): Promise<VenueConfig | null> {
     try {
-      const { data, error } = await supabase.rpc('get_venue_by_embed_key', {
-        p_embed_key: embedKey,
-      });
+      const { data, error } = await (supabase as any)
+        .rpc('get_venue_by_embed_key', {
+          p_embed_key: embedKey,
+        });
 
       if (error) {
         console.error('Error fetching venue by embed key:', error);
@@ -190,9 +191,10 @@ export class SupabaseBookingService {
    */
   static async getVenueGames(venueId: string): Promise<VenueGame[]> {
     try {
-      const { data, error } = await supabase.rpc('get_venue_games', {
-        p_venue_id: venueId,
-      });
+      const { data, error } = await (supabase as any)
+        .rpc('get_venue_games', {
+          p_venue_id: venueId,
+        });
 
       if (error) {
         console.error('Error fetching venue games:', error);
@@ -232,7 +234,7 @@ export class SupabaseBookingService {
   static async createWidgetBooking(params: CreateBookingParams): Promise<BookingResult | null> {
     try {
       // 1. Fetch Venue to get Timezone
-      const { data: venue, error: venueError } = await supabase
+      const { data: venue, error: venueError } = await (supabase as any)
         .from('venues')
         .select('timezone, organization_id')
         .eq('id', params.venue_id)
@@ -357,7 +359,7 @@ export class SupabaseBookingService {
         .select(`
           *,
           customer:customers(*),
-          game:games(*),
+          game:activities(*),
           venue:venues(*)
         `)
         .eq('venue_id', venueId)
@@ -385,7 +387,7 @@ export class SupabaseBookingService {
         .select(`
           *,
           customer:customers(*),
-          game:games(*),
+          game:activities(*),
           venue:venues(*)
         `)
         .eq('confirmation_code', confirmationCode)
@@ -408,10 +410,12 @@ export class SupabaseBookingService {
    */
   static async updateBookingStatus(bookingId: string, status: string) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('bookings')
-        .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', bookingId)
+        .update({
+          status: status, // Assuming 'updates.status' was a typo and meant the 'status' parameter
+          updated_at: new Date().toISOString()
+        }).eq('id', bookingId)
         .select()
         .single();
 
@@ -434,8 +438,8 @@ export class SupabaseBookingService {
     try {
       const { data, error } = await supabase
         .from('bookings')
-        .select('booking_time, end_time, players')
-        .eq('game_id', gameId)
+        .select('start_time, end_time, players')
+        .eq('activity_id', gameId)
         .eq('booking_date', date)
         .in('status', ['pending', 'confirmed', 'checked_in']);
 

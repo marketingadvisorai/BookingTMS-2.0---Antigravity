@@ -52,7 +52,7 @@ class StripeService {
   constructor() {
     // Initialize Stripe with secret key
     this.stripe = new Stripe(backendSecrets.stripe.secretKey, {
-      apiVersion: '2023-10-16',
+      apiVersion: '2025-01-27.acacia' as any,
       typescript: true,
     });
 
@@ -394,7 +394,7 @@ class StripeService {
   }): Promise<Stripe.Account> {
     try {
       const capabilities: any = {};
-      
+
       // Set default capabilities
       const defaultCapabilities = params.capabilities || ['card_payments', 'transfers'];
       defaultCapabilities.forEach(cap => {

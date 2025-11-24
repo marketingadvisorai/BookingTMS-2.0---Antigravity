@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase/client';
 
 export interface Venue {
     id: string;
@@ -71,14 +71,14 @@ export class VenueService {
      * Create a new venue
      */
     static async createVenue(venue: CreateVenueDTO): Promise<Venue> {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
             .from('venues')
             .insert({
                 ...venue,
                 status: 'active',
                 images: venue.images || [],
                 operating_hours: venue.operating_hours || this.getDefaultOperatingHours()
-            })
+            } as any)
             .select()
             .single();
 
@@ -91,7 +91,7 @@ export class VenueService {
      */
     static async updateVenue(venue: UpdateVenueDTO): Promise<Venue> {
         const { id, ...updates } = venue;
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
             .from('venues')
             .update(updates)
             .eq('id', id)

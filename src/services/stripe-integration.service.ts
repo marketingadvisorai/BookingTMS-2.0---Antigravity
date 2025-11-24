@@ -28,7 +28,7 @@ export class StripeIntegrationService {
             }
 
             // Fetch venue data for metadata
-            const { data: venueData } = await supabase
+            const { data: venueData } = await (supabase as any)
                 .from('venues')
                 .select('organization_id, organization_name, name')
                 .eq('id', activity.venue_id)

@@ -10,13 +10,13 @@ import { useTheme } from '../layout/ThemeContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Loader2, 
-  Database, 
-  Key, 
-  Server, 
+import {
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Database,
+  Key,
+  Server,
   Activity,
   HardDrive,
   Zap,
@@ -42,17 +42,17 @@ interface DatabaseTabProps {
 export const DatabaseTab = ({ isDark }: DatabaseTabProps) => {
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<TestResult[]>([]);
-  
+
   const supabaseUrl = `https://${projectId}.supabase.co`;
-  
+
   // Semantic class variables
   const cardBgClass = isDark ? 'bg-[#161616]' : 'bg-white';
   const borderClass = isDark ? 'border-[#2a2a2a]' : 'border-gray-200';
   const textClass = isDark ? 'text-white' : 'text-gray-900';
   const textMutedClass = isDark ? 'text-[#a3a3a3]' : 'text-gray-600';
   const hoverBgClass = isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50';
-  
-  const updateResult = (name: string, status: 'success' | 'error', message: string, details?: any) => {
+
+  const updateResult = (name: string, status: 'success' | 'error' | 'pending', message: string, details?: any) => {
     setResults(prev => {
       const existing = prev.find(r => r.name === name);
       if (existing) {
@@ -70,7 +70,7 @@ export const DatabaseTab = ({ isDark }: DatabaseTabProps) => {
       // Test 1: Environment Variables
       updateResult('Environment', 'pending', 'Checking...');
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       if (!projectId || !publicAnonKey) {
         updateResult('Environment', 'error', 'Missing project configuration', { projectId, hasKey: !!publicAnonKey });
       } else {
@@ -84,7 +84,7 @@ export const DatabaseTab = ({ isDark }: DatabaseTabProps) => {
       // Test 2: Client Initialization
       updateResult('Client', 'pending', 'Initializing Supabase client...');
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       let supabase;
       try {
         supabase = createClient(supabaseUrl, publicAnonKey);
@@ -101,10 +101,10 @@ export const DatabaseTab = ({ isDark }: DatabaseTabProps) => {
       // Test 3: Database Connection
       updateResult('Database', 'pending', 'Testing database connection...');
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       try {
         const { error: dbError } = await supabase.from('kv_store_84a71643').select('count').limit(1);
-        
+
         if (dbError) {
           if (dbError.code === 'PGRST116' || dbError.message.includes('no rows')) {
             updateResult('Database', 'success', 'Connected (table exists, no data or RLS active)', { error: dbError.message });
@@ -121,10 +121,10 @@ export const DatabaseTab = ({ isDark }: DatabaseTabProps) => {
       // Test 4: Auth System
       updateResult('Auth', 'pending', 'Testing authentication system...');
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       try {
         const { data: { session }, error: authError } = await supabase.auth.getSession();
-        
+
         if (authError) {
           updateResult('Auth', 'error', `Auth error: ${authError.message}`, authError);
         } else if (session) {
@@ -142,14 +142,14 @@ export const DatabaseTab = ({ isDark }: DatabaseTabProps) => {
       // Test 5: Server Functions
       updateResult('Server', 'pending', 'Testing edge functions...');
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       try {
         const response = await fetch(`${supabaseUrl}/functions/v1/make-server-84a71643/health`, {
           headers: {
             'Authorization': `Bearer ${publicAnonKey}`
           }
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           updateResult('Server', 'success', 'Edge function responding', data);
@@ -266,7 +266,7 @@ export const DatabaseTab = ({ isDark }: DatabaseTabProps) => {
             </div>
             <code className={`text-sm ${textClass}`}>{projectId}</code>
           </div>
-          
+
           <div className={`p-4 rounded-lg border ${borderClass} ${hoverBgClass} transition-colors`}>
             <div className="flex items-center gap-2 mb-2">
               <Key className={`w-4 h-4 ${isDark ? 'text-[#6366f1]' : 'text-blue-600'}`} />
@@ -307,18 +307,17 @@ export const DatabaseTab = ({ isDark }: DatabaseTabProps) => {
             </Button>
           </div>
         </CardHeader>
-        
+
         {results.length > 0 && (
           <CardContent className="p-6 pt-0">
             <div className="space-y-4">
               {results.map((result, index) => (
                 <div
                   key={index}
-                  className={`p-4 rounded-lg border ${
-                    result.status === 'success' ? (isDark ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-green-500/20 bg-green-500/5') :
-                    result.status === 'error' ? (isDark ? 'border-red-500/20 bg-red-500/5' : 'border-red-500/20 bg-red-500/5') :
-                    isDark ? 'border-blue-500/20 bg-blue-500/5' : 'border-blue-500/20 bg-blue-500/5'
-                  }`}
+                  className={`p-4 rounded-lg border ${result.status === 'success' ? (isDark ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-green-500/20 bg-green-500/5') :
+                      result.status === 'error' ? (isDark ? 'border-red-500/20 bg-red-500/5' : 'border-red-500/20 bg-red-500/5') :
+                        isDark ? 'border-blue-500/20 bg-blue-500/5' : 'border-blue-500/20 bg-blue-500/5'
+                    }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-3">
@@ -332,7 +331,7 @@ export const DatabaseTab = ({ isDark }: DatabaseTabProps) => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {result.details && (
                     <div className={`mt-3 p-3 rounded ${isDark ? 'bg-black/20' : 'bg-gray-100'}`}>
                       <pre className={`text-xs ${textMutedClass} overflow-x-auto`}>

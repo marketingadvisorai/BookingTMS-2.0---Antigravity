@@ -96,7 +96,7 @@ export class SessionService {
             const chunkSize = 100;
             for (let i = 0; i < sessionsToInsert.length; i += chunkSize) {
                 const chunk = sessionsToInsert.slice(i, i + chunkSize);
-                const { error } = await supabase
+                const { error } = await (supabase as any)
                     .from('activity_sessions')
                     .insert(chunk);
 

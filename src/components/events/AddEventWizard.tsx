@@ -40,117 +40,19 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { useRef } from 'react';
+import { ActivityData } from './types';
 
-interface AddGameWizardProps {
-  onComplete: (gameData: any) => void;
+interface AddActivityWizardProps {
+  onComplete: (activityData: any) => void;
   onCancel: () => void;
-  initialData?: GameData;
+  initialData?: ActivityData;
   mode?: 'create' | 'edit';
-}
-
-interface GameData {
-  // Step 1: Basic Info
-  name: string;
-  description: string;
-  category: string;
-  tagline: string;
-  eventType: 'public' | 'private';
-
-  // Step 2: Capacity & Pricing
-  minAdults: number;
-  maxAdults: number;
-  minChildren: number;
-  maxChildren: number;
-  adultPrice: number;
-  childPrice: number;
-  customCapacityFields: Array<{
-    id: string;
-    name: string;
-    min: number;
-    max: number;
-    price: number;
-  }>;
-  groupDiscount: boolean;
-  dynamicPricing: boolean;
-  peakPricing: {
-    enabled: boolean;
-    weekdayPeakPrice: number;
-    weekendPeakPrice: number;
-    peakStartTime: string;
-    peakEndTime: string;
-  };
-  groupTiers: Array<{
-    minSize: number;
-    maxSize: number;
-    discountPercent: number;
-  }>;
-
-  // Step 3: Game Details
-  duration: number;
-  difficulty: number;
-  minAge: number;
-  language: string[];
-  successRate: number;
-  activityDetails: string;
-  additionalInformation: string;
-  faqs: Array<{
-    id: string;
-    question: string;
-    answer: string;
-  }>;
-  cancellationPolicies: Array<{
-    id: string;
-    title: string;
-    description: string;
-  }>;
-  accessibility: {
-    strollerAccessible: boolean;
-    wheelchairAccessible: boolean;
-  };
-  location: string;
-
-  // Step 4: Media
-  coverImage: string;
-  galleryImages: string[];
-  videos: string[];
-
-  // Step 5: Schedule & Availability
-  operatingDays: string[];
-  startTime: string;
-  endTime: string;
-  slotInterval: number;
-  advanceBooking: number;
-  customHoursEnabled: boolean;
-  customHours: {
-    [key: string]: {
-      enabled: boolean;
-      startTime: string;
-      endTime: string;
-    };
-  };
-  customDates: Array<{
-    id: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-  }>;
-  blockedDates: string[];
-
-  // Step 6: Additional Settings
-  requiresWaiver: boolean;
-  selectedWaiver: {
-    id: string;
-    name: string;
-    description: string;
-  } | null;
-  cancellationWindow: number;
-  specialInstructions: string;
 }
 
 const STEPS = [
   { id: 1, name: 'Basic Info', icon: Info },
   { id: 2, name: 'Capacity & Pricing', icon: Users },
-  { id: 3, name: 'Game Details', icon: Sparkles },
+  { id: 3, name: 'Activity Details', icon: Sparkles },
   { id: 4, name: 'Media Upload', icon: ImageIcon },
   { id: 5, name: 'Schedule', icon: Calendar },
   { id: 6, name: 'Review & Publish', icon: Check }
@@ -210,14 +112,15 @@ const uploadGameImage = async (gameId: string, file: File): Promise<string> => {
   return data.publicUrl;
 };
 
-export default function AddEventWizard({ onComplete, onCancel, initialData, mode = 'create' }: AddGameWizardProps) {
+export default function AddEventWizard({ onComplete, onCancel, initialData, mode = 'create' }: AddActivityWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [gameData, setGameData] = useState<GameData>(initialData || {
+  const [activityData, setActivityData] = useState<ActivityData>(initialData || {
     name: '',
     description: '',
     category: '',
     tagline: '',
     eventType: 'public',
+    activityType: 'physical',
     minAdults: 2,
     maxAdults: 8,
     minChildren: 0,
@@ -252,6 +155,7 @@ export default function AddEventWizard({ onComplete, onCancel, initialData, mode
     coverImage: '',
     galleryImages: [],
     videos: [],
+    selectedWidget: 'default',
     operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
     startTime: '10:00',
     endTime: '22:00',
@@ -277,30 +181,30 @@ export default function AddEventWizard({ onComplete, onCancel, initialData, mode
 
   const progress = (currentStep / STEPS.length) * 100;
 
-  const updateGameData = (field: string, value: any) => {
-    setGameData(prev => ({ ...prev, [field]: value }));
+  const updateActivityData = (field: string, value: any) => {
+    setActivityData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleNext = () => {
     // Validation for each step
     if (currentStep === 1) {
-      if (!gameData.name || !gameData.description || !gameData.category) {
+      if (!activityData.name || !activityData.description || !activityData.category) {
         toast.error('Please fill in all required fields');
         return;
       }
     }
     if (currentStep === 2) {
-      if (gameData.maxAdults < gameData.minAdults) {
+      if (activityData.maxAdults < activityData.minAdults) {
         toast.error('Maximum adults must be greater than minimum');
         return;
       }
-      if (gameData.adultPrice <= 0 || gameData.childPrice < 0) {
+      if (activityData.adultPrice <= 0 || activityData.childPrice < 0) {
         toast.error('Please enter valid pricing');
         return;
       }
     }
     if (currentStep === 4) {
-      if (!gameData.coverImage) {
+      if (!activityData.coverImage) {
         toast.error('Please add at least a cover image');
         return;
       }
@@ -318,24 +222,24 @@ export default function AddEventWizard({ onComplete, onCancel, initialData, mode
   };
 
   const handleSubmit = () => {
-    onComplete(gameData);
-    toast.success('Game created successfully!');
+    onComplete(activityData);
+    toast.success('Activity created successfully!');
   };
 
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        return <Step1BasicInfo gameData={gameData} updateGameData={updateGameData} />;
+        return <Step1BasicInfo activityData={activityData} updateActivityData={updateActivityData} />;
       case 2:
-        return <Step2CapacityPricing gameData={gameData} updateGameData={updateGameData} />;
+        return <Step2CapacityPricing activityData={activityData} updateActivityData={updateActivityData} />;
       case 3:
-        return <Step3GameDetails gameData={gameData} updateGameData={updateGameData} />;
+        return <Step3ActivityDetails activityData={activityData} updateActivityData={updateActivityData} />;
       case 4:
-        return <Step4MediaUpload gameData={gameData} updateGameData={updateGameData} />;
+        return <Step4MediaUpload activityData={activityData} updateActivityData={updateActivityData} />;
       case 5:
-        return <Step5Schedule gameData={gameData} updateGameData={updateGameData} />;
+        return <Step5Schedule activityData={activityData} updateActivityData={updateActivityData} />;
       case 6:
-        return <Step6Review gameData={gameData} />;
+        return <Step6Review activityData={activityData} />;
       default:
         return null;
     }
@@ -435,26 +339,26 @@ export default function AddEventWizard({ onComplete, onCancel, initialData, mode
 }
 
 // Step 1: Basic Information
-function Step1BasicInfo({ gameData, updateGameData }: any) {
+function Step1BasicInfo({ activityData, updateActivityData }: any) {
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Basic Information</CardTitle>
           <CardDescription>
-            Enter the essential details about your escape room game
+            Enter the essential details about your activity
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
             <Label htmlFor="name">
-              Game Name <span className="text-red-500">*</span>
+              Activity Name <span className="text-red-500">*</span>
             </Label>
             <Input
               id="name"
               placeholder="e.g., Zombie Apocalypse"
-              value={gameData.name}
-              onChange={(e) => updateGameData('name', e.target.value)}
+              value={activityData.name}
+              onChange={(e) => updateActivityData('name', e.target.value)}
               className="mt-1"
             />
           </div>
@@ -463,9 +367,9 @@ function Step1BasicInfo({ gameData, updateGameData }: any) {
             <Label htmlFor="tagline">Tagline</Label>
             <Input
               id="tagline"
-              placeholder="A short catchy phrase about your game"
-              value={gameData.tagline}
-              onChange={(e) => updateGameData('tagline', e.target.value)}
+              placeholder="A short catchy phrase about your activity"
+              value={activityData.tagline}
+              onChange={(e) => updateActivityData('tagline', e.target.value)}
               className="mt-1"
             />
           </div>
@@ -474,7 +378,7 @@ function Step1BasicInfo({ gameData, updateGameData }: any) {
             <Label htmlFor="category">
               Category <span className="text-red-500">*</span>
             </Label>
-            <Select value={gameData.category} onValueChange={(value) => updateGameData('category', value)}>
+            <Select value={activityData.category} onValueChange={(value) => updateActivityData('category', value)}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
@@ -492,10 +396,10 @@ function Step1BasicInfo({ gameData, updateGameData }: any) {
             <Label htmlFor="eventType">
               Event Type <span className="text-red-500">*</span>
             </Label>
-            <Select value={gameData.eventType} onValueChange={(value) => updateGameData('eventType', value)}>
+            <Select value={activityData.eventType} onValueChange={(value) => updateActivityData('eventType', value)}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Select event type">
-                  {gameData.eventType === 'public' ? 'Public Event' : gameData.eventType === 'private' ? 'Private Event' : null}
+                  {activityData.eventType === 'public' ? 'Public Event' : activityData.eventType === 'private' ? 'Private Event' : null}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -521,14 +425,14 @@ function Step1BasicInfo({ gameData, updateGameData }: any) {
             </Label>
             <Textarea
               id="description"
-              placeholder="Describe the storyline, atmosphere, and what makes this game unique..."
+              placeholder="Describe the storyline, atmosphere, and what makes this activity unique..."
               rows={6}
-              value={gameData.description}
-              onChange={(e) => updateGameData('description', e.target.value)}
+              value={activityData.description}
+              onChange={(e) => updateActivityData('description', e.target.value)}
               className="mt-1"
             />
             <p className="text-xs text-gray-500 mt-1">
-              {gameData.description.length} / 500 characters
+              {activityData.description.length} / 500 characters
             </p>
           </div>
         </CardContent>
@@ -538,7 +442,7 @@ function Step1BasicInfo({ gameData, updateGameData }: any) {
 }
 
 // Step 2: Capacity & Pricing
-function Step2CapacityPricing({ gameData, updateGameData }: any) {
+function Step2CapacityPricing({ activityData, updateActivityData }: any) {
   const addCustomField = () => {
     const newField = {
       id: `custom-${Date.now()}`,
@@ -547,18 +451,18 @@ function Step2CapacityPricing({ gameData, updateGameData }: any) {
       max: 0,
       price: 0
     };
-    updateGameData('customCapacityFields', [...gameData.customCapacityFields, newField]);
+    updateActivityData('customCapacityFields', [...activityData.customCapacityFields, newField]);
   };
 
   const removeCustomField = (id: string) => {
-    updateGameData('customCapacityFields', gameData.customCapacityFields.filter((field: any) => field.id !== id));
+    updateActivityData('customCapacityFields', activityData.customCapacityFields.filter((field: any) => field.id !== id));
   };
 
   const updateCustomField = (id: string, field: string, value: any) => {
-    const updatedFields = gameData.customCapacityFields.map((customField: any) =>
+    const updatedFields = activityData.customCapacityFields.map((customField: any) =>
       customField.id === id ? { ...customField, [field]: value } : customField
     );
-    updateGameData('customCapacityFields', updatedFields);
+    updateActivityData('customCapacityFields', updatedFields);
   };
 
   return (
@@ -570,7 +474,7 @@ function Step2CapacityPricing({ gameData, updateGameData }: any) {
             Player Capacity
           </CardTitle>
           <CardDescription>
-            Set the minimum and maximum number of players for this game
+            Set the minimum and maximum number of players for this activity
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -584,8 +488,8 @@ function Step2CapacityPricing({ gameData, updateGameData }: any) {
                 id="minAdults"
                 type="number"
                 min="1"
-                value={gameData.minAdults}
-                onChange={(e) => updateGameData('minAdults', parseInt(e.target.value))}
+                value={activityData.minAdults}
+                onChange={(e) => updateActivityData('minAdults', parseInt(e.target.value))}
                 className="mt-1"
               />
             </div>
@@ -597,8 +501,8 @@ function Step2CapacityPricing({ gameData, updateGameData }: any) {
                 id="maxAdults"
                 type="number"
                 min="1"
-                value={gameData.maxAdults}
-                onChange={(e) => updateGameData('maxAdults', parseInt(e.target.value))}
+                value={activityData.maxAdults}
+                onChange={(e) => updateActivityData('maxAdults', parseInt(e.target.value))}
                 className="mt-1"
               />
             </div>
@@ -616,8 +520,8 @@ function Step2CapacityPricing({ gameData, updateGameData }: any) {
                 id="minChildren"
                 type="number"
                 min="0"
-                value={gameData.minChildren}
-                onChange={(e) => updateGameData('minChildren', parseInt(e.target.value))}
+                value={activityData.minChildren}
+                onChange={(e) => updateActivityData('minChildren', parseInt(e.target.value))}
                 className="mt-1"
               />
             </div>
@@ -627,8 +531,8 @@ function Step2CapacityPricing({ gameData, updateGameData }: any) {
                 id="maxChildren"
                 type="number"
                 min="0"
-                value={gameData.maxChildren}
-                onChange={(e) => updateGameData('maxChildren', parseInt(e.target.value))}
+                value={activityData.maxChildren}
+                onChange={(e) => updateActivityData('maxChildren', parseInt(e.target.value))}
                 className="mt-1"
               />
             </div>
@@ -654,9 +558,9 @@ function Step2CapacityPricing({ gameData, updateGameData }: any) {
               </Button>
             </div>
 
-            {(gameData.customCapacityFields?.length ?? 0) > 0 && (
+            {(activityData.customCapacityFields?.length ?? 0) > 0 && (
               <div className="space-y-3">
-                {gameData.customCapacityFields.map((field: any) => (
+                {activityData.customCapacityFields.map((field: any) => (
                   <div key={field.id} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                       <div>
@@ -723,13 +627,13 @@ function Step2CapacityPricing({ gameData, updateGameData }: any) {
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-900">
-              💡 <strong>Capacity Summary:</strong> This game can accommodate{' '}
-              {gameData.minAdults}-{gameData.maxAdults} adults
-              {gameData.maxChildren > 0 && `, up to ${gameData.maxChildren} children`}
-              {(gameData.customCapacityFields?.length ?? 0) > 0 && (
+              💡 <strong>Capacity Summary:</strong> This activity can accommodate{' '}
+              {activityData.minAdults}-{activityData.maxAdults} adults
+              {activityData.maxChildren > 0 && `, up to ${activityData.maxChildren} children`}
+              {(activityData.customCapacityFields?.length ?? 0) > 0 && (
                 <>
                   , and{' '}
-                  {gameData.customCapacityFields.map((field: any, index: number) => (
+                  {activityData.customCapacityFields.map((field: any, index: number) => (
                     <span key={field.id}>
                       {index > 0 && ', '}
                       {field.name || 'custom'} ({field.min}-{field.max})
@@ -763,8 +667,8 @@ function Step2CapacityPricing({ gameData, updateGameData }: any) {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={gameData.adultPrice}
-                  onChange={(e) => updateGameData('adultPrice', parseFloat(e.target.value))}
+                  value={activityData.adultPrice}
+                  onChange={(e) => updateActivityData('adultPrice', parseFloat(e.target.value))}
                   className="pl-7"
                 />
               </div>
@@ -778,8 +682,8 @@ function Step2CapacityPricing({ gameData, updateGameData }: any) {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={gameData.childPrice}
-                  onChange={(e) => updateGameData('childPrice', parseFloat(e.target.value))}
+                  value={activityData.childPrice}
+                  onChange={(e) => updateActivityData('childPrice', parseFloat(e.target.value))}
                   className="pl-7"
                 />
               </div>
@@ -792,11 +696,11 @@ function Step2CapacityPricing({ gameData, updateGameData }: any) {
               <p className="text-sm text-gray-500">Offer discounts for larger groups</p>
             </div>
             <Button
-              variant={gameData.groupDiscount ? 'default' : 'outline'}
+              variant={activityData.groupDiscount ? 'default' : 'outline'}
               size="sm"
-              onClick={() => updateGameData('groupDiscount', !gameData.groupDiscount)}
+              onClick={() => updateActivityData('groupDiscount', !activityData.groupDiscount)}
             >
-              {gameData.groupDiscount ? 'Enabled' : 'Disabled'}
+              {activityData.groupDiscount ? 'Enabled' : 'Disabled'}
             </Button>
           </div>
 
@@ -808,17 +712,17 @@ function Step2CapacityPricing({ gameData, updateGameData }: any) {
               <p className="text-sm text-blue-700">Set different prices based on time and demand</p>
             </div>
             <Button
-              variant={gameData.dynamicPricing ? 'default' : 'outline'}
+              variant={activityData.dynamicPricing ? 'default' : 'outline'}
               size="sm"
-              className={gameData.dynamicPricing ? 'bg-blue-600 hover:bg-blue-700' : ''}
-              onClick={() => updateGameData('dynamicPricing', !gameData.dynamicPricing)}
+              className={activityData.dynamicPricing ? 'bg-blue-600 hover:bg-blue-700' : ''}
+              onClick={() => updateActivityData('dynamicPricing', !activityData.dynamicPricing)}
             >
-              {gameData.dynamicPricing ? 'Enabled' : 'Disabled'}
+              {activityData.dynamicPricing ? 'Enabled' : 'Disabled'}
             </Button>
           </div>
 
-          {gameData.dynamicPricing && (
-            <DynamicPricingSection gameData={gameData} updateGameData={updateGameData} />
+          {activityData.dynamicPricing && (
+            <DynamicPricingSection activityData={activityData} updateActivityData={updateActivityData} />
           )}
         </CardContent>
       </Card>
@@ -827,28 +731,28 @@ function Step2CapacityPricing({ gameData, updateGameData }: any) {
 }
 
 // Dynamic Pricing Section
-function DynamicPricingSection({ gameData, updateGameData }: any) {
+function DynamicPricingSection({ activityData, updateActivityData }: any) {
   const addGroupTier = () => {
     const newTier = {
-      minSize: gameData.groupTiers.length > 0 ? gameData.groupTiers[gameData.groupTiers.length - 1].maxSize + 1 : 5,
-      maxSize: gameData.groupTiers.length > 0 ? gameData.groupTiers[gameData.groupTiers.length - 1].maxSize + 3 : 8,
+      minSize: activityData.groupTiers.length > 0 ? activityData.groupTiers[activityData.groupTiers.length - 1].maxSize + 1 : 5,
+      maxSize: activityData.groupTiers.length > 0 ? activityData.groupTiers[activityData.groupTiers.length - 1].maxSize + 3 : 8,
       discountPercent: 10
     };
-    updateGameData('groupTiers', [...gameData.groupTiers, newTier]);
+    updateActivityData('groupTiers', [...activityData.groupTiers, newTier]);
   };
 
   const removeGroupTier = (index: number) => {
-    updateGameData('groupTiers', gameData.groupTiers.filter((_: any, i: number) => i !== index));
+    updateActivityData('groupTiers', activityData.groupTiers.filter((_: any, i: number) => i !== index));
   };
 
   const updateGroupTier = (index: number, field: string, value: any) => {
-    const updatedTiers = [...gameData.groupTiers];
+    const updatedTiers = [...activityData.groupTiers];
     updatedTiers[index] = { ...updatedTiers[index], [field]: value };
-    updateGameData('groupTiers', updatedTiers);
+    updateActivityData('groupTiers', updatedTiers);
   };
 
   const updatePeakPricing = (field: string, value: any) => {
-    updateGameData('peakPricing', { ...gameData.peakPricing, [field]: value });
+    updateActivityData('peakPricing', { ...activityData.peakPricing, [field]: value });
   };
 
   return (
@@ -866,15 +770,15 @@ function DynamicPricingSection({ gameData, updateGameData }: any) {
             <p className="text-sm text-gray-500">Charge more during high-demand hours</p>
           </div>
           <Button
-            variant={gameData.peakPricing?.enabled ? 'default' : 'outline'}
+            variant={activityData.peakPricing?.enabled ? 'default' : 'outline'}
             size="sm"
-            onClick={() => updatePeakPricing('enabled', !gameData.peakPricing?.enabled)}
+            onClick={() => updatePeakPricing('enabled', !activityData.peakPricing?.enabled)}
           >
-            {gameData.peakPricing?.enabled ? 'Enabled' : 'Disabled'}
+            {activityData.peakPricing?.enabled ? 'Enabled' : 'Disabled'}
           </Button>
         </div>
 
-        {gameData.peakPricing?.enabled && (
+        {activityData.peakPricing?.enabled && (
           <div className="space-y-4 pt-4 border-t border-gray-200">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -886,7 +790,7 @@ function DynamicPricingSection({ gameData, updateGameData }: any) {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={gameData.peakPricing?.weekdayPeakPrice ?? 35}
+                    value={activityData.peakPricing?.weekdayPeakPrice ?? 35}
                     onChange={(e) => updatePeakPricing('weekdayPeakPrice', parseFloat(e.target.value))}
                     className="pl-7"
                   />
@@ -901,7 +805,7 @@ function DynamicPricingSection({ gameData, updateGameData }: any) {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={gameData.peakPricing.weekendPeakPrice}
+                    value={activityData.peakPricing.weekendPeakPrice}
                     onChange={(e) => updatePeakPricing('weekendPeakPrice', parseFloat(e.target.value))}
                     className="pl-7"
                   />
@@ -915,7 +819,7 @@ function DynamicPricingSection({ gameData, updateGameData }: any) {
                 <Input
                   id="peakStartTime"
                   type="time"
-                  value={gameData.peakPricing.peakStartTime}
+                  value={activityData.peakPricing.peakStartTime}
                   onChange={(e) => updatePeakPricing('peakStartTime', e.target.value)}
                   className="mt-1"
                 />
@@ -925,7 +829,7 @@ function DynamicPricingSection({ gameData, updateGameData }: any) {
                 <Input
                   id="peakEndTime"
                   type="time"
-                  value={gameData.peakPricing.peakEndTime}
+                  value={activityData.peakPricing.peakEndTime}
                   onChange={(e) => updatePeakPricing('peakEndTime', e.target.value)}
                   className="mt-1"
                 />
@@ -934,7 +838,7 @@ function DynamicPricingSection({ gameData, updateGameData }: any) {
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-xs text-blue-900">
-                💡 Peak pricing applies from {gameData.peakPricing.peakStartTime} to {gameData.peakPricing.peakEndTime}
+                💡 Peak pricing applies from {activityData.peakPricing.peakStartTime} to {activityData.peakPricing.peakEndTime}
               </p>
             </div>
           </div>
@@ -958,9 +862,9 @@ function DynamicPricingSection({ gameData, updateGameData }: any) {
           </Button>
         </div>
 
-        {(gameData.groupTiers?.length ?? 0) > 0 && (
+        {(activityData.groupTiers?.length ?? 0) > 0 && (
           <div className="space-y-3">
-            {gameData.groupTiers.map((tier: any, index: number) => (
+            {activityData.groupTiers.map((tier: any, index: number) => (
               <div key={index} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
                 <div className="flex-1 grid grid-cols-3 gap-3">
                   <div>
@@ -1008,7 +912,7 @@ function DynamicPricingSection({ gameData, updateGameData }: any) {
           </div>
         )}
 
-        {gameData.groupTiers.length === 0 && (
+        {activityData.groupTiers.length === 0 && (
           <p className="text-sm text-gray-500 text-center py-4">
             No group tiers configured. Click "Add Tier" to create pricing tiers.
           </p>
@@ -1018,21 +922,21 @@ function DynamicPricingSection({ gameData, updateGameData }: any) {
   );
 }
 
-// Step 3: Game Details
-function Step3GameDetails({ gameData, updateGameData }: any) {
+// Step 3: Activity Details
+function Step3ActivityDetails({ activityData, updateActivityData }: any) {
   const handleLanguageToggle = (lang: string) => {
-    const languages = gameData.language.includes(lang)
-      ? gameData.language.filter((l: string) => l !== lang)
-      : [...gameData.language, lang];
-    updateGameData('language', languages);
+    const languages = activityData.language.includes(lang)
+      ? activityData.language.filter((l: string) => l !== lang)
+      : [...activityData.language, lang];
+    updateActivityData('language', languages);
   };
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Game Details</CardTitle>
-          <CardDescription>Configure game duration, difficulty, and requirements</CardDescription>
+          <CardTitle>Activity Details</CardTitle>
+          <CardDescription>Configure activity duration, difficulty, and requirements</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
@@ -1046,8 +950,8 @@ function Step3GameDetails({ gameData, updateGameData }: any) {
                 type="number"
                 min="30"
                 step="15"
-                value={gameData.duration}
-                onChange={(e) => updateGameData('duration', parseInt(e.target.value))}
+                value={activityData.duration}
+                onChange={(e) => updateActivityData('duration', parseInt(e.target.value))}
                 className="mt-1"
               />
             </div>
@@ -1057,8 +961,8 @@ function Step3GameDetails({ gameData, updateGameData }: any) {
                 id="minAge"
                 type="number"
                 min="0"
-                value={gameData.minAge}
-                onChange={(e) => updateGameData('minAge', parseInt(e.target.value))}
+                value={activityData.minAge}
+                onChange={(e) => updateActivityData('minAge', parseInt(e.target.value))}
                 className="mt-1"
               />
             </div>
@@ -1073,11 +977,11 @@ function Step3GameDetails({ gameData, updateGameData }: any) {
               {[1, 2, 3, 4, 5].map((level) => (
                 <button
                   key={level}
-                  onClick={() => updateGameData('difficulty', level)}
+                  onClick={() => updateActivityData('difficulty', level)}
                   className="flex flex-col items-center gap-1 p-3 border-2 rounded-lg transition-all hover:border-blue-400"
                   style={{
-                    borderColor: gameData.difficulty === level ? '#2563eb' : '#e5e7eb',
-                    backgroundColor: gameData.difficulty === level ? '#eff6ff' : 'white'
+                    borderColor: activityData.difficulty === level ? '#2563eb' : '#e5e7eb',
+                    backgroundColor: activityData.difficulty === level ? '#eff6ff' : 'white'
                   }}
                 >
                   <div className="flex gap-0.5">
@@ -1105,12 +1009,12 @@ function Step3GameDetails({ gameData, updateGameData }: any) {
               {LANGUAGES.map((lang) => (
                 <Badge
                   key={lang}
-                  variant={gameData.language.includes(lang) ? 'default' : 'outline'}
+                  variant={activityData.language.includes(lang) ? 'default' : 'outline'}
                   className="cursor-pointer px-4 py-2"
                   onClick={() => handleLanguageToggle(lang)}
                 >
                   {lang}
-                  {gameData.language.includes(lang) && <Check className="w-3 h-3 ml-1" />}
+                  {activityData.language.includes(lang) && <Check className="w-3 h-3 ml-1" />}
                 </Badge>
               ))}
             </div>
@@ -1124,11 +1028,11 @@ function Step3GameDetails({ gameData, updateGameData }: any) {
                 type="range"
                 min="0"
                 max="100"
-                value={gameData.successRate}
-                onChange={(e) => updateGameData('successRate', parseInt(e.target.value))}
+                value={activityData.successRate}
+                onChange={(e) => updateActivityData('successRate', parseInt(e.target.value))}
                 className="flex-1"
               />
-              <span className="text-lg text-gray-900 min-w-[60px]">{gameData.successRate}%</span>
+              <span className="text-lg text-gray-900 min-w-[60px]">{activityData.successRate}%</span>
             </div>
             <p className="text-xs text-gray-500 mt-1">
               Historical success rate helps set player expectations
@@ -1153,8 +1057,8 @@ function Step3GameDetails({ gameData, updateGameData }: any) {
               id="activityDetails"
               placeholder="Describe what participants will do during this activity..."
               rows={4}
-              value={gameData.activityDetails}
-              onChange={(e) => updateGameData('activityDetails', e.target.value)}
+              value={activityData.activityDetails}
+              onChange={(e) => updateActivityData('activityDetails', e.target.value)}
               className="mt-1"
             />
           </div>
@@ -1165,8 +1069,8 @@ function Step3GameDetails({ gameData, updateGameData }: any) {
               id="additionalInformation"
               placeholder="Any other important information participants should know..."
               rows={4}
-              value={gameData.additionalInformation}
-              onChange={(e) => updateGameData('additionalInformation', e.target.value)}
+              value={activityData.additionalInformation}
+              onChange={(e) => updateActivityData('additionalInformation', e.target.value)}
               className="mt-1"
             />
           </div>
@@ -1174,10 +1078,10 @@ function Step3GameDetails({ gameData, updateGameData }: any) {
       </Card>
 
       {/* FAQs */}
-      <FAQSection gameData={gameData} updateGameData={updateGameData} />
+      <FAQSection activityData={activityData} updateActivityData={updateActivityData} />
 
       {/* Cancellation Policies */}
-      <CancellationPolicySection gameData={gameData} updateGameData={updateGameData} />
+      <CancellationPolicySection activityData={activityData} updateActivityData={updateActivityData} />
 
       {/* Accessibility */}
       <Card>
@@ -1196,9 +1100,9 @@ function Step3GameDetails({ gameData, updateGameData }: any) {
             </div>
             <Switch
               id="strollerAccessible"
-              checked={gameData.accessibility?.strollerAccessible ?? false}
+              checked={activityData.accessibility?.strollerAccessible ?? false}
               onCheckedChange={(checked) =>
-                updateGameData('accessibility', { ...gameData.accessibility, strollerAccessible: checked })
+                updateActivityData('accessibility', { ...activityData.accessibility, strollerAccessible: checked })
               }
             />
           </div>
@@ -1212,9 +1116,9 @@ function Step3GameDetails({ gameData, updateGameData }: any) {
             </div>
             <Switch
               id="wheelchairAccessible"
-              checked={gameData.accessibility?.wheelchairAccessible ?? false}
+              checked={activityData.accessibility?.wheelchairAccessible ?? false}
               onCheckedChange={(checked) =>
-                updateGameData('accessibility', { ...gameData.accessibility, wheelchairAccessible: checked })
+                updateActivityData('accessibility', { ...activityData.accessibility, wheelchairAccessible: checked })
               }
             />
           </div>
@@ -1236,8 +1140,8 @@ function Step3GameDetails({ gameData, updateGameData }: any) {
             <Input
               id="location"
               placeholder="Enter location address..."
-              value={gameData.location}
-              onChange={(e) => updateGameData('location', e.target.value)}
+              value={activityData.location}
+              onChange={(e) => updateActivityData('location', e.target.value)}
               className="mt-1"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -1248,13 +1152,13 @@ function Step3GameDetails({ gameData, updateGameData }: any) {
       </Card>
 
       {/* Waiver Selection */}
-      <WaiverSection gameData={gameData} updateGameData={updateGameData} />
+      <WaiverSection activityData={activityData} updateActivityData={updateActivityData} />
     </div>
   );
 }
 
 // FAQ Section Component
-function FAQSection({ gameData, updateGameData }: any) {
+function FAQSection({ activityData, updateActivityData }: any) {
   const [showAddNew, setShowAddNew] = useState(false);
   const [newQuestion, setNewQuestion] = useState('');
   const [newAnswer, setNewAnswer] = useState('');
@@ -1269,7 +1173,7 @@ function FAQSection({ gameData, updateGameData }: any) {
       question: newQuestion,
       answer: newAnswer,
     };
-    updateGameData('faqs', [...gameData.faqs, newFAQ]);
+    updateActivityData('faqs', [...activityData.faqs, newFAQ]);
     setNewQuestion('');
     setNewAnswer('');
     setShowAddNew(false);
@@ -1277,16 +1181,16 @@ function FAQSection({ gameData, updateGameData }: any) {
   };
 
   const addExistingFAQ = (faq: any) => {
-    if (gameData.faqs.find((f: any) => f.id === faq.id)) {
+    if (activityData.faqs.find((f: any) => f.id === faq.id)) {
       toast.error('This FAQ is already added');
       return;
     }
-    updateGameData('faqs', [...gameData.faqs, faq]);
+    updateActivityData('faqs', [...activityData.faqs, faq]);
     toast.success('FAQ added');
   };
 
   const removeFAQ = (id: string) => {
-    updateGameData('faqs', gameData.faqs.filter((f: any) => f.id !== id));
+    updateActivityData('faqs', activityData.faqs.filter((f: any) => f.id !== id));
     toast.success('FAQ removed');
   };
 

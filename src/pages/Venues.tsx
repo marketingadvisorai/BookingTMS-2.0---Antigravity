@@ -54,6 +54,8 @@ export default function Venues() {
     setShowCreateDialog,
     setShowEditDialog,
     setShowDeleteDialog,
+    deleteConfirmation,
+    setDeleteConfirmation,
     setShowWidgetSettings,
     setShowWidgetPreview,
     setShowEmbedCode,
@@ -657,17 +659,37 @@ export default function Venues() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog open={showDeleteDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowDeleteDialog(false);
+          setDeleteConfirmation('');
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Venue</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{selectedVenue?.name}"? This action cannot be undone and will remove all associated widget configurations.
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  Type <span className="font-bold text-red-600">DELETE</span> to confirm:
+                </p>
+                <Input
+                  value={deleteConfirmation}
+                  onChange={(e) => setDeleteConfirmation(e.target.value)}
+                  placeholder="Type DELETE to confirm"
+                  className="w-full"
+                />
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteVenue} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogCancel onClick={() => setDeleteConfirmation('')}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteVenue}
+              disabled={deleteConfirmation !== 'DELETE'}
+              className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Delete Venue
             </AlertDialogAction>
           </AlertDialogFooter>

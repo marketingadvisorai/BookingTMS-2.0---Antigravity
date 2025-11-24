@@ -253,55 +253,55 @@ const BETA_OWNER_PERMISSIONS: Permission[] = [
   // Dashboard
   'dashboard.view',
   'dashboard.stats',
-  
+
   // Bookings - Full access
   'bookings.view',
   'bookings.create',
   'bookings.edit',
   'bookings.delete',
   'bookings.export',
-  
+
   // Venues - CRITICAL for multi-venue management
   'venues.view',
   'venues.create',
   'venues.edit',
   'venues.delete',
   'venues.configure',
-  
+
   // Games/Events - Manage escape room experiences
   'games.view',
   'games.create',
   'games.edit',
   'games.delete',
-  
+
   // Booking Widgets - LIMITED to Calendar widgets only
   'widgets.view',
   'widgets.calendar.view',
   'widgets.calendar.edit',
   'widgets.calendar.create',
-  
+
   // Customers - Customer management
   'customers.view',
   'customers.create',
   'customers.edit',
   'customers.export',
-  
+
   // Waivers - CRITICAL for liability (escape rooms)
   'waivers.view',
   'waivers.edit',
   'waivers.create',
-  
+
   // Reports - Business insights
   'reports.view',
   'reports.export',
-  
+
   // Payments - Financial tracking
   'payments.view',
   'payments.export',
-  
+
   // AI Agents - View status only (NO settings access)
   'ai-agents.view',
-  
+
   // Settings - Basic configuration
   'settings.view',
   'settings.edit',
@@ -310,6 +310,72 @@ const BETA_OWNER_PERMISSIONS: Permission[] = [
 // ============================================================================
 // ROLE CONFIGURATIONS
 // ============================================================================
+
+/**
+ * Org Admin - Single Organization Owner
+ * Manages one organization and its default venue.
+ * Simplified view, no multi-venue complexity.
+ */
+const ORG_ADMIN_PERMISSIONS: Permission[] = [
+  // Dashboard
+  'dashboard.view',
+  'dashboard.stats',
+
+  // Bookings
+  'bookings.view',
+  'bookings.create',
+  'bookings.edit',
+  'bookings.delete',
+  'bookings.export',
+
+  // Venues - View only (managed automatically)
+  'venues.view',
+  'venues.configure',
+
+  // Games/Events
+  'games.view',
+  'games.create',
+  'games.edit',
+  'games.delete',
+
+  // Booking Widgets
+  'widgets.view',
+  'widgets.create',
+  'widgets.edit',
+  'widgets.delete',
+  'widgets.calendar.view',
+  'widgets.calendar.create',
+  'widgets.calendar.edit',
+
+  // Customers
+  'customers.view',
+  'customers.create',
+  'customers.edit',
+  'customers.export',
+
+  // Staff
+  'staff.view',
+  'staff.create',
+  'staff.edit',
+  'staff.delete',
+
+  // Waivers
+  'waivers.view',
+  'waivers.create',
+  'waivers.edit',
+
+  // Reports
+  'reports.view',
+  'reports.export',
+
+  // Payments
+  'payments.view',
+  'payments.export',
+
+  // Settings
+  'settings.view',
+  'settings.edit',
+];
 
 export const ROLES: RoleConfig[] = [
   {
@@ -327,6 +393,14 @@ export const ROLES: RoleConfig[] = [
     permissions: SUPER_ADMIN_PERMISSIONS,
     color: '#ef4444', // Red
     icon: 'Shield',
+  },
+  {
+    id: 'org-admin',
+    name: 'Org Admin',
+    description: 'Single Organization Owner - Manages one organization and venue',
+    permissions: ORG_ADMIN_PERMISSIONS,
+    color: '#f97316', // Orange
+    icon: 'Building',
   },
   {
     id: 'admin',
@@ -380,58 +454,58 @@ export const ROLES: RoleConfig[] = [
 export const ROUTE_PERMISSIONS: RoutePermission[] = [
   // Dashboard
   { path: '/dashboard', requiredPermissions: ['dashboard.view'] },
-  
+
   // Bookings
   { path: '/bookings', requiredPermissions: ['bookings.view'] },
-  
+
   // Games/Events
   { path: '/games', requiredPermissions: ['games.view'] },
-  
+
   // Booking Widgets
   { path: '/booking-widgets', requiredPermissions: ['widgets.view'] },
-  
+
   // Marketing
   { path: '/marketing', requiredPermissions: ['marketing.view'] },
-  
+
   // Campaigns
   { path: '/campaigns', requiredPermissions: ['campaigns.view'] },
-  
+
   // Customers
   { path: '/customers', requiredPermissions: ['customers.view'] },
-  
+
   // AI Agents
   { path: '/ai-agents', requiredPermissions: ['ai-agents.view'] },
-  
+
   // Reports
   { path: '/reports', requiredPermissions: ['reports.view'] },
-  
+
   // Staff/Team
   { path: '/staff', requiredPermissions: ['staff.view'] },
   { path: '/team', requiredPermissions: ['staff.view'] },
-  
+
   // Waivers
   { path: '/waivers', requiredPermissions: ['waivers.view'] },
-  
+
   // Media
   { path: '/media', requiredPermissions: ['media.view'] },
-  
+
   // Settings
   { path: '/settings', requiredPermissions: ['settings.view'] },
-  
+
   // Payments
   { path: '/payment-history', requiredPermissions: ['payments.view'] },
-  
+
   // System Admin Dashboard (System Admin only)
-  { 
-    path: '/system-admin', 
+  {
+    path: '/system-admin',
     requiredPermissions: ['system.view'],
     requiredRole: ['system-admin'],
     redirectTo: '/dashboard'
   },
-  
+
   // Account Settings (Super Admin only)
-  { 
-    path: '/account-settings', 
+  {
+    path: '/account-settings',
     requiredPermissions: ['accounts.view'],
     requiredRole: ['super-admin'],
     redirectTo: '/dashboard'

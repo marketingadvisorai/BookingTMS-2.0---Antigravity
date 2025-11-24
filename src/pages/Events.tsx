@@ -14,16 +14,20 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import BookingsDialog from '../components/events/BookingsDialog';
 import { useAuth } from '../lib/auth/AuthContext';
+import { useOrganization } from '../features/system-admin/hooks/useOrganizations';
+import { Input } from '../components/ui/input';
 
 export function Events() {
   const t = useTerminology();
   const { currentUser } = useAuth();
   const { venues, loading: venuesLoading } = useVenues();
+  const { organization } = useOrganization(currentUser?.organizationId || undefined);
 
   // Determine the active venue ID. 
   // For single-venue tenants, this will automatically be the only venue.
   // For multi-venue, we default to the first one for now, or could add a selector later.
   const activeVenueId = useMemo(() => venues.length > 0 ? venues[0].id : undefined, [venues]);
+  const activeVenue = useMemo(() => venues.find(v => v.id === activeVenueId), [venues, activeVenueId]);
 
   // Use the new hook with the active venue ID
   const { serviceItems, loading: itemsLoading, createServiceItem, updateServiceItem, deleteServiceItem, refreshServiceItems } = useServiceItems(activeVenueId);
@@ -43,6 +47,7 @@ export function Events() {
   const [editingServiceItem, setEditingServiceItem] = useState<any>(null);
   const [deletingItem, setDeletingItem] = useState<any>(null);
   const [selectedBookingService, setSelectedBookingService] = useState<{ id: string; name: string } | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
 
   // Map ServiceItems to Game format for GameGrid compatibility
   const games = useMemo(() => {
@@ -220,14 +225,14 @@ export function Events() {
     if (!item) return undefined;
     return {
       ...item,
+      ...item.settings, // Spread settings first so specific overrides take precedence
       minAdults: item.min_players,
       maxAdults: item.max_players,
       adultPrice: item.price,
-      childPrice: item.child_price,
-      minAge: item.min_age,
-      successRate: item.success_rate, // Might not be relevant for all niches
+      childPrice: item.child_price ?? item.settings?.child_price,
+      minAge: item.min_age ?? item.settings?.min_age,
+      successRate: item.success_rate,
       coverImage: item.image_url,
-      ...item.settings
     };
   };
 
@@ -291,26 +296,45 @@ export function Events() {
             initialData={getInitialWizardData(editingServiceItem)}
             venueType="escape_room" // Default or fetch from context
             venueId={activeVenueId}
+            venueName={activeVenue?.name}
             organizationId={currentUser?.organizationId}
+            organizationName={organization?.name}
           />
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletingItem} onOpenChange={(open) => !open && setDeletingItem(null)}>
+      <AlertDialog open={!!deletingItem} onOpenChange={(open) => {
+        if (!open) {
+          setDeletingItem(null);
+          setDeleteConfirmation('');
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure you want to delete this {t.singular.toLowerCase()}?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete "{deletingItem?.name}" and all associated data.
               This action cannot be undone.
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  Type <span className="font-bold text-red-600">DELETE</span> to confirm:
+                </p>
+                <Input
+                  value={deleteConfirmation}
+                  onChange={(e) => setDeleteConfirmation(e.target.value)}
+                  placeholder="Type DELETE to confirm"
+                  className="w-full"
+                />
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setDeleteConfirmation('')}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
-              className="bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700"
+              disabled={deleteConfirmation !== 'DELETE'}
+              className="bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Delete {t.singular}
             </AlertDialogAction>

@@ -28,7 +28,9 @@ interface AddServiceItemWizardProps {
   embedContext?: EmbedContext;
   venueType?: string;
   venueId?: string;
+  venueName?: string;
   organizationId?: string;
+  organizationName?: string;
 }
 
 const generateSlug = (value: string | undefined) => {
@@ -41,7 +43,7 @@ const generateSlug = (value: string | undefined) => {
     .replace(/-+/g, '-');
 };
 
-export default function AddServiceItemWizard({ onComplete, onCancel, initialData, mode = 'create', theme, embedContext, venueType, venueId, organizationId }: AddServiceItemWizardProps) {
+export default function AddServiceItemWizard({ onComplete, onCancel, initialData, mode = 'create', theme, embedContext, venueType, venueId, venueName, organizationId, organizationName }: AddServiceItemWizardProps) {
   const t = useTerminology(venueType || 'escape_room');
   const [currentStep, setCurrentStep] = useState(1);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -185,6 +187,71 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
   });
 
   const { watch, setValue, trigger, reset, formState: { errors, isValid } } = methods;
+
+  // Reset form when initialData changes
+  React.useEffect(() => {
+    if (initialData) {
+      const wizardData = convertGameToWizardData(initialData);
+      reset(wizardData);
+    } else {
+      reset({
+        name: '',
+        description: '',
+        category: '',
+        tagline: '',
+        eventType: 'public',
+        gameType: 'physical',
+        minAdults: 2,
+        maxAdults: 8,
+        minChildren: 0,
+        maxChildren: 4,
+        adultPrice: 30,
+        childPrice: 20,
+        duration: 60,
+        difficulty: 3,
+        minAge: 12,
+        language: ['English'],
+        successRate: 75,
+        activityDetails: '',
+        additionalInformation: '',
+        faqs: [],
+        cancellationPolicies: [],
+        accessibility: { strollerAccessible: false, wheelchairAccessible: false },
+        location: '',
+        coverImage: '',
+        galleryImages: [],
+        videos: [],
+        selectedWidget: 'calendar-single-event',
+        operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        startTime: '10:00',
+        endTime: '22:00',
+        slotInterval: 60,
+        advanceBooking: 30,
+        customHoursEnabled: false,
+        customHours: {
+          Monday: { enabled: true, startTime: '10:00', endTime: '22:00' },
+          Tuesday: { enabled: true, startTime: '10:00', endTime: '22:00' },
+          Wednesday: { enabled: true, startTime: '10:00', endTime: '22:00' },
+          Thursday: { enabled: true, startTime: '10:00', endTime: '22:00' },
+          Friday: { enabled: true, startTime: '10:00', endTime: '22:00' },
+          Saturday: { enabled: true, startTime: '10:00', endTime: '22:00' },
+          Sunday: { enabled: true, startTime: '10:00', endTime: '22:00' },
+        },
+        customCapacityFields: [],
+        groupDiscount: false,
+        groupTiers: [],
+        dynamicPricing: false,
+        peakPricing: { enabled: false, weekdayPeakPrice: 0, weekendPeakPrice: 0, peakStartTime: '', peakEndTime: '' },
+        customDates: [],
+        blockedDates: [],
+        requiresWaiver: true,
+        selectedWaiver: null,
+        cancellationWindow: 24,
+        specialInstructions: '',
+        slug: '',
+      });
+    }
+  }, [initialData, reset]);
   const gameData = watch();
 
   const progress = (currentStep / STEPS.length) * 100;
@@ -498,10 +565,21 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
       {/* Header with Progress */}
       <div className="px-6 py-4 border-b border-gray-200 dark:border-[#2a2a2a]">
         <div className="mb-4">
-          <h2 className="text-2xl text-gray-900 dark:text-white">{mode === 'edit' ? `${t.actionEdit}` : `${t.actionAdd}`}</h2>
-          <p className="text-sm text-gray-600 dark:text-[#a3a3a3] mt-1">
-            Step {currentStep} of {STEPS.length}: {STEPS[currentStep - 1].name.replace('Game', t.singular)}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl text-gray-900 dark:text-white">{mode === 'edit' ? `${t.actionEdit}` : `${t.actionAdd}`}</h2>
+              {(organizationName || venueName) && (
+                <p className="text-sm text-gray-500 dark:text-[#737373] mt-1">
+                  {organizationName && <span className="font-medium">{organizationName}</span>}
+                  {organizationName && venueName && <span className="mx-1">•</span>}
+                  {venueName && <span>{venueName}</span>}
+                </p>
+              )}
+            </div>
+            <p className="text-sm text-gray-600 dark:text-[#a3a3a3]">
+              Step {currentStep} of {STEPS.length}: {STEPS[currentStep - 1].name.replace('Game', t.singular)}
+            </p>
+          </div>
         </div>
         <Progress value={progress} className="h-2" />
       </div>

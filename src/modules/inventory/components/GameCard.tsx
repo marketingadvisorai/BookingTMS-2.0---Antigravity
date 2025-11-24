@@ -104,11 +104,12 @@ export function GameCard({
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                                className="text-red-600 focus:text-red-600"
+                                className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 focus:bg-red-50 dark:focus:bg-red-950/50"
                                 onClick={() => onDelete(game)}
+                                data-testid={`delete-game-${game.name}`}
                             >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Game
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -136,21 +137,13 @@ export function GameCard({
                 </div>
             </CardContent>
 
-            <CardFooter className="p-4 pt-0 flex gap-2">
+            <CardFooter className="p-4 pt-0">
                 <Button
                     variant="outline"
-                    className="flex-1"
+                    className="w-full"
                     onClick={() => onViewBookings(game)}
                 >
                     Manage Schedule
-                </Button>
-                <Button
-                    variant="secondary"
-                    className="flex-1"
-                    onClick={() => onEdit(game)}
-                    data-testid="direct-edit-button"
-                >
-                    Edit
                 </Button>
             </CardFooter>
         </Card>

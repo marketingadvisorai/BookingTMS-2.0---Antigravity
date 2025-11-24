@@ -26,24 +26,24 @@ export type Permission =
   | 'billing.view'
   | 'billing.manage'
   | 'platform.analytics'
-  
+
   // Dashboard
   | 'dashboard.view'
   | 'dashboard.stats'
-  
+
   // Bookings
   | 'bookings.view'
   | 'bookings.create'
   | 'bookings.edit'
   | 'bookings.delete'
   | 'bookings.export'
-  
+
   // Events/Games
   | 'games.view'
   | 'games.create'
   | 'games.edit'
   | 'games.delete'
-  
+
   // Booking Widgets
   | 'widgets.view'
   | 'widgets.edit'
@@ -52,7 +52,7 @@ export type Permission =
   | 'widgets.calendar.view'
   | 'widgets.calendar.edit'
   | 'widgets.calendar.create'
-  
+
   // Venues
   | 'venues.view'
   | 'venues.create'
@@ -60,56 +60,56 @@ export type Permission =
   | 'venues.delete'
   | 'venues.configure'
   | 'venues.manage'
-  
+
   // Marketing
   | 'marketing.view'
   | 'marketing.edit'
-  
+
   // Campaigns
   | 'campaigns.view'
   | 'campaigns.edit'
-  
+
   // Customers
   | 'customers.view'
   | 'customers.create'
   | 'customers.edit'
   | 'customers.delete'
   | 'customers.export'
-  
+
   // AI Agents
   | 'ai-agents.view'
   | 'ai-agents.edit'
-  
+
   // Reports
   | 'reports.view'
   | 'reports.export'
-  
+
   // Staff/Team
   | 'staff.view'
   | 'staff.edit'
   | 'staff.create'
   | 'staff.delete'
-  
+
   // Waivers
   | 'waivers.view'
   | 'waivers.edit'
   | 'waivers.create'
-  
+
   // Media
   | 'media.view'
   | 'media.upload'
   | 'media.delete'
-  
+
   // Settings
   | 'settings.view'
   | 'settings.edit'
-  
+
   // Payments
   | 'payments.view'
   | 'payments.refund'
   | 'payments.export'
   | 'payments.reconcile'
-  
+
   // Account Management (Super Admin only)
   | 'accounts.view'
   | 'accounts.manage'
@@ -121,7 +121,7 @@ export type Permission =
  * system-admin: Platform-level admin (can manage all organizations/owners)
  * super-admin: Organization owner (can manage their own organization)
  */
-export type UserRole = 'system-admin' | 'super-admin' | 'admin' | 'beta-owner' | 'manager' | 'staff' | 'customer';
+export type UserRole = 'system-admin' | 'super-admin' | 'org-admin' | 'admin' | 'beta-owner' | 'manager' | 'staff' | 'customer';
 
 /**
  * Role configuration with permissions
@@ -194,23 +194,23 @@ export interface AuthContextType {
   users: User[];
   roles: RoleConfig[];
   isLoading: boolean;
-  
+
   // Authentication
   login: (usernameOrEmail: string, password: string, role?: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   switchUser: (userId: string) => void;
   refreshUsers: () => Promise<void>;
-  
+
   // User management
   createUser: (payload: CreateUserPayload) => Promise<User>;
   updateUser: (userId: string, payload: UpdateUserPayload) => Promise<User>;
   deleteUser: (userId: string) => Promise<void>;
-  
+
   // Permission checks
   hasPermission: (permission: Permission) => boolean;
   hasAnyPermission: (permissions: Permission[]) => boolean;
   hasAllPermissions: (permissions: Permission[]) => boolean;
-  
+
   // Role checks
   isRole: (role: UserRole) => boolean;
   canAccessRoute: (path: string) => boolean;

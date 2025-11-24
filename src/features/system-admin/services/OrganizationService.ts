@@ -233,6 +233,90 @@ export class OrganizationService {
   }
 
   /**
+   * Create new organization with a new user account (Org Admin)
+   * This is used by System Admins to create a full setup at once
+   */
+  static async createWithUser(dto: CreateOrganizationDTO, password?: string): Promise<Organization> {
+    try {
+      // 1. Create Auth User (if password provided)
+      let userId: string | null = null;
+
+      if (password) {
+        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+          email: dto.owner_email,
+          password: password,
+          email_confirm: true,
+          user_metadata: {
+            full_name: dto.owner_name,
+          },
+        });
+
+        if (authError || !authData.user) {
+          throw new Error(`Failed to create user: ${authError?.message}`);
+        }
+        userId = authData.user.id;
+      }
+
+      // 2. Create Organization
+      const org = await this.create(dto);
+
+      // 3. Create Default Venue
+      const { error: venueError } = await supabase
+        .from('venues')
+        .insert([{
+          organization_id: org.id,
+          name: `${org.name} - Main Venue`,
+          is_default: true,
+          timezone: 'UTC',
+          status: 'active'
+        }]);
+
+      if (venueError) {
+        console.error('Failed to create default venue:', venueError);
+      }
+
+      // 4. Link User to Organization if user was created
+      if (userId) {
+        // Create user profile
+        const { error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: userId,
+            email: dto.owner_email,
+            full_name: dto.owner_name,
+            role: 'org-admin', // Assign new role
+            organization_id: org.id,
+            phone: dto.phone || null,
+            is_active: true,
+          });
+
+        if (profileError) {
+          console.error('Failed to create user profile:', profileError);
+        }
+
+        // Add as organization member
+        const { error: memberError } = await supabase
+          .from('organization_members')
+          .insert([{
+            organization_id: org.id,
+            user_id: userId,
+            role: 'owner',
+            permissions: { all: true },
+          }]);
+
+        if (memberError) {
+          console.error('Failed to link user to org:', memberError);
+        }
+      }
+
+      return org;
+    } catch (error: any) {
+      console.error('[OrganizationService] createWithUser failed:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Update organization
    */
   static async update(id: string, dto: UpdateOrganizationDTO): Promise<Organization> {

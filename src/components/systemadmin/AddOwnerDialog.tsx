@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Plus, X, Loader2 } from 'lucide-react';
 import { useOrganizations, usePlans } from '../../features/system-admin/hooks';
+import { OrganizationService } from '../../features/system-admin/services';
 import type { CreateOrganizationDTO } from '../../features/system-admin/types';
 
 interface AddOwnerDialogProps {
@@ -32,7 +33,7 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
 
   const { createOrganization, isCreating, error: orgsError } = useOrganizations({}, 1, 10);
   const { plans, error: plansError } = usePlans(true); // Get only active plans
-  
+
   const hasDbError = orgsError || plansError;
 
   const [formData, setFormData] = useState<CreateOrganizationDTO>({
@@ -44,6 +45,10 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
     plan_id: '',
     status: 'pending',
   });
+
+  const [createAccount, setCreateAccount] = useState(true);
+  const [password, setPassword] = useState('');
+  const [venueName, setVenueName] = useState('');
 
 
   const handleInputChange = (field: keyof CreateOrganizationDTO, value: any) => {
@@ -72,6 +77,14 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
       toast.error('Please select a plan');
       return false;
     }
+    if (createAccount && !password) {
+      toast.error('Password is required when creating a user account');
+      return false;
+    }
+    if (createAccount && password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return false;
+    }
     return true;
   };
 
@@ -81,7 +94,14 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
     }
 
     try {
-      await createOrganization(formData);
+      if (createAccount) {
+        // Use the new service method to create user + org + venue
+        await OrganizationService.createWithUser(formData, password);
+      } else {
+        // Standard org creation
+        await createOrganization(formData);
+      }
+
       toast.success(`Organization "${formData.name}" has been created successfully`);
       if (onAdd) {
         onAdd();
@@ -96,10 +116,12 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
         plan_id: '',
         status: 'pending',
       });
+      setPassword('');
+      setVenueName('');
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create organization:', error);
-      toast.error('Failed to create organization. Please try again.');
+      toast.error(`Failed to create organization: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -175,6 +197,46 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
                 </p>
               </div>
             </div>
+          </div>
+
+
+          <Separator className={borderColor} />
+
+          {/* User Account Settings */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className={`text-sm uppercase tracking-wider ${mutedTextClass}`}>User Account</h4>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={createAccount}
+                  onCheckedChange={setCreateAccount}
+                  id="create-account"
+                />
+                <Label htmlFor="create-account" className="text-sm font-medium">
+                  Create User Account
+                </Label>
+              </div>
+            </div>
+
+            {createAccount && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="space-y-2">
+                  <Label className="text-gray-700 dark:text-gray-300">
+                    Password <span className="text-red-600">*</span>
+                  </Label>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`h-12 bg-gray-100 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#333] placeholder:text-gray-500`}
+                    placeholder="Set a temporary password"
+                  />
+                  <p className={`text-xs ${mutedTextClass}`}>
+                    The user will be created with the 'Org Admin' role and assigned to this organization.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <Separator className={borderColor} />
@@ -296,6 +358,6 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
           </div>
         </div>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 };

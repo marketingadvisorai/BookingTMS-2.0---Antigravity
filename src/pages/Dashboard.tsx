@@ -9,22 +9,31 @@ import { useTheme } from '../components/layout/ThemeContext';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useDashboard } from '../hooks/useDashboard';
+import { useAuth } from '../lib/auth/AuthContext';
+import { OrgAdminDashboard } from './OrgAdminDashboard';
 
 interface DashboardProps {
   onNavigate?: (page: string) => void;
 }
 
 export function Dashboard({ onNavigate }: DashboardProps = {}) {
+  const { currentUser } = useAuth();
+
+  // Redirect Org Admin to their specific dashboard
+  if (currentUser?.role === 'org-admin') {
+    return <OrgAdminDashboard onNavigate={onNavigate} />;
+  }
+
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { loading, stats, weeklyTrend, upcomingBookings, todaysHourly, recentActivity, refreshDashboard } = useDashboard();
-  
-  const today = new Date().toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   });
 
   // Chart colors based on theme
@@ -55,7 +64,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
         description={`Welcome back! Here's what's happening today - ${today}`}
         sticky
         action={
-          <Button 
+          <Button
             variant="outline"
             className="h-11"
             onClick={handleRefresh}
@@ -136,36 +145,36 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
                   <AreaChart data={weeklyTrend.map(w => ({ week: w.week_label, bookings: w.bookings_count }))}>
                     <defs>
                       <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0}/>
+                        <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
-                    <XAxis 
-                      dataKey="week" 
-                      stroke={chartColors.text} 
+                    <XAxis
+                      dataKey="week"
+                      stroke={chartColors.text}
                       fontSize={11}
                       tickLine={false}
                     />
-                    <YAxis 
-                      stroke={chartColors.text} 
-                      fontSize={11} 
+                    <YAxis
+                      stroke={chartColors.text}
+                      fontSize={11}
                       width={35}
                       tickLine={false}
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: chartColors.tooltip, 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: chartColors.tooltip,
                         border: `1px solid ${chartColors.tooltipBorder}`,
                         borderRadius: '8px',
                         fontSize: '12px',
                         color: isDark ? '#ffffff' : '#000000'
-                      }} 
+                      }}
                     />
                     <Area
-                      type="monotone" 
-                      dataKey="bookings" 
-                      stroke={chartColors.primary} 
+                      type="monotone"
+                      dataKey="bookings"
+                      stroke={chartColors.primary}
                       strokeWidth={2.5}
                       fill="url(#colorBookings)"
                       dot={{ fill: chartColors.primary, r: 4, strokeWidth: 2, stroke: isDark ? '#161616' : '#ffffff' }}
@@ -198,29 +207,29 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={todaysHourly.map(h => ({ hour: h.hour_slot, bookings: h.bookings_count }))}>
                     <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
-                    <XAxis 
-                      dataKey="hour" 
-                      stroke={chartColors.text} 
+                    <XAxis
+                      dataKey="hour"
+                      stroke={chartColors.text}
                       fontSize={11}
                       tickLine={false}
                     />
-                    <YAxis 
-                      stroke={chartColors.text} 
-                      fontSize={11} 
+                    <YAxis
+                      stroke={chartColors.text}
+                      fontSize={11}
                       width={35}
                       tickLine={false}
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: chartColors.tooltip, 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: chartColors.tooltip,
                         border: `1px solid ${chartColors.tooltipBorder}`,
                         borderRadius: '8px',
                         fontSize: '12px',
                         color: isDark ? '#ffffff' : '#000000'
-                      }} 
+                      }}
                     />
-                    <Bar 
-                      dataKey="bookings" 
+                    <Bar
+                      dataKey="bookings"
                       fill={chartColors.primary}
                       radius={[6, 6, 0, 0]}
                       name="Bookings"
@@ -243,9 +252,9 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
                 <CardTitle className="text-base sm:text-lg">Upcoming Today</CardTitle>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-[#737373] mt-1">Next bookings scheduled</p>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="text-[#4f46e5] dark:text-[#6366f1] hover:text-[#4338ca] dark:hover:text-[#818cf8] hover:bg-blue-50 dark:hover:bg-[#4f46e5]/10 text-xs sm:text-sm"
                 onClick={() => onNavigate?.('bookings')}
               >
@@ -257,21 +266,20 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
           <CardContent className="p-5 sm:p-6 pt-0">
             <div className="space-y-3">
               {upcomingBookings.map((booking, index) => (
-                <div 
-                  key={booking.booking_id} 
+                <div
+                  key={booking.booking_id}
                   className="group relative flex items-start gap-3 p-3.5 rounded-lg border border-gray-100 dark:border-[#2a2a2a] hover:border-[#4f46e5]/30 dark:hover:border-[#6366f1]/30 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-all cursor-pointer"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <p className="text-sm text-gray-900 dark:text-white truncate group-hover:text-[#4f46e5] dark:group-hover:text-[#6366f1] transition-colors">{booking.customer_name}</p>
-                      <Badge 
+                      <Badge
                         variant="secondary"
-                        className={`flex-shrink-0 text-xs ${
-                          booking.status === 'confirmed' 
-                            ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' 
-                            : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30'
-                        } border`}
+                        className={`flex-shrink-0 text-xs ${booking.status === 'confirmed'
+                          ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30'
+                          : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30'
+                          } border`}
                       >
                         {booking.status}
                       </Badge>
@@ -313,8 +321,8 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
                 </div>
               ) : (
                 recentActivity.map((activity, index) => (
-                  <div 
-                    key={activity.booking_id} 
+                  <div
+                    key={activity.booking_id}
                     className="group flex items-start gap-3 pb-3.5 border-b border-gray-100 dark:border-[#2a2a2a] last:border-0 last:pb-0 hover:scale-[1.01] transition-transform"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >

@@ -30,6 +30,7 @@ export function useVenueManagement() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [showWidgetSettings, setShowWidgetSettings] = useState(false);
   const [showWidgetPreview, setShowWidgetPreview] = useState(false);
   const [showEmbedCode, setShowEmbedCode] = useState(false);
@@ -216,10 +217,14 @@ export function useVenueManagement() {
     setShowCreateDialog,
     setShowEditDialog,
     setShowDeleteDialog,
+    setDeleteConfirmation,
     setShowWidgetSettings,
     setShowWidgetPreview,
     setShowEmbedCode,
     setCopiedEmbed,
+
+    // State
+    deleteConfirmation,
 
     // Handlers
     handleRefresh,

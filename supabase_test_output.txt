@@ -1,0 +1,83 @@
+* Uses proxy env variable NO_PROXY == '*.azureedge.net'
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Host qftjyjpitnoapqxlrvfs.supabase.co:443 was resolved.
+* IPv6: (none)
+* IPv4: 172.64.149.246, 104.18.38.10
+*   Trying 172.64.149.246:443...
+* Connected to qftjyjpitnoapqxlrvfs.supabase.co (172.64.149.246) port 443
+* ALPN: curl offers h2,http/1.1
+* (304) (OUT), TLS handshake, Client hello (1):
+} [337 bytes data]
+*  CAfile: /etc/ssl/cert.pem
+*  CApath: none
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* (304) (IN), TLS handshake, Server hello (2):
+{ [122 bytes data]
+* (304) (IN), TLS handshake, Unknown (8):
+{ [19 bytes data]
+* (304) (IN), TLS handshake, Certificate (11):
+{ [2530 bytes data]
+* (304) (IN), TLS handshake, CERT verify (15):
+{ [80 bytes data]
+* (304) (IN), TLS handshake, Finished (20):
+{ [36 bytes data]
+* (304) (OUT), TLS handshake, Finished (20):
+} [36 bytes data]
+* SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
+* ALPN: server accepted h2
+* Server certificate:
+*  subject: CN=supabase.co
+*  start date: Nov  4 05:55:42 2025 GMT
+*  expire date: Feb  2 06:55:37 2026 GMT
+*  subjectAltName: host "qftjyjpitnoapqxlrvfs.supabase.co" matched cert's "*.supabase.co"
+*  issuer: C=US; O=Google Trust Services; CN=WE1
+*  SSL certificate verify ok.
+* using HTTP/2
+* [HTTP/2] [1] OPENED stream for https://qftjyjpitnoapqxlrvfs.supabase.co/rest/v1/venues?select=*
+* [HTTP/2] [1] [:method: GET]
+* [HTTP/2] [1] [:scheme: https]
+* [HTTP/2] [1] [:authority: qftjyjpitnoapqxlrvfs.supabase.co]
+* [HTTP/2] [1] [:path: /rest/v1/venues?select=*]
+* [HTTP/2] [1] [user-agent: curl/8.7.1]
+* [HTTP/2] [1] [accept: */*]
+* [HTTP/2] [1] [apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmdGp5anBpdG5vYXBxeGxydmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1NzIyOTAsImV4cCI6MjA3OTE0ODI5MH0.nO1YARU8309UaV5U1I-fxGeMYJg7CzWXOn2KQvqao7Y]
+* [HTTP/2] [1] [authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmdGp5anBpdG5vYXBxeGxydmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1NzIyOTAsImV4cCI6MjA3OTE0ODI5MH0.nO1YARU8309UaV5U1I-fxGeMYJg7CzWXOn2KQvqao7Y]
+> GET /rest/v1/venues?select=* HTTP/2
+> Host: qftjyjpitnoapqxlrvfs.supabase.co
+> User-Agent: curl/8.7.1
+> Accept: */*
+> apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmdGp5anBpdG5vYXBxeGxydmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1NzIyOTAsImV4cCI6MjA3OTE0ODI5MH0.nO1YARU8309UaV5U1I-fxGeMYJg7CzWXOn2KQvqao7Y
+> Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmdGp5anBpdG5vYXBxeGxydmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1NzIyOTAsImV4cCI6MjA3OTE0ODI5MH0.nO1YARU8309UaV5U1I-fxGeMYJg7CzWXOn2KQvqao7Y
+> 
+* Request completely sent off
+< HTTP/2 200 
+< date: Mon, 24 Nov 2025 09:58:53 GMT
+< content-type: application/json; charset=utf-8
+< server: cloudflare
+< content-range: 0-7/*
+< cf-ray: 9a380ce7bcada48e-DAC
+< cf-cache-status: DYNAMIC
+< content-location: /venues?select=%2A
+< strict-transport-security: max-age=31536000; includeSubDomains; preload
+< vary: Accept-Encoding
+< content-profile: public
+< sb-gateway-version: 1
+< sb-project-ref: qftjyjpitnoapqxlrvfs
+< sb-request-id: 019ab54d-4cdf-7f29-b42d-d11ceb11d796
+< x-content-type-options: nosniff
+< x-envoy-attempt-count: 1
+< x-envoy-upstream-service-time: 17
+< set-cookie: __cf_bm=kjMz8SHEWOjF5S0HLVjU05t0x3WszWip84AGezu66l4-1763978333-1.0.1.1-t2EHGFZPdyohxhRimF9WoGqNFsIUQUK8g8M9cauPtNdb6UYKJEYc96ti1UorRF7KrLo6FENejNTta1AAfmEI51inj2P9dR3ENE3k6WsFD.M; path=/; expires=Mon, 24-Nov-25 10:28:53 GMT; domain=.supabase.co; HttpOnly; Secure; SameSite=None
+< alt-svc: h3=":443"; ma=86400
+< 
+{ [1360 bytes data]
+[{"id":"a46189b5-203b-4159-ad8b-bebb1e760846","organization_id":"64fa1946-3cdd-43af-b7de-cc4708cd4b80","name":"Test Venue Staff 1763960812700","slug":"test-venue-staff-1763960812700","address":"123 Test St","city":null,"state":null,"zip":null,"country":null,"phone":null,"email":null,"capacity":null,"timezone":"UTC","status":"active","settings":{},"created_by":null,"created_at":"2025-11-24T05:06:52.913349+00:00","updated_at":"2025-11-24T05:06:52.913349+00:00","embed_key":"2ff24427-4e3d-4714-ac1b-122a917ce179","primary_color":null,"base_url":null,"organization_name":null,"company_name":null,"deleted_at":null,"is_deleted":false,"staff_count":0,"location_count":0,"images":[],"operating_hours":{"friday": {"open": "09:00", "close": "17:00", "closed": false}, "monday": {"open": "09:00", "close": "17:00", "closed": false}, "sunday": {"open": "10:00", "close": "20:00", "closed": false}, "tuesday": {"open": "09:00", "close": "17:00", "closed": false}, "saturday": {"open": "10:00", "close": "20:00", "closed": false}, "thursday": {"open": "09:00", "close": "17:00", "closed": false}, "wednesday": {"open": "09:00", "close": "17:00", "closed": false}},"description":null,"amenities":[]}, 
+ {"id":"6eb9ec1b-5937-4aa2-b30f-bdcdbf08a49e","organization_id":"64fa1946-3cdd-43af-b7de-cc4708cd4b80","name":"Test Venue Booking 1763961230252","slug":"test-venue-booking-1763961230252","address":"123 Test St","city":null,"state":null,"zip":null,"country":null,"phone":null,"email":null,"capacity":null,"timezone":"UTC","status":"active","settings":{},"created_by":null,"created_at":"2025-11-24T05:13:50.450831+00:00","updated_at":"2025-11-24T05:13:50.450831+00:00","embed_key":"6cb79e41-9976-46aa-933b-e9686f5f5d04","primary_color":null,"base_url":null,"organization_name":null,"company_name":null,"deleted_at":null,"is_deleted":false,"staff_count":0,"location_count":0,"images":[],"operating_hours":{"friday": {"open": "09:00", "close": "17:00", "closed": false}, "monday": {"open": "09:00", "close": "17:00", "closed": false}, "sunday": {"open": "10:00", "close": "20:00", "closed": false}, "tuesday": {"open": "09:00", "close": "17:00", "closed": false}, "saturday": {"open": "10:00", "close": "20:00", "closed": false}, "thursday": {"open": "09:00", "close": "17:00", "closed": false}, "wednesday": {"open": "09:00", "close": "17:00", "closed": false}},"description":null,"amenities":[]}, 
+ {"id":"df894257-4749-4b08-8198-b6a371df4633","organization_id":"64fa1946-3cdd-43af-b7de-cc4708cd4b80","name":"Test Venue Booking 1763961265988","slug":"test-venue-booking-1763961265988","address":"123 Test St","city":null,"state":null,"zip":null,"country":null,"phone":null,"email":null,"capacity":null,"timezone":"UTC","status":"active","settings":{},"created_by":null,"created_at":"2025-11-24T05:14:26.209349+00:00","updated_at":"2025-11-24T05:14:26.209349+00:00","embed_key":"3c354167-90c2-444e-95dd-bc63a9720e25","primary_color":null,"base_url":null,"organization_name":null,"company_name":null,"deleted_at":null,"is_deleted":false,"staff_count":0,"location_count":0,"images":[],"operating_hours":{"friday": {"open": "09:00", "close": "17:00", "closed": false}, "monday": {"open": "09:00", "close": "17:00", "closed": false}, "sunday": {"open": "10:00", "close": "20:00", "closed": false}, "tuesday": {"open": "09:00", "close": "17:00", "closed": false}, "saturday": {"open": "10:00", "close": "20:00", "closed": false}, "thursday": {"open": "09:00", "close": "17:00", "closed": false}, "wednesday": {"open": "09:00", "close": "17:00", "closed": false}},"description":null,"amenities":[]}, 
+ {"id":"7ec4721e-7428-454e-8298-e88da57bb067","organization_id":"64fa1946-3cdd-43af-b7de-cc4708cd4b80","name":"Test Venue Booking 1763961319220","slug":"test-venue-booking-1763961319220","address":"123 Test St","city":null,"state":null,"zip":null,"country":null,"phone":null,"email":null,"capacity":null,"timezone":"UTC","status":"active","settings":{},"created_by":null,"created_at":"2025-11-24T05:15:19.40452+00:00","updated_at":"2025-11-24T05:15:19.40452+00:00","embed_key":"7387305f-9081-4149-908c-0df3d03f9a33","primary_color":null,"base_url":null,"organization_name":null,"company_name":null,"deleted_at":null,"is_deleted":false,"staff_count":0,"location_count":0,"images":[],"operating_hours":{"friday": {"open": "09:00", "close": "17:00", "closed": false}, "monday": {"open": "09:00", "close": "17:00", "closed": false}, "sunday": {"open": "10:00", "close": "20:00", "closed": false}, "tuesday": {"open": "09:00", "close": "17:00", "closed": false}, "saturday": {"open": "10:00", "close": "20:00", "closed": false}, "thursday": {"open": "09:00", "close": "17:00", "closed": false}, "wednesday": {"open": "09:00", "close": "17:00", "closed": false}},"description":null,"amenities":[]}, 
+ {"id":"e8d0d71f-6f8f-4b6c-8b84-597d8a19d813","organization_id":"64fa1946-3cdd-43af-b7de-cc4708cd4b80","name":"Test Venue Booking 1763961365699","slug":"test-venue-booking-1763961365699","address":"123 Test St","city":null,"state":null,"zip":null,"country":null,"phone":null,"email":null,"capacity":null,"timezone":"UTC","status":"active","settings":{},"created_by":null,"created_at":"2025-11-24T05:16:05.888364+00:00","updated_at":"2025-11-24T05:16:05.888364+00:00","embed_key":"3b821ed5-c7ad-4752-9cdc-ec9199450498","primary_color":null,"base_url":null,"organization_name":null,"company_name":null,"deleted_at":null,"is_deleted":false,"staff_count":0,"location_count":0,"images":[],"operating_hours":{"friday": {"open": "09:00", "close": "17:00", "closed": false}, "monday": {"open": "09:00", "close": "17:00", "closed": false}, "sunday": {"open": "10:00", "close": "20:00", "closed": false}, "tuesday": {"open": "09:00", "close": "17:00", "closed": false}, "saturday": {"open": "10:00", "close": "20:00", "closed": false}, "thursday": {"open": "09:00", "close": "17:00", "closed": false}, "wednesday": {"open": "09:00", "close": "17:00", "closed": false}},"description":null,"amenities":[]}, 
+ {"id":"ca5fb398-55f4-4aae-ae1f-c6ef6932b656","organization_id":"64fa1946-3cdd-43af-b7de-cc4708cd4b80","name":"Test Venue Booking 1763961414549","slug":"test-venue-booking-1763961414549","address":"123 Test St","city":null,"state":null,"zip":null,"country":null,"phone":null,"email":null,"capacity":null,"timezone":"UTC","status":"active","settings":{},"created_by":null,"created_at":"2025-11-24T05:16:54.731887+00:00","updated_at":"2025-11-24T05:16:54.731887+00:00","embed_key":"6ce9a18d-133d-45ac-9cd0-0dbe70105aef","primary_color":null,"base_url":null,"organization_name":null,"company_name":null,"deleted_at":null,"is_deleted":false,"staff_count":0,"location_count":0,"images":[],"operating_hours":{"friday": {"open": "09:00", "close": "17:00", "closed": false}, "monday": {"open": "09:00", "close": "17:00", "closed": false}, "sunday": {"open": "10:00", "close": "20:00", "closed": false}, "tuesday": {"open": "09:00", "close": "17:00", "closed": false}, "saturday": {"open": "10:00", "close": "20:00", "closed": false}, "thursday": {"open": "09:00", "close": "17:00", "closed": false}, "wednesday": {"open": "09:00", "close": "17:00", "closed": false}},"description":null,"amenities":[]}, 
+ {"id":"dd70eded-f2dd-4ecb-95f5-09c0e96e6c34","organization_id":"64fa1946-3cdd-43af-b7de-cc4708cd4b80","name":"Test Venue Booking 1763961467966","slug":"test-venue-booking-1763961467966","address":"123 Test St","city":null,"state":null,"zip":null,"country":null,"phone":null,"email":null,"capacity":null,"timezone":"UTC","status":"active","settings":{},"created_by":null,"created_at":"2025-11-24T05:17:48.148135+00:00","updated_at":"2025-11-24T05:17:48.148135+00:00","embed_key":"9f75df5c-008b-4158-adbe-9ebd11505f66","primary_color":null,"base_url":null,"organization_name":null,"company_name":null,"deleted_at":null,"is_deleted":false,"staff_count":0,"location_count":0,"images":[],"operating_hours":{"friday": {"open": "09:00", "close": "17:00", "closed": false}, "monday": {"open": "09:00", "close": "17:00", "closed": false}, "sunday": {"open": "10:00", "close": "20:00", "closed": false}, "tuesday": {"open": "09:00", "close": "17:00", "closed": false}, "saturday": {"open": "10:00", "close": "20:00", "closed": fals100  9618    0  9618    0     0  16267      0 --:--:-- --:--:-- --:--:-- 16246
+* Connection #0 to host qftjyjpitnoapqxlrvfs.supabase.co left intact
+e}, "thursday": {"open": "09:00", "close": "17:00", "closed": false}, "wednesday": {"open": "09:00", "close": "17:00", "closed": false}},"description":null,"amenities":[]}, 
+ {"id":"cd5fa300-fb44-4349-86b2-06c9d3abc386","organization_id":"64fa1946-3cdd-43af-b7de-cc4708cd4b80","name":"Main Venue","slug":"test-venue","address":null,"city":null,"state":null,"zip":null,"country":null,"phone":null,"email":null,"capacity":null,"timezone":"America/Los_Angeles","status":"active","settings":{},"created_by":null,"created_at":"2025-11-24T07:34:49.614235+00:00","updated_at":"2025-11-21T05:20:34.975955+00:00","embed_key":"e0782266-47bf-4b21-a980-25ec84a4e760","primary_color":null,"base_url":null,"organization_name":null,"company_name":null,"deleted_at":null,"is_deleted":false,"staff_count":0,"location_count":0,"images":["https://images.unsplash.com/photo-1519750783826-e2420f4d687f?auto=format&fit=crop&q=80&w=1000"],"operating_hours":{"friday": {"open": "09:00", "close": "23:00", "closed": false}, "monday": {"open": "09:00", "close": "22:00", "closed": false}, "sunday": {"open": "10:00", "close": "21:00", "closed": false}, "tuesday": {"open": "09:00", "close": "22:00", "closed": false}, "saturday": {"open": "10:00", "close": "23:00", "closed": false}, "thursday": {"open": "09:00", "close": "22:00", "closed": false}, "wednesday": {"open": "09:00", "close": "22:00", "closed": false}},"description":null,"amenities":[]}]

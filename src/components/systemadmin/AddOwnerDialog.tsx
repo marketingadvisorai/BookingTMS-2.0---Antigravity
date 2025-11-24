@@ -96,7 +96,7 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
     try {
       if (createAccount) {
         // Use the new service method to create user + org + venue
-        await OrganizationService.createWithUser(formData, password);
+        await OrganizationService.createWithUser(formData, password, venueName);
       } else {
         // Standard org creation
         await createOrganization(formData);
@@ -195,6 +195,18 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
                 <p className={`text-xs ${mutedTextClass}`}>
                   📝 Organization ID will be automatically generated when you create the organization
                 </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-gray-700 dark:text-gray-300">
+                  Default Venue Name <span className="text-gray-400 text-xs font-normal">(Optional)</span>
+                </Label>
+                <Input
+                  value={venueName}
+                  onChange={(e) => setVenueName(e.target.value)}
+                  className={`h-12 bg-gray-100 dark:bg-[#0a0a0a] border-gray-300 dark:border-[#333] placeholder:text-gray-500`}
+                  placeholder="e.g. Main Location (defaults to Organization Name - Main Venue)"
+                />
               </div>
             </div>
           </div>

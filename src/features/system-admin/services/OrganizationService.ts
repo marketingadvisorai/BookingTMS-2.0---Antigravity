@@ -236,7 +236,7 @@ export class OrganizationService {
    * Create new organization with a new user account (Org Admin)
    * This is used by System Admins to create a full setup at once
    */
-  static async createWithUser(dto: CreateOrganizationDTO, password?: string): Promise<Organization> {
+  static async createWithUser(dto: CreateOrganizationDTO, password?: string, venueName?: string): Promise<Organization> {
     try {
       // 1. Create Auth User (if password provided)
       let userId: string | null = null;
@@ -265,7 +265,7 @@ export class OrganizationService {
         .from('venues')
         .insert([{
           organization_id: org.id,
-          name: `${org.name} - Main Venue`,
+          name: venueName || `${org.name} - Main Venue`,
           is_default: true,
           timezone: 'UTC',
           status: 'active'

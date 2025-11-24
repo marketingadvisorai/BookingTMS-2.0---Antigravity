@@ -5,24 +5,24 @@ import { Progress } from '../ui/progress';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTerminology } from '../../hooks/useTerminology';
-import { GameData, EmbedContext } from './types';
+import { ActivityData, EmbedContext } from './types';
 import { STEPS } from './constants';
 import Step1BasicInfo from './steps/Step1BasicInfo';
 import Step2CapacityPricing from './steps/Step2CapacityPricing';
-import Step3GameDetails from './steps/Step3GameDetails';
+import Step3ActivityDetails from './steps/Step3ActivityDetails';
 import Step4MediaUpload from './steps/Step4MediaUpload';
 import Step5Schedule from './steps/Step5Schedule';
 import Step6PaymentSettings from './steps/Step6PaymentSettings';
-import { basicInfoSchema, capacityPricingSchema, gameDetailsSchema, mediaSchema, scheduleSchema, gameDataSchema } from './schema';
+import { basicInfoSchema, capacityPricingSchema, activityDetailsSchema, mediaSchema, scheduleSchema, activityDataSchema } from './schema';
 import Step7WidgetEmbed from './steps/Step7WidgetEmbed';
 import Step8Review from './steps/Step8Review';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 interface AddServiceItemWizardProps {
-  onComplete: (gameData: GameData) => void;
+  onComplete: (activityData: ActivityData) => void;
   onCancel: () => void;
-  initialData?: GameData;
+  initialData?: ActivityData;
   mode?: 'create' | 'edit';
   theme?: string;
   embedContext?: EmbedContext;
@@ -53,47 +53,47 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
     message: '',
     progress: 0
   });
-  const [createdGameId, setCreatedGameId] = useState<string | null>(null);
+  const [createdActivityId, setCreatedActivityId] = useState<string | null>(null);
 
-  // Convert ServiceItem/Game data to Wizard GameData format
-  const convertGameToWizardData = (game: any): Partial<GameData> => {
-    if (!game) return {};
+  // Convert ServiceItem/Activity data to Wizard ActivityData format
+  const convertActivityToWizardData = (activity: any): Partial<ActivityData> => {
+    if (!activity) return {};
 
     return {
-      name: game.name,
-      description: game.description,
-      category: game.category || 'escape-room',
-      tagline: game.tagline,
-      eventType: game.eventType || 'public',
-      gameType: game.gameType || 'physical',
-      minAdults: game.minAdults || game.min_players || 2,
-      maxAdults: game.maxAdults || game.max_players || 8,
-      minChildren: game.minChildren || 0,
-      maxChildren: game.maxChildren || 4,
-      adultPrice: game.adultPrice || game.price || 30,
-      childPrice: game.childPrice || 25,
-      duration: typeof game.duration === 'number' ? game.duration : parseInt(game.duration, 10) || 60,
-      difficulty: typeof game.difficulty === 'number' ? game.difficulty : 3,
-      minAge: parseInt(game.ageRange || game.minAge, 10) || 12,
-      language: Array.isArray(game.language) ? game.language : ['English'],
-      successRate: game.successRate || 75,
-      activityDetails: game.activityDetails || '',
-      additionalInformation: game.additionalInformation || '',
-      faqs: Array.isArray(game.faqs) ? game.faqs : [],
-      cancellationPolicies: Array.isArray(game.cancellationPolicies) ? game.cancellationPolicies : [],
-      accessibility: game.accessibility || { strollerAccessible: false, wheelchairAccessible: false },
-      location: game.location || '',
-      coverImage: game.coverImage || game.imageUrl || game.image_url || '',
-      galleryImages: Array.isArray(game.galleryImages) ? game.galleryImages : [],
-      videos: Array.isArray(game.videos) ? game.videos : [],
-      selectedWidget: game.selectedWidget || 'calendar-single-event',
-      operatingDays: Array.isArray(game.operatingDays) ? game.operatingDays : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      startTime: game.startTime || '10:00',
-      endTime: game.endTime || '22:00',
-      slotInterval: game.slotInterval || 60,
-      advanceBooking: game.advanceBooking || 30,
-      customHoursEnabled: Boolean(game.customHoursEnabled),
-      customHours: typeof game.customHours === 'object' && game.customHours ? game.customHours : {
+      name: activity.name,
+      description: activity.description,
+      category: activity.category || 'escape-room',
+      tagline: activity.tagline,
+      eventType: activity.eventType || 'public',
+      activityType: activity.activityType || 'physical',
+      minAdults: activity.minAdults || activity.min_players || 2,
+      maxAdults: activity.maxAdults || activity.max_players || 8,
+      minChildren: activity.minChildren || 0,
+      maxChildren: activity.maxChildren || 4,
+      adultPrice: activity.adultPrice || activity.price || 30,
+      childPrice: activity.childPrice || 25,
+      duration: typeof activity.duration === 'number' ? activity.duration : parseInt(activity.duration, 10) || 60,
+      difficulty: typeof activity.difficulty === 'number' ? activity.difficulty : 3,
+      minAge: parseInt(activity.ageRange || activity.minAge, 10) || 12,
+      language: Array.isArray(activity.language) ? activity.language : ['English'],
+      successRate: activity.successRate || 75,
+      activityDetails: activity.activityDetails || '',
+      additionalInformation: activity.additionalInformation || '',
+      faqs: Array.isArray(activity.faqs) ? activity.faqs : [],
+      cancellationPolicies: Array.isArray(activity.cancellationPolicies) ? activity.cancellationPolicies : [],
+      accessibility: activity.accessibility || { strollerAccessible: false, wheelchairAccessible: false },
+      location: activity.location || '',
+      coverImage: activity.coverImage || activity.imageUrl || activity.image_url || '',
+      galleryImages: Array.isArray(activity.galleryImages) ? activity.galleryImages : [],
+      videos: Array.isArray(activity.videos) ? activity.videos : [],
+      selectedWidget: activity.selectedWidget || 'calendar-single-event',
+      operatingDays: Array.isArray(activity.operatingDays) ? activity.operatingDays : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      startTime: activity.startTime || '10:00',
+      endTime: activity.endTime || '22:00',
+      slotInterval: activity.slotInterval || 60,
+      advanceBooking: activity.advanceBooking || 30,
+      customHoursEnabled: Boolean(activity.customHoursEnabled),
+      customHours: typeof activity.customHours === 'object' && activity.customHours ? activity.customHours : {
         Monday: { enabled: true, startTime: '10:00', endTime: '22:00' },
         Tuesday: { enabled: true, startTime: '10:00', endTime: '22:00' },
         Wednesday: { enabled: true, startTime: '10:00', endTime: '22:00' },
@@ -102,37 +102,38 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
         Saturday: { enabled: true, startTime: '10:00', endTime: '22:00' },
         Sunday: { enabled: true, startTime: '10:00', endTime: '22:00' },
       },
-      customCapacityFields: Array.isArray(game.customCapacityFields) ? game.customCapacityFields : [],
-      groupDiscount: Boolean(game.groupDiscount),
-      groupTiers: Array.isArray(game.groupTiers) ? game.groupTiers : [],
-      dynamicPricing: Boolean(game.dynamicPricing),
-      peakPricing: game.peakPricing || { enabled: false, weekdayPeakPrice: 0, weekendPeakPrice: 0, peakStartTime: '', peakEndTime: '' },
-      customDates: Array.isArray(game.customDates) ? game.customDates : [],
-      blockedDates: Array.isArray(game.blockedDates) ? game.blockedDates : [],
-      requiresWaiver: Boolean(game.requiresWaiver),
-      selectedWaiver: game.selectedWaiver || null,
-      cancellationWindow: game.cancellationWindow || 24,
-      specialInstructions: game.specialInstructions || '',
-      slug: game.slug || generateSlug(game.name),
+      customCapacityFields: Array.isArray(activity.customCapacityFields) ? activity.customCapacityFields : [],
+      groupDiscount: Boolean(activity.groupDiscount),
+      groupTiers: Array.isArray(activity.groupTiers) ? activity.groupTiers : [],
+      dynamicPricing: Boolean(activity.dynamicPricing),
+      peakPricing: activity.peakPricing || { enabled: false, weekdayPeakPrice: 0, weekendPeakPrice: 0, peakStartTime: '', peakEndTime: '' },
+      customDates: Array.isArray(activity.customDates) ? activity.customDates : [],
+      blockedDates: Array.isArray(activity.blockedDates) ? activity.blockedDates : [],
+      requiresWaiver: Boolean(activity.requiresWaiver),
+      selectedWaiver: activity.selectedWaiver || null,
+      cancellationWindow: activity.cancellationWindow || 24,
+      specialInstructions: activity.specialInstructions || '',
+      slug: activity.slug || generateSlug(activity.name),
       // Preserve Stripe fields
-      stripeProductId: game.stripeProductId || game.stripe_product_id,
-      stripePriceId: game.stripePriceId || game.stripe_price_id,
-      stripePrices: game.stripePrices || game.stripe_prices,
-      stripeCheckoutUrl: game.stripeCheckoutUrl || game.stripe_checkout_url,
-      stripeSyncStatus: game.stripeSyncStatus || game.stripe_sync_status,
-      stripeLastSync: game.stripeLastSync || game.stripe_last_sync,
+      stripeProductId: activity.stripeProductId || activity.stripe_product_id,
+      stripePriceId: activity.stripePriceId || activity.stripe_price_id,
+      stripePrices: activity.stripePrices || activity.stripe_prices,
+      stripeCheckoutUrl: activity.stripeCheckoutUrl || activity.stripe_checkout_url,
+      stripeSyncStatus: activity.stripeSyncStatus || activity.stripe_sync_status,
+      stripeLastSync: activity.stripeLastSync || activity.stripe_last_sync,
     };
   };
 
-  const methods = useForm<GameData>({
-    resolver: zodResolver(gameDataSchema),
+  const methods = useForm<ActivityData>({
+    resolver: zodResolver(activityDataSchema) as any,
     defaultValues: {
       name: '',
       description: '',
       category: '',
       tagline: '',
       eventType: 'public',
-      gameType: 'physical',
+      activityType: 'physical',
+      timezone: '',
       minAdults: 2,
       maxAdults: 8,
       minChildren: 0,
@@ -181,7 +182,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
       cancellationWindow: 24,
       specialInstructions: '',
       slug: '',
-      ...(initialData ? convertGameToWizardData(initialData) : {})
+      ...(initialData ? convertActivityToWizardData(initialData) : {})
     },
     mode: 'onChange'
   });
@@ -191,7 +192,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
   // Reset form when initialData changes
   React.useEffect(() => {
     if (initialData) {
-      const wizardData = convertGameToWizardData(initialData);
+      const wizardData = convertActivityToWizardData(initialData);
       reset(wizardData);
     } else {
       reset({
@@ -200,7 +201,8 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
         category: '',
         tagline: '',
         eventType: 'public',
-        gameType: 'physical',
+        activityType: 'physical',
+        timezone: '',
         minAdults: 2,
         maxAdults: 8,
         minChildren: 0,
@@ -252,11 +254,11 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
       });
     }
   }, [initialData, reset]);
-  const gameData = watch();
+  const activityData = watch();
 
   const progress = (currentStep / STEPS.length) * 100;
 
-  const updateGameData = (field: keyof GameData, value: any) => {
+  const updateActivityData = (field: keyof ActivityData, value: any) => {
     setValue(field as any, value, { shouldValidate: true, shouldDirty: true });
   };
 
@@ -267,7 +269,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
 
     switch (currentStep) {
       case 1:
-        isValid = await trigger(['name', 'description', 'category', 'eventType', 'gameType', 'timezone']);
+        isValid = await trigger(['name', 'description', 'category', 'eventType', 'activityType', 'timezone']);
         break;
       case 2:
         isValid = await trigger(['minAdults', 'maxAdults', 'adultPrice', 'childPrice']);
@@ -307,14 +309,14 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
     }
   };
 
-  const validateGameData = async () => {
+  const validateActivityData = async () => {
     const isValid = await trigger();
     return { errors: [], isValid };
   };
 
   const handleSubmit = async () => {
     // Validate before publishing
-    const validation = await validateGameData();
+    const validation = await validateActivityData();
     if (!validation.isValid) {
       toast.error('Please fix validation errors before publishing');
       return;
@@ -339,7 +341,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
       });
 
       // Call onComplete which handles Supabase and Stripe creation
-      const result: any = await onComplete(gameData);
+      const result: any = await onComplete(activityData);
 
       // Stage 3: Saving to database
       setCreationStatus({
@@ -356,9 +358,9 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
         progress: 90
       });
 
-      // Extract game ID from result if available
-      const gameId = result?.id || result?.data?.id || null;
-      setCreatedGameId(gameId);
+      // Extract activity ID from result if available
+      const activityId = result?.id || result?.data?.id || null;
+      setCreatedActivityId(activityId);
 
       await new Promise(resolve => setTimeout(resolve, 300));
 
@@ -389,8 +391,8 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
       case 1:
         return (
           <Step1BasicInfo
-            gameData={gameData}
-            updateGameData={updateGameData}
+            activityData={activityData}
+            updateActivityData={updateActivityData}
             t={t}
             organizationId={organizationId}
             venueId={venueId}
@@ -399,16 +401,16 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
           />
         );
       case 2:
-        return <Step2CapacityPricing gameData={gameData} updateGameData={updateGameData} t={t} />;
+        return <Step2CapacityPricing activityData={activityData} updateActivityData={updateActivityData} t={t} />;
       case 3:
-        return <Step3GameDetails gameData={gameData} updateGameData={updateGameData} t={t} />;
+        return <Step3ActivityDetails activityData={activityData} updateActivityData={updateActivityData} t={t} />;
       case 4:
-        return <Step4MediaUpload gameData={gameData} updateGameData={updateGameData} t={t} />;
+        return <Step4MediaUpload activityData={activityData} updateActivityData={updateActivityData} t={t} />;
       case 5:
-        return <Step5Schedule gameData={gameData} updateGameData={updateGameData} t={t} />;
+        return <Step5Schedule activityData={activityData} updateActivityData={updateActivityData} t={t} />;
       case 6:
         return <Step6PaymentSettings
-          gameData={gameData}
+          activityData={activityData}
           onUpdate={(data) => reset(data)}
           onNext={() => setCurrentStep(7)}
           onPrevious={() => setCurrentStep(5)}
@@ -417,9 +419,9 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
           organizationId={organizationId}
         />;
       case 7:
-        return <Step7WidgetEmbed gameData={gameData} updateGameData={updateGameData} t={t} />;
+        return <Step7WidgetEmbed activityData={activityData} updateActivityData={updateActivityData} t={t} />;
       case 8:
-        return <Step8Review gameData={gameData} updateGameData={updateGameData} t={t} onEditStep={setCurrentStep} />;
+        return <Step8Review activityData={activityData} updateActivityData={updateActivityData} t={t} onEditStep={setCurrentStep} />;
       default:
         return null;
     }
@@ -462,7 +464,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
                 ) : (
                   <div className="w-5 h-5 border-2 border-gray-400 rounded-full" />
                 )}
-                <span className="text-sm text-gray-900">Preparing game data</span>
+                <span className="text-sm text-gray-900">Preparing activity data</span>
               </div>
 
               <div className={`flex items-center gap-3 p-3 rounded-lg ${creationStatus.stage === 'stripe' ? 'bg-blue-100' :
@@ -526,19 +528,19 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
               <div className="grid grid-cols-2 gap-6 text-left">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">{t.singular} Name</p>
-                  <p className="text-gray-900">{gameData.name}</p>
+                  <p className="text-gray-900">{activityData.name}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Price</p>
-                  <p className="text-gray-900">${gameData.adultPrice} per person</p>
+                  <p className="text-gray-900">${activityData.adultPrice} per person</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Duration</p>
-                  <p className="text-gray-900">{gameData.duration} minutes</p>
+                  <p className="text-gray-900">{activityData.duration} minutes</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Widget</p>
-                  <p className="text-gray-900">{gameData.selectedWidget}</p>
+                  <p className="text-gray-900">{activityData.selectedWidget}</p>
                 </div>
               </div>
             </div>
@@ -665,7 +667,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
 
           {currentStep < STEPS.length ? (
             <Button onClick={handleNext} className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca]">
-              {currentStep === 6 && !gameData.stripeProductId ? 'Skip for Now' : 'Next'}
+              {currentStep === 6 && !activityData.stripeProductId ? 'Skip for Now' : 'Next'}
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
@@ -682,7 +684,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
               ) : (
                 <>
                   <Check className="w-4 h-4 mr-2" />
-                  {mode === 'edit' ? 'Update Game' : 'Publish Game'}
+                  {mode === 'edit' ? 'Update Activity' : 'Publish Activity'}
                 </>
               )}
             </Button>

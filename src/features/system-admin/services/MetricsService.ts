@@ -46,44 +46,44 @@ export class MetricsService {
   static async getPlatformMetricsManual(filters?: MetricsFilters): Promise<PlatformMetrics> {
     try {
       // Organizations count by status
-      const { data: orgData } = await supabase
-        .from('organizations')
+      const { data: orgData } = await (supabase
+        .from('organizations') as any)
         .select('status');
 
       const totalOrgs = orgData?.length || 0;
-      const activeOrgs = orgData?.filter(o => o.status === 'active').length || 0;
-      const inactiveOrgs = orgData?.filter(o => o.status === 'inactive').length || 0;
-      const pendingOrgs = orgData?.filter(o => o.status === 'pending').length || 0;
+      const activeOrgs = orgData?.filter((o: any) => o.status === 'active').length || 0;
+      const inactiveOrgs = orgData?.filter((o: any) => o.status === 'inactive').length || 0;
+      const pendingOrgs = orgData?.filter((o: any) => o.status === 'pending').length || 0;
 
       // Count by plan
-      const { data: planCounts } = await supabase
-        .from('organizations')
+      const { data: planCounts } = await (supabase
+        .from('organizations') as any)
         .select('plan_id, plans(name)')
         .eq('status', 'active');
 
-      const basicPlanCount = planCounts?.filter((o: any) => 
+      const basicPlanCount = planCounts?.filter((o: any) =>
         o.plans?.name?.toLowerCase().includes('basic')
       ).length || 0;
-      
-      const growthPlanCount = planCounts?.filter((o: any) => 
+
+      const growthPlanCount = planCounts?.filter((o: any) =>
         o.plans?.name?.toLowerCase().includes('growth')
       ).length || 0;
-      
-      const proPlanCount = planCounts?.filter((o: any) => 
+
+      const proPlanCount = planCounts?.filter((o: any) =>
         o.plans?.name?.toLowerCase().includes('pro')
       ).length || 0;
 
       // Revenue (would come from platform_revenue table)
-      const { data: revenueData } = await supabase
-        .from('platform_revenue')
+      const { data: revenueData } = await (supabase
+        .from('platform_revenue') as any)
         .select('amount, fee_collected');
 
-      const totalRevenue = revenueData?.reduce((sum, r) => sum + r.amount, 0) || 0;
-      const platformFeeRevenue = revenueData?.reduce((sum, r) => sum + r.fee_collected, 0) || 0;
+      const totalRevenue = revenueData?.reduce((sum: number, r: any) => sum + r.amount, 0) || 0;
+      const platformFeeRevenue = revenueData?.reduce((sum: number, r: any) => sum + r.fee_collected, 0) || 0;
 
       // Calculate MRR from active organizations
-      const { data: orgsWithPlans } = await supabase
-        .from('organizations')
+      const { data: orgsWithPlans } = await (supabase
+        .from('organizations') as any)
         .select('plans(price, billing_period)')
         .eq('status', 'active');
 
@@ -97,10 +97,10 @@ export class MetricsService {
 
       // Get usage counts
       const [{ count: venueCount }, { count: gameCount }, { count: bookingCount }, { count: userCount }] = await Promise.all([
-        supabase.from('venues').select('*', { count: 'exact', head: true }),
-        supabase.from('games').select('*', { count: 'exact', head: true }),
-        supabase.from('bookings').select('*', { count: 'exact', head: true }),
-        supabase.from('users').select('*', { count: 'exact', head: true }),
+        (supabase.from('venues') as any).select('*', { count: 'exact', head: true }),
+        (supabase.from('activities') as any).select('*', { count: 'exact', head: true }), // Changed 'games' to 'activities'
+        (supabase.from('bookings') as any).select('*', { count: 'exact', head: true }),
+        (supabase.from('users') as any).select('*', { count: 'exact', head: true }),
       ]);
 
       // Growth metrics (simplified - would use time-based queries in production)
@@ -113,25 +113,25 @@ export class MetricsService {
         active_organizations: activeOrgs,
         inactive_organizations: inactiveOrgs,
         pending_organizations: pendingOrgs,
-        
+
         mrr,
         arr,
         total_revenue: totalRevenue,
         platform_fee_revenue: platformFeeRevenue,
-        
+
         total_venues: venueCount || 0,
         total_games: gameCount || 0,
         total_bookings: bookingCount || 0,
         total_users: userCount || 0,
-        
+
         new_organizations_this_month: newOrgsThisMonth,
         churn_rate: churnRate,
         growth_rate: growthRate,
-        
+
         basic_plan_count: basicPlanCount,
         growth_plan_count: growthPlanCount,
         pro_plan_count: proPlanCount,
-        
+
         period_start: filters?.time_range?.start_date || new Date().toISOString(),
         period_end: filters?.time_range?.end_date || new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -147,26 +147,26 @@ export class MetricsService {
    */
   static async getRevenueMetrics(filters?: MetricsFilters): Promise<RevenueMetrics> {
     try {
-      const { data } = await supabase
-        .from('platform_revenue')
+      const { data } = await (supabase
+        .from('platform_revenue') as any)
         .select('amount, fee_collected, created_at')
         .order('created_at', { ascending: true });
 
-      const totalRevenue = data?.reduce((sum, r) => sum + r.amount, 0) || 0;
-      const platformFeeRevenue = data?.reduce((sum, r) => sum + r.fee_collected, 0) || 0;
+      const totalRevenue = data?.reduce((sum: number, r: any) => sum + r.amount, 0) || 0;
+      const platformFeeRevenue = data?.reduce((sum: number, r: any) => sum + r.fee_collected, 0) || 0;
       const netRevenue = totalRevenue - platformFeeRevenue;
 
       // Group by date for trend
-      const trend = (data || []).reduce((acc: any[], item) => {
+      const trend = (data || []).reduce((acc: any[], item: any) => {
         const date = new Date(item.created_at).toISOString().split('T')[0];
         const existing = acc.find(t => t.date === date);
-        
+
         if (existing) {
           existing.value += item.amount;
         } else {
           acc.push({ date, value: item.amount });
         }
-        
+
         return acc;
       }, []);
 
@@ -194,10 +194,10 @@ export class MetricsService {
         { count: gamesCount },
         { count: usersCount },
       ] = await Promise.all([
-        supabase.from('bookings').select('*', { count: 'exact', head: true }),
-        supabase.from('venues').select('*', { count: 'exact', head: true }),
-        supabase.from('games').select('*', { count: 'exact', head: true }),
-        supabase.from('users').select('*', { count: 'exact', head: true }),
+        (supabase.from('bookings') as any).select('*', { count: 'exact', head: true }),
+        (supabase.from('venues') as any).select('*', { count: 'exact', head: true }),
+        (supabase.from('activities') as any).select('*', { count: 'exact', head: true }), // Changed 'games' to 'activities'
+        (supabase.from('users') as any).select('*', { count: 'exact', head: true }),
       ]);
 
       return {
@@ -219,13 +219,13 @@ export class MetricsService {
   static async getGrowthMetrics(filters?: MetricsFilters): Promise<GrowthMetrics> {
     try {
       // This would use time-based queries in production
-      const { count: newOrgs } = await supabase
-        .from('organizations')
+      const { count: newOrgs } = await (supabase
+        .from('organizations') as any)
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active');
 
-      const { count: churnedOrgs } = await supabase
-        .from('organizations')
+      const { count: churnedOrgs } = await (supabase
+        .from('organizations') as any)
         .select('*', { count: 'exact', head: true })
         .eq('status', 'inactive');
 

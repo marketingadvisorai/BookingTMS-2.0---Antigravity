@@ -127,8 +127,8 @@ export function ProfileSettings() {
       setProfileLoading(true);
 
       // Get user profile from user_profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
+      const { data: profileData, error: profileError } = await (supabase
+        .from('user_profiles') as any)
         .select('*')
         .eq('id', currentUser.id)
         .single();
@@ -210,8 +210,8 @@ export function ProfileSettings() {
       };
 
       // Update user_profiles table
-      const { error: profileError } = await supabase
-        .from('user_profiles')
+      const { error: profileError } = await (supabase
+        .from('user_profiles') as any)
         .upsert({
           id: currentUser.id,
           first_name: profileData.firstName,
@@ -220,7 +220,7 @@ export function ProfileSettings() {
           company: profileData.company,
           metadata,
           updated_at: new Date().toISOString()
-        });
+        } as any);
 
       if (profileError) throw profileError;
 
@@ -260,8 +260,8 @@ export function ProfileSettings() {
       setLoading(true);
 
       // Get current metadata
-      const { data: currentProfile } = await supabase
-        .from('user_profiles')
+      const { data: currentProfile } = await (supabase
+        .from('user_profiles') as any)
         .select('metadata')
         .eq('id', currentUser.id)
         .single();
@@ -272,12 +272,12 @@ export function ProfileSettings() {
       };
 
       // Update metadata with notifications
-      const { error } = await supabase
-        .from('user_profiles')
+      const { error } = await (supabase
+        .from('user_profiles') as any)
         .update({
           metadata,
           updated_at: new Date().toISOString()
-        })
+        } as any)
         .eq('id', currentUser.id);
 
       if (error) throw error;
@@ -303,8 +303,8 @@ export function ProfileSettings() {
       setLoading(true);
 
       // Get current metadata
-      const { data: currentProfile } = await supabase
-        .from('user_profiles')
+      const { data: currentProfile } = await (supabase
+        .from('user_profiles') as any)
         .select('metadata')
         .eq('id', currentUser.id)
         .single();
@@ -315,12 +315,12 @@ export function ProfileSettings() {
       };
 
       // Update metadata with security settings
-      const { error } = await supabase
-        .from('user_profiles')
+      const { error } = await (supabase
+        .from('user_profiles') as any)
         .update({
           metadata,
           updated_at: new Date().toISOString()
-        })
+        } as any)
         .eq('id', currentUser.id);
 
       if (error) throw error;
@@ -346,8 +346,8 @@ export function ProfileSettings() {
       setLoading(true);
 
       // Get current metadata
-      const { data: currentProfile } = await supabase
-        .from('user_profiles')
+      const { data: currentProfile } = await (supabase
+        .from('user_profiles') as any)
         .select('metadata')
         .eq('id', currentUser.id)
         .single();
@@ -364,12 +364,12 @@ export function ProfileSettings() {
       };
 
       // Update metadata with preferences
-      const { error } = await supabase
-        .from('user_profiles')
+      const { error } = await (supabase
+        .from('user_profiles') as any)
         .update({
           metadata,
           updated_at: new Date().toISOString()
-        })
+        } as any)
         .eq('id', currentUser.id);
 
       if (error) throw error;
@@ -414,7 +414,7 @@ export function ProfileSettings() {
       if (error) throw error;
 
       toast.success('Password updated successfully');
-      
+
       // Clear password fields
       setCurrentPassword('');
       setNewPassword('');
@@ -428,11 +428,13 @@ export function ProfileSettings() {
   };
 
   const handleUploadPhoto = async () => {
+    if (!currentUser) return;
+
     // Create file input
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    
+
     input.onchange = async (e: any) => {
       const file = e.target?.files?.[0];
       if (!file) return;
@@ -466,8 +468,8 @@ export function ProfileSettings() {
           .getPublicUrl(filePath);
 
         // Update profile with new avatar URL
-        const { data: currentProfile } = await supabase
-          .from('user_profiles')
+        const { data: currentProfile } = await (supabase
+          .from('user_profiles') as any)
           .select('metadata')
           .eq('id', currentUser?.id)
           .single();
@@ -477,12 +479,12 @@ export function ProfileSettings() {
           avatar: publicUrl
         };
 
-        const { error: updateError } = await supabase
-          .from('user_profiles')
+        const { error: updateError } = await (supabase
+          .from('user_profiles') as any)
           .update({
             metadata,
             updated_at: new Date().toISOString()
-          })
+          } as any)
           .eq('id', currentUser?.id);
 
         if (updateError) throw updateError;
@@ -567,20 +569,19 @@ export function ProfileSettings() {
                       {profileData.firstName[0]}{profileData.lastName[0]}
                     </AvatarFallback>
                   </Avatar>
-                  <button 
+                  <button
                     onClick={handleUploadPhoto}
-                    className={`absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center border-2 shadow-lg transition-colors ${
-                      isDark 
-                        ? 'bg-[#4f46e5] border-[#161616] hover:bg-[#4338ca]' 
-                        : 'bg-blue-600 border-white hover:bg-blue-700'
-                    }`}
+                    className={`absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center border-2 shadow-lg transition-colors ${isDark
+                      ? 'bg-[#4f46e5] border-[#161616] hover:bg-[#4338ca]'
+                      : 'bg-blue-600 border-white hover:bg-blue-700'
+                      }`}
                   >
                     <Camera className="w-4 h-4 text-white" />
                   </button>
                 </div>
                 <div className="space-y-3">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="h-11"
                     onClick={handleUploadPhoto}
                   >
@@ -763,14 +764,14 @@ export function ProfileSettings() {
           </Card>
 
           <div className="flex justify-end gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="h-11"
               disabled={loading || savedProfile}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               style={{ backgroundColor: savedProfile ? '#10b981' : (isDark ? '#4f46e5' : undefined) }}
               className={savedProfile ? 'text-white hover:opacity-90' : (isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700')}
               onClick={handleSaveProfile}
@@ -810,8 +811,8 @@ export function ProfileSettings() {
                   </div>
                 </Label>
                 <div className="relative">
-                  <Input 
-                    id="currentPassword" 
+                  <Input
+                    id="currentPassword"
                     type={showCurrentPassword ? 'text' : 'password'}
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
@@ -841,8 +842,8 @@ export function ProfileSettings() {
                   </div>
                 </Label>
                 <div className="relative">
-                  <Input 
-                    id="newPassword" 
+                  <Input
+                    id="newPassword"
                     type={showNewPassword ? 'text' : 'password'}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
@@ -872,8 +873,8 @@ export function ProfileSettings() {
                   </div>
                 </Label>
                 <div className="relative">
-                  <Input 
-                    id="confirmPassword" 
+                  <Input
+                    id="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -897,8 +898,8 @@ export function ProfileSettings() {
 
               <Separator className={borderClass} />
 
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handleChangePassword}
                 className="h-11"
               >
@@ -1003,14 +1004,14 @@ export function ProfileSettings() {
           </Card>
 
           <div className="flex justify-end gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="h-11"
               disabled={savedSecurity}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               style={{ backgroundColor: savedSecurity ? '#10b981' : (isDark ? '#4f46e5' : undefined) }}
               className={savedSecurity ? 'text-white hover:opacity-90' : (isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700')}
               onClick={handleSaveSecurity}
@@ -1182,10 +1183,10 @@ export function ProfileSettings() {
             <Button variant="outline" className="h-11">
               Cancel
             </Button>
-            <Button 
-              style={{ 
-                backgroundColor: savedNotifications 
-                  ? '#10b981' 
+            <Button
+              style={{
+                backgroundColor: savedNotifications
+                  ? '#10b981'
                   : (isDark ? '#4f46e5' : '#2563eb')
               }}
               className="text-white hover:opacity-90 transition-all duration-300"
@@ -1329,14 +1330,14 @@ export function ProfileSettings() {
           </Card>
 
           <div className="flex justify-end gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="h-11"
               disabled={savedPreferences}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               style={{ backgroundColor: savedPreferences ? '#10b981' : (isDark ? '#4f46e5' : undefined) }}
               className={savedPreferences ? 'text-white hover:opacity-90' : (isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700')}
               onClick={handleSavePreferences}

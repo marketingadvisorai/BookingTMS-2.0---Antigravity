@@ -95,7 +95,7 @@ export class CheckoutService {
    */
   static async createBookingWithCheckout(params: {
     venueId: string;
-    gameId: string;
+    activityId: string;
     sessionId?: string; // Added sessionId
     bookingDate: string;
     startTime: string;
@@ -118,7 +118,7 @@ export class CheckoutService {
         .from('bookings')
         .insert({
           venue_id: params.venueId,
-          game_id: params.gameId,
+          activity_id: params.activityId,
           session_id: params.sessionId || null, // Use session_id
           booking_date: params.bookingDate,
           start_time: params.startTime,
@@ -130,9 +130,9 @@ export class CheckoutService {
           total_price: params.totalPrice,
           status: 'pending',
           payment_status: 'pending',
-        })
+        } as any)
         .select()
-        .single();
+        .single() as any;
 
       if (bookingError) throw bookingError;
 
@@ -146,15 +146,15 @@ export class CheckoutService {
         cancelUrl: params.cancelUrl,
         metadata: {
           booking_id: booking.id,
-          game_id: params.gameId,
+          activity_id: params.activityId,
           venue_id: params.venueId,
           party_size: params.partySize.toString(),
         },
       });
 
       // Update booking with session ID
-      await supabase
-        .from('bookings')
+      await (supabase
+        .from('bookings') as any)
         .update({
           stripe_session_id: session.sessionId, // Map to stripe_session_id
         })
@@ -177,7 +177,7 @@ export class CheckoutService {
    */
   static async createBookingWithPaymentLink(params: {
     venueId: string;
-    gameId: string;
+    activityId: string;
     sessionId?: string; // Added sessionId
     bookingDate: string;
     startTime: string;
@@ -199,7 +199,7 @@ export class CheckoutService {
         .from('bookings')
         .insert({
           venue_id: params.venueId,
-          game_id: params.gameId,
+          activity_id: params.activityId,
           session_id: params.sessionId || null, // Map sessionId to session_id
           booking_date: params.bookingDate,
           start_time: params.startTime,
@@ -211,9 +211,9 @@ export class CheckoutService {
           total_price: params.totalPrice,
           status: 'pending',
           payment_status: 'pending',
-        })
+        } as any)
         .select()
-        .single();
+        .single() as any;
 
       if (bookingError) throw bookingError;
 
@@ -226,7 +226,7 @@ export class CheckoutService {
           quantity: params.partySize, // Use party size as quantity for correct total
           metadata: {
             booking_id: booking.id,
-            game_id: params.gameId,
+            activity_id: params.activityId,
             venue_id: params.venueId,
             party_size: params.partySize.toString(),
           },
@@ -235,8 +235,8 @@ export class CheckoutService {
       }
 
       // Update booking with payment link
-      await supabase
-        .from('bookings')
+      await (supabase
+        .from('bookings') as any)
         .update({
           payment_link: paymentLinkUrl,
         })

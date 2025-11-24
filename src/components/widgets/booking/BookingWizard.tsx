@@ -9,7 +9,7 @@ import { TimeSlotGrid } from './components/TimeSlotGrid';
 import { BookingSummary } from './components/BookingSummary';
 import { CustomerForm } from './components/CustomerForm';
 import { PaymentForm } from './components/PaymentForm';
-import { GameDetailsModal } from './components/GameDetailsModal';
+import { ActivityDetailsModal } from './components/ActivityDetailsModal';
 import { HealthSafetyDialog } from './components/HealthSafetyDialog';
 import { PromoCodeInput } from '../PromoCodeInput';
 import { GiftCardInput } from '../GiftCardInput';
@@ -32,8 +32,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         setSelectedDate,
         selectedTime,
         setSelectedTime,
-        selectedGameId, // Destructure selectedGameId
-        setSelectedGameId,
+        selectedActivityId,
+        setSelectedActivityId,
         partySize,
         setPartySize,
         customerData,
@@ -48,39 +48,39 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         setCurrentMonth,
         currentYear,
         setCurrentYear,
-        showGameDetails,
-        setShowGameDetails,
+        showActivityDetails,
+        setShowActivityDetails,
         showHealthSafetyDialog,
         setShowHealthSafetyDialog
-    } = useBookingState(config);
+    } = useBookingState(config?.activityId || config?.gameId);
 
     // 2. Fetch Data
-    const { venue: venueData, activities: games, loading, error } = useWidgetData({
+    const { venue: venueData, activities, loading, error } = useWidgetData({
         venueId: config?.venueId,
-        activityId: config?.gameId,
+        activityId: config?.activityId || config?.gameId,
         date: selectedDate ? new Date(currentYear, currentMonth, selectedDate) : new Date()
     });
 
-    // Derive selected game data
-    const selectedGameData = React.useMemo(() => {
-        const availableGames = (games && games.length > 0) ? games : (config?.games || []);
-        if (!availableGames || availableGames.length === 0) return null;
-        return availableGames.find((g: any) => g.id === selectedGameId) || availableGames[0];
-    }, [games, selectedGameId, config?.games]);
+    // Derive selected activity data
+    const selectedActivityData = React.useMemo(() => {
+        const availableActivities = (activities && activities.length > 0) ? activities : (config?.activities || config?.games || []);
+        if (!availableActivities || availableActivities.length === 0) return null;
+        return availableActivities.find((a: any) => a.id === selectedActivityId) || availableActivities[0];
+    }, [activities, selectedActivityId, config?.activities, config?.games]);
 
     // 3. Availability Hook
     const { timeSlots, loading: slotsLoading } = useAvailability({
         selectedDate,
         currentMonth,
         currentYear,
-        selectedGame: selectedGameData?.id || null,
-        selectedGameData,
+        selectedActivity: selectedActivityData?.id || null,
+        selectedActivityData,
         venueData,
         config
     });
 
     // 4. Derived State
-    const subtotal = (selectedGameData?.price || 0) * partySize;
+    const subtotal = (selectedActivityData?.price || 0) * partySize;
 
     let displayPrice = subtotal;
     if (appliedPromoCode) {
@@ -94,13 +94,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         displayPrice = Math.max(0, displayPrice - appliedGiftCard.amount);
     }
 
-    const canAddToCart = !!(selectedDate && selectedTime && selectedGameData);
+    const canAddToCart = !!(selectedDate && selectedTime && selectedActivityData);
     const canContinueToPayment = !!(customerData.name && customerData.email && customerData.phone);
 
     // 5. Booking Logic Hook
     const { handleCompleteBooking, isProcessing } = useBookingLogic({
         customerData,
-        selectedGameData,
+        selectedActivityData,
         selectedTime,
         selectedDate,
         currentMonth,
@@ -143,8 +143,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         return <div className="flex items-center justify-center min-h-[600px] text-red-500">Error: {error}</div>;
     }
 
-    if (!selectedGameData) {
-        return <div className="flex items-center justify-center min-h-[600px]">No game data available.</div>;
+    if (!selectedActivityData) {
+        return <div className="flex items-center justify-center min-h-[600px]">No activity data available.</div>;
     }
 
     return (
@@ -155,10 +155,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 onOpenChange={setShowHealthSafetyDialog}
             />
 
-            <GameDetailsModal
-                isOpen={showGameDetails}
-                onClose={() => setShowGameDetails(false)}
-                gameData={selectedGameData}
+            <ActivityDetailsModal
+                isOpen={showActivityDetails}
+                onClose={() => setShowActivityDetails(false)}
+                activityData={selectedActivityData}
                 primaryColor={primaryColor}
             />
 
@@ -183,7 +183,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                                 currentYear={currentYear}
                                 onDateSelect={setSelectedDate}
                                 onMonthChange={(m, y) => { setCurrentMonth(m); setCurrentYear(y); }}
-                                selectedGameData={selectedGameData}
+                                selectedActivityData={selectedActivityData}
                                 config={config}
                                 primaryColor={primaryColor}
                             />
@@ -196,20 +196,20 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                                 selectedTime={selectedTime}
                                 onTimeSelect={setSelectedTime}
                                 primaryColor={primaryColor}
-                                slotDurationMinutes={selectedGameData.duration || 60}
+                                slotDurationMinutes={selectedActivityData.duration || 60}
                                 loading={slotsLoading}
                             />
                         </div>
                         <div className="lg:col-span-1">
                             <BookingSummary
-                                selectedGameData={selectedGameData}
+                                selectedActivityData={selectedActivityData}
                                 selectedDate={selectedDate}
                                 selectedTime={selectedTime}
                                 partySize={partySize}
                                 totalPrice={displayPrice}
                                 primaryColor={primaryColor}
                                 onPartySizeChange={setPartySize}
-                                onShowDetails={() => setShowGameDetails(true)}
+                                onShowDetails={() => setShowActivityDetails(true)}
                                 onContinue={() => setCurrentStep('cart')}
                                 canContinue={canAddToCart}
                             />

@@ -611,7 +611,7 @@ export default function Venues() {
                     ...selectedVenue.widgetConfig, // Ensure existing config is spread
                     venueId: selectedVenue.id,
                     venueName: selectedVenue.name,
-                  }}
+                  } as any}
                 />
               )}
               <div className="h-12 sm:h-20" />

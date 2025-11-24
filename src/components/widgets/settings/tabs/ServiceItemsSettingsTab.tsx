@@ -160,7 +160,7 @@ export const ServiceItemsSettingsTab: React.FC<ServiceItemsSettingsTabProps> = (
                 settings: {
                     category: data.category,
                     eventType: data.eventType,
-                    gameType: data.gameType || 'physical',
+                    activityType: data.activityType || 'physical',
                     minChildren: data.minChildren,
                     maxChildren: data.maxChildren,
                     language: data.language,

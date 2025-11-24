@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
-type Theme = 'light' | 'dark';
+type Theme = 'light' | 'dark' | 'system';
 
 interface ThemeContextType {
   theme: Theme;
@@ -15,30 +15,33 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // Check localStorage first
     const savedTheme = localStorage.getItem('bookingTMS-theme') as Theme;
     if (savedTheme) return savedTheme;
-    
-    // Check system preference
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    
-    return 'light';
+
+    return 'system';
   });
 
   useEffect(() => {
     const root = document.documentElement;
-    
+
     // Remove both classes first
     root.classList.remove('light', 'dark');
-    
+
+    let effectiveTheme = theme;
+    if (theme === 'system') {
+      effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
     // Add the current theme class
-    root.classList.add(theme);
-    
+    root.classList.add(effectiveTheme);
+
     // Save to localStorage
     localStorage.setItem('bookingTMS-theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {
-    setThemeState(prev => prev === 'light' ? 'dark' : 'light');
+    setThemeState(prev => {
+      if (prev === 'system') return 'light';
+      return prev === 'light' ? 'dark' : 'light';
+    });
   };
 
   const setTheme = (newTheme: Theme) => {

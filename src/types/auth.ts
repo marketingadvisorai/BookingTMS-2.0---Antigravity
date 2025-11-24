@@ -110,6 +110,12 @@ export type Permission =
   | 'payments.export'
   | 'payments.reconcile'
 
+  // Users
+  | 'users.view'
+  | 'users.create'
+  | 'users.edit'
+  | 'users.delete'
+
   // Account Management (Super Admin only)
   | 'accounts.view'
   | 'accounts.manage'
@@ -168,6 +174,7 @@ export interface CreateUserPayload {
   email: string;
   name: string;
   role: UserRole;
+  password?: string; // Optional for invite flow, required for direct creation
   phone?: string;
   status?: UserStatus;
 }
@@ -177,7 +184,10 @@ export interface CreateUserPayload {
  */
 export interface UpdateUserPayload {
   name?: string;
+  email?: string;
   role?: UserRole;
+  phone?: string;
+  avatar?: string;
   status?: UserStatus;
   permissions?: Permission[];
 }

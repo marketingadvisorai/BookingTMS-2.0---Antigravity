@@ -97,7 +97,7 @@ const MOCK_USERS: User[] = [
     status: 'active',
     createdAt: '2024-01-01T00:00:00Z',
     lastLogin: '2025-11-08T09:00:00Z',
-    organizationId: null,
+    organizationId: undefined,
   },
   {
     id: '00000000-0000-0000-0000-000000000001',
@@ -459,9 +459,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const canAccessRoute = (route: string): boolean => {
-    const permission = getRoutePermission(route);
-    if (!permission) return true;
-    return hasPermission(permission);
+    const routeConfig = getRoutePermission(route);
+    if (!routeConfig) return true;
+
+    // Check role if specified
+    if (routeConfig.requiredRole && !isRole(routeConfig.requiredRole)) {
+      return false;
+    }
+
+    // Check permissions if specified
+    if (routeConfig.requiredPermissions && routeConfig.requiredPermissions.length > 0) {
+      return hasAllPermissions(routeConfig.requiredPermissions);
+    }
+
+    return true;
   };
 
   const isRole = (role: UserRole | UserRole[]): boolean => {

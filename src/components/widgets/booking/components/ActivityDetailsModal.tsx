@@ -12,20 +12,20 @@ import { Separator } from '../../../ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../../../ui/accordion';
 import { ImageWithFallback } from '../../../figma/ImageWithFallback';
 
-interface GameDetailsModalProps {
+interface ActivityDetailsModalProps {
     isOpen: boolean;
     onClose: () => void;
-    gameData: any;
+    activityData: any;
     primaryColor: string;
 }
 
-export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
+export const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({
     isOpen,
     onClose,
-    gameData,
+    activityData,
     primaryColor
 }) => {
-    if (!gameData) return null;
+    if (!activityData) return null;
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -41,9 +41,9 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
 
                 <VisuallyHidden>
                     <DialogHeader>
-                        <DialogTitle>{gameData.name}</DialogTitle>
+                        <DialogTitle>{activityData.name}</DialogTitle>
                         <DialogDescription>
-                            Complete guide to {gameData.name} escape room - {gameData.difficulty} difficulty, {gameData.duration} duration, suitable for ages {gameData.ageRecommendation}. Book your adventure now!
+                            Complete guide to {activityData.name} - {activityData.difficulty} difficulty, {activityData.duration} duration, suitable for ages {activityData.ageRecommendation}. Book your adventure now!
                         </DialogDescription>
                     </DialogHeader>
                 </VisuallyHidden>
@@ -55,8 +55,8 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                             {/* Background Image with Overlay */}
                             <div className="absolute inset-0">
                                 <ImageWithFallback
-                                    src={gameData.image}
-                                    alt={gameData.name}
+                                    src={activityData.image}
+                                    alt={activityData.name}
                                     className="w-full h-full object-cover"
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
@@ -66,25 +66,25 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                             <div className="relative h-full flex flex-col justify-end p-6 sm:p-10 lg:p-12">
                                 {/* Badges */}
                                 <div className="flex items-center gap-3 mb-4">
-                                    {gameData.featured && (
+                                    {activityData.featured && (
                                         <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-0 px-3 py-1 text-sm">
                                             ⭐ Featured
                                         </Badge>
                                     )}
                                     <Badge className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm px-3 py-1 text-sm">
                                         <Star className="w-3 h-3 fill-white mr-1" />
-                                        {gameData.rating} ({gameData.reviewCount} reviews)
+                                        {activityData.rating} ({activityData.reviewCount} reviews)
                                     </Badge>
                                 </div>
 
                                 {/* Title */}
                                 <h1 className="text-3xl sm:text-4xl lg:text-5xl text-white mb-3 sm:mb-4">
-                                    {gameData.name}
+                                    {activityData.name}
                                 </h1>
 
                                 {/* Description */}
                                 <p className="text-base sm:text-lg text-gray-200 mb-6 sm:mb-8 max-w-3xl">
-                                    {gameData.description}
+                                    {activityData.description}
                                 </p>
 
                                 {/* Quick Info Pills */}
@@ -93,15 +93,15 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                                         <Clock className="w-5 h-5 text-white" />
                                         <div>
                                             <div className="text-xs text-gray-300">Duration</div>
-                                            <div className="text-sm text-white">{gameData.duration}</div>
+                                            <div className="text-sm text-white">{activityData.duration}</div>
                                         </div>
                                     </div>
 
                                     <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
                                         <Users className="w-5 h-5 text-white" />
                                         <div>
-                                            <div className="text-xs text-gray-300">Players</div>
-                                            <div className="text-sm text-white">{gameData.players}</div>
+                                            <div className="text-xs text-gray-300">Capacity</div>
+                                            <div className="text-sm text-white">{activityData.players || activityData.capacity}</div>
                                         </div>
                                     </div>
 
@@ -109,7 +109,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                                         <Target className="w-5 h-5 text-white" />
                                         <div>
                                             <div className="text-xs text-gray-300">Difficulty</div>
-                                            <div className="text-sm text-white">{gameData.difficulty}</div>
+                                            <div className="text-sm text-white">{activityData.difficulty}</div>
                                         </div>
                                     </div>
 
@@ -117,7 +117,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                                         <Award className="w-5 h-5 text-white" />
                                         <div>
                                             <div className="text-xs text-gray-300">Type</div>
-                                            <div className="text-sm text-white">{gameData.gameType}</div>
+                                            <div className="text-sm text-white">{activityData.activityType || activityData.gameType}</div>
                                         </div>
                                     </div>
 
@@ -154,14 +154,14 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                             {/* Hero Gallery */}
                             <section aria-label="Photo gallery">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                                    {gameData.gallery.map((image: string, index: number) => (
+                                    {activityData.gallery && activityData.gallery.map((image: string, index: number) => (
                                         <div
                                             key={index}
                                             className="group aspect-video rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 relative"
                                         >
                                             <ImageWithFallback
                                                 src={image}
-                                                alt={`${gameData.name} escape room - View ${index + 1}`}
+                                                alt={`${activityData.name} - View ${index + 1}`}
                                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                             />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -184,13 +184,13 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                                 </div>
                                 <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100">
                                     <p className="text-base sm:text-lg text-gray-700 leading-relaxed mb-6">
-                                        {gameData.longDescription}
+                                        {activityData.longDescription}
                                     </p>
                                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 sm:p-5 rounded-r-lg">
                                         <div className="flex items-start gap-3">
                                             <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                                             <p className="text-sm sm:text-base text-gray-700">
-                                                <strong className="text-blue-900">At a Glance:</strong> {gameData.description}
+                                                <strong className="text-blue-900">At a Glance:</strong> {activityData.description}
                                             </p>
                                         </div>
                                     </div>
@@ -228,7 +228,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                                                             Duration
                                                         </h3>
                                                         <p className="text-gray-700" itemProp="duration">
-                                                            <strong className="text-xl" style={{ color: primaryColor }}>{gameData.duration}</strong>
+                                                            <strong className="text-xl" style={{ color: primaryColor }}>{activityData.duration}</strong>
                                                         </p>
                                                         <p className="text-sm text-gray-600 mt-1">
                                                             Total experience time including briefing and debriefing
@@ -241,7 +241,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                                                             Group Size
                                                         </h3>
                                                         <p className="text-gray-700" itemProp="value">
-                                                            <strong className="text-xl" style={{ color: primaryColor }}>{gameData.players}</strong>
+                                                            <strong className="text-xl" style={{ color: primaryColor }}>{activityData.players || activityData.capacity}</strong>
                                                         </p>
                                                         <p className="text-sm text-gray-600 mt-1">
                                                             Private experience - your group only
@@ -262,7 +262,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                                                             {[1, 2, 3, 4, 5].map((level) => (
                                                                 <div
                                                                     key={level}
-                                                                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${level <= gameData.difficulty
+                                                                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${level <= activityData.difficulty
                                                                         ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md'
                                                                         : 'bg-gray-200 text-gray-400'
                                                                         }`}
@@ -272,15 +272,15 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                                                             ))}
                                                         </div>
                                                         <span className="text-gray-700">
-                                                            <strong style={{ color: primaryColor }}>{gameData.difficulty}/5</strong> - {gameData.difficulty <= 2 ? 'Beginner Friendly' : gameData.difficulty <= 3 ? 'Moderate Challenge' : 'Advanced Puzzlers'}
+                                                            <strong style={{ color: primaryColor }}>{activityData.difficulty}/5</strong> - {activityData.difficulty <= 2 ? 'Beginner Friendly' : activityData.difficulty <= 3 ? 'Moderate Challenge' : 'Advanced Puzzlers'}
                                                         </span>
                                                     </div>
                                                     <p className="text-sm text-gray-600 mt-2">
-                                                        {gameData.difficulty <= 2
-                                                            ? 'Perfect for first-time escape room enthusiasts and families'
-                                                            : gameData.difficulty <= 3
-                                                                ? 'Suitable for those with some escape room experience'
-                                                                : 'Recommended for experienced escape room teams'}
+                                                        {activityData.difficulty <= 2
+                                                            ? 'Perfect for first-time enthusiasts and families'
+                                                            : activityData.difficulty <= 3
+                                                                ? 'Suitable for those with some experience'
+                                                                : 'Recommended for experienced teams'}
                                                     </p>
                                                 </div>
 
@@ -293,7 +293,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                                                         What's Included
                                                     </h3>
                                                     <ul className="space-y-3">
-                                                        {gameData.whatToExpect.map((item: string, index: number) => (
+                                                        {activityData.whatToExpect && activityData.whatToExpect.map((item: string, index: number) => (
                                                             <li key={index} className="flex items-start gap-3">
                                                                 <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-600" />
                                                                 <span className="text-gray-700">{item}</span>
@@ -316,7 +316,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                                                             New York, NY 10001
                                                         </p>
                                                         <p className="text-sm text-gray-600 mt-2">
-                                                            Please arrive <strong className="text-blue-900">15 minutes before</strong> your scheduled time for check-in and game briefing
+                                                            Please arrive <strong className="text-blue-900">15 minutes before</strong> your scheduled time for check-in and briefing
                                                         </p>
                                                     </div>
                                                 </div>
@@ -337,7 +337,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                                                         ))}
                                                     </div>
                                                     <p className="text-sm text-gray-600 mt-2">
-                                                        Game master can provide hints and instructions in multiple languages
+                                                        Staff can provide hints and instructions in multiple languages
                                                     </p>
                                                 </div>
 
@@ -347,7 +347,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                                                         <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
                                                         <div className="min-w-0 flex-1">
                                                             <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 break-words">
-                                                                <strong className="text-amber-900 dark:text-amber-200">Age Requirement:</strong> Recommended for ages {gameData.ageRecommendation}. Children under 16 must be accompanied by an adult.
+                                                                <strong className="text-amber-900 dark:text-amber-200">Age Requirement:</strong> Recommended for ages {activityData.ageRecommendation}. Children under 16 must be accompanied by an adult.
                                                             </p>
                                                         </div>
                                                     </div>
@@ -417,7 +417,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                                                         </li>
                                                         <li className="flex items-start gap-2">
                                                             <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                                                            <span>Game master monitoring via live camera feed</span>
+                                                            <span>Staff monitoring via live camera feed</span>
                                                         </li>
                                                         <li className="flex items-start gap-2">
                                                             <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
@@ -475,3 +475,4 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
         </Dialog>
     );
 };
+

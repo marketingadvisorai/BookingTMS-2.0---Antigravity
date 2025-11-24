@@ -30,7 +30,7 @@ export default function VenueProfile() {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  
+
   const [venue, setVenue] = useState<VenueData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -46,9 +46,11 @@ export default function VenueProfile() {
   }, [slug]);
 
   const fetchVenueBySlug = async () => {
+    if (!slug) return;
+
     try {
-      const { data, error } = await supabase
-        .from('organizations')
+      const { data, error } = await (supabase
+        .from('organizations') as any)
         .select('*')
         .eq('slug', slug)
         .single();
@@ -133,29 +135,29 @@ export default function VenueProfile() {
       {/* SEO Meta Tags */}
       <Helmet>
         <title>{venue.name} - Book Your Experience | BookingTMS</title>
-        <meta 
-          name="description" 
-          content={venue.description || venue.tagline || `Experience ${venue.name}. Book your slot today!`} 
+        <meta
+          name="description"
+          content={venue.description || venue.tagline || `Experience ${venue.name}. Book your slot today!`}
         />
         <meta name="keywords" content={`${venue.name}, booking, escape room, entertainment, ${venue.address}`} />
-        
+
         {/* Open Graph / Facebook */}
         <meta property="og:type" content="business.business" />
         <meta property="og:url" content={`https://bookingtms.com/${venue.slug}`} />
         <meta property="og:title" content={`${venue.name} - Book Your Experience`} />
         <meta property="og:description" content={venue.description || venue.tagline} />
         <meta property="og:image" content={venue.cover_image} />
-        
+
         {/* Twitter */}
         <meta property="twitter:card" content="summary_large_image" />
         <meta property="twitter:url" content={`https://bookingtms.com/${venue.slug}`} />
         <meta property="twitter:title" content={`${venue.name} - Book Your Experience`} />
         <meta property="twitter:description" content={venue.description || venue.tagline} />
         <meta property="twitter:image" content={venue.cover_image} />
-        
+
         {/* Canonical URL */}
         <link rel="canonical" href={`https://bookingtms.com/${venue.slug}`} />
-        
+
         {/* JSON-LD Structured Data */}
         {structuredData && (
           <script type="application/ld+json">
@@ -167,12 +169,12 @@ export default function VenueProfile() {
       {/* Page Content */}
       <div className={`min-h-screen ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-gray-50 text-gray-900'}`}>
         {/* Hero Section with Cover Image */}
-        <div 
+        <div
           className="relative h-[400px] bg-cover bg-center"
-          style={{ 
-            backgroundImage: venue.cover_image 
-              ? `url(${venue.cover_image})` 
-              : 'linear-gradient(to right, #4f46e5, #7c3aed)' 
+          style={{
+            backgroundImage: venue.cover_image
+              ? `url(${venue.cover_image})`
+              : 'linear-gradient(to right, #4f46e5, #7c3aed)'
           }}
         >
           <div className="absolute inset-0 bg-black/50"></div>
@@ -180,13 +182,13 @@ export default function VenueProfile() {
             <div className="flex items-end gap-6">
               {/* Logo */}
               {venue.logo_image && (
-                <img 
-                  src={venue.logo_image} 
+                <img
+                  src={venue.logo_image}
                   alt={venue.name}
                   className="w-32 h-32 rounded-2xl border-4 border-white shadow-xl object-cover"
                 />
               )}
-              
+
               {/* Title */}
               <div className="mb-4">
                 <h1 className="text-5xl font-bold text-white mb-2">{venue.name}</h1>
@@ -226,10 +228,10 @@ export default function VenueProfile() {
                 <p className="text-lg mb-6">
                   Choose your preferred date and time to start your adventure!
                 </p>
-                <Button 
+                <Button
                   size="lg"
                   className="bg-white text-indigo-600 hover:bg-gray-100 text-lg px-8 py-6"
-                  onClick={() => {/* TODO: Open booking modal */}}
+                  onClick={() => {/* TODO: Open booking modal */ }}
                 >
                   <Calendar className="w-5 h-5 mr-2" />
                   Book Now
@@ -252,7 +254,7 @@ export default function VenueProfile() {
                       </div>
                     </div>
                   )}
-                  
+
                   {venue.phone && (
                     <div className="flex items-start gap-3">
                       <Phone className="w-5 h-5 text-indigo-600 mt-1 flex-shrink-0" />
@@ -264,7 +266,7 @@ export default function VenueProfile() {
                       </div>
                     </div>
                   )}
-                  
+
                   {venue.owner_email && (
                     <div className="flex items-start gap-3">
                       <Mail className="w-5 h-5 text-indigo-600 mt-1 flex-shrink-0" />
@@ -276,15 +278,15 @@ export default function VenueProfile() {
                       </div>
                     </div>
                   )}
-                  
+
                   {venue.website && (
                     <div className="flex items-start gap-3">
                       <Globe className="w-5 h-5 text-indigo-600 mt-1 flex-shrink-0" />
                       <div>
                         <p className="font-medium">Website</p>
-                        <a 
-                          href={venue.website} 
-                          target="_blank" 
+                        <a
+                          href={venue.website}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="text-indigo-600 hover:underline"
                         >
@@ -322,7 +324,7 @@ export default function VenueProfile() {
                 <p className={`text-sm mb-4 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                   Manage your venue, bookings, and settings
                 </p>
-                <Button 
+                <Button
                   variant="outline"
                   className="w-full border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white"
                   onClick={() => navigate(`/${venue.slug}/admin`)}

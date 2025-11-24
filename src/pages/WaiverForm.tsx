@@ -72,8 +72,8 @@ export default function WaiverForm() {
     const loadTemplate = async () => {
       try {
         // Try to load from Supabase first
-        const { data, error } = await supabase
-          .from('waiver_templates')
+        const { data, error } = await (supabase
+          .from('waiver_templates') as any)
           .select('*')
           .eq('id', templateId)
           .single();
@@ -195,11 +195,11 @@ export default function WaiverForm() {
 
     const now = new Date();
     const waiverCode = `WV-${String(now.getTime()).slice(-6)}`;
-    
+
     try {
       // Create waiver record in Supabase
-      const { data: waiverData, error: waiverError } = await supabase
-        .from('waivers')
+      const { data: waiverData, error: waiverError } = await (supabase
+        .from('waivers') as any)
         .insert({
           waiver_code: waiverCode,
           template_id: template.id,
@@ -227,9 +227,9 @@ export default function WaiverForm() {
       }
 
       // Increment usage count for template
-      const { error: templateError } = await supabase
-        .from('waiver_templates')
-        .update({ 
+      const { error: templateError } = await (supabase
+        .from('waiver_templates') as any)
+        .update({
           usage_count: (template.usageCount || 0) + 1,
           updated_at: now.toISOString()
         } as any)

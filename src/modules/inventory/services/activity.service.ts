@@ -64,15 +64,15 @@ export class ActivityService {
      */
     static async listActivities(venueId: string): Promise<Activity[]> {
         try {
-            const { data, error } = await supabase
-                .from('activities')
+            const { data, error } = await (supabase
+                .from('activities') as any)
                 .select('*')
                 .eq('venue_id', venueId)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
 
-            return (data || []).map(item => ({
+            return (data || []).map((item: any) => ({
                 ...item,
                 // Map legacy fields if necessary, or just pass through
                 capacity: item.max_players || item.capacity || 1, // Fallback
@@ -94,8 +94,8 @@ export class ActivityService {
      */
     static async getActivity(id: string): Promise<Activity | null> {
         try {
-            const { data, error } = await supabase
-                .from('activities')
+            const { data, error } = await (supabase
+                .from('activities') as any)
                 .select('*')
                 .eq('id', id)
                 .single();
@@ -128,8 +128,8 @@ export class ActivityService {
             if (!input.venue_id) throw new Error('Venue ID is required');
 
             // 1. Fetch venue to get organization_id
-            const { data: fetchedVenueData, error: venueError } = await supabase
-                .from('venues')
+            const { data: fetchedVenueData, error: venueError } = await (supabase
+                .from('venues') as any)
                 .select('organization_id, name, id')
                 .eq('id', input.venue_id)
                 .single();
@@ -174,8 +174,8 @@ export class ActivityService {
             console.log('Attempting to insert activity with data:', insertData);
 
             // 3. Insert into DB
-            const { data: createdActivity, error } = await supabase
-                .from('activities')
+            const { data: createdActivity, error } = await (supabase
+                .from('activities') as any)
                 .insert([insertData])
                 .select()
                 .single();
@@ -193,8 +193,8 @@ export class ActivityService {
 
             // 5. Update DB with Stripe details if any
             if (Object.keys(stripeUpdates).length > 0) {
-                const { data: updatedActivity, error: updateError } = await supabase
-                    .from('activities')
+                const { data: updatedActivity, error: updateError } = await (supabase
+                    .from('activities') as any)
                     .update(stripeUpdates)
                     .eq('id', createdActivity.id)
                     .select()
@@ -215,7 +215,7 @@ export class ActivityService {
                     p_organization_id: orgId,
                     p_adult_price: input.price || 0,
                     p_child_price: input.child_price || 0
-                });
+                } as any);
 
                 if (rpcError) {
                     console.warn('Failed to create default pricing tiers:', rpcError);
@@ -282,8 +282,8 @@ export class ActivityService {
             }
 
             // 4. Update DB
-            const { data, error } = await supabase
-                .from('activities')
+            const { data, error } = await (supabase
+                .from('activities') as any)
                 .update(finalUpdates)
                 .eq('id', id)
                 .select()
@@ -305,8 +305,8 @@ export class ActivityService {
      * Delete an activity
      */
     static async deleteActivity(id: string): Promise<void> {
-        const { error } = await supabase
-            .from('activities')
+        const { error } = await (supabase
+            .from('activities') as any)
             .delete()
             .eq('id', id);
 

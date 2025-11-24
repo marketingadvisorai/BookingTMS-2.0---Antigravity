@@ -50,8 +50,8 @@ export const UserStripeAccounts: React.FC = () => {
     setLoading(true);
     try {
       // Fetch from user_profiles table
-      const { data, error } = await supabase
-        .from('user_profiles')
+      const { data, error } = await (supabase
+        .from('user_profiles') as any)
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -59,7 +59,7 @@ export const UserStripeAccounts: React.FC = () => {
 
       // Also get auth users to get email
       const { data: authData } = await supabase.auth.admin.listUsers();
-      
+
       // Merge data
       const mergedUsers = (data || []).map(profile => {
         const authUser = authData?.users?.find(u => u.id === profile.id);
@@ -118,19 +118,19 @@ export const UserStripeAccounts: React.FC = () => {
   const handleAccountLinked = async (userId: string, accountId: string) => {
     try {
       // Update user profile with stripe account ID
-      const { error } = await supabase
-        .from('user_profiles')
+      const { error } = await (supabase
+        .from('user_profiles') as any)
         .update({
           metadata: {
             stripe_account_id: accountId
           }
-        })
+        } as any)
         .eq('id', userId);
 
       if (error) throw error;
 
       toast.success('Account linked successfully!');
-      
+
       // Refresh users
       await fetchUsers();
     } catch (error: any) {
@@ -267,11 +267,10 @@ export const UserStripeAccounts: React.FC = () => {
                   <div
                     key={user.id}
                     onClick={() => setSelectedUser(user)}
-                    className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                      selectedUser?.id === user.id
-                        ? isDark ? 'bg-blue-900/30 border-blue-500' : 'bg-blue-50 border-blue-300'
-                        : isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'
-                    } border ${borderColor}`}
+                    className={`p-3 rounded-lg cursor-pointer transition-colors ${selectedUser?.id === user.id
+                      ? isDark ? 'bg-blue-900/30 border-blue-500' : 'bg-blue-50 border-blue-300'
+                      : isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'
+                      } border ${borderColor}`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">

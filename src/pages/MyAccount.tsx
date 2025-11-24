@@ -83,8 +83,8 @@ export function MyAccount({ onNavigate }: MyAccountProps = {}) {
       setLoading(true);
 
       // Get user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
+      const { data: profileData, error: profileError } = await (supabase
+        .from('user_profiles') as any)
         .select('*')
         .eq('id', currentUser.id)
         .single();
@@ -100,12 +100,12 @@ export function MyAccount({ onNavigate }: MyAccountProps = {}) {
         const firstName = profileData.first_name || '';
         const lastName = profileData.last_name || '';
         const fullName = `${firstName} ${lastName}`.trim() || 'User';
-        
+
         const city = profileData.metadata?.city || '';
         const state = profileData.metadata?.state || '';
         const location = city && state ? `${city}, ${state}` : city || state || 'Not set';
 
-        const createdDate = profileData.created_at 
+        const createdDate = profileData.created_at
           ? new Date(profileData.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
           : 'Recently';
 
@@ -151,19 +151,19 @@ export function MyAccount({ onNavigate }: MyAccountProps = {}) {
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
 
-      const { count: bookingsCount } = await supabase
-        .from('bookings')
+      const { count: bookingsCount } = await (supabase
+        .from('bookings') as any)
         .select('*', { count: 'exact', head: true })
         .gte('created_at', startOfMonth.toISOString());
 
-      // Get active games count
-      const { count: gamesCount } = await supabase
-        .from('games')
+      // Get active activities count
+      const { count: gamesCount } = await (supabase
+        .from('activities') as any)
         .select('*', { count: 'exact', head: true });
 
       // Get staff count
-      const { count: staffCount } = await supabase
-        .from('user_profiles')
+      const { count: staffCount } = await (supabase
+        .from('user_profiles') as any)
         .select('*', { count: 'exact', head: true })
         .in('role', ['staff', 'manager', 'admin']);
 
@@ -268,8 +268,8 @@ export function MyAccount({ onNavigate }: MyAccountProps = {}) {
                 </div>
               </div>
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full sm:w-auto h-11"
               onClick={() => onNavigate?.('profile')}
             >
@@ -354,8 +354,8 @@ export function MyAccount({ onNavigate }: MyAccountProps = {}) {
                   {usageStats.bookings.current.toLocaleString()} / {usageStats.bookings.limit.toLocaleString()}
                 </span>
               </div>
-              <Progress 
-                value={getUsagePercentage(usageStats.bookings.current, usageStats.bookings.limit)} 
+              <Progress
+                value={getUsagePercentage(usageStats.bookings.current, usageStats.bookings.limit)}
                 className="h-2"
               />
             </div>
@@ -367,8 +367,8 @@ export function MyAccount({ onNavigate }: MyAccountProps = {}) {
                   {usageStats.games.current} / {usageStats.games.limit}
                 </span>
               </div>
-              <Progress 
-                value={getUsagePercentage(usageStats.games.current, usageStats.games.limit)} 
+              <Progress
+                value={getUsagePercentage(usageStats.games.current, usageStats.games.limit)}
                 className="h-2"
               />
             </div>
@@ -380,8 +380,8 @@ export function MyAccount({ onNavigate }: MyAccountProps = {}) {
                   {usageStats.staff.current} / {usageStats.staff.limit}
                 </span>
               </div>
-              <Progress 
-                value={getUsagePercentage(usageStats.staff.current, usageStats.staff.limit)} 
+              <Progress
+                value={getUsagePercentage(usageStats.staff.current, usageStats.staff.limit)}
                 className="h-2"
               />
             </div>
@@ -393,8 +393,8 @@ export function MyAccount({ onNavigate }: MyAccountProps = {}) {
                   {usageStats.aiConversations.current.toLocaleString()} / {usageStats.aiConversations.limit.toLocaleString()}
                 </span>
               </div>
-              <Progress 
-                value={getUsagePercentage(usageStats.aiConversations.current, usageStats.aiConversations.limit)} 
+              <Progress
+                value={getUsagePercentage(usageStats.aiConversations.current, usageStats.aiConversations.limit)}
                 className="h-2"
               />
             </div>
@@ -406,16 +406,16 @@ export function MyAccount({ onNavigate }: MyAccountProps = {}) {
                   {usageStats.credits.current} / {usageStats.credits.limit}
                 </span>
               </div>
-              <Progress 
-                value={getUsagePercentage(usageStats.credits.current, usageStats.credits.limit)} 
+              <Progress
+                value={getUsagePercentage(usageStats.credits.current, usageStats.credits.limit)}
                 className="h-2"
               />
             </div>
 
             <Separator className={borderClass} />
 
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full h-11"
             >
               <TrendingUp className="w-4 h-4 mr-2" />

@@ -10,7 +10,7 @@ interface DateSelectorProps {
     currentYear: number;
     onDateSelect: (date: number) => void;
     onMonthChange: (month: number, year: number) => void;
-    selectedGameData: any;
+    selectedActivityData: any;
     config: any;
     primaryColor: string;
 }
@@ -23,7 +23,7 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
     currentYear,
     onDateSelect,
     onMonthChange,
-    selectedGameData,
+    selectedActivityData,
     config,
     primaryColor
 }) => {
@@ -83,11 +83,11 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
                     const isToday = dateObj.toDateString() === today.toDateString();
                     const isPast = dateObj < new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-                    const blockedDates = selectedGameData?.blockedDates || config?.blockedDates || [];
-                    const customAvailableDates = selectedGameData?.customDates || config?.customAvailableDates || [];
-                    const operatingDays = selectedGameData?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                    const blockedDates = selectedActivityData?.blockedDates || config?.blockedDates || [];
+                    const customAvailableDates = selectedActivityData?.customDates || config?.customAvailableDates || [];
+                    const operatingDays = selectedActivityData?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-                    const advanceBookingDays = selectedGameData?.advanceBooking || 30;
+                    const advanceBookingDays = selectedActivityData?.advanceBooking || 30;
                     const maxBookingDate = new Date(today);
                     maxBookingDate.setDate(maxBookingDate.getDate() + advanceBookingDays);
                     const isBeyondAdvanceBooking = dateObj > maxBookingDate;

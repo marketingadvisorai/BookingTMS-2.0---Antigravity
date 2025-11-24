@@ -32,8 +32,8 @@ export function useWaivers(venueId?: string) {
       setLoading(true);
       setError(null);
 
-      let query = supabase
-        .from('waivers')
+      let query = (supabase
+        .from('waivers') as any)
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -59,17 +59,17 @@ export function useWaivers(venueId?: string) {
   const createWaiver = async (waiverData: Omit<Waiver, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      const { data, error: insertError } = await supabase
-        .from('waivers')
+      const { data, error: insertError } = await (supabase
+        .from('waivers') as any)
         .insert([{
           ...waiverData,
           created_by: user.id,
-        }])
+        } as any])
         .select()
         .single();
 
@@ -88,9 +88,9 @@ export function useWaivers(venueId?: string) {
   // Update waiver
   const updateWaiver = async (id: string, updates: Partial<Waiver>) => {
     try {
-      const { data, error: updateError } = await supabase
-        .from('waivers')
-        .update(updates)
+      const { data, error: updateError } = await (supabase
+        .from('waivers') as any)
+        .update(updates as any)
         .eq('id', id)
         .select()
         .single();
@@ -110,8 +110,8 @@ export function useWaivers(venueId?: string) {
   // Delete waiver
   const deleteWaiver = async (id: string) => {
     try {
-      const { error: deleteError } = await supabase
-        .from('waivers')
+      const { error: deleteError } = await (supabase
+        .from('waivers') as any)
         .delete()
         .eq('id', id);
 
@@ -129,8 +129,8 @@ export function useWaivers(venueId?: string) {
   // Get waiver by ID
   const getWaiverById = async (id: string) => {
     try {
-      const { data, error: fetchError } = await supabase
-        .from('waivers')
+      const { data, error: fetchError } = await (supabase
+        .from('waivers') as any)
         .select('*')
         .eq('id', id)
         .single();
@@ -148,8 +148,8 @@ export function useWaivers(venueId?: string) {
   // Get active waiver for venue
   const getActiveWaiver = async (venueId: string) => {
     try {
-      const { data, error: fetchError } = await supabase
-        .from('waivers')
+      const { data, error: fetchError } = await (supabase
+        .from('waivers') as any)
         .select('*')
         .eq('venue_id', venueId)
         .eq('status', 'active')
@@ -172,7 +172,7 @@ export function useWaivers(venueId?: string) {
     // Subscribe to waiver changes
     const subscription = supabase
       .channel('waivers-changes')
-      .on('postgres_changes', 
+      .on('postgres_changes',
         { event: '*', schema: 'public', table: 'waivers' },
         (payload) => {
           console.log('Waiver changed:', payload);

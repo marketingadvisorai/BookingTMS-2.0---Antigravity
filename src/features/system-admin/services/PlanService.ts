@@ -19,8 +19,8 @@ export class PlanService {
    */
   static async getAll(activeOnly: boolean = false): Promise<Plan[]> {
     try {
-      let query = supabase
-        .from('plans')
+      let query = (supabase
+        .from('plans') as any)
         .select('*')
         .order('display_order', { ascending: true });
 
@@ -36,9 +36,9 @@ export class PlanService {
 
       // Get subscriber count for each plan
       const plansWithCounts = await Promise.all(
-        (data || []).map(async (plan) => {
-          const { count } = await supabase
-            .from('organizations')
+        (data || []).map(async (plan: any) => {
+          const { count } = await (supabase
+            .from('organizations') as any)
             .select('*', { count: 'exact', head: true })
             .eq('plan_id', plan.id)
             .eq('status', 'active');
@@ -62,8 +62,8 @@ export class PlanService {
    */
   static async getById(id: string): Promise<Plan> {
     try {
-      const { data, error } = await supabase
-        .from('plans')
+      const { data, error } = await (supabase
+        .from('plans') as any)
         .select('*')
         .eq('id', id)
         .single();
@@ -77,8 +77,8 @@ export class PlanService {
       }
 
       // Get subscriber count
-      const { count } = await supabase
-        .from('organizations')
+      const { count } = await (supabase
+        .from('organizations') as any)
         .select('*', { count: 'exact', head: true })
         .eq('plan_id', id)
         .eq('status', 'active');
@@ -98,8 +98,8 @@ export class PlanService {
    */
   static async create(dto: CreatePlanDTO): Promise<Plan> {
     try {
-      const { data, error } = await supabase
-        .from('plans')
+      const { data, error } = await (supabase
+        .from('plans') as any)
         .insert([{
           name: dto.name,
           slug: dto.slug,
@@ -115,7 +115,7 @@ export class PlanService {
           is_active: dto.is_active ?? true,
           is_visible: dto.is_visible ?? true,
           sort_order: dto.sort_order ?? 999,
-        }])
+        } as any])
         .select()
         .single();
 
@@ -135,12 +135,12 @@ export class PlanService {
    */
   static async update(id: string, dto: UpdatePlanDTO): Promise<Plan> {
     try {
-      const { data, error } = await supabase
-        .from('plans')
+      const { data, error } = await (supabase
+        .from('plans') as any)
         .update({
           ...dto,
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq('id', id)
         .select()
         .single();
@@ -162,8 +162,8 @@ export class PlanService {
   static async delete(id: string): Promise<void> {
     try {
       // Check if any organizations are using this plan
-      const { count } = await supabase
-        .from('organizations')
+      const { count } = await (supabase
+        .from('organizations') as any)
         .select('*', { count: 'exact', head: true })
         .eq('plan_id', id)
         .eq('status', 'active');
@@ -173,13 +173,13 @@ export class PlanService {
       }
 
       // Soft delete
-      const { error } = await supabase
-        .from('plans')
+      const { error } = await (supabase
+        .from('plans') as any)
         .update({
           is_active: false,
           is_visible: false,
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq('id', id);
 
       if (error) {
@@ -197,15 +197,15 @@ export class PlanService {
   static async getStats(id: string): Promise<PlanStats> {
     try {
       // Get subscriber count
-      const { count: subscriberCount } = await supabase
-        .from('organizations')
+      const { count: subscriberCount } = await (supabase
+        .from('organizations') as any)
         .select('*', { count: 'exact', head: true })
         .eq('plan_id', id)
         .eq('status', 'active');
 
       // Get plan details for MRR calculation
       const plan = await this.getById(id);
-      
+
       const monthlyPrice = plan.price_monthly;
       const yearlyPrice = plan.price_yearly;
 

@@ -14,7 +14,8 @@
 
 export const DATA_SYNC_STORAGE_KEYS = {
   BOOKINGS: 'bookings',
-  GAMES: 'bookingtms::games',
+  ACTIVITIES: 'bookingtms::activities',
+  GAMES: 'bookingtms::games', // Legacy key
   GIFT_VOUCHERS: 'giftVouchers',
 } as const;
 
@@ -24,18 +25,18 @@ export const DEFAULT_ORGANIZATION_ID = '00000000-0000-0000-0000-000000000001';
 // Domain models
 // -----------------------------------------------------------------------------
 
-export type GameDifficulty = 'Easy' | 'Medium' | 'Hard' | 'Extreme';
+export type ActivityDifficulty = 'Easy' | 'Medium' | 'Hard' | 'Extreme';
 
-export interface GamePublishingTargets {
+export interface ActivityPublishingTargets {
   widgets: boolean;
   embed: boolean;
   calendars: boolean;
   previews: boolean;
 }
 
-export interface GameSettings {
+export interface ActivitySettings {
   visibility: 'public' | 'private';
-  publishingTargets: GamePublishingTargets;
+  publishingTargets: ActivityPublishingTargets;
   bookingLeadTime?: number;
   cancellationWindow?: number;
   specialInstructions?: string;
@@ -44,8 +45,8 @@ export interface GameSettings {
 export interface Booking {
   id: string;
   timestamp: string;
-  gameName: string;
-  gameId: string;
+  activityName: string;
+  activityId: string;
   date: string;
   time: string;
   customerName: string;
@@ -74,7 +75,7 @@ export interface TimeSlot {
   spots: number;
 }
 
-export interface Game {
+export interface Activity {
   id: string;
   venue_id?: string; // Link to venue - REQUIRED for widgets
   name: string;
@@ -88,9 +89,9 @@ export interface Game {
   basePrice: number;
   priceRange?: string;
   ageRange?: string;
-  difficulty: number | GameDifficulty;
-  difficultyLabel?: GameDifficulty;
-  gameType?: 'physical' | 'virtual' | 'hybrid';
+  difficulty: number | ActivityDifficulty;
+  difficultyLabel?: ActivityDifficulty;
+  activityType?: 'physical' | 'virtual' | 'hybrid';
   minAdults?: number;
   maxAdults?: number;
   minChildren?: number;
@@ -121,11 +122,11 @@ export interface Game {
   updatedAt?: string;
   createdBy?: string;
   updatedBy?: string;
-  settings?: GameSettings;
+  settings?: ActivitySettings;
   slug?: string;
 }
 
-export interface GameInput {
+export interface ActivityInput {
   venue_id?: string; // Link to venue - REQUIRED for widgets
   name: string;
   description?: string;
@@ -134,12 +135,12 @@ export interface GameInput {
   capacity: number;
   basePrice: number;
   status?: 'active' | 'inactive';
-  difficulty?: number | GameDifficulty;
-  difficultyLabel?: GameDifficulty;
+  difficulty?: number | ActivityDifficulty;
+  difficultyLabel?: ActivityDifficulty;
   image?: string;
   imageUrl?: string;
   coverImage?: string;
-  gameType?: 'physical' | 'virtual' | 'hybrid';
+  activityType?: 'physical' | 'virtual' | 'hybrid';
   galleryImages?: string[];
   videos?: string[];
   priceRange?: string;
@@ -149,10 +150,10 @@ export interface GameInput {
     [date: string]: TimeSlot[];
   };
   categoryId?: string;
-  settings?: GameSettings;
+  settings?: ActivitySettings;
 }
 
-export interface GameMutationContext {
+export interface ActivityMutationContext {
   userId?: string;
   userRole?: string;
   organizationId?: string;
@@ -176,22 +177,22 @@ export interface VoucherRecipient {
   status: 'sent' | 'delivered' | 'redeemed';
 }
 
-interface SharedGamesEnvelope {
+interface SharedActivitiesEnvelope {
   version: number;
   updatedAt: string;
   updatedBy?: string;
   organizationId: string;
-  games: Game[];
+  activities: Activity[];
 }
 
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
 
-const DEFAULT_GAME_IMAGE =
+const DEFAULT_ACTIVITY_IMAGE =
   'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=800&h=600&fit=crop';
 
-const DEFAULT_GAME_SETTINGS: GameSettings = {
+const DEFAULT_ACTIVITY_SETTINGS: ActivitySettings = {
   visibility: 'public',
   publishingTargets: {
     widgets: true,
@@ -203,10 +204,10 @@ const DEFAULT_GAME_SETTINGS: GameSettings = {
   cancellationWindow: 24,
 };
 
-const LEGACY_GAME_KEYS = ['admin_games', 'bookingtms_games'];
-const LEGACY_GAME_PREFIX = 'bookingtms_games_';
+const LEGACY_ACTIVITY_KEYS = ['admin_games', 'bookingtms_games', 'bookingtms::games'];
+const LEGACY_ACTIVITY_PREFIX = 'bookingtms_games_';
 
-const DIFFICULTY_LABELS: Record<number, GameDifficulty> = {
+const DIFFICULTY_LABELS: Record<number, ActivityDifficulty> = {
   1: 'Easy',
   2: 'Easy',
   3: 'Medium',
@@ -214,7 +215,7 @@ const DIFFICULTY_LABELS: Record<number, GameDifficulty> = {
   5: 'Extreme',
 };
 
-const DIFFICULTY_LEVELS: Record<GameDifficulty, number> = {
+const DIFFICULTY_LEVELS: Record<ActivityDifficulty, number> = {
   Easy: 2,
   Medium: 3,
   Hard: 4,
@@ -225,7 +226,7 @@ function isBrowser(): boolean {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 }
 
-function toDifficultyLabel(value: number | string | undefined): GameDifficulty {
+function toDifficultyLabel(value: number | string | undefined): ActivityDifficulty {
   if (typeof value === 'string') {
     const normalized = value.trim().toLowerCase();
     if (normalized === 'easy') return 'Easy';
@@ -239,7 +240,7 @@ function toDifficultyLabel(value: number | string | undefined): GameDifficulty {
   return 'Medium';
 }
 
-function toDifficultyLevel(label: GameDifficulty | undefined): number {
+function toDifficultyLevel(label: ActivityDifficulty | undefined): number {
   return label ? DIFFICULTY_LEVELS[label] ?? 3 : 3;
 }
 
@@ -261,13 +262,13 @@ function ensureStringArray(value: unknown): string[] {
   return [];
 }
 
-function sanitizeSettings(existing?: GameSettings, incoming?: GameSettings): GameSettings {
-  const base = existing ?? DEFAULT_GAME_SETTINGS;
+function sanitizeSettings(existing?: ActivitySettings, incoming?: ActivitySettings): ActivitySettings {
+  const base = existing ?? DEFAULT_ACTIVITY_SETTINGS;
   if (!incoming) {
     return {
       ...base,
       publishingTargets: {
-        ...DEFAULT_GAME_SETTINGS.publishingTargets,
+        ...DEFAULT_ACTIVITY_SETTINGS.publishingTargets,
         ...(base.publishingTargets ?? {}),
       },
     };
@@ -279,14 +280,14 @@ function sanitizeSettings(existing?: GameSettings, incoming?: GameSettings): Gam
     cancellationWindow: incoming.cancellationWindow ?? base.cancellationWindow,
     specialInstructions: incoming.specialInstructions ?? base.specialInstructions,
     publishingTargets: {
-      ...DEFAULT_GAME_SETTINGS.publishingTargets,
+      ...DEFAULT_ACTIVITY_SETTINGS.publishingTargets,
       ...(base.publishingTargets ?? {}),
       ...(incoming.publishingTargets ?? {}),
     },
   };
 }
 
-function normalizeStoredGame(raw: any): Game | null {
+function normalizeStoredActivity(raw: any): Activity | null {
   if (!raw || typeof raw !== 'object') return null;
 
   const label = toDifficultyLabel(raw.difficulty ?? raw.difficultyLabel);
@@ -296,15 +297,15 @@ function normalizeStoredGame(raw: any): Game | null {
       : `${coerceNumber(raw.durationMinutes ?? 60, 60)} min`;
   const basePrice = coerceNumber(raw.basePrice ?? raw.price, 0);
   const capacity = coerceNumber(raw.capacity ?? raw.maxPlayers, 8);
-  const image = raw.coverImage || raw.imageUrl || raw.image || DEFAULT_GAME_IMAGE;
-  const gameType: 'physical' | 'virtual' | 'hybrid' =
-    raw.gameType === 'virtual' || raw.gameType === 'hybrid' ? raw.gameType : 'physical';
+  const image = raw.coverImage || raw.imageUrl || raw.image || DEFAULT_ACTIVITY_IMAGE;
+  const activityType: 'physical' | 'virtual' | 'hybrid' =
+    raw.activityType === 'virtual' || raw.activityType === 'hybrid' ? raw.activityType : (raw.gameType === 'virtual' || raw.gameType === 'hybrid' ? raw.gameType : 'physical');
   const createdAt = typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString();
   const updatedAt =
     typeof raw.updatedAt === 'string' ? raw.updatedAt : raw.lastUpdated ?? createdAt;
 
   return {
-    id: String(raw.id ?? `game_${Date.now()}`),
+    id: String(raw.id ?? `activity_${Date.now()}`),
     name: String(raw.name ?? 'Untitled Event'),
     description: raw.description ?? '',
     image,
@@ -317,7 +318,7 @@ function normalizeStoredGame(raw: any): Game | null {
     ageRange: raw.ageRange ?? 'All ages',
     difficulty: typeof raw.difficulty === 'number' ? raw.difficulty : toDifficultyLevel(label),
     difficultyLabel: raw.difficultyLabel ?? label,
-    gameType,
+    activityType,
     status: raw.status === 'inactive' ? 'inactive' : 'active',
     blockedDates: Array.isArray(raw.blockedDates) ? raw.blockedDates : [],
     availability:
@@ -334,24 +335,24 @@ function normalizeStoredGame(raw: any): Game | null {
   };
 }
 
-function buildGameFromInput(
-  input: GameInput,
-  context?: GameMutationContext
-): Game {
+function buildActivityFromInput(
+  input: ActivityInput,
+  context?: ActivityMutationContext
+): Activity {
   const now = new Date().toISOString();
   const label = toDifficultyLabel(input.difficulty ?? input.difficultyLabel);
   const duration =
     typeof input.duration === 'number' || typeof input.duration === 'string'
       ? input.duration
       : 60;
-  const image = input.coverImage || input.imageUrl || input.image || DEFAULT_GAME_IMAGE;
+  const image = input.coverImage || input.imageUrl || input.image || DEFAULT_ACTIVITY_IMAGE;
   const basePrice = coerceNumber(input.basePrice, 0);
   const capacity = coerceNumber(input.capacity, 8);
-  const gameType: 'physical' | 'virtual' | 'hybrid' =
-    input.gameType === 'virtual' || input.gameType === 'hybrid' ? input.gameType : 'physical';
+  const activityType: 'physical' | 'virtual' | 'hybrid' =
+    input.activityType === 'virtual' || input.activityType === 'hybrid' ? input.activityType : 'physical';
 
   return {
-    id: `game_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    id: `activity_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     name: input.name?.trim() || 'Untitled Event',
     description: input.description ?? '',
     image,
@@ -364,7 +365,7 @@ function buildGameFromInput(
     ageRange: input.ageRange ?? 'All ages',
     difficulty: typeof input.difficulty === 'number' ? input.difficulty : toDifficultyLevel(label),
     difficultyLabel: input.difficultyLabel ?? label,
-    gameType,
+    activityType,
     status: input.status === 'inactive' ? 'inactive' : 'active',
     blockedDates: Array.isArray(input.blockedDates) ? input.blockedDates : [],
     availability:
@@ -381,11 +382,11 @@ function buildGameFromInput(
   };
 }
 
-function applyGameUpdates(
-  existing: Game,
-  updates: Partial<GameInput>,
-  context?: GameMutationContext
-): Game {
+function applyActivityUpdates(
+  existing: Activity,
+  updates: Partial<ActivityInput>,
+  context?: ActivityMutationContext
+): Activity {
   const label = updates.difficultyLabel ?? toDifficultyLabel(updates.difficulty ?? existing.difficulty);
   const newImage = updates.coverImage || updates.imageUrl || updates.image;
   const basePrice =
@@ -400,10 +401,10 @@ function applyGameUpdates(
     updates.duration !== undefined
       ? updates.duration
       : existing.duration;
-  const nextGameType: 'physical' | 'virtual' | 'hybrid' =
-    updates.gameType === 'virtual' || updates.gameType === 'hybrid'
-      ? updates.gameType
-      : (existing.gameType ?? 'physical');
+  const nextActivityType: 'physical' | 'virtual' | 'hybrid' =
+    updates.activityType === 'virtual' || updates.activityType === 'hybrid'
+      ? updates.activityType
+      : (existing.activityType ?? 'physical');
 
   return {
     ...existing,
@@ -421,13 +422,13 @@ function applyGameUpdates(
           : toDifficultyLevel(label)
         : existing.difficulty,
     difficultyLabel: label || existing.difficultyLabel,
-    gameType: nextGameType,
+    activityType: nextActivityType,
     status:
       updates.status === 'inactive'
         ? 'inactive'
         : updates.status === 'active'
-        ? 'active'
-        : existing.status,
+          ? 'active'
+          : existing.status,
     image: newImage ?? existing.image,
     imageUrl: updates.imageUrl ?? newImage ?? existing.imageUrl,
     coverImage: updates.coverImage ?? existing.coverImage ?? newImage,
@@ -457,7 +458,7 @@ function applyGameUpdates(
 
 export class DataSyncService {
   protected static readonly STORAGE_KEYS = DATA_SYNC_STORAGE_KEYS;
-  protected static readonly SHARED_GAMES_KEY = DATA_SYNC_STORAGE_KEYS.GAMES;
+  protected static readonly SHARED_ACTIVITIES_KEY = DATA_SYNC_STORAGE_KEYS.ACTIVITIES;
   private static readonly ENVELOPE_VERSION = 1;
 
   // ---------------------------------------------------------------------------
@@ -511,46 +512,46 @@ export class DataSyncService {
   }
 
   // ---------------------------------------------------------------------------
-  // GAMES / EVENTS
+  // ACTIVITIES / EVENTS
   // ---------------------------------------------------------------------------
 
-  static getAllGames(): Game[] {
+  static getAllActivities(): Activity[] {
     if (!isBrowser()) return [];
 
     try {
-      const shared = localStorage.getItem(this.SHARED_GAMES_KEY);
+      const shared = localStorage.getItem(this.SHARED_ACTIVITIES_KEY);
       if (shared) {
-        const parsed = JSON.parse(shared) as SharedGamesEnvelope | Game[];
+        const parsed = JSON.parse(shared) as SharedActivitiesEnvelope | Activity[];
         if (Array.isArray(parsed)) {
-          return parsed.map(normalizeStoredGame).filter((g): g is Game => Boolean(g));
+          return parsed.map(normalizeStoredActivity).filter((g): g is Activity => Boolean(g));
         }
-        if (parsed && Array.isArray(parsed.games)) {
-          return parsed.games
-            .map(normalizeStoredGame)
-            .filter((g): g is Game => Boolean(g));
+        if (parsed && Array.isArray(parsed.activities)) {
+          return parsed.activities
+            .map(normalizeStoredActivity)
+            .filter((g): g is Activity => Boolean(g));
         }
       }
     } catch (error) {
-      console.warn('⚠️ Failed to parse shared games payload, falling back to legacy keys.', error);
+      console.warn('⚠️ Failed to parse shared activities payload, falling back to legacy keys.', error);
     }
 
     // Legacy fallback keys
-    for (const key of LEGACY_GAME_KEYS) {
+    for (const key of LEGACY_ACTIVITY_KEYS) {
       const legacy = localStorage.getItem(key);
       if (legacy) {
         try {
           const parsed = JSON.parse(legacy);
           if (Array.isArray(parsed)) {
             const normalized = parsed
-              .map(normalizeStoredGame)
-              .filter((g): g is Game => Boolean(g));
+              .map(normalizeStoredActivity)
+              .filter((g): g is Activity => Boolean(g));
             if (normalized.length) {
-              this.persistGames(normalized);
+              this.persistActivities(normalized);
               return normalized;
             }
           }
         } catch (error) {
-          console.warn(`⚠️ Failed to parse legacy games key "${key}".`, error);
+          console.warn(`⚠️ Failed to parse legacy activities key "${key}".`, error);
         }
       }
     }
@@ -558,22 +559,22 @@ export class DataSyncService {
     // Scoped legacy keys (per-user)
     for (let idx = 0; idx < localStorage.length; idx++) {
       const key = localStorage.key(idx) ?? '';
-      if (key.startsWith(LEGACY_GAME_PREFIX)) {
+      if (key.startsWith(LEGACY_ACTIVITY_PREFIX)) {
         const scoped = localStorage.getItem(key);
         if (!scoped) continue;
         try {
           const parsed = JSON.parse(scoped);
           if (Array.isArray(parsed)) {
             const normalized = parsed
-              .map(normalizeStoredGame)
-              .filter((g): g is Game => Boolean(g));
+              .map(normalizeStoredActivity)
+              .filter((g): g is Activity => Boolean(g));
             if (normalized.length) {
-              this.persistGames(normalized);
+              this.persistActivities(normalized);
               return normalized;
             }
           }
         } catch (error) {
-          console.warn(`⚠️ Failed to parse scoped legacy games key "${key}".`, error);
+          console.warn(`⚠️ Failed to parse scoped legacy activities key "${key}".`, error);
         }
       }
     }
@@ -581,92 +582,93 @@ export class DataSyncService {
     return [];
   }
 
-  static getGameById(gameId: string): Game | null {
-    const games = this.getAllGames();
-    return games.find((g) => g.id === gameId) ?? null;
+  static getActivityById(activityId: string): Activity | null {
+    const activities = this.getAllActivities();
+    return activities.find((g) => g.id === activityId) ?? null;
   }
 
-  protected static persistGames(
-    games: Game[],
+  protected static persistActivities(
+    activities: Activity[],
     context?: {
       updatedBy?: string;
       organizationId?: string;
     }
   ) {
     if (!isBrowser()) return;
-    const envelope: SharedGamesEnvelope = {
+    const envelope: SharedActivitiesEnvelope = {
       version: this.ENVELOPE_VERSION,
       updatedAt: new Date().toISOString(),
       updatedBy: context?.updatedBy,
       organizationId:
-        context?.organizationId ?? games[0]?.organizationId ?? DEFAULT_ORGANIZATION_ID,
-      games,
+        context?.organizationId ?? activities[0]?.organizationId ?? DEFAULT_ORGANIZATION_ID,
+      activities,
     };
 
     try {
-      localStorage.setItem(this.SHARED_GAMES_KEY, JSON.stringify(envelope));
+      localStorage.setItem(this.SHARED_ACTIVITIES_KEY, JSON.stringify(envelope));
       // Maintain legacy keys to avoid breaking embedded widgets that still expect them
-      localStorage.setItem(this.STORAGE_KEYS.GAMES, JSON.stringify(games));
-      localStorage.setItem('bookingtms_games', JSON.stringify(games));
+      // We map activities back to "games" for legacy
+      localStorage.setItem(this.STORAGE_KEYS.GAMES, JSON.stringify(activities));
+      localStorage.setItem('bookingtms_games', JSON.stringify(activities));
     } catch (error) {
-      console.error('❌ Failed to persist games data:', error);
+      console.error('❌ Failed to persist activities data:', error);
     }
   }
 
-  static saveGame(gameData: GameInput, context?: GameMutationContext): Game {
-    const games = this.getAllGames();
-    const newGame = buildGameFromInput(gameData, context);
-    games.push(newGame);
-    this.persistGames(games, {
+  static saveActivity(activityData: ActivityInput, context?: ActivityMutationContext): Activity {
+    const activities = this.getAllActivities();
+    const newActivity = buildActivityFromInput(activityData, context);
+    activities.push(newActivity);
+    this.persistActivities(activities, {
       updatedBy: context?.userId,
       organizationId: context?.organizationId,
     });
-    console.log('✅ Game saved and sync event triggered:', newGame.id);
-    return newGame;
+    console.log('✅ Activity saved and sync event triggered:', newActivity.id);
+    return newActivity;
   }
 
-  static updateGame(
-    gameId: string,
-    updates: Partial<GameInput>,
-    context?: GameMutationContext
-  ): Game | null {
-    const games = this.getAllGames();
-    const index = games.findIndex((g) => g.id === gameId);
+  static updateActivity(
+    activityId: string,
+    updates: Partial<ActivityInput>,
+    context?: ActivityMutationContext
+  ): Activity | null {
+    const activities = this.getAllActivities();
+    const index = activities.findIndex((g) => g.id === activityId);
     if (index === -1) {
-      console.warn(`⚠️ Attempted to update missing game "${gameId}".`);
+      console.warn(`⚠️ Attempted to update missing activity "${activityId}".`);
       return null;
     }
 
-    const updated = applyGameUpdates(games[index], updates, context);
-    games[index] = updated;
-    this.persistGames(games, {
+    const updated = applyActivityUpdates(activities[index], updates, context);
+    activities[index] = updated;
+    this.persistActivities(activities, {
       updatedBy: context?.userId,
       organizationId: context?.organizationId ?? updated.organizationId,
     });
-    console.log('✅ Game updated and sync event triggered:', gameId);
+    console.log('✅ Activity updated and sync event triggered:', activityId);
     return updated;
   }
 
-  static deleteGame(gameId: string, context?: GameMutationContext): void {
-    const games = this.getAllGames();
-    const filtered = games.filter((g) => g.id !== gameId);
-    this.persistGames(filtered, {
+  static deleteActivity(activityId: string, context?: ActivityMutationContext): void {
+    const activities = this.getAllActivities();
+    const filtered = activities.filter((g) => g.id !== activityId);
+    this.persistActivities(filtered, {
       updatedBy: context?.userId,
       organizationId: context?.organizationId,
     });
-    console.log('✅ Game deleted and sync event triggered:', gameId);
+    console.log('✅ Activity deleted and sync event triggered:', activityId);
   }
 
-  static replaceAllGames(games: Game[], context?: GameMutationContext): Game[] {
-    if (!Array.isArray(games)) return [];
-    const normalized = games
-      .map(normalizeStoredGame)
-      .filter((g): g is Game => Boolean(g));
-    this.persistGames(normalized, {
+  static replaceAllActivities(activities: Activity[], context?: ActivityMutationContext): Activity[] {
+    if (!Array.isArray(activities)) return [];
+    const normalized = activities
+      .map(normalizeStoredActivity)
+      .filter((g): g is Activity => Boolean(g));
+    this.persistActivities(normalized, {
       updatedBy: context?.userId,
       organizationId: context?.organizationId,
     });
-    console.log('✅ Game catalog replaced. Total games:', normalized.length);
+    console.log('✅ Activity catalog replaced. Total activities:', normalized.length);
     return normalized;
   }
 
@@ -674,13 +676,13 @@ export class DataSyncService {
   // AVAILABILITY HELPERS
   // ---------------------------------------------------------------------------
 
-  static getAvailableTimeSlots(gameId: string, date: string): TimeSlot[] {
-    const game = this.getGameById(gameId);
-    if (!game) return [];
+  static getAvailableTimeSlots(activityId: string, date: string): TimeSlot[] {
+    const activity = this.getActivityById(activityId);
+    if (!activity) return [];
 
     const bookings = this.getAllBookings();
-    const gameBookings = bookings.filter(
-      (b) => b.gameId === gameId && b.date === date && b.status !== 'cancelled'
+    const activityBookings = bookings.filter(
+      (b) => b.activityId === activityId && b.date === date && b.status !== 'cancelled'
     );
 
     const defaultTimeSlots: TimeSlot[] = [
@@ -695,12 +697,12 @@ export class DataSyncService {
     ];
 
     return defaultTimeSlots.map((slot) => {
-      const participantsInSlot = gameBookings
+      const participantsInSlot = activityBookings
         .filter((b) => b.time === slot.time)
         .reduce((total, b) => total + b.participants, 0);
 
-      const available = participantsInSlot < (game.capacity || 8);
-      const spots = Math.max(0, (game.capacity || 8) - participantsInSlot);
+      const available = participantsInSlot < (activity.capacity || 8);
+      const spots = Math.max(0, (activity.capacity || 8) - participantsInSlot);
 
       return {
         time: slot.time,
@@ -710,10 +712,10 @@ export class DataSyncService {
     });
   }
 
-  static isDateBlocked(gameId: string, date: string): boolean {
-    const game = this.getGameById(gameId);
-    if (!game) return false;
-    return Array.isArray(game.blockedDates) && game.blockedDates.includes(date);
+  static isDateBlocked(activityId: string, date: string): boolean {
+    const activity = this.getActivityById(activityId);
+    if (!activity) return false;
+    return Array.isArray(activity.blockedDates) && activity.blockedDates.includes(date);
   }
 
   // ---------------------------------------------------------------------------
@@ -771,7 +773,7 @@ export class DataSyncService {
   static exportAllData() {
     return {
       bookings: this.getAllBookings(),
-      games: this.getAllGames(),
+      activities: this.getAllActivities(),
       giftVouchers: this.getAllGiftVouchers(),
       stats: this.getBookingStats(),
     };
@@ -781,7 +783,7 @@ export class DataSyncService {
     if (!isBrowser()) return;
     localStorage.removeItem(this.STORAGE_KEYS.BOOKINGS);
     localStorage.removeItem(this.STORAGE_KEYS.GIFT_VOUCHERS);
-    localStorage.removeItem(this.SHARED_GAMES_KEY);
+    localStorage.removeItem(this.SHARED_ACTIVITIES_KEY);
     console.log('⚠️ All data cleared');
   }
 }
@@ -834,32 +836,32 @@ export const DataSyncEvents = new DataSyncEventsClass();
 // -----------------------------------------------------------------------------
 
 export class DataSyncServiceWithEvents extends DataSyncService {
-  static saveGame(gameData: GameInput, context?: GameMutationContext): Game {
-    const saved = super.saveGame(gameData, context);
-    DataSyncEvents.emit('games-updated');
+  static saveActivity(activityData: ActivityInput, context?: ActivityMutationContext): Activity {
+    const saved = super.saveActivity(activityData, context);
+    DataSyncEvents.emit('activities-updated');
     return saved;
   }
 
-  static updateGame(
-    gameId: string,
-    updates: Partial<GameInput>,
-    context?: GameMutationContext
-  ): Game | null {
-    const updated = super.updateGame(gameId, updates, context);
+  static updateActivity(
+    activityId: string,
+    updates: Partial<ActivityInput>,
+    context?: ActivityMutationContext
+  ): Activity | null {
+    const updated = super.updateActivity(activityId, updates, context);
     if (updated) {
-      DataSyncEvents.emit('games-updated');
+      DataSyncEvents.emit('activities-updated');
     }
     return updated;
   }
 
-  static deleteGame(gameId: string, context?: GameMutationContext): void {
-    super.deleteGame(gameId, context);
-    DataSyncEvents.emit('games-updated');
+  static deleteActivity(activityId: string, context?: ActivityMutationContext): void {
+    super.deleteActivity(activityId, context);
+    DataSyncEvents.emit('activities-updated');
   }
 
-  static replaceAllGames(games: Game[], context?: GameMutationContext): Game[] {
-    const replaced = super.replaceAllGames(games, context);
-    DataSyncEvents.emit('games-updated');
+  static replaceAllActivities(activities: Activity[], context?: ActivityMutationContext): Activity[] {
+    const replaced = super.replaceAllActivities(activities, context);
+    DataSyncEvents.emit('activities-updated');
     return replaced;
   }
 
@@ -896,11 +898,12 @@ if (isBrowser()) {
   window.addEventListener('storage', (event) => {
     if (!event.key) return;
     if (
+      event.key === DATA_SYNC_STORAGE_KEYS.ACTIVITIES ||
       event.key === DATA_SYNC_STORAGE_KEYS.GAMES ||
       event.key === 'admin_games' ||
       event.key === 'bookingtms_games'
     ) {
-      DataSyncEvents.emit('games-updated');
+      DataSyncEvents.emit('activities-updated');
     }
     if (event.key === DATA_SYNC_STORAGE_KEYS.BOOKINGS || event.key === 'bookings') {
       DataSyncEvents.emit('bookings-updated');

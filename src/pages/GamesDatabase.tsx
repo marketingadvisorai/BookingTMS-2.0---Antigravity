@@ -19,6 +19,7 @@ import { ScrollArea } from '../components/ui/scroll-area';
 import { Separator } from '../components/ui/separator';
 import { useGames } from '../hooks/useGames';
 import { useVenues } from '../hooks/venue/useVenues';
+import { useAuth } from '../lib/auth/AuthContext';
 
 const difficultyLevels = [
   { value: 'Easy', label: 'Easy', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
@@ -30,6 +31,7 @@ const difficultyLevels = [
 export function GamesDatabase() {
   const { games, loading, createGame, updateGame, deleteGame } = useGames();
   const { venues } = useVenues();
+  const { currentUser } = useAuth();
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -75,7 +77,23 @@ export function GamesDatabase() {
 
     setSubmitting(true);
     try {
-      await createGame(formData);
+      if (!currentUser?.organizationId) {
+        throw new Error('Organization ID not found');
+      }
+
+      await createGame({
+        organization_id: currentUser.organizationId,
+        venue_id: formData.venue_id,
+        name: formData.name,
+        description: formData.description,
+        difficulty: formData.difficulty.toLowerCase() as any,
+        duration_minutes: formData.duration,
+        min_players: formData.min_players,
+        max_players: formData.max_players,
+        price: formData.price,
+        image_url: formData.image_url,
+        is_active: formData.status === 'active'
+      });
       setShowCreateDialog(false);
       resetForm();
     } catch (error) {
@@ -90,7 +108,19 @@ export function GamesDatabase() {
 
     setSubmitting(true);
     try {
-      await updateGame(selectedGame.id, formData);
+      await updateGame(selectedGame.id, {
+        id: selectedGame.id,
+        venue_id: formData.venue_id,
+        name: formData.name,
+        description: formData.description,
+        difficulty: formData.difficulty.toLowerCase() as any,
+        duration_minutes: formData.duration,
+        min_players: formData.min_players,
+        max_players: formData.max_players,
+        price: formData.price,
+        image_url: formData.image_url,
+        is_active: formData.status === 'active'
+      });
       setShowEditDialog(false);
       setSelectedGame(null);
       resetForm();
@@ -123,20 +153,20 @@ export function GamesDatabase() {
       name: game.name,
       description: game.description || '',
       difficulty: game.difficulty,
-      duration: game.duration,
+      duration: game.duration_minutes,
       min_players: game.min_players,
       max_players: game.max_players,
       price: game.price,
       image_url: game.image_url || '',
-      status: game.status,
-      settings: game.settings || {},
+      status: game.is_active ? 'active' : 'inactive',
+      settings: {},
     });
     setShowEditDialog(true);
   };
 
   const toggleGameStatus = async (game: any) => {
-    const newStatus = game.status === 'active' ? 'inactive' : 'active';
-    await updateGame(game.id, { status: newStatus });
+    const newIsActive = !game.is_active;
+    await updateGame(game.id, { is_active: newIsActive });
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -158,7 +188,7 @@ export function GamesDatabase() {
   // Calculate stats
   const stats = {
     total: games.length,
-    active: games.filter(g => g.status === 'active').length,
+    active: games.filter(g => g.is_active).length,
     avgPrice: games.length > 0 ? games.reduce((sum, g) => sum + (g.price || 0), 0) / games.length : 0,
     totalCapacity: games.reduce((sum, g) => sum + (g.max_players || 0), 0),
   };
@@ -327,8 +357,8 @@ export function GamesDatabase() {
                         <Badge className={getDifficultyColor(game.difficulty)}>
                           {game.difficulty}
                         </Badge>
-                        <Badge variant={game.status === 'active' ? 'default' : 'secondary'}>
-                          {game.status}
+                        <Badge variant={game.is_active ? 'default' : 'secondary'}>
+                          {game.is_active ? 'Active' : 'Inactive'}
                         </Badge>
                       </div>
                     </div>
@@ -351,7 +381,7 @@ export function GamesDatabase() {
                         <Clock className="w-4 h-4" />
                         Duration:
                       </span>
-                      <span className="font-medium">{game.duration} min</span>
+                      <span className="font-medium">{game.duration_minutes} min</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600 dark:text-[#737373] flex items-center gap-1">
@@ -387,7 +417,7 @@ export function GamesDatabase() {
                         onClick={() => toggleGameStatus(game)}
                         className="flex-1"
                       >
-                        {game.status === 'active' ? 'Deactivate' : 'Activate'}
+                        {game.is_active ? 'Deactivate' : 'Activate'}
                       </Button>
                       <Button
                         variant="outline"
@@ -406,7 +436,7 @@ export function GamesDatabase() {
               </Card>
             );
           })}
-        </div>
+        </div >
       )}
 
       {/* Create/Edit Dialog */}
@@ -593,6 +623,6 @@ export function GamesDatabase() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </div >
   );
 }

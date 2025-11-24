@@ -5,7 +5,7 @@ import { Card } from '../../../ui/card';
 import { Separator } from '../../../ui/separator';
 
 interface BookingSummaryProps {
-    selectedGameData: any;
+    selectedActivityData: any;
     selectedDate: number | null;
     selectedTime: string | null;
     partySize: number;
@@ -18,7 +18,7 @@ interface BookingSummaryProps {
 }
 
 export const BookingSummary: React.FC<BookingSummaryProps> = ({
-    selectedGameData,
+    selectedActivityData,
     selectedDate,
     selectedTime,
     partySize,
@@ -43,7 +43,7 @@ export const BookingSummary: React.FC<BookingSummaryProps> = ({
                 <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
                     <label className="text-sm text-gray-700 mb-3 flex items-center gap-2">
                         <Users className="w-4 h-4" style={{ color: primaryColor }} />
-                        <span className="">Number of Players</span>
+                        <span className="">Number of Participants</span>
                     </label>
                     <div className="flex items-center justify-between gap-4 mt-3">
                         <Button
@@ -57,7 +57,7 @@ export const BookingSummary: React.FC<BookingSummaryProps> = ({
                         </Button>
                         <div className="text-center">
                             <div className="text-3xl text-gray-900" style={{ color: primaryColor }}>{partySize}</div>
-                            <div className="text-xs text-gray-500">players</div>
+                            <div className="text-xs text-gray-500">participants</div>
                         </div>
                         <Button
                             variant="outline"
@@ -77,9 +77,9 @@ export const BookingSummary: React.FC<BookingSummaryProps> = ({
                         <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-600 flex items-center gap-2">
                                 <Award className="w-4 h-4" style={{ color: primaryColor }} />
-                                Game
+                                Activity
                             </span>
-                            <span className="text-gray-900 text-right truncate max-w-[55%]">{selectedGameData.name}</span>
+                            <span className="text-gray-900 text-right truncate max-w-[55%]">{selectedActivityData.name}</span>
                         </div>
                         <Separator />
                         <div className="flex items-center justify-between text-sm">
@@ -108,7 +108,7 @@ export const BookingSummary: React.FC<BookingSummaryProps> = ({
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-5 border-2" style={{ borderColor: `${primaryColor}30` }}>
                     <div className="flex justify-between mb-3 text-sm">
                         <span className="text-gray-600">Subtotal</span>
-                        <span className="text-gray-900">${selectedGameData.price} × {partySize}</span>
+                        <span className="text-gray-900">${selectedActivityData.price} × {partySize}</span>
                     </div>
                     <Separator className="my-3" />
                     <div className="flex justify-between items-center">

@@ -16,13 +16,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, getCurrentUser, signOut as supabaseSignOut } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { 
-  User, 
-  AuthContextType, 
-  CreateUserPayload, 
+import {
+  User,
+  AuthContextType,
+  CreateUserPayload,
   UpdateUserPayload,
   Permission,
-  UserRole 
+  UserRole
 } from '@/types/auth';
 import { ROLES, getRolePermissions, getRoutePermission } from './permissions';
 
@@ -58,7 +58,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event);
-        
+
         if (event === 'SIGNED_IN' && session?.user) {
           await loadUserProfile(session.user.id);
         } else if (event === 'SIGNED_OUT') {
@@ -101,8 +101,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loadUserProfile = async (userId: string) => {
     try {
-      const { data: profile, error } = await supabase
-        .from('users')
+      const { data: profile, error } = await (supabase
+        .from('users') as any)
         .select(`
           *,
           organization:organizations(*)
@@ -133,9 +133,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setCurrentUser(user);
 
         // Update last login timestamp
-        await supabase
-          .from('users')
-          .update({ last_login_at: new Date().toISOString() })
+        await (supabase
+          .from('users') as any)
+          .update({ last_login_at: new Date().toISOString() } as any)
           .eq('id', userId);
       }
     } catch (error) {
@@ -206,18 +206,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const canAccessRoute = (route: string): boolean => {
-    const permission = getRoutePermission(route);
-    if (!permission) return true; // Public route
-    return hasPermission(permission);
+    const routeConfig = getRoutePermission(route);
+    if (!routeConfig) return true; // Public route
+
+    if (routeConfig.requiredRole && !isRole(routeConfig.requiredRole)) {
+      return false;
+    }
+
+    if (routeConfig.requiredPermissions) {
+      return hasAnyPermission(routeConfig.requiredPermissions);
+    }
+
+    return true;
   };
 
   const isRole = (role: UserRole | UserRole[]): boolean => {
     if (!currentUser) return false;
-    
+
     if (Array.isArray(role)) {
       return role.includes(currentUser.role);
     }
-    
+
     return currentUser.role === role;
   };
 
@@ -246,8 +255,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // Create user profile
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
+      const { data: profile, error: profileError } = await (supabase
+        .from('users') as any)
         .insert({
           id: authData.user.id,
           email: payload.email,
@@ -256,7 +265,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           organization_id: currentUser!.organizationId!, // Same org as creator
           phone: payload.phone || null,
           is_active: true,
-        })
+        } as any)
         .select()
         .single();
 
@@ -305,8 +314,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (payload.avatar !== undefined) updates.avatar_url = payload.avatar;
       if (payload.status !== undefined) updates.is_active = payload.status === 'active';
 
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
+      const { data: profile, error: profileError } = await (supabase
+        .from('users') as any)
         .update(updates)
         .eq('id', userId)
         .select()
@@ -382,8 +391,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      const { data: profiles, error } = await supabase
-        .from('users')
+      const { data: profiles, error } = await (supabase
+        .from('users') as any)
         .select('*')
         .eq('organization_id', currentUser!.organizationId!)
         .order('created_at', { ascending: false });
@@ -426,6 +435,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     currentUser,
     users,
+    roles: ROLES,
     isLoading,
     login,
     logout,
@@ -450,11 +460,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  
+
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  
+
   return context;
 };
 

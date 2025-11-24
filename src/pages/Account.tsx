@@ -12,12 +12,12 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Separator } from '../components/ui/separator';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Building2, 
-  Shield, 
+import {
+  User,
+  Mail,
+  Phone,
+  Building2,
+  Shield,
   Key,
   Bell,
   Eye,
@@ -88,8 +88,8 @@ export function Account() {
       setProfileLoading(true);
 
       // Get user profile from user_profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
+      const { data: profileData, error: profileError } = await (supabase
+        .from('user_profiles') as any)
         .select('*')
         .eq('id', currentUser.id)
         .single();
@@ -132,17 +132,17 @@ export function Account() {
     if (!currentUser) return;
 
     try {
-      const { error } = await supabase
-        .from('user_profiles')
+      const { error } = await (supabase
+        .from('user_profiles') as any)
         .insert({
           id: currentUser.id,
           role: currentUser.role || 'staff',
           status: 'active',
           metadata: {}
-        });
+        } as any);
 
       if (error) throw error;
-      
+
       await loadUserProfile();
     } catch (error) {
       console.error('Error creating profile:', error);
@@ -156,15 +156,15 @@ export function Account() {
       setLoading(true);
 
       // Update user_profiles table
-      const { error: profileError } = await supabase
-        .from('user_profiles')
+      const { error: profileError } = await (supabase
+        .from('user_profiles') as any)
         .update({
           first_name: firstName,
           last_name: lastName,
           phone: phone,
           company: company,
           updated_at: new Date().toISOString()
-        })
+        } as any)
         .eq('id', currentUser.id);
 
       if (profileError) throw profileError;
@@ -239,12 +239,12 @@ export function Account() {
         smsNotifications
       };
 
-      const { error } = await supabase
-        .from('user_profiles')
+      const { error } = await (supabase
+        .from('user_profiles') as any)
         .update({
           metadata,
           updated_at: new Date().toISOString()
-        })
+        } as any)
         .eq('id', currentUser.id);
 
       if (error) throw error;

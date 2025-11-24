@@ -26,13 +26,13 @@ interface TestResult {
 const SupabaseTest = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  
+
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<TestResult[]>([]);
-  
+
   const supabaseUrl = `https://${projectId}.supabase.co`;
-  
-  const updateResult = (name: string, status: 'success' | 'error', message: string, details?: any) => {
+
+  const updateResult = (name: string, status: 'pending' | 'success' | 'error', message: string, details?: any) => {
     setResults(prev => {
       const existing = prev.find(r => r.name === name);
       if (existing) {
@@ -50,7 +50,7 @@ const SupabaseTest = () => {
       // Test 1: Environment Variables
       updateResult('Environment', 'pending', 'Checking...');
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       if (!projectId || !publicAnonKey) {
         updateResult('Environment', 'error', 'Missing project configuration', { projectId, hasKey: !!publicAnonKey });
       } else {
@@ -64,7 +64,7 @@ const SupabaseTest = () => {
       // Test 2: Client Initialization
       updateResult('Client', 'pending', 'Initializing Supabase client...');
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       let supabase;
       try {
         supabase = createClient(supabaseUrl, publicAnonKey);
@@ -81,10 +81,10 @@ const SupabaseTest = () => {
       // Test 3: Database Connection
       updateResult('Database', 'pending', 'Testing database connection...');
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       try {
         const { error: dbError } = await supabase.from('kv_store_84a71643').select('count').limit(1);
-        
+
         if (dbError) {
           // Check if it's just an empty table or RLS issue
           if (dbError.code === 'PGRST116' || dbError.message.includes('no rows')) {
@@ -102,10 +102,10 @@ const SupabaseTest = () => {
       // Test 4: Auth System
       updateResult('Auth', 'pending', 'Testing authentication system...');
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       try {
         const { data: { session }, error: authError } = await supabase.auth.getSession();
-        
+
         if (authError) {
           updateResult('Auth', 'error', `Auth error: ${authError.message}`, authError);
         } else if (session) {
@@ -123,14 +123,14 @@ const SupabaseTest = () => {
       // Test 5: Server Functions
       updateResult('Server', 'pending', 'Testing edge functions...');
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       try {
         const response = await fetch(`${supabaseUrl}/functions/v1/make-server-84a71643/health`, {
           headers: {
             'Authorization': `Bearer ${publicAnonKey}`
           }
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           updateResult('Server', 'success', 'Edge function responding', data);
@@ -180,15 +180,15 @@ const SupabaseTest = () => {
   const mutedClass = isDark ? 'text-gray-400' : 'text-gray-600';
 
   return (
-    <AdminLayout>
+    <AdminLayout currentPage="settings" onNavigate={() => { }}>
       <PageHeader
         title="Supabase Connection Test"
-        subtitle="Verify connection to BookingTMS - Beta V 0.1"
+        description="Verify connection to BookingTMS - Beta V 0.1"
       />
 
       <div className={`p-4 md:p-6 ${bgClass} min-h-screen`}>
         <div className="max-w-4xl mx-auto space-y-6">
-          
+
           {/* Project Info Card */}
           <Card className={`${cardBg} border ${borderClass} p-6`}>
             <div className="flex items-start justify-between mb-4">
@@ -198,7 +198,7 @@ const SupabaseTest = () => {
               </div>
               <Database className="w-8 h-8 text-indigo-500" />
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div className={`p-4 rounded-lg border ${borderClass}`}>
                 <div className="flex items-center gap-2 mb-2">
@@ -207,7 +207,7 @@ const SupabaseTest = () => {
                 </div>
                 <code className={`text-sm ${textClass}`}>{projectId}</code>
               </div>
-              
+
               <div className={`p-4 rounded-lg border ${borderClass}`}>
                 <div className="flex items-center gap-2 mb-2">
                   <Key className="w-4 h-4 text-indigo-500" />
@@ -248,16 +248,15 @@ const SupabaseTest = () => {
           {results.length > 0 && (
             <Card className={`${cardBg} border ${borderClass} p-6`}>
               <h3 className={`text-lg mb-4 ${textClass}`}>Test Results</h3>
-              
+
               <div className="space-y-4">
                 {results.map((result, index) => (
                   <div
                     key={index}
-                    className={`p-4 rounded-lg border ${borderClass} ${
-                      result.status === 'success' ? 'border-green-500/20 bg-green-500/5' :
+                    className={`p-4 rounded-lg border ${borderClass} ${result.status === 'success' ? 'border-green-500/20 bg-green-500/5' :
                       result.status === 'error' ? 'border-red-500/20 bg-red-500/5' :
-                      'border-blue-500/20 bg-blue-500/5'
-                    }`}
+                        'border-blue-500/20 bg-blue-500/5'
+                      }`}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-3">
@@ -271,7 +270,7 @@ const SupabaseTest = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     {result.details && (
                       <div className={`mt-3 p-3 rounded bg-black/20 ${isDark ? 'bg-black/20' : 'bg-gray-100'}`}>
                         <pre className={`text-xs ${mutedClass} overflow-x-auto`}>

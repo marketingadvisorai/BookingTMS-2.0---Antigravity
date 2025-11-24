@@ -1,6 +1,6 @@
 /**
  * Step 6: Payment Settings
- * Stripe integration for game payments using Supabase Edge Functions
+ * Stripe integration for activity payments using Supabase Edge Functions
  * Version: 1.1.0 - Auto-detect and refresh connection status
  */
 
@@ -32,24 +32,20 @@ import {
   DollarSign,
   Link as LinkIcon,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Info,
   Trash2,
   Edit,
-  RotateCw
+  RotateCw,
+  Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StripeProductService } from '../../../lib/stripe/stripeProductService';
-import { StripeDirectApi } from '../../../lib/stripe/stripeDirectApi';
 import { supabase } from '../../../lib/supabase/client';
 import { StripeConfigurationModal } from '../StripeConfigurationModal';
-import { GameData } from '../types';
+import { ActivityData } from '../types';
 
 interface PaymentSettingsProps {
-  gameData: GameData;
-  onUpdate: (data: GameData) => void;
+  activityData: ActivityData;
+  onUpdate: (data: ActivityData) => void;
   onNext: () => void;
   onPrevious: () => void;
   t: any;
@@ -60,7 +56,7 @@ interface PaymentSettingsProps {
 type SyncStatus = 'not_synced' | 'pending' | 'synced' | 'error';
 
 export default function Step6PaymentSettings({
-  gameData,
+  activityData,
   onUpdate,
   onNext,
   onPrevious,
@@ -70,11 +66,11 @@ export default function Step6PaymentSettings({
 }: PaymentSettingsProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
-  const [manualProductId, setManualProductId] = useState(gameData.stripeProductId || '');
-  const [manualPriceId, setManualPriceId] = useState(gameData.stripePriceId || '');
+  const [manualProductId, setManualProductId] = useState(activityData.stripeProductId || '');
+  const [manualPriceId, setManualPriceId] = useState(activityData.stripePriceId || '');
   const [manualLookupKey, setManualLookupKey] = useState('');
-  const [stripeCheckoutUrl, setStripeCheckoutUrl] = useState(gameData.stripeCheckoutUrl || '');
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>(gameData.stripeSyncStatus || 'not_synced');
+  const [stripeCheckoutUrl, setStripeCheckoutUrl] = useState(activityData.stripeCheckoutUrl || '');
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(activityData.stripeSyncStatus || 'not_synced');
   const [errorMessage, setErrorMessage] = useState('');
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -85,34 +81,34 @@ export default function Step6PaymentSettings({
   const [venueMatches, setVenueMatches] = useState(true);
   const [showConfigModal, setShowConfigModal] = useState(false);
 
-  // Sync state with gameData when it changes (important for edit mode)
+  // Sync state with activityData when it changes (important for edit mode)
   useEffect(() => {
-    console.log('🔍 Step6PaymentSettings - gameData received:', {
-      stripeProductId: gameData.stripeProductId,
-      stripePriceId: gameData.stripePriceId,
-      stripePrices: gameData.stripePrices,
-      stripeCheckoutUrl: gameData.stripeCheckoutUrl,
-      stripeSyncStatus: gameData.stripeSyncStatus,
-      stripeLastSync: gameData.stripeLastSync
+    console.log('🔍 Step6PaymentSettings - activityData received:', {
+      stripeProductId: activityData.stripeProductId,
+      stripePriceId: activityData.stripePriceId,
+      stripePrices: activityData.stripePrices,
+      stripeCheckoutUrl: activityData.stripeCheckoutUrl,
+      stripeSyncStatus: activityData.stripeSyncStatus,
+      stripeLastSync: activityData.stripeLastSync
     });
 
-    if (gameData.stripeProductId) {
-      setManualProductId(gameData.stripeProductId);
+    if (activityData.stripeProductId) {
+      setManualProductId(activityData.stripeProductId);
     }
-    if (gameData.stripePriceId) {
-      setManualPriceId(gameData.stripePriceId);
+    if (activityData.stripePriceId) {
+      setManualPriceId(activityData.stripePriceId);
     }
-    if (gameData.stripeCheckoutUrl) {
-      setStripeCheckoutUrl(gameData.stripeCheckoutUrl);
+    if (activityData.stripeCheckoutUrl) {
+      setStripeCheckoutUrl(activityData.stripeCheckoutUrl);
     }
-    if (gameData.stripeSyncStatus) {
-      setSyncStatus(gameData.stripeSyncStatus);
+    if (activityData.stripeSyncStatus) {
+      setSyncStatus(activityData.stripeSyncStatus);
     }
-  }, [gameData.stripeProductId, gameData.stripePriceId, gameData.stripeCheckoutUrl, gameData.stripeSyncStatus]);
+  }, [activityData.stripeProductId, activityData.stripePriceId, activityData.stripeCheckoutUrl, activityData.stripeSyncStatus]);
 
   /**
    * Check connection status from database and widget settings
-   * Fetches fresh game data from Supabase and cross-references with widget configuration
+   * Fetches fresh activity data from Supabase and cross-references with widget configuration
    * Shows connected UI if product_id exists in database or widget settings
    * Provides enhanced feedback about where the configuration was found
    */
@@ -121,29 +117,29 @@ export default function Step6PaymentSettings({
     try {
       console.log('🔍 Checking Stripe connection from database and widget settings...');
 
-      // Fetch fresh game data from Supabase
-      if (gameData.id) {
-        const { data: freshGame, error } = await supabase
-          .from('games')
+      // Fetch fresh activity data from Supabase
+      if (activityData.id) {
+        const { data: freshActivity, error } = await supabase
+          .from('activities')
           .select('*')
-          .eq('id', gameData.id)
+          .eq('id', activityData.id)
           .single();
 
         if (error) {
-          console.error('Error fetching game:', error);
+          console.error('Error fetching activity:', error);
           toast.error('Failed to check connection status');
           return;
         }
 
-        if (freshGame) {
-          const stripeProductId = (freshGame as any).stripe_product_id;
-          const stripePriceId = (freshGame as any).stripe_price_id;
-          const venueId = (freshGame as any).venue_id;
+        if (freshActivity) {
+          const stripeProductId = (freshActivity as any).stripe_product_id;
+          const stripePriceId = (freshActivity as any).stripe_price_id;
+          const venueId = (freshActivity as any).venue_id;
 
-          console.log('✅ Fresh game data from database:', {
+          console.log('✅ Fresh activity data from database:', {
             stripe_product_id: stripeProductId,
             stripe_price_id: stripePriceId,
-            stripe_sync_status: (freshGame as any).stripe_sync_status,
+            stripe_sync_status: (freshActivity as any).stripe_sync_status,
             venue_id: venueId
           });
 
@@ -165,22 +161,22 @@ export default function Step6PaymentSettings({
 
               if (!venueError && venue && (venue as any).widget_config) {
                 const widgetConfig = (venue as any).widget_config;
-                const widgetGames = widgetConfig.games || [];
+                const widgetActivities = widgetConfig.activities || [];
 
-                // Find this game in widget settings
-                const widgetGame = widgetGames.find((g: any) =>
+                // Find this activity in widget settings
+                const widgetActivity = widgetActivities.find((g: any) =>
                   (g.stripe_product_id === stripeProductId || g.stripeProductId === stripeProductId) ||
-                  g.id === gameData.id
+                  g.id === activityData.id
                 );
 
-                if (widgetGame) {
-                  const widgetProductId = widgetGame.stripe_product_id || widgetGame.stripeProductId;
+                if (widgetActivity) {
+                  const widgetProductId = widgetActivity.stripe_product_id || widgetActivity.stripeProductId;
                   if (widgetProductId === stripeProductId) {
                     foundInWidget = true;
-                    widgetCheckoutUrl = widgetGame.stripe_checkout_url || widgetGame.stripeCheckoutUrl;
+                    widgetCheckoutUrl = widgetActivity.stripe_checkout_url || widgetActivity.stripeCheckoutUrl;
                     console.log('✅ Product ID found in widget settings!', {
                       productId: widgetProductId,
-                      priceId: widgetGame.stripe_price_id || widgetGame.stripePriceId,
+                      priceId: widgetActivity.stripe_price_id || widgetActivity.stripePriceId,
                       checkoutUrl: widgetCheckoutUrl
                     });
                   }
@@ -222,20 +218,20 @@ export default function Step6PaymentSettings({
           // Update local state with fresh data from database
           setManualProductId(stripeProductId || '');
           setManualPriceId(stripePriceId || '');
-          setStripeCheckoutUrl(widgetCheckoutUrl || (freshGame as any).stripe_checkout_url || '');
+          setStripeCheckoutUrl(widgetCheckoutUrl || (freshActivity as any).stripe_checkout_url || '');
 
-          if ((freshGame as any).stripe_sync_status) {
-            setSyncStatus((freshGame as any).stripe_sync_status);
+          if ((freshActivity as any).stripe_sync_status) {
+            setSyncStatus((freshActivity as any).stripe_sync_status);
           }
 
           // Update parent component with fresh data
           onUpdate({
-            ...gameData,
+            ...activityData,
             stripeProductId: stripeProductId || undefined,
             stripePriceId: stripePriceId || undefined,
-            stripePrices: (freshGame as any).stripe_prices,
-            stripeCheckoutUrl: (widgetCheckoutUrl || (freshGame as any).stripe_checkout_url) || undefined,
-            stripeSyncStatus: ((freshGame as any).stripe_sync_status || (hasStripeProduct ? 'synced' : 'not_synced')) as SyncStatus,
+            stripePrices: (freshActivity as any).stripe_prices,
+            stripeCheckoutUrl: (widgetCheckoutUrl || (freshActivity as any).stripe_checkout_url) || undefined,
+            stripeSyncStatus: ((freshActivity as any).stripe_sync_status || (hasStripeProduct ? 'synced' : 'not_synced')) as SyncStatus,
             stripeLastSync: new Date().toISOString(),
             foundInWidget: foundInWidget,
           });
@@ -250,10 +246,10 @@ export default function Step6PaymentSettings({
   };
 
   // Check if payment is already configured
-  // Use STATE variables (not gameData prop) for detection - this ensures UI updates when state changes
-  // A game is configured if it has at least a product ID (price ID is optional)
+  // Use STATE variables (not activityData prop) for detection - this ensures UI updates when state changes
+  // An activity is configured if it has at least a product ID (price ID is optional)
   const isConfigured = !!manualProductId && venueMatches;
-  const hasPrice = gameData.adultPrice && gameData.adultPrice > 0;
+  const hasPrice = activityData.adultPrice && activityData.adultPrice > 0;
   // Checkout is "connected" if we have valid Stripe product and price with synced status
   const isCheckoutConnected = !!(
     manualProductId &&
@@ -268,12 +264,12 @@ export default function Step6PaymentSettings({
     productId: manualProductId,
     priceId: manualPriceId,
     syncStatus: syncStatus,
-    gameDataProductId: gameData.stripeProductId,
-    gameDataPriceId: gameData.stripePriceId,
-    rawGameData: {
-      stripeProductId: gameData.stripeProductId,
-      stripePriceId: gameData.stripePriceId,
-      stripeSyncStatus: gameData.stripeSyncStatus
+    activityDataProductId: activityData.stripeProductId,
+    activityDataPriceId: activityData.stripePriceId,
+    rawActivityData: {
+      stripeProductId: activityData.stripeProductId,
+      stripePriceId: activityData.stripePriceId,
+      stripeSyncStatus: activityData.stripeSyncStatus
     }
   });
 
@@ -287,10 +283,10 @@ export default function Step6PaymentSettings({
     }
 
     console.log('🚀 Starting Stripe product creation with Backend API...');
-    console.log('📊 Game Data:', {
-      name: gameData.name,
-      adultPrice: gameData.adultPrice,
-      childPrice: gameData.childPrice,
+    console.log('📊 Activity Data:', {
+      name: activityData.name,
+      adultPrice: activityData.adultPrice,
+      childPrice: activityData.childPrice,
     });
 
     setIsCreating(true);
@@ -301,7 +297,7 @@ export default function Step6PaymentSettings({
       toast.loading('Creating Stripe product with pricing options...', { id: 'stripe-create' });
 
       // Build custom capacity fields for metadata
-      const customCapacityFields = gameData.customCapacityFields?.filter((f: any) => f.price > 0).map((field: any) => ({
+      const customCapacityFields = activityData.customCapacityFields?.filter((f: any) => f.price > 0).map((field: any) => ({
         id: field.id,
         name: field.name,
         min: field.min || 0,
@@ -310,36 +306,36 @@ export default function Step6PaymentSettings({
       })) || [];
 
       console.log('💰 Pricing details:', {
-        adult: gameData.adultPrice,
-        child: gameData.childPrice,
+        adult: activityData.adultPrice,
+        child: activityData.childPrice,
         custom: customCapacityFields,
       });
 
       // Create product and price using backend API
       const result = await StripeProductService.createProductAndPrice({
-        name: gameData.name || `Untitled ${t.singular}`,
-        description: gameData.description || '',
-        price: gameData.adultPrice,
+        name: activityData.name || `Untitled ${t.singular}`,
+        description: activityData.description || '',
+        price: activityData.adultPrice,
         currency: 'usd',
-        childPrice: gameData.childPrice > 0 ? gameData.childPrice : undefined,
+        childPrice: activityData.childPrice > 0 ? activityData.childPrice : undefined,
         customCapacityFields: customCapacityFields.length > 0 ? customCapacityFields : undefined,
         metadata: {
-          game_id: gameData.id || '', // Track which service item this product belongs to
-          duration: gameData.duration?.toString() || '60',
-          category: gameData.category || '',
-          difficulty: gameData.difficulty?.toString() || '3',
-          venue_id: venueId || gameData.venueId || '',
+          activity_id: activityData.id || '', // Track which service item this product belongs to
+          duration: activityData.duration?.toString() || '60',
+          category: activityData.category || '',
+          difficulty: activityData.difficulty?.toString() || '3',
+          venue_id: venueId || activityData.venueId || '',
           organization_id: organizationId || '',
-          image_url: gameData.imageUrl || '',
+          image_url: activityData.coverImage || '',
         },
       });
 
       console.log('✅ Product created:', result);
 
-      // Update game data with Stripe IDs
+      // Update activity data with Stripe IDs
       // Note: Checkout is automatically enabled when Stripe product exists
       const updatedData = {
-        ...gameData,
+        ...activityData,
         stripeProductId: result.productId,
         stripePriceId: result.priceId,
         stripeSyncStatus: 'synced' as SyncStatus,
@@ -384,7 +380,7 @@ export default function Step6PaymentSettings({
       console.log('💳 Saving checkout URL without Stripe product...');
 
       const updatedData = {
-        ...gameData,
+        ...activityData,
         stripeCheckoutUrl: checkoutUrl,
         stripeSyncStatus: 'synced' as SyncStatus,
         stripeLastSync: new Date().toISOString(),
@@ -421,9 +417,9 @@ export default function Step6PaymentSettings({
       console.log('✅ Product linked:', result);
       console.log('📋 Found prices:', result.prices);
 
-      // Update game data with product and all prices
+      // Update activity data with product and all prices
       const updatedData = {
-        ...gameData,
+        ...activityData,
         stripeProductId: result.productId,
         stripePrices: result.prices, // Store all available prices
         stripePriceId: result.priceId || result.prices[0]?.priceId, // Use specified or first price
@@ -478,7 +474,7 @@ export default function Step6PaymentSettings({
       toast.loading('Refreshing prices from Stripe...', { id: 'stripe-sync' });
 
       // Fetch all current prices for the product
-      const prices = await StripeProductService.getProductPrices(gameData.stripeProductId || '');
+      const prices = await StripeProductService.getProductPrices(activityData.stripeProductId || '');
 
       // Transform prices to match expected format
       const transformedPrices = prices.map(p => ({
@@ -490,7 +486,7 @@ export default function Step6PaymentSettings({
       }));
 
       const updatedData = {
-        ...gameData,
+        ...activityData,
         stripePrices: transformedPrices, // Update with latest prices
         stripeSyncStatus: 'synced' as SyncStatus,
         stripeLastSync: new Date().toISOString(),
@@ -522,9 +518,9 @@ export default function Step6PaymentSettings({
    * Open edit dialog with current values
    */
   const handleEditConfiguration = () => {
-    setEditProductId(gameData.stripeProductId || '');
-    setEditPriceId(gameData.stripePriceId || '');
-    setEditCheckoutUrl(gameData.stripeCheckoutUrl || '');
+    setEditProductId(activityData.stripeProductId || '');
+    setEditPriceId(activityData.stripePriceId || '');
+    setEditCheckoutUrl(activityData.stripeCheckoutUrl || '');
     setShowEditDialog(true);
   };
 
@@ -548,14 +544,14 @@ export default function Step6PaymentSettings({
       toast.loading('Updating Stripe configuration...', { id: 'stripe-edit' });
 
       // If product ID changed, fetch new product details
-      if (productId && productId !== gameData.stripeProductId) {
+      if (productId && productId !== activityData.stripeProductId) {
         const result = await StripeProductService.linkExistingProduct({
           productId,
           priceId: editPriceId.trim() || undefined,
         });
 
         const updatedData = {
-          ...gameData,
+          ...activityData,
           stripeProductId: result.productId,
           stripePrices: result.prices,
           stripePriceId: result.priceId || result.prices[0]?.priceId,
@@ -570,8 +566,8 @@ export default function Step6PaymentSettings({
       } else {
         // Just update checkout URL or price ID
         const updatedData = {
-          ...gameData,
-          stripePriceId: editPriceId.trim() || gameData.stripePriceId,
+          ...activityData,
+          stripePriceId: editPriceId.trim() || activityData.stripePriceId,
           stripeCheckoutUrl: editCheckoutUrl.trim() || undefined,
           stripeLastSync: new Date().toISOString(),
         };
@@ -599,11 +595,11 @@ export default function Step6PaymentSettings({
 
   /**
    * Confirm and remove payment configuration
-   * Clears all Stripe-related data from the game
+   * Clears all Stripe-related data from the activity
    */
   const confirmRemovePayment = () => {
     const updatedData = {
-      ...gameData,
+      ...activityData,
       stripeProductId: undefined,
       stripePriceId: undefined,
       stripePrices: undefined,
@@ -697,7 +693,7 @@ export default function Step6PaymentSettings({
         </Alert>
       )}
 
-      {/* Connection Status Summary - For Already Configured Games */}
+      {/* Connection Status Summary - For Already Configured Activities */}
       {isConfigured && (
         <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
           <CardContent className="p-4">
@@ -708,7 +704,7 @@ export default function Step6PaymentSettings({
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <h4 className="text-green-900 font-semibold">Stripe Connected</h4>
-                  {(gameData as any).foundInWidget && (
+                  {(activityData as any).foundInWidget && (
                     <Badge className="bg-emerald-600 text-white text-xs">
                       ✓ Active in Widget
                     </Badge>
@@ -721,9 +717,9 @@ export default function Step6PaymentSettings({
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4" />
-                    <span>Price configured ({gameData.adultPrice ? `$${gameData.adultPrice.toFixed(2)}` : 'N/A'})</span>
+                    <span>Price configured ({activityData.adultPrice ? `$${activityData.adultPrice.toFixed(2)}` : 'N/A'})</span>
                   </div>
-                  {(gameData as any).foundInWidget && (
+                  {(activityData as any).foundInWidget && (
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4" />
                       <span className="font-semibold">Found in widget settings - Checkout enabled</span>
@@ -804,14 +800,14 @@ export default function Step6PaymentSettings({
 
                 <div>
                   <Label className="text-xs text-gray-500">Price</Label>
-                  <p className="text-lg font-semibold mt-1">${gameData.adultPrice?.toFixed(2)}</p>
+                  <p className="text-lg font-semibold mt-1">${activityData.adultPrice?.toFixed(2)}</p>
                 </div>
 
-                {gameData.stripeLastSync && (
+                {activityData.stripeLastSync && (
                   <div>
                     <Label className="text-xs text-gray-500">Last Synced</Label>
                     <p className="text-sm mt-1">
-                      {new Date(gameData.stripeLastSync).toLocaleString()}
+                      {new Date(activityData.stripeLastSync).toLocaleString()}
                     </p>
                   </div>
                 )}
@@ -920,20 +916,20 @@ export default function Step6PaymentSettings({
                 <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Product Name:</span>
-                    <span className="font-medium">{gameData.name || `Untitled ${t.singular}`}</span>
+                    <span className="font-medium">{activityData.name || `Untitled ${t.singular}`}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Price:</span>
-                    <span className="font-medium">${gameData.adultPrice?.toFixed(2)}</span>
+                    <span className="font-medium">${activityData.adultPrice?.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Currency:</span>
                     <span className="font-medium">USD</span>
                   </div>
-                  {gameData.childPrice > 0 && (
+                  {activityData.childPrice > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">Child Price:</span>
-                      <span className="font-medium">${gameData.childPrice?.toFixed(2)}</span>
+                      <span className="font-medium">${activityData.childPrice?.toFixed(2)}</span>
                     </div>
                   )}
                 </div>
@@ -1056,15 +1052,15 @@ export default function Step6PaymentSettings({
                   </Button>
 
                   {/* Display fetched prices with lookup keys */}
-                  {gameData.stripePrices && gameData.stripePrices.length > 0 && (
+                  {activityData.stripePrices && activityData.stripePrices.length > 0 && (
                     <Card className="border-green-200 bg-green-50">
                       <CardHeader>
                         <CardTitle className="text-sm text-green-900">
-                          ✅ Available Prices ({gameData.stripePrices.length})
+                          ✅ Available Prices ({activityData.stripePrices.length})
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-2">
-                        {gameData.stripePrices.map((price: any, index: number) => (
+                        {activityData.stripePrices.map((price: any, index: number) => (
                           <div key={price.priceId || index} className="p-3 bg-white rounded border border-green-200">
                             <div className="flex justify-between items-start mb-2">
                               <div className="flex-1">
@@ -1106,7 +1102,7 @@ export default function Step6PaymentSettings({
                   )}
 
                   {/* Display Checkout URL if configured */}
-                  {gameData.stripeCheckoutUrl && (
+                  {activityData.stripeCheckoutUrl && (
                     <Card className="border-purple-200 bg-purple-50">
                       <CardHeader>
                         <CardTitle className="text-sm text-purple-900">
@@ -1116,13 +1112,13 @@ export default function Step6PaymentSettings({
                       <CardContent>
                         <div className="flex items-center gap-2">
                           <code className="text-xs bg-white px-3 py-2 rounded border flex-1 truncate">
-                            {gameData.stripeCheckoutUrl}
+                            {activityData.stripeCheckoutUrl}
                           </code>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                              navigator.clipboard.writeText(gameData.stripeCheckoutUrl || '');
+                              navigator.clipboard.writeText(activityData.stripeCheckoutUrl || '');
                               toast.success('Checkout URL copied!');
                             }}
                           >
@@ -1131,7 +1127,7 @@ export default function Step6PaymentSettings({
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => window.open(gameData.stripeCheckoutUrl, '_blank')}
+                            onClick={() => window.open(activityData.stripeCheckoutUrl, '_blank')}
                           >
                             <ExternalLink className="w-4 h-4" />
                           </Button>
@@ -1249,7 +1245,7 @@ export default function Step6PaymentSettings({
       <StripeConfigurationModal
         isOpen={showConfigModal}
         onClose={() => setShowConfigModal(false)}
-        gameData={gameData}
+        gameData={activityData}
         onUpdate={onUpdate}
       />
 

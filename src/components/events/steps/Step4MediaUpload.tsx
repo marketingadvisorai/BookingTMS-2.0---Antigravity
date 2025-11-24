@@ -8,7 +8,7 @@ import { StepProps } from '../types';
 import { supabase } from '../../../lib/supabase';
 import { toast } from 'sonner';
 
-export default function Step4MediaUpload({ gameData, updateGameData, t }: StepProps) {
+export default function Step4MediaUpload({ activityData, updateActivityData, t }: StepProps) {
     const [uploading, setUploading] = useState(false);
 
     const uploadFile = async (file: File): Promise<string | null> => {
@@ -18,7 +18,7 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
             const filePath = `temp/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
-                .from('game-images')
+                .from('activity-images')
                 .upload(filePath, file);
 
             if (uploadError) {
@@ -26,7 +26,7 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
             }
 
             const { data } = supabase.storage
-                .from('game-images')
+                .from('activity-images')
                 .getPublicUrl(filePath);
 
             return data.publicUrl;
@@ -47,7 +47,7 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
                 const file = files[0];
                 const url = await uploadFile(file);
                 if (url) {
-                    updateGameData('coverImage', url);
+                    updateActivityData('coverImage', url);
                     toast.success('Cover image uploaded');
                 }
             } else {
@@ -56,7 +56,7 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
                 const validUrls = urls.filter((url): url is string => url !== null);
 
                 if (validUrls.length > 0) {
-                    updateGameData('galleryImages', [...gameData.galleryImages, ...validUrls]);
+                    updateActivityData('galleryImages', [...activityData.galleryImages, ...validUrls]);
                     toast.success(`${validUrls.length} image(s) uploaded`);
                 }
             }
@@ -71,8 +71,8 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
     };
 
     const removeGalleryImage = (index: number) => {
-        const newImages = gameData.galleryImages.filter((_, i) => i !== index);
-        updateGameData('galleryImages', newImages);
+        const newImages = activityData.galleryImages.filter((_, i) => i !== index);
+        updateActivityData('galleryImages', newImages);
     };
 
     return (
@@ -96,15 +96,15 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
                                 onChange={(e) => handleImageUpload(e, 'coverImage')}
                                 disabled={uploading}
                             />
-                            {uploading && !gameData.coverImage ? (
+                            {uploading && !activityData.coverImage ? (
                                 <div className="flex flex-col items-center justify-center py-4">
                                     <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-2" />
                                     <p className="text-sm text-gray-500">Uploading...</p>
                                 </div>
-                            ) : gameData.coverImage ? (
+                            ) : activityData.coverImage ? (
                                 <div className="relative h-48 w-full">
                                     <img
-                                        src={gameData.coverImage}
+                                        src={activityData.coverImage}
                                         alt="Cover"
                                         className="h-full w-full object-cover rounded-md"
                                     />
@@ -118,7 +118,7 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
                                         onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            updateGameData('coverImage', '');
+                                            updateActivityData('coverImage', '');
                                         }}
                                     >
                                         <X className="w-4 h-4" />
@@ -141,8 +141,8 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
                                 <Input
                                     id="coverImageUrl"
                                     placeholder="https://example.com/image.jpg"
-                                    value={gameData.coverImage && gameData.coverImage.startsWith('http') ? gameData.coverImage : ''}
-                                    onChange={(e) => updateGameData('coverImage', e.target.value)}
+                                    value={activityData.coverImage && activityData.coverImage.startsWith('http') ? activityData.coverImage : ''}
+                                    onChange={(e) => updateActivityData('coverImage', e.target.value)}
                                 />
                             </div>
                         </div>
@@ -152,7 +152,7 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
                     <div>
                         <Label className="mb-2 block">Gallery Images</Label>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                            {gameData.galleryImages.map((img, index) => (
+                            {activityData.galleryImages.map((img, index) => (
                                 <div key={index} className="relative group aspect-video bg-gray-100 rounded-lg overflow-hidden">
                                     <img src={img} alt={`Gallery ${index}`} className="w-full h-full object-cover" />
                                     <Button
@@ -200,7 +200,7 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
                                         if (e.key === 'Enter') {
                                             const target = e.target as HTMLInputElement;
                                             if (target.value) {
-                                                updateGameData('videos', [...gameData.videos, target.value]);
+                                                updateActivityData('videos', [...activityData.videos, target.value]);
                                                 target.value = '';
                                             }
                                         }
@@ -212,7 +212,7 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
                                 onClick={() => {
                                     const input = document.getElementById('video') as HTMLInputElement;
                                     if (input.value) {
-                                        updateGameData('videos', [...gameData.videos, input.value]);
+                                        updateActivityData('videos', [...activityData.videos, input.value]);
                                         input.value = '';
                                     }
                                 }}
@@ -221,7 +221,7 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
                             </Button>
                         </div>
                         <div className="mt-3 space-y-2">
-                            {gameData.videos.map((video, index) => (
+                            {activityData.videos.map((video, index) => (
                                 <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded text-sm">
                                     <div className="flex items-center truncate mr-2">
                                         <Film className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0" />
@@ -231,8 +231,8 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => {
-                                            const newVideos = gameData.videos.filter((_, i) => i !== index);
-                                            updateGameData('videos', newVideos);
+                                            const newVideos = activityData.videos.filter((_, i) => i !== index);
+                                            updateActivityData('videos', newVideos);
                                         }}
                                         className="h-6 w-6 text-gray-400 hover:text-red-500"
                                     >

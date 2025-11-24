@@ -160,8 +160,8 @@ export function Reports() {
 
   // Fetch summary statistics
   const fetchSummaryStats = async (startDate: Date, endDate: Date) => {
-    const { data, error } = await supabase
-      .from('bookings')
+    const { data, error } = await (supabase
+      .from('bookings') as any)
       .select('id, total_amount, status, created_at')
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString());
@@ -178,8 +178,8 @@ export function Reports() {
     const prevStartDate = new Date(startDate.getTime() - duration);
     const prevEndDate = new Date(startDate);
 
-    const { data: prevData } = await supabase
-      .from('bookings')
+    const { data: prevData } = await (supabase
+      .from('bookings') as any)
       .select('id, total_amount, status')
       .gte('created_at', prevStartDate.toISOString())
       .lte('created_at', prevEndDate.toISOString());
@@ -204,8 +204,8 @@ export function Reports() {
 
   // Fetch revenue trend by month
   const fetchRevenueTrend = async (startDate: Date, endDate: Date) => {
-    const { data, error } = await supabase
-      .from('bookings')
+    const { data, error } = await (supabase
+      .from('bookings') as any)
       .select('booking_date, total_amount, status')
       .gte('booking_date', startDate.toISOString().split('T')[0])
       .lte('booking_date', endDate.toISOString().split('T')[0]);
@@ -236,8 +236,8 @@ export function Reports() {
 
   // Fetch activity popularity
   const fetchActivityPopularity = async (startDate: Date, endDate: Date) => {
-    const { data, error } = await supabase
-      .from('bookings')
+    const { data, error } = await (supabase
+      .from('bookings') as any)
       .select(`
         activity_id,
         status,
@@ -267,8 +267,8 @@ export function Reports() {
 
   // Fetch occupancy data
   const fetchOccupancyData = async (startDate: Date, endDate: Date) => {
-    const { data, error } = await supabase
-      .from('bookings')
+    const { data, error } = await (supabase
+      .from('bookings') as any)
       .select('booking_date, status')
       .gte('booking_date', startDate.toISOString().split('T')[0])
       .lte('booking_date', endDate.toISOString().split('T')[0]);
@@ -673,14 +673,14 @@ export function Reports() {
                   <div key={activity.name} className="flex items-center gap-2">
                     <div
                       className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: game.fill }}
+                      style={{ backgroundColor: activity.fill }}
                     />
                     <div className="flex-1 min-w-0">
                       <span className={`text-sm truncate block ${textMutedClass}`}>
-                        {game.name}
+                        {activity.name}
                       </span>
                       <span className={`text-xs ${textMutedClass}`}>
-                        {game.bookings} bookings
+                        {activity.bookings} bookings
                       </span>
                     </div>
                   </div>
@@ -770,14 +770,14 @@ export function Reports() {
                 <button
                   onClick={() => setExportFormat('csv')}
                   className={`p-4 border-2 rounded-lg text-left transition-all ${exportFormat === 'csv'
-                      ? (isDark
-                        ? 'border-[#4f46e5] bg-[#4f46e5]/10'
-                        : 'border-blue-600 bg-blue-50'
-                      )
-                      : (isDark
-                        ? `border-[#2a2a2a] ${hoverBgClass}`
-                        : 'border-gray-200 hover:border-gray-300'
-                      )
+                    ? (isDark
+                      ? 'border-[#4f46e5] bg-[#4f46e5]/10'
+                      : 'border-blue-600 bg-blue-50'
+                    )
+                    : (isDark
+                      ? `border-[#2a2a2a] ${hoverBgClass}`
+                      : 'border-gray-200 hover:border-gray-300'
+                    )
                     }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -789,14 +789,14 @@ export function Reports() {
                 <button
                   onClick={() => setExportFormat('pdf')}
                   className={`p-4 border-2 rounded-lg text-left transition-all ${exportFormat === 'pdf'
-                      ? (isDark
-                        ? 'border-[#4f46e5] bg-[#4f46e5]/10'
-                        : 'border-blue-600 bg-blue-50'
-                      )
-                      : (isDark
-                        ? `border-[#2a2a2a] ${hoverBgClass}`
-                        : 'border-gray-200 hover:border-gray-300'
-                      )
+                    ? (isDark
+                      ? 'border-[#4f46e5] bg-[#4f46e5]/10'
+                      : 'border-blue-600 bg-blue-50'
+                    )
+                    : (isDark
+                      ? `border-[#2a2a2a] ${hoverBgClass}`
+                      : 'border-gray-200 hover:border-gray-300'
+                    )
                     }`}
                 >
                   <div className="flex items-center gap-2 mb-1">

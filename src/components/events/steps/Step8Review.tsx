@@ -1,16 +1,15 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
-import { Label } from '../../ui/label';
 import { Button } from '../../ui/button';
 import { Separator } from '../../ui/separator';
 import { Check, Edit, AlertTriangle } from 'lucide-react';
 import { StepProps } from '../types';
 
-export default function Step8Review({ gameData, t }: StepProps & { onEditStep: (step: number) => void }) {
+export default function Step8Review({ activityData, t, onEditStep }: StepProps & { onEditStep: (step: number) => void }) {
     // Helper to check if a section is complete (basic check)
-    const isBasicInfoComplete = gameData.name && gameData.description && gameData.category;
-    const isPricingComplete = gameData.adultPrice > 0;
-    const isScheduleComplete = gameData.operatingDays.length > 0;
+    const isBasicInfoComplete = activityData.name && activityData.description && activityData.category;
+    const isPricingComplete = activityData.adultPrice > 0;
+    const isScheduleComplete = activityData.operatingDays.length > 0;
 
     return (
         <div className="space-y-6">
@@ -33,30 +32,30 @@ export default function Step8Review({ gameData, t }: StepProps & { onEditStep: (
                                 )}
                                 Basic Information
                             </h3>
-                            <Button variant="ghost" size="sm" onClick={() => { /* Navigate to step 1 */ }}>
+                            <Button variant="ghost" size="sm" onClick={() => onEditStep(1)}>
                                 <Edit className="w-4 h-4 mr-1" /> Edit
                             </Button>
                         </div>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm bg-gray-50 p-4 rounded-lg">
                             <div>
                                 <span className="text-gray-500">Name:</span>
-                                <p className="font-medium">{gameData.name || 'Not set'}</p>
+                                <p className="font-medium">{activityData.name || 'Not set'}</p>
                             </div>
                             <div>
                                 <span className="text-gray-500">Category:</span>
-                                <p className="font-medium">{gameData.category || 'Not set'}</p>
+                                <p className="font-medium">{activityData.category || 'Not set'}</p>
                             </div>
                             <div>
                                 <span className="text-gray-500">Type:</span>
-                                <p className="font-medium capitalize">{gameData.gameType}</p>
+                                <p className="font-medium capitalize">{activityData.activityType}</p>
                             </div>
                             <div>
                                 <span className="text-gray-500">Event Type:</span>
-                                <p className="font-medium capitalize">{gameData.eventType}</p>
+                                <p className="font-medium capitalize">{activityData.eventType}</p>
                             </div>
                             <div className="col-span-2">
                                 <span className="text-gray-500">Tagline:</span>
-                                <p className="font-medium">{gameData.tagline || 'None'}</p>
+                                <p className="font-medium">{activityData.tagline || 'None'}</p>
                             </div>
                         </div>
                     </div>
@@ -74,7 +73,7 @@ export default function Step8Review({ gameData, t }: StepProps & { onEditStep: (
                                 )}
                                 Capacity & Pricing
                             </h3>
-                            <Button variant="ghost" size="sm" onClick={() => { /* Navigate to step 2 */ }}>
+                            <Button variant="ghost" size="sm" onClick={() => onEditStep(2)}>
                                 <Edit className="w-4 h-4 mr-1" /> Edit
                             </Button>
                         </div>
@@ -82,25 +81,25 @@ export default function Step8Review({ gameData, t }: StepProps & { onEditStep: (
                             <div>
                                 <span className="text-gray-500">Capacity:</span>
                                 <p className="font-medium">
-                                    {gameData.minAdults} - {gameData.maxAdults} People
+                                    {activityData.minAdults} - {activityData.maxAdults} People
                                 </p>
                             </div>
                             <div>
                                 <span className="text-gray-500">Price:</span>
                                 <p className="font-medium">
-                                    ${gameData.adultPrice} / person
-                                    {gameData.childPrice > 0 && ` ($${gameData.childPrice} / child)`}
+                                    ${activityData.adultPrice} / person
+                                    {activityData.childPrice > 0 && ` ($${activityData.childPrice} / child)`}
                                 </p>
                             </div>
                             <div>
                                 <span className="text-gray-500">Dynamic Pricing:</span>
                                 <p className="font-medium">
-                                    {gameData.dynamicPricing ? 'Enabled' : 'Disabled'}
+                                    {activityData.dynamicPricing ? 'Enabled' : 'Disabled'}
                                 </p>
                             </div>
                             <div>
                                 <span className="text-gray-500">Custom Fields:</span>
-                                <p className="font-medium">{gameData.customCapacityFields.length} configured</p>
+                                <p className="font-medium">{activityData.customCapacityFields.length} configured</p>
                             </div>
                         </div>
                     </div>
@@ -118,7 +117,7 @@ export default function Step8Review({ gameData, t }: StepProps & { onEditStep: (
                                 )}
                                 Schedule
                             </h3>
-                            <Button variant="ghost" size="sm" onClick={() => { /* Navigate to step 5 */ }}>
+                            <Button variant="ghost" size="sm" onClick={() => onEditStep(5)}>
                                 <Edit className="w-4 h-4 mr-1" /> Edit
                             </Button>
                         </div>
@@ -126,20 +125,20 @@ export default function Step8Review({ gameData, t }: StepProps & { onEditStep: (
                             <div>
                                 <span className="text-gray-500">Operating Days:</span>
                                 <p className="font-medium">
-                                    {gameData.operatingDays.length > 0
-                                        ? gameData.operatingDays.join(', ')
+                                    {activityData.operatingDays.length > 0
+                                        ? activityData.operatingDays.join(', ')
                                         : 'None selected'}
                                 </p>
                             </div>
                             <div>
                                 <span className="text-gray-500">Hours:</span>
                                 <p className="font-medium">
-                                    {gameData.startTime} - {gameData.endTime}
+                                    {activityData.startTime} - {activityData.endTime}
                                 </p>
                             </div>
                             <div>
                                 <span className="text-gray-500">Slot Interval:</span>
-                                <p className="font-medium">{gameData.slotInterval} minutes</p>
+                                <p className="font-medium">{activityData.slotInterval} minutes</p>
                             </div>
                         </div>
                     </div>
@@ -150,22 +149,22 @@ export default function Step8Review({ gameData, t }: StepProps & { onEditStep: (
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
                             <h3 className="font-medium text-lg flex items-center gap-2">
-                                {gameData.coverImage ? (
+                                {activityData.coverImage ? (
                                     <Check className="w-5 h-5 text-green-500" />
                                 ) : (
                                     <AlertTriangle className="w-5 h-5 text-amber-500" />
                                 )}
                                 Media
                             </h3>
-                            <Button variant="ghost" size="sm" onClick={() => { /* Navigate to step 4 */ }}>
+                            <Button variant="ghost" size="sm" onClick={() => onEditStep(4)}>
                                 <Edit className="w-4 h-4 mr-1" /> Edit
                             </Button>
                         </div>
                         <div className="flex gap-4 bg-gray-50 p-4 rounded-lg overflow-x-auto">
-                            {gameData.coverImage ? (
+                            {activityData.coverImage ? (
                                 <div className="relative h-20 w-32 flex-shrink-0">
                                     <img
-                                        src={gameData.coverImage}
+                                        src={activityData.coverImage}
                                         alt="Cover"
                                         className="h-full w-full object-cover rounded"
                                     />
@@ -178,7 +177,7 @@ export default function Step8Review({ gameData, t }: StepProps & { onEditStep: (
                                     No Cover
                                 </div>
                             )}
-                            {gameData.galleryImages.map((img, i) => (
+                            {activityData.galleryImages.map((img, i) => (
                                 <div key={i} className="h-20 w-32 flex-shrink-0">
                                     <img
                                         src={img}

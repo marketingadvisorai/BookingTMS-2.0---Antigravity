@@ -5,38 +5,38 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
-import { Game, GameInput } from '../../services/DataSyncService';
+import { Activity, ActivityInput } from '../../services/DataSyncService';
 import { toast } from 'sonner';
 
-interface AddOrEditGameModalProps {
+interface AddOrEditActivityModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (gameData: GameInput) => void;
-  gameToEdit?: Game | null;
+  onSave: (activityData: ActivityInput) => void;
+  activityToEdit?: Activity | null;
 }
 
-const AddOrEditGameModal = ({ isOpen, onClose, onSave, gameToEdit }: AddOrEditGameModalProps) => {
-  const [gameData, setGameData] = useState<Partial<GameInput>>({});
+const AddOrEditActivityModal = ({ isOpen, onClose, onSave, activityToEdit }: AddOrEditActivityModalProps) => {
+  const [activityData, setActivityData] = useState<Partial<ActivityInput>>({});
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    if (gameToEdit) {
-      setGameData(gameToEdit);
+    if (activityToEdit) {
+      setActivityData(activityToEdit);
     } else {
-      setGameData({});
+      setActivityData({});
     }
-  }, [gameToEdit]);
+  }, [activityToEdit]);
 
-  const handleInputChange = (field: keyof GameInput, value: any) => {
-    setGameData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (field: keyof ActivityInput, value: any) => {
+    setActivityData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSave = () => {
-    if (!gameData.name) {
-      toast.error('Game Name is required.');
+    if (!activityData.name) {
+      toast.error('Activity Name is required.');
       return;
     }
-    onSave(gameData as GameInput);
+    onSave(activityData as ActivityInput);
   };
 
   const steps = [
@@ -45,40 +45,40 @@ const AddOrEditGameModal = ({ isOpen, onClose, onSave, gameToEdit }: AddOrEditGa
       fields: (
         <>
           <div className="space-y-2">
-            <Label htmlFor="name">Experience Name</Label>
-            <Input id="name" value={gameData.name || ''} onChange={e => handleInputChange('name', e.target.value)} />
+            <Label htmlFor="name">Activity Name</Label>
+            <Input id="name" value={activityData.name || ''} onChange={e => handleInputChange('name', e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="tagline">Tagline</Label>
-            <Input id="tagline" value={gameData.tagline || ''} onChange={e => handleInputChange('tagline', e.target.value)} />
+            <Input id="tagline" value={activityData.tagline || ''} onChange={e => handleInputChange('tagline', e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="basePrice">Price ($)</Label>
-              <Input id="basePrice" type="number" value={gameData.basePrice || ''} onChange={e => handleInputChange('basePrice', parseFloat(e.target.value))} />
+              <Input id="basePrice" type="number" value={activityData.basePrice || ''} onChange={e => handleInputChange('basePrice', parseFloat(e.target.value))} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
-              <Input id="duration" value={gameData.duration || ''} onChange={e => handleInputChange('duration', e.target.value)} />
+              <Input id="duration" value={activityData.duration || ''} onChange={e => handleInputChange('duration', e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="ageRange">Age Range</Label>
-              <Input id="ageRange" value={gameData.ageRange || ''} onChange={e => handleInputChange('ageRange', e.target.value)} />
+              <Input id="ageRange" value={activityData.ageRange || ''} onChange={e => handleInputChange('ageRange', e.target.value)} />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="capacity">Players</Label>
-                <Input id="capacity" type="number" value={gameData.capacity || ''} onChange={e => handleInputChange('capacity', parseInt(e.target.value, 10))} />
+              <Label htmlFor="capacity">Capacity</Label>
+              <Input id="capacity" type="number" value={activityData.capacity || ''} onChange={e => handleInputChange('capacity', parseInt(e.target.value, 10))} />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="difficulty">Difficulty Level (1-5)</Label>
-            <Input id="difficulty" type="number" value={gameData.difficulty || ''} onChange={e => handleInputChange('difficulty', parseInt(e.target.value, 10))} />
+            <Input id="difficulty" type="number" value={activityData.difficulty || ''} onChange={e => handleInputChange('difficulty', parseInt(e.target.value, 10))} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
-            <Textarea id="description" value={gameData.description || ''} onChange={e => handleInputChange('description', e.target.value)} />
+            <Textarea id="description" value={activityData.description || ''} onChange={e => handleInputChange('description', e.target.value)} />
           </div>
         </>
       )
@@ -89,7 +89,7 @@ const AddOrEditGameModal = ({ isOpen, onClose, onSave, gameToEdit }: AddOrEditGa
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[80vw] h-[90vh]">
         <DialogHeader>
-          <DialogTitle>{gameToEdit ? 'Edit Experience' : 'Add New Experience'}</DialogTitle>
+          <DialogTitle>{activityToEdit ? 'Edit Activity' : 'Add New Activity'}</DialogTitle>
           <DialogDescription>Step {currentStep + 1} of {steps.length}: {steps[currentStep].title}</DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-4">{steps[currentStep].fields}</div>
@@ -103,4 +103,4 @@ const AddOrEditGameModal = ({ isOpen, onClose, onSave, gameToEdit }: AddOrEditGa
   );
 };
 
-export default AddOrEditGameModal;
+export default AddOrEditActivityModal;

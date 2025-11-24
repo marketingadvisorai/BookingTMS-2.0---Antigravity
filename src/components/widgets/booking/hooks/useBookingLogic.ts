@@ -8,7 +8,7 @@ import { TimeSlot } from './useAvailability';
 
 interface UseBookingLogicProps {
     customerData: CustomerData;
-    selectedGameData: any;
+    selectedActivityData: any;
     selectedTime: string | null;
     selectedDate: number | null;
     currentMonth: number;
@@ -26,7 +26,7 @@ interface UseBookingLogicProps {
 
 export function useBookingLogic({
     customerData,
-    selectedGameData,
+    selectedActivityData,
     selectedTime,
     selectedDate,
     currentMonth,
@@ -78,8 +78,8 @@ export function useBookingLogic({
                 return;
             }
 
-            if (!selectedGameData?.id) {
-                toast.error('Please select a game');
+            if (!selectedActivityData?.id) {
+                toast.error('Please select an activity');
                 return;
             }
 
@@ -162,9 +162,9 @@ export function useBookingLogic({
 
                 const startDate = new Date();
                 startDate.setHours(hours, minutes, 0, 0);
-                const duration = typeof selectedGameData?.duration === 'string'
-                    ? parseInt(selectedGameData.duration)
-                    : selectedGameData?.duration || 60;
+                const duration = typeof selectedActivityData?.duration === 'string'
+                    ? parseInt(selectedActivityData.duration)
+                    : selectedActivityData?.duration || 60;
                 const endDate = new Date(startDate.getTime() + duration * 60000);
                 endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
             } else {
@@ -174,8 +174,8 @@ export function useBookingLogic({
             }
 
             // Validate priceId before proceeding
-            if (!selectedGameData.stripe_price_id) {
-                toast.error('Game pricing not configured. Please contact support.', { id: 'booking-process' });
+            if (!selectedActivityData.stripe_price_id) {
+                toast.error('Activity pricing not configured. Please contact support.', { id: 'booking-process' });
                 setIsProcessing(false);
                 return;
             }
@@ -186,7 +186,7 @@ export function useBookingLogic({
 
             const baseParams = {
                 venueId: config.venueId,
-                gameId: selectedGameData.id,
+                activityId: selectedActivityData.id,
                 sessionId, // Pass sessionId
                 bookingDate: isoDate,
                 startTime,
@@ -194,12 +194,12 @@ export function useBookingLogic({
                 partySize,
                 customer: cleanCustomerData,
                 totalPrice: parseFloat(finalAmount.toFixed(2)),
-                priceId: selectedGameData.stripe_price_id,
+                priceId: selectedActivityData.stripe_price_id,
             };
 
             // Use Checkout Service (Payment Link or Checkout Session)
-            // Check if game has a custom checkout URL configured
-            const checkoutUrl = selectedGameData.stripeCheckoutUrl || selectedGameData.stripe_checkout_url;
+            // Check if activity has a custom checkout URL configured
+            const checkoutUrl = selectedActivityData.stripeCheckoutUrl || selectedActivityData.stripe_checkout_url;
 
             if (checkoutUrl) {
                 // OPTION 1A: Direct Stripe Checkout URL (Custom Payment Link)

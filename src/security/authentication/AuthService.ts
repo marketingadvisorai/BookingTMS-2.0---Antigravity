@@ -152,8 +152,8 @@ export class AuthService {
       }
 
       // Create user profile
-      const { error: profileError } = await supabase
-        .from('users')
+      const { error: profileError } = await (supabase
+        .from('users') as any)
         .insert({
           id: authData.user.id,
           email: data.email,
@@ -161,7 +161,7 @@ export class AuthService {
           organization_id: data.organizationId,
           role: data.role || 'staff',
           is_active: true,
-        });
+        } as any);
 
       if (profileError) {
         throw new AuthenticationError('Failed to create user profile');
@@ -303,8 +303,8 @@ export class AuthService {
    */
   private async loadUserProfile(userId: string): Promise<void> {
     try {
-      const { data, error } = await supabase
-        .from('users')
+      const { data, error } = await (supabase
+        .from('users') as any)
         .select('*')
         .eq('id', userId)
         .single();

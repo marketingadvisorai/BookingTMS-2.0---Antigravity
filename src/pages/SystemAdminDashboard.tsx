@@ -547,9 +547,29 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
   // 🔥 Use real organizations from Supabase
   const { organizations: realOrganizations, isLoading: orgsLoading, refetch: refetchOrgs } = useOrgsFeature({}, 1, 100);
 
+  // Owner type for dashboard display
+  interface DashboardOwner {
+    id: string | number;
+    accountId: number;
+    ownerName: string;
+    organizationName: string;
+    organizationId: string;
+    website: string;
+    email: string;
+    plan: string;
+    venues: number;
+    status: string;
+    features: string[];
+    profileSlug: string;
+    locations: number;
+    venueIds?: string[];
+    gameIds?: string[];
+    phone?: string;
+  }
+
   // Convert organizations to owners format for display
-  const computedOwners = useMemo(() => {
-    if (!realOrganizations || realOrganizations.length === 0) return ownersData; // Fallback to demo data
+  const computedOwners: DashboardOwner[] = useMemo(() => {
+    if (!realOrganizations || realOrganizations.length === 0) return ownersData as unknown as DashboardOwner[]; // Fallback to demo data
 
     return realOrganizations.map(org => ({
       id: org.id,
@@ -567,18 +587,19 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
       locations: 0,
       venueIds: [],
       gameIds: [],
+      phone: org.phone
     }));
   }, [realOrganizations]);
 
   // Local state for owners (allows CRUD operations)
-  const [owners, setOwners] = useState(computedOwners);
+  const [owners, setOwners] = useState<DashboardOwner[]>(computedOwners);
 
   // Update owners when computed owners change
   useEffect(() => {
     setOwners(computedOwners);
   }, [computedOwners]);
 
-  const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
+  const [editingLocationId, setEditingLocationId] = useState<string | number | null>(null);
   const [locationValue, setLocationValue] = useState<number>(0);
 
   // Modal states
@@ -791,28 +812,28 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
     toast.success(`Feature ${feature?.name} ${wasEnabled ? 'disabled' : 'enabled'}`);
   };
 
-  const handleViewOwner = (id: number) => {
+  const handleViewOwner = (id: string | number) => {
     const owner = owners.find(o => o.id === id);
     if (owner) {
       setSelectedOwnerForView(owner);
     }
   };
 
-  const handleEditOwner = (id: number) => {
+  const handleEditOwner = (id: string | number) => {
     const owner = owners.find(o => o.id === id);
     if (owner) {
       setSelectedOwnerForEdit(owner);
     }
   };
 
-  const handleDeleteOwner = (id: number) => {
+  const handleDeleteOwner = (id: string | number) => {
     const owner = owners.find(o => o.id === id);
     if (owner) {
       setSelectedOwnerForDelete(owner);
     }
   };
 
-  const handleConfirmDelete = (ownerId: number) => {
+  const handleConfirmDelete = (ownerId: string | number) => {
     setOwners(prev => prev.filter(o => o.id !== ownerId));
     setSelectedOwnerForDelete(null);
   };
@@ -855,12 +876,12 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
   };
 
   // Location editing handlers
-  const handleStartEditLocation = (ownerId: number, currentLocations: number) => {
+  const handleStartEditLocation = (ownerId: string | number, currentLocations: number) => {
     setEditingLocationId(ownerId);
     setLocationValue(currentLocations);
   };
 
-  const handleSaveLocation = (ownerId: number) => {
+  const handleSaveLocation = (ownerId: string | number) => {
     setOwners(prev => prev.map(o =>
       o.id === ownerId ? { ...o, locations: locationValue } : o
     ));
@@ -1499,7 +1520,7 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
                                 }`}>
                                 <Users className={`w-3.5 h-3.5 ${mutedTextClass}`} />
                                 <span className={`font-medium ${textClass}`}>
-                                  {Math.floor(3 + (owner.id * 1.7) % 13)}
+                                  {Math.floor(3 + ((typeof owner.id === 'number' ? owner.id : owner.id.toString().length) * 1.7) % 13)}
                                 </span>
                               </div>
                             </td>

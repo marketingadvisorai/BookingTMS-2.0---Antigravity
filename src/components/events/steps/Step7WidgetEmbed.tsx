@@ -11,7 +11,7 @@ import { CalendarSingleEventBookingPage } from '../../widgets/CalendarSingleEven
 import { Badge } from '../../ui/badge';
 import { WidgetThemeProvider } from '../../widgets/WidgetThemeContext';
 
-export default function Step7WidgetEmbed({ gameData, updateGameData, t }: StepProps) {
+export default function Step7WidgetEmbed({ activityData, updateActivityData, t }: StepProps) {
     const [copied, setCopied] = useState(false);
     const [embedContext, setEmbedContext] = useState<EmbedContext>({
         embedKey: 'YOUR_EMBED_KEY', // Placeholder until saved
@@ -22,8 +22,8 @@ export default function Step7WidgetEmbed({ gameData, updateGameData, t }: StepPr
 
     // Default to calendar-single widget
     useEffect(() => {
-        if (gameData.selectedWidget !== 'calendar-single') {
-            updateGameData('selectedWidget', 'calendar-single');
+        if (activityData.selectedWidget !== 'calendar-single') {
+            updateActivityData('selectedWidget', 'calendar-single');
         }
     }, []);
 
@@ -52,9 +52,9 @@ export default function Step7WidgetEmbed({ gameData, updateGameData, t }: StepPr
     const generatePreviewUrl = () => {
         const params = new URLSearchParams({
             widget: 'singlegame',
-            gameName: gameData.name,
-            gameDescription: gameData.description,
-            gamePrice: gameData.adultPrice?.toString() || '0',
+            gameName: activityData.name,
+            gameDescription: activityData.description,
+            gamePrice: activityData.adultPrice?.toString() || '0',
             color: (embedContext.primaryColor || '#2563eb').replace('#', ''),
             theme: 'light' // Default to light for now
         });
@@ -96,7 +96,7 @@ export default function Step7WidgetEmbed({ gameData, updateGameData, t }: StepPr
                                 <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200">Active</Badge>
                             </h3>
                             <p className="text-sm text-gray-500 mt-1">
-                                A dedicated booking page for <strong>{gameData.name || 'your event'}</strong>.
+                                A dedicated booking page for <strong>{activityData.name || 'your event'}</strong>.
                                 Optimized for conversion with a clean calendar view and integrated checkout.
                             </p>
                         </div>
@@ -165,11 +165,11 @@ export default function Step7WidgetEmbed({ gameData, updateGameData, t }: StepPr
                                         <WidgetThemeProvider initialTheme="light">
                                             <CalendarSingleEventBookingPage
                                                 primaryColor={embedContext.primaryColor}
-                                                gameName={gameData.name}
-                                                gameDescription={gameData.description}
-                                                gamePrice={gameData.adultPrice}
-                                                gameSchedule={gameData.schedule}
-                                                timezone={gameData.timezone}
+                                                gameName={activityData.name}
+                                                gameDescription={activityData.description}
+                                                gamePrice={activityData.adultPrice}
+                                                gameSchedule={activityData.schedule}
+                                                timezone={activityData.timezone}
                                                 config={{
                                                     // Pass minimal config for preview
                                                     businessName: embedContext.venueName,

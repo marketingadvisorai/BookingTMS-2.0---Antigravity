@@ -10,45 +10,45 @@ import { Trash2, Plus, Clock } from 'lucide-react';
 import { StepProps } from '../types';
 import { DAYS_OF_WEEK } from '../constants';
 
-export default function Step5Schedule({ gameData, updateGameData, t }: StepProps) {
+export default function Step5Schedule({ activityData, updateActivityData, t }: StepProps) {
     const toggleDay = (day: string) => {
-        const currentDays = gameData.operatingDays;
+        const currentDays = activityData.operatingDays;
         if (currentDays.includes(day)) {
-            updateGameData(
+            updateActivityData(
                 'operatingDays',
                 currentDays.filter((d) => d !== day)
             );
         } else {
-            updateGameData('operatingDays', [...currentDays, day]);
+            updateActivityData('operatingDays', [...currentDays, day]);
         }
     };
 
     const addCustomDate = () => {
         const newDates = [
-            ...gameData.customDates,
+            ...activityData.customDates,
             { id: Date.now().toString(), date: '', startTime: '09:00', endTime: '17:00' },
         ];
-        updateGameData('customDates', newDates);
+        updateActivityData('customDates', newDates);
     };
 
     const removeCustomDate = (index: number) => {
-        const newDates = gameData.customDates.filter((_, i) => i !== index);
-        updateGameData('customDates', newDates);
+        const newDates = activityData.customDates.filter((_, i) => i !== index);
+        updateActivityData('customDates', newDates);
     };
 
     const updateCustomDate = (index: number, field: string, value: string) => {
-        const newDates = [...gameData.customDates];
+        const newDates = [...activityData.customDates];
         newDates[index] = { ...newDates[index], [field]: value };
-        updateGameData('customDates', newDates);
+        updateActivityData('customDates', newDates);
     };
 
     const updateCustomHours = (day: string, field: string, value: any) => {
-        const newCustomHours = { ...gameData.customHours };
+        const newCustomHours = { ...activityData.customHours };
         if (!newCustomHours[day]) {
             newCustomHours[day] = { enabled: false, startTime: '09:00', endTime: '17:00' };
         }
         newCustomHours[day] = { ...newCustomHours[day], [field]: value };
-        updateGameData('customHours', newCustomHours);
+        updateActivityData('customHours', newCustomHours);
     };
 
     return (
@@ -66,8 +66,8 @@ export default function Step5Schedule({ gameData, updateGameData, t }: StepProps
                             <Input
                                 id="startTime"
                                 type="time"
-                                value={gameData.startTime}
-                                onChange={(e) => updateGameData('startTime', e.target.value)}
+                                value={activityData.startTime}
+                                onChange={(e) => updateActivityData('startTime', e.target.value)}
                                 className="mt-1"
                             />
                         </div>
@@ -76,8 +76,8 @@ export default function Step5Schedule({ gameData, updateGameData, t }: StepProps
                             <Input
                                 id="endTime"
                                 type="time"
-                                value={gameData.endTime}
-                                onChange={(e) => updateGameData('endTime', e.target.value)}
+                                value={activityData.endTime}
+                                onChange={(e) => updateActivityData('endTime', e.target.value)}
                                 className="mt-1"
                             />
                         </div>
@@ -88,8 +88,8 @@ export default function Step5Schedule({ gameData, updateGameData, t }: StepProps
                         <div>
                             <Label htmlFor="slotInterval">Slot Interval (minutes)</Label>
                             <Select
-                                value={gameData.slotInterval.toString()}
-                                onValueChange={(value) => updateGameData('slotInterval', parseInt(value))}
+                                value={activityData.slotInterval.toString()}
+                                onValueChange={(value) => updateActivityData('slotInterval', parseInt(value))}
                             >
                                 <SelectTrigger className="mt-1">
                                     <SelectValue placeholder="Select interval" />
@@ -110,8 +110,8 @@ export default function Step5Schedule({ gameData, updateGameData, t }: StepProps
                                 id="advanceBooking"
                                 type="number"
                                 min="0"
-                                value={gameData.advanceBooking}
-                                onChange={(e) => updateGameData('advanceBooking', parseInt(e.target.value))}
+                                value={activityData.advanceBooking}
+                                onChange={(e) => updateActivityData('advanceBooking', parseInt(e.target.value))}
                                 className="mt-1"
                             />
                         </div>
@@ -126,14 +126,14 @@ export default function Step5Schedule({ gameData, updateGameData, t }: StepProps
                                     key={day}
                                     className={`
                     flex items-center space-x-2 p-2 rounded border cursor-pointer transition-colors
-                    ${gameData.operatingDays.includes(day)
+                    ${activityData.operatingDays.includes(day)
                                             ? 'border-blue-500 bg-blue-50'
                                             : 'border-gray-200 hover:border-gray-300'
                                         }
                   `}
                                     onClick={() => toggleDay(day)}
                                 >
-                                    <Checkbox checked={gameData.operatingDays.includes(day)} onCheckedChange={() => toggleDay(day)} />
+                                    <Checkbox checked={activityData.operatingDays.includes(day)} onCheckedChange={() => toggleDay(day)} />
                                     <span className="text-sm font-medium">{day}</span>
                                 </div>
                             ))}
@@ -147,33 +147,33 @@ export default function Step5Schedule({ gameData, updateGameData, t }: StepProps
                             <p className="text-sm text-gray-500">Set different hours for specific days of the week</p>
                         </div>
                         <Switch
-                            checked={gameData.customHoursEnabled}
-                            onCheckedChange={(checked) => updateGameData('customHoursEnabled', checked)}
+                            checked={activityData.customHoursEnabled}
+                            onCheckedChange={(checked) => updateActivityData('customHoursEnabled', checked)}
                         />
                     </div>
 
                     {/* Custom Hours Configuration */}
-                    {gameData.customHoursEnabled && (
+                    {activityData.customHoursEnabled && (
                         <div className="space-y-3 pl-4 border-l-2 border-blue-100">
-                            {DAYS_OF_WEEK.filter((day) => gameData.operatingDays.includes(day)).map((day) => (
+                            {DAYS_OF_WEEK.filter((day) => activityData.operatingDays.includes(day)).map((day) => (
                                 <div key={day} className="flex items-center gap-4">
                                     <div className="w-24 font-medium text-sm">{day}</div>
                                     <Switch
-                                        checked={gameData.customHours[day]?.enabled || false}
+                                        checked={activityData.customHours[day]?.enabled || false}
                                         onCheckedChange={(checked) => updateCustomHours(day, 'enabled', checked)}
                                     />
-                                    {gameData.customHours[day]?.enabled ? (
+                                    {activityData.customHours[day]?.enabled ? (
                                         <div className="flex items-center gap-2">
                                             <Input
                                                 type="time"
-                                                value={gameData.customHours[day]?.startTime || '09:00'}
+                                                value={activityData.customHours[day]?.startTime || '09:00'}
                                                 onChange={(e) => updateCustomHours(day, 'startTime', e.target.value)}
                                                 className="h-8 w-32"
                                             />
                                             <span className="text-gray-400">-</span>
                                             <Input
                                                 type="time"
-                                                value={gameData.customHours[day]?.endTime || '17:00'}
+                                                value={activityData.customHours[day]?.endTime || '17:00'}
                                                 onChange={(e) => updateCustomHours(day, 'endTime', e.target.value)}
                                                 className="h-8 w-32"
                                             />
@@ -196,7 +196,7 @@ export default function Step5Schedule({ gameData, updateGameData, t }: StepProps
                         </div>
 
                         <div className="space-y-3">
-                            {gameData.customDates.map((date, index) => (
+                            {activityData.customDates.map((date, index) => (
                                 <div key={date.id} className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
                                     <div className="flex-1">
                                         <Label className="text-xs">Date</Label>
@@ -235,7 +235,7 @@ export default function Step5Schedule({ gameData, updateGameData, t }: StepProps
                                     </Button>
                                 </div>
                             ))}
-                            {gameData.customDates.length === 0 && (
+                            {activityData.customDates.length === 0 && (
                                 <div className="text-center py-4 text-gray-400 text-sm italic bg-gray-50 rounded-lg border border-dashed">
                                     <Clock className="w-8 h-8 mx-auto mb-2 opacity-20" />
                                     No specific dates configured

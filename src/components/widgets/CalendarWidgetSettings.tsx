@@ -26,6 +26,10 @@ interface CalendarWidgetSettingsProps {
   embedContext?: {
     venueType?: string;
     venueId?: string;
+    embedKey?: string;
+    primaryColor?: string;
+    venueName?: string;
+    baseUrl?: string;
   };
   saveStatus?: 'idle' | 'saving' | 'saved' | 'error';
 }

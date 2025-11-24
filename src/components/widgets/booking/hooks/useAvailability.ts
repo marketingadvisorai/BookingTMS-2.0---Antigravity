@@ -14,8 +14,8 @@ export interface TimeSlot {
 
 interface UseAvailabilityProps {
     config: any;
-    selectedGame: string | null;
-    selectedGameData?: any;
+    selectedActivity: string | null;
+    selectedActivityData?: any;
     venueData?: any;
     selectedDate: number;
     currentMonth: number;
@@ -24,8 +24,8 @@ interface UseAvailabilityProps {
 
 export const useAvailability = ({
     config,
-    selectedGame,
-    selectedGameData: passedGameData,
+    selectedActivity,
+    selectedActivityData: passedActivityData,
     venueData: passedVenueData,
     selectedDate,
     currentMonth,
@@ -41,30 +41,30 @@ export const useAvailability = ({
         error: dataError
     } = useWidgetData({
         venueId: config?.venueId,
-        activityId: selectedGame || undefined,
+        activityId: selectedActivity || undefined,
         date: new Date(currentYear, currentMonth, selectedDate)
     });
 
     // Use passed data or fetched data
     const activeVenue = passedVenueData || venue;
 
-    // Determine which games to use (fetched or config)
-    const games = useMemo(() => {
+    // Determine which activities to use (fetched or config)
+    const activities = useMemo(() => {
         if (config?.venueId && fetchedActivities.length > 0) {
             return fetchedActivities;
         }
-        return Array.isArray(config?.games) ? config.games : [];
+        return Array.isArray(config?.activities) ? config.activities : (Array.isArray(config?.games) ? config.games : []);
     }, [config, fetchedActivities]);
 
-    // Get selected game data
-    const selectedGameData = useMemo(() => {
-        if (passedGameData) return passedGameData;
-        return games.find((g: any) => g.id === selectedGame) || games[0];
-    }, [games, selectedGame, passedGameData]);
+    // Get selected activity data
+    const selectedActivityData = useMemo(() => {
+        if (passedActivityData) return passedActivityData;
+        return activities.find((a: any) => a.id === selectedActivity) || activities[0];
+    }, [activities, selectedActivity, passedActivityData]);
 
     // Calculate time slots
     const timeSlots: TimeSlot[] = useMemo(() => {
-        if (!selectedGameData) return [];
+        if (!selectedActivityData) return [];
 
         // Mode 1: Real Data (Venue Mode)
         if (config?.venueId && fetchedSessions.length > 0) {
@@ -76,7 +76,7 @@ export const useAvailability = ({
                     hour: '2-digit',
                     minute: '2-digit',
                     hour12: false,
-                    timeZone: selectedGameData?.timezone || activeVenue?.timezone || 'UTC'
+                    timeZone: selectedActivityData?.timezone || activeVenue?.timezone || 'UTC'
                 });
 
                 return {
@@ -91,16 +91,16 @@ export const useAvailability = ({
 
         // Mode 2: Template/Preview Mode (Generated Slots)
         const selectedDateObj = new Date(currentYear, currentMonth, selectedDate);
-        const blockedDates = selectedGameData?.blockedDates || config?.blockedDates || [];
-        const customAvailableDates = selectedGameData?.customDates || config?.customAvailableDates || [];
+        const blockedDates = selectedActivityData?.blockedDates || config?.blockedDates || [];
+        const customAvailableDates = selectedActivityData?.customDates || config?.customAvailableDates || [];
 
-        const schedule = selectedGameData.schedule || {
-            operatingDays: selectedGameData.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-            startTime: selectedGameData.startTime || '10:00',
-            endTime: selectedGameData.endTime || '22:00',
-            slotInterval: selectedGameData.slotInterval || 60,
-            duration: typeof selectedGameData.duration === 'string' ? parseInt(selectedGameData.duration) : (selectedGameData.duration || 90),
-            advanceBooking: selectedGameData.advanceBooking || 30
+        const schedule = selectedActivityData.schedule || {
+            operatingDays: selectedActivityData.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+            startTime: selectedActivityData.startTime || '10:00',
+            endTime: selectedActivityData.endTime || '22:00',
+            slotInterval: selectedActivityData.slotInterval || 60,
+            duration: typeof selectedActivityData.duration === 'string' ? parseInt(selectedActivityData.duration) : (selectedActivityData.duration || 90),
+            advanceBooking: selectedActivityData.advanceBooking || 30
         };
 
         const generatedSlots = generateTimeSlots(
@@ -115,14 +115,14 @@ export const useAvailability = ({
             ...slot,
             sessionId: undefined // No session ID in template mode
         }));
-    }, [selectedDate, currentMonth, currentYear, selectedGameData, config, fetchedSessions, activeVenue?.timezone, selectedGameData?.timezone]);
+    }, [selectedDate, currentMonth, currentYear, selectedActivityData, config, fetchedSessions, activeVenue?.timezone, selectedActivityData?.timezone]);
 
     const isLoading = dataLoading.venue || dataLoading.activities || dataLoading.sessions;
 
     return {
         timeSlots,
-        games,
-        selectedGameData,
+        activities,
+        selectedActivityData,
         venue: activeVenue,
         loading: isLoading,
         error: dataError

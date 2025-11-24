@@ -77,7 +77,12 @@ const SYSTEM_ADMIN_PERMISSIONS: Permission[] = [
   'payments.view',
   'payments.refund',
   'payments.export',
+  'payments.export',
   'payments.reconcile',
+  'users.view',
+  'users.create',
+  'users.edit',
+  'users.delete',
 ];
 
 /**
@@ -138,7 +143,12 @@ const SUPER_ADMIN_PERMISSIONS: Permission[] = [
   'payments.view',
   'payments.refund',
   'payments.export',
+  'payments.export',
   'payments.reconcile',
+  'users.view',
+  'users.create',
+  'users.edit',
+  'users.delete',
 ];
 
 /**

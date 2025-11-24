@@ -137,8 +137,8 @@ export function useCustomers() {
       setLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
-        .from('customers')
+      const { data, error: fetchError } = await (supabase
+        .from('customers') as any)
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -158,17 +158,17 @@ export function useCustomers() {
   const createCustomer = async (customerData: Omit<Customer, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'total_bookings' | 'total_spent'>) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      const { data, error: insertError } = await supabase
-        .from('customers')
+      const { data, error: insertError } = await (supabase
+        .from('customers') as any)
         .insert([{
           ...customerData,
           created_by: user.id,
-        }])
+        }] as any)
         .select()
         .single();
 
@@ -187,9 +187,9 @@ export function useCustomers() {
   // Update customer
   const updateCustomer = async (id: string, updates: Partial<Customer>) => {
     try {
-      const { data, error: updateError } = await supabase
-        .from('customers')
-        .update(updates)
+      const { data, error: updateError } = await (supabase
+        .from('customers') as any)
+        .update(updates as any)
         .eq('id', id)
         .select()
         .single();
@@ -209,8 +209,8 @@ export function useCustomers() {
   // Delete customer
   const deleteCustomer = async (id: string) => {
     try {
-      const { error: deleteError } = await supabase
-        .from('customers')
+      const { error: deleteError } = await (supabase
+        .from('customers') as any)
         .delete()
         .eq('id', id);
 
@@ -228,8 +228,8 @@ export function useCustomers() {
   // Get customer by ID
   const getCustomerById = async (id: string) => {
     try {
-      const { data, error: fetchError } = await supabase
-        .from('customers')
+      const { data, error: fetchError } = await (supabase
+        .from('customers') as any)
         .select('*')
         .eq('id', id)
         .single();
@@ -247,8 +247,8 @@ export function useCustomers() {
   // Search customers
   const searchCustomers = async (searchTerm: string) => {
     try {
-      const { data, error: searchError } = await supabase
-        .rpc('search_customers', { p_search_term: searchTerm });
+      const { data, error: searchError } = await (supabase
+        .rpc('search_customers', { p_search_term: searchTerm } as any) as any);
 
       if (searchError) throw searchError;
 
@@ -262,8 +262,8 @@ export function useCustomers() {
   // Get customer booking history
   const getCustomerHistory = async (customerId: string) => {
     try {
-      const { data, error: historyError } = await supabase
-        .rpc('get_customer_history', { p_customer_id: customerId });
+      const { data, error: historyError } = await (supabase
+        .rpc('get_customer_history', { p_customer_id: customerId } as any) as any);
 
       if (historyError) throw historyError;
 
@@ -277,8 +277,8 @@ export function useCustomers() {
   // Get customer insights with analytics
   const getCustomerInsights = async (customerId: string): Promise<CustomerInsights | null> => {
     try {
-      const { data, error: insightsError } = await supabase
-        .rpc('get_customer_with_insights', { p_customer_id: customerId });
+      const { data, error: insightsError } = await (supabase
+        .rpc('get_customer_with_insights', { p_customer_id: customerId } as any) as any);
 
       if (insightsError) throw insightsError;
 
@@ -293,8 +293,8 @@ export function useCustomers() {
   // Get customer games
   const getCustomerGames = async (customerId: string): Promise<CustomerGame[]> => {
     try {
-      const { data, error: gamesError } = await supabase
-        .rpc('get_customer_games', { p_customer_id: customerId });
+      const { data, error: gamesError } = await (supabase
+        .rpc('get_customer_games', { p_customer_id: customerId } as any) as any);
 
       if (gamesError) throw gamesError;
 
@@ -308,8 +308,8 @@ export function useCustomers() {
   // Get customer venues
   const getCustomerVenues = async (customerId: string): Promise<CustomerVenue[]> => {
     try {
-      const { data, error: venuesError } = await supabase
-        .rpc('get_customer_venues', { p_customer_id: customerId });
+      const { data, error: venuesError } = await (supabase
+        .rpc('get_customer_venues', { p_customer_id: customerId } as any) as any);
 
       if (venuesError) throw venuesError;
 
@@ -323,8 +323,8 @@ export function useCustomers() {
   // Get game-based segments (each game as an audience segment)
   const getGameSegments = async (): Promise<GameSegment[]> => {
     try {
-      const { data, error: segmentsError } = await supabase
-        .rpc('get_game_segments');
+      const { data, error: segmentsError } = await (supabase
+        .rpc('get_game_segments') as any);
 
       if (segmentsError) throw segmentsError;
 
@@ -338,8 +338,8 @@ export function useCustomers() {
   // Get audience for a specific game
   const getGameAudience = async (gameId: string): Promise<GameAudienceMember[]> => {
     try {
-      const { data, error: audienceError } = await supabase
-        .rpc('get_game_audience', { p_game_id: gameId });
+      const { data, error: audienceError } = await (supabase
+        .rpc('get_game_audience', { p_game_id: gameId } as any) as any);
 
       if (audienceError) throw audienceError;
 
@@ -353,8 +353,8 @@ export function useCustomers() {
   // Get venue-based segments (each venue as an audience segment)
   const getVenueSegments = async (): Promise<VenueSegment[]> => {
     try {
-      const { data, error: segmentsError } = await supabase
-        .rpc('get_venue_segments');
+      const { data, error: segmentsError } = await (supabase
+        .rpc('get_venue_segments') as any);
 
       if (segmentsError) throw segmentsError;
 
@@ -368,8 +368,8 @@ export function useCustomers() {
   // Get audience for a specific venue
   const getVenueAudience = async (venueId: string): Promise<VenueAudienceMember[]> => {
     try {
-      const { data, error: audienceError } = await supabase
-        .rpc('get_venue_audience', { p_venue_id: venueId });
+      const { data, error: audienceError } = await (supabase
+        .rpc('get_venue_audience', { p_venue_id: venueId } as any) as any);
 
       if (audienceError) throw audienceError;
 
@@ -383,8 +383,8 @@ export function useCustomers() {
   // Get customer metrics for dashboard
   const getCustomerMetrics = async (): Promise<CustomerMetrics | null> => {
     try {
-      const { data, error: metricsError } = await supabase
-        .rpc('get_customer_metrics');
+      const { data, error: metricsError } = await (supabase
+        .rpc('get_customer_metrics') as any);
 
       if (metricsError) throw metricsError;
 
@@ -402,7 +402,7 @@ export function useCustomers() {
     // Subscribe to customer changes
     const subscription = supabase
       .channel('customers-changes')
-      .on('postgres_changes', 
+      .on('postgres_changes',
         { event: '*', schema: 'public', table: 'customers' },
         (payload) => {
           console.log('Customer changed:', payload);

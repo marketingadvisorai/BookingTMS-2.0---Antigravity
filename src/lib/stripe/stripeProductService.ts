@@ -26,8 +26,8 @@ interface CreateProductParams {
     discountPercent: number;
   }>;
   metadata?: {
-    game_id?: string;
-    game_name?: string;
+    activity_id?: string;
+    activity_name?: string;
     venue_id?: string;
     venue_name?: string;
     calendar_id?: string;
@@ -80,7 +80,7 @@ export class StripeProductService {
   }
 
   /**
-   * Create both Stripe product and price for a game
+   * Create both Stripe product and price for an activity
    * Includes support for child pricing, custom capacity fields, and group discounts
    */
   static async createProductAndPrice(params: CreateProductParams): Promise<ProductAndPrice> {
@@ -94,7 +94,7 @@ export class StripeProductService {
 
         // === IDENTIFICATION DATA ===
         product_name: params.name,
-        product_type: 'game',
+        product_type: 'activity',
         created_at: new Date().toISOString(),
         currency: params.currency || 'usd',
 
@@ -107,7 +107,7 @@ export class StripeProductService {
         ...(params.metadata?.calendar_id && { calendar_id: params.metadata.calendar_id }),
         ...(params.metadata?.calendar_name && { calendar_name: params.metadata.calendar_name }),
         ...(params.metadata?.venue_calendar_id && { venue_calendar_id: params.metadata.venue_calendar_id }),
-        ...(params.metadata?.game_name && { game_name: params.metadata.game_name }),
+        ...(params.metadata?.activity_name && { activity_name: params.metadata.activity_name }),
 
         // === MEDIA DATA ===
         // Add cover image URL if provided in metadata

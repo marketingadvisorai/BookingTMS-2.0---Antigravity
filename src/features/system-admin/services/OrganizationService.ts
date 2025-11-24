@@ -133,8 +133,8 @@ export class OrganizationService {
   static async create(dto: CreateOrganizationDTO): Promise<Organization> {
     try {
       // Step 1: Create organization in Supabase (UUID auto-generated)
-      const { data: org, error: orgError } = await supabase
-        .from('organizations')
+      const { data: org, error: orgError } = await (supabase
+        .from('organizations') as any)
         .insert([{
           name: dto.name,
           owner_name: dto.owner_name,
@@ -146,7 +146,7 @@ export class OrganizationService {
           stripe_charges_enabled: false,
           stripe_payouts_enabled: false,
           application_fee_percentage: 0.75,
-        }])
+        } as any])
         .select()
         .single();
 
@@ -172,12 +172,12 @@ export class OrganizationService {
         stripeCustomerId = stripeCustomer.id;
 
         // Step 3: Update organization with Stripe customer ID
-        const { error: updateError } = await supabase
-          .from('organizations')
+        const { error: updateError } = await (supabase
+          .from('organizations') as any)
           .update({
             stripe_customer_id: stripeCustomerId,
             updated_at: new Date().toISOString(),
-          })
+          } as any)
           .eq('id', org.id);
 
         if (updateError) {
@@ -193,22 +193,22 @@ export class OrganizationService {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
-          const { error: memberError } = await supabase
-            .from('organization_members')
+          const { error: memberError } = await (supabase
+            .from('organization_members') as any)
             .insert([{
               organization_id: org.id,
               user_id: user.id,
               role: 'owner',
               permissions: { all: true },
-            }]);
+            } as any]);
 
           if (memberError) {
             console.error('Failed to create organization member:', memberError);
           } else {
             // Step 5: Update user's organization_id in users table
-            const { error: userUpdateError } = await supabase
-              .from('users')
-              .update({ organization_id: org.id })
+            const { error: userUpdateError } = await (supabase
+              .from('users') as any)
+              .update({ organization_id: org.id } as any)
               .eq('id', user.id);
 
             if (userUpdateError) {
@@ -261,15 +261,15 @@ export class OrganizationService {
       const org = await this.create(dto);
 
       // 3. Create Default Venue
-      const { error: venueError } = await supabase
-        .from('venues')
+      const { error: venueError } = await (supabase
+        .from('venues') as any)
         .insert([{
           organization_id: org.id,
           name: venueName || `${org.name} - Main Venue`,
           is_default: true,
           timezone: 'UTC',
           status: 'active'
-        }]);
+        } as any]);
 
       if (venueError) {
         console.error('Failed to create default venue:', venueError);
@@ -278,8 +278,8 @@ export class OrganizationService {
       // 4. Link User to Organization if user was created
       if (userId) {
         // Create user profile
-        const { error: profileError } = await supabase
-          .from('users')
+        const { error: profileError } = await (supabase
+          .from('users') as any)
           .insert({
             id: userId,
             email: dto.owner_email,
@@ -288,21 +288,21 @@ export class OrganizationService {
             organization_id: org.id,
             phone: dto.phone || null,
             is_active: true,
-          });
+          } as any);
 
         if (profileError) {
           console.error('Failed to create user profile:', profileError);
         }
 
         // Add as organization member
-        const { error: memberError } = await supabase
-          .from('organization_members')
+        const { error: memberError } = await (supabase
+          .from('organization_members') as any)
           .insert([{
             organization_id: org.id,
             user_id: userId,
             role: 'owner',
             permissions: { all: true },
-          }]);
+          } as any]);
 
         if (memberError) {
           console.error('Failed to link user to org:', memberError);
@@ -321,12 +321,12 @@ export class OrganizationService {
    */
   static async update(id: string, dto: UpdateOrganizationDTO): Promise<Organization> {
     try {
-      const { data, error } = await supabase
-        .from('organizations')
+      const { data, error } = await (supabase
+        .from('organizations') as any)
         .update({
           ...dto,
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq('id', id)
         .select()
         .single();
@@ -366,8 +366,8 @@ export class OrganizationService {
    */
   static async getMetrics(id: string): Promise<OrganizationMetrics> {
     try {
-      const { data, error } = await supabase
-        .rpc('get_organization_metrics', { org_id: id })
+      const { data, error } = await (supabase
+        .rpc('get_organization_metrics', { org_id: id } as any) as any)
         .single();
 
       if (error) {

@@ -53,7 +53,7 @@ export const WIDGET_OPTIONS = [
 export const STEPS = [
     { id: 1, name: 'Basic Info', icon: Info },
     { id: 2, name: 'Capacity & Pricing', icon: Users },
-    { id: 3, name: 'Game Details', icon: Sparkles },
+    { id: 3, name: 'Activity Details', icon: Sparkles },
     { id: 4, name: 'Media Upload', icon: ImageIcon },
     { id: 5, name: 'Schedule', icon: Calendar },
     { id: 6, name: 'Payment Settings', icon: CreditCard },

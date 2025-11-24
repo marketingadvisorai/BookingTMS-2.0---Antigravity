@@ -8,24 +8,24 @@ import { Trash2, Plus } from 'lucide-react';
 import { StepProps } from '../types';
 import DynamicPricingSection from './DynamicPricingSection';
 
-export default function Step2CapacityPricing({ gameData, updateGameData, t }: StepProps) {
+export default function Step2CapacityPricing({ activityData, updateActivityData, t }: StepProps) {
     const addCustomCapacityField = () => {
         const newFields = [
-            ...gameData.customCapacityFields,
+            ...activityData.customCapacityFields,
             { id: Date.now().toString(), name: '', min: 0, max: 10, price: 0 },
         ];
-        updateGameData('customCapacityFields', newFields);
+        updateActivityData('customCapacityFields', newFields);
     };
 
     const removeCustomCapacityField = (index: number) => {
-        const newFields = gameData.customCapacityFields.filter((_, i) => i !== index);
-        updateGameData('customCapacityFields', newFields);
+        const newFields = activityData.customCapacityFields.filter((_, i) => i !== index);
+        updateActivityData('customCapacityFields', newFields);
     };
 
     const updateCustomCapacityField = (index: number, field: string, value: any) => {
-        const newFields = [...gameData.customCapacityFields];
+        const newFields = [...activityData.customCapacityFields];
         newFields[index] = { ...newFields[index], [field]: value };
-        updateGameData('customCapacityFields', newFields);
+        updateActivityData('customCapacityFields', newFields);
     };
 
     return (
@@ -44,8 +44,8 @@ export default function Step2CapacityPricing({ gameData, updateGameData, t }: St
                                 id="minAdults"
                                 type="number"
                                 min="1"
-                                value={gameData.minAdults}
-                                onChange={(e) => updateGameData('minAdults', parseInt(e.target.value))}
+                                value={activityData.minAdults}
+                                onChange={(e) => updateActivityData('minAdults', parseInt(e.target.value))}
                                 className="mt-1"
                             />
                         </div>
@@ -55,8 +55,8 @@ export default function Step2CapacityPricing({ gameData, updateGameData, t }: St
                                 id="maxAdults"
                                 type="number"
                                 min="1"
-                                value={gameData.maxAdults}
-                                onChange={(e) => updateGameData('maxAdults', parseInt(e.target.value))}
+                                value={activityData.maxAdults}
+                                onChange={(e) => updateActivityData('maxAdults', parseInt(e.target.value))}
                                 className="mt-1"
                             />
                         </div>
@@ -71,8 +71,8 @@ export default function Step2CapacityPricing({ gameData, updateGameData, t }: St
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                value={gameData.adultPrice}
-                                onChange={(e) => updateGameData('adultPrice', parseFloat(e.target.value))}
+                                value={activityData.adultPrice}
+                                onChange={(e) => updateActivityData('adultPrice', parseFloat(e.target.value))}
                                 className="mt-1"
                             />
                         </div>
@@ -83,8 +83,8 @@ export default function Step2CapacityPricing({ gameData, updateGameData, t }: St
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                value={gameData.childPrice}
-                                onChange={(e) => updateGameData('childPrice', parseFloat(e.target.value))}
+                                value={activityData.childPrice}
+                                onChange={(e) => updateActivityData('childPrice', parseFloat(e.target.value))}
                                 className="mt-1"
                             />
                         </div>
@@ -103,7 +103,7 @@ export default function Step2CapacityPricing({ gameData, updateGameData, t }: St
                         </p>
 
                         <div className="space-y-3">
-                            {gameData.customCapacityFields.map((field, index) => (
+                            {activityData.customCapacityFields.map((field, index) => (
                                 <div key={field.id} className="flex items-end gap-3 bg-gray-50 p-3 rounded-lg">
                                     <div className="flex-1">
                                         <Label className="text-xs">Name</Label>
@@ -155,7 +155,7 @@ export default function Step2CapacityPricing({ gameData, updateGameData, t }: St
                     </div>
 
                     {/* Dynamic Pricing Section */}
-                    <DynamicPricingSection gameData={gameData} updateGameData={updateGameData} t={t} />
+                    <DynamicPricingSection activityData={activityData} updateActivityData={updateActivityData} t={t} />
                 </CardContent>
             </Card>
         </div>

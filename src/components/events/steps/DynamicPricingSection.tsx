@@ -9,21 +9,21 @@ import { Trash2, Plus } from 'lucide-react';
 import { StepProps } from '../types';
 import { DAYS_OF_WEEK } from '../constants';
 
-export default function DynamicPricingSection({ gameData, updateGameData }: StepProps) {
+export default function DynamicPricingSection({ activityData, updateActivityData }: StepProps) {
     const addGroupTier = () => {
-        const newTiers = [...gameData.groupTiers, { minSize: 10, maxSize: 20, discountPercent: 10 }];
-        updateGameData('groupTiers', newTiers);
+        const newTiers = [...activityData.groupTiers, { minSize: 10, maxSize: 20, discountPercent: 10 }];
+        updateActivityData('groupTiers', newTiers);
     };
 
     const removeGroupTier = (index: number) => {
-        const newTiers = gameData.groupTiers.filter((_, i) => i !== index);
-        updateGameData('groupTiers', newTiers);
+        const newTiers = activityData.groupTiers.filter((_, i) => i !== index);
+        updateActivityData('groupTiers', newTiers);
     };
 
     const updateGroupTier = (index: number, field: string, value: number) => {
-        const newTiers = [...gameData.groupTiers];
+        const newTiers = [...activityData.groupTiers];
         newTiers[index] = { ...newTiers[index], [field]: value };
-        updateGameData('groupTiers', newTiers);
+        updateActivityData('groupTiers', newTiers);
     };
 
     return (
@@ -34,35 +34,35 @@ export default function DynamicPricingSection({ gameData, updateGameData }: Step
                     <p className="text-sm text-gray-500">Enable peak hours and group discounts</p>
                 </div>
                 <Switch
-                    checked={gameData.dynamicPricing}
-                    onCheckedChange={(checked) => updateGameData('dynamicPricing', checked)}
+                    checked={activityData.dynamicPricing}
+                    onCheckedChange={(checked) => updateActivityData('dynamicPricing', checked)}
                 />
             </div>
 
-            {gameData.dynamicPricing && (
+            {activityData.dynamicPricing && (
                 <div className="space-y-6 pl-4 border-l-2 border-blue-100">
                     {/* Peak Pricing */}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <Label className="text-sm font-medium">Peak Hours Pricing</Label>
                             <Switch
-                                checked={gameData.peakPricing.enabled}
+                                checked={activityData.peakPricing.enabled}
                                 onCheckedChange={(checked) =>
-                                    updateGameData('peakPricing', { ...gameData.peakPricing, enabled: checked })
+                                    updateActivityData('peakPricing', { ...activityData.peakPricing, enabled: checked })
                                 }
                             />
                         </div>
 
-                        {gameData.peakPricing.enabled && (
+                        {activityData.peakPricing.enabled && (
                             <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
                                 <div>
                                     <Label className="text-xs">Weekday Peak Price ($)</Label>
                                     <Input
                                         type="number"
-                                        value={gameData.peakPricing.weekdayPeakPrice}
+                                        value={activityData.peakPricing.weekdayPeakPrice}
                                         onChange={(e) =>
-                                            updateGameData('peakPricing', {
-                                                ...gameData.peakPricing,
+                                            updateActivityData('peakPricing', {
+                                                ...activityData.peakPricing,
                                                 weekdayPeakPrice: parseFloat(e.target.value),
                                             })
                                         }
@@ -73,10 +73,10 @@ export default function DynamicPricingSection({ gameData, updateGameData }: Step
                                     <Label className="text-xs">Weekend Peak Price ($)</Label>
                                     <Input
                                         type="number"
-                                        value={gameData.peakPricing.weekendPeakPrice}
+                                        value={activityData.peakPricing.weekendPeakPrice}
                                         onChange={(e) =>
-                                            updateGameData('peakPricing', {
-                                                ...gameData.peakPricing,
+                                            updateActivityData('peakPricing', {
+                                                ...activityData.peakPricing,
                                                 weekendPeakPrice: parseFloat(e.target.value),
                                             })
                                         }
@@ -87,10 +87,10 @@ export default function DynamicPricingSection({ gameData, updateGameData }: Step
                                     <Label className="text-xs">Peak Start Time</Label>
                                     <Input
                                         type="time"
-                                        value={gameData.peakPricing.peakStartTime}
+                                        value={activityData.peakPricing.peakStartTime}
                                         onChange={(e) =>
-                                            updateGameData('peakPricing', {
-                                                ...gameData.peakPricing,
+                                            updateActivityData('peakPricing', {
+                                                ...activityData.peakPricing,
                                                 peakStartTime: e.target.value,
                                             })
                                         }
@@ -101,10 +101,10 @@ export default function DynamicPricingSection({ gameData, updateGameData }: Step
                                     <Label className="text-xs">Peak End Time</Label>
                                     <Input
                                         type="time"
-                                        value={gameData.peakPricing.peakEndTime}
+                                        value={activityData.peakPricing.peakEndTime}
                                         onChange={(e) =>
-                                            updateGameData('peakPricing', {
-                                                ...gameData.peakPricing,
+                                            updateActivityData('peakPricing', {
+                                                ...activityData.peakPricing,
                                                 peakEndTime: e.target.value,
                                             })
                                         }
@@ -125,7 +125,7 @@ export default function DynamicPricingSection({ gameData, updateGameData }: Step
                         </div>
 
                         <div className="space-y-2">
-                            {gameData.groupTiers.map((tier, index) => (
+                            {activityData.groupTiers.map((tier, index) => (
                                 <div key={index} className="flex items-center gap-2 bg-gray-50 p-2 rounded text-sm">
                                     <span className="text-gray-500 text-xs">Size:</span>
                                     <Input
@@ -159,7 +159,7 @@ export default function DynamicPricingSection({ gameData, updateGameData }: Step
                                     </Button>
                                 </div>
                             ))}
-                            {gameData.groupTiers.length === 0 && (
+                            {activityData.groupTiers.length === 0 && (
                                 <p className="text-xs text-gray-400 italic">No group discounts configured.</p>
                             )}
                         </div>

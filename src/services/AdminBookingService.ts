@@ -52,15 +52,15 @@ export class AdminBookingService {
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
 
-      const { data: newCustomer, error: createError } = await supabase
-        .from('customers')
+      const { data: newCustomer, error: createError } = await (supabase
+        .from('customers') as any)
         .insert({
           first_name: firstName,
           last_name: lastName,
           email: email,
           phone: phone,
           status: 'active',
-        })
+        } as any)
         .select('id')
         .single();
 
@@ -100,8 +100,8 @@ export class AdminBookingService {
 
       // Check availability
       // Check availability directly from activity_sessions
-      const { data: session, error: sessionError } = await supabase
-        .from('activity_sessions')
+      const { data: session, error: sessionError } = await (supabase
+        .from('activity_sessions') as any)
         .select('capacity_remaining')
         .eq('activity_id', params.game_id)
         .eq('start_time', `${params.booking_date}T${params.start_time}:00Z`) // Assuming UTC or handling timezone appropriately
@@ -119,8 +119,8 @@ export class AdminBookingService {
       const bookingNumber = `BK-${Math.floor(10000 + Math.random() * 90000)}`;
 
       // Create booking
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
+      const { data: booking, error: bookingError } = await (supabase
+        .from('bookings') as any)
         .insert({
           venue_id: params.venue_id,
           confirmation_code: bookingNumber,
@@ -142,7 +142,7 @@ export class AdminBookingService {
             adults: params.adults,
             children: params.children,
           },
-        })
+        } as any)
         .select()
         .single();
 

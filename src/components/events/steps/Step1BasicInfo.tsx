@@ -16,7 +16,7 @@ interface ExtendedStepProps extends StepProps {
     venueName?: string;
 }
 
-export default function Step1BasicInfo({ gameData, updateGameData, t, organizationId, venueId, organizationName, venueName }: ExtendedStepProps) {
+export default function Step1BasicInfo({ activityData, updateActivityData, t, organizationId, venueId, organizationName, venueName }: ExtendedStepProps) {
     const { currentUser } = useAuth();
     const isSystemAdmin = currentUser?.role === 'system-admin';
 
@@ -40,13 +40,13 @@ export default function Step1BasicInfo({ gameData, updateGameData, t, organizati
 
     // Fetch venues when organization changes (for System Admin)
     useEffect(() => {
-        if (isSystemAdmin && gameData.organizationId) {
+        if (isSystemAdmin && activityData.organizationId) {
             const fetchVenues = async () => {
                 setLoadingVenues(true);
                 const { data } = await supabase
                     .from('venues')
                     .select('id, name')
-                    .eq('organization_id', gameData.organizationId!)
+                    .eq('organization_id', activityData.organizationId!)
                     .order('name');
                 setVenues(data || []);
                 setLoadingVenues(false);
@@ -55,19 +55,19 @@ export default function Step1BasicInfo({ gameData, updateGameData, t, organizati
         } else if (isSystemAdmin) {
             setVenues([]);
         }
-    }, [isSystemAdmin, gameData.organizationId]);
+    }, [isSystemAdmin, activityData.organizationId]);
 
     // Initialize default values for Org Admin
     useEffect(() => {
         if (!isSystemAdmin) {
-            if (organizationId && !gameData.organizationId) {
-                updateGameData('organizationId', organizationId);
+            if (organizationId && !activityData.organizationId) {
+                updateActivityData('organizationId', organizationId);
             }
-            if (venueId && !gameData.venueId) {
-                updateGameData('venueId', venueId);
+            if (venueId && !activityData.venueId) {
+                updateActivityData('venueId', venueId);
             }
         }
-    }, [isSystemAdmin, organizationId, venueId, gameData.organizationId, gameData.venueId, updateGameData]);
+    }, [isSystemAdmin, organizationId, venueId, activityData.organizationId, activityData.venueId, updateActivityData]);
 
     return (
         <div className="space-y-6">
@@ -85,10 +85,10 @@ export default function Step1BasicInfo({ gameData, updateGameData, t, organizati
                             <Label htmlFor="organization">Organization</Label>
                             {isSystemAdmin ? (
                                 <Select
-                                    value={gameData.organizationId || ''}
+                                    value={activityData.organizationId || ''}
                                     onValueChange={(value) => {
-                                        updateGameData('organizationId', value);
-                                        updateGameData('venueId', ''); // Reset venue when org changes
+                                        updateActivityData('organizationId', value);
+                                        updateActivityData('venueId', ''); // Reset venue when org changes
                                     }}
                                 >
                                     <SelectTrigger className="mt-1">
@@ -112,9 +112,9 @@ export default function Step1BasicInfo({ gameData, updateGameData, t, organizati
                             <Label htmlFor="venue">Venue</Label>
                             {isSystemAdmin ? (
                                 <Select
-                                    value={gameData.venueId || ''}
-                                    onValueChange={(value) => updateGameData('venueId', value)}
-                                    disabled={!gameData.organizationId}
+                                    value={activityData.venueId || ''}
+                                    onValueChange={(value) => updateActivityData('venueId', value)}
+                                    disabled={!activityData.organizationId}
                                 >
                                     <SelectTrigger className="mt-1">
                                         <SelectValue placeholder="Select Venue" />
@@ -142,8 +142,8 @@ export default function Step1BasicInfo({ gameData, updateGameData, t, organizati
                         <Input
                             id="name"
                             placeholder={`e.g., ${t.singular === 'Game' ? 'Zombie Apocalypse' : 'Sunset Yoga'}`}
-                            value={gameData.name}
-                            onChange={(e) => updateGameData('name', e.target.value)}
+                            value={activityData.name}
+                            onChange={(e) => updateActivityData('name', e.target.value)}
                             className="mt-1"
                         />
                     </div>
@@ -153,8 +153,8 @@ export default function Step1BasicInfo({ gameData, updateGameData, t, organizati
                         <Input
                             id="tagline"
                             placeholder={`A short catchy phrase about your ${t.singular.toLowerCase()}`}
-                            value={gameData.tagline}
-                            onChange={(e) => updateGameData('tagline', e.target.value)}
+                            value={activityData.tagline}
+                            onChange={(e) => updateActivityData('tagline', e.target.value)}
                             className="mt-1"
                         />
                     </div>
@@ -163,7 +163,7 @@ export default function Step1BasicInfo({ gameData, updateGameData, t, organizati
                         <Label htmlFor="category">
                             Category <span className="text-red-500">*</span>
                         </Label>
-                        <Select value={gameData.category} onValueChange={(value) => updateGameData('category', value)}>
+                        <Select value={activityData.category} onValueChange={(value) => updateActivityData('category', value)}>
                             <SelectTrigger className="mt-1">
                                 <SelectValue placeholder="Select a category" />
                             </SelectTrigger>
@@ -178,17 +178,17 @@ export default function Step1BasicInfo({ gameData, updateGameData, t, organizati
                     </div>
 
                     <div>
-                        <Label htmlFor="gameType">
+                        <Label htmlFor="activityType">
                             {t.singular} Type <span className="text-red-500">*</span>
                         </Label>
-                        <Select value={gameData.gameType} onValueChange={(value) => updateGameData('gameType', value)}>
+                        <Select value={activityData.activityType} onValueChange={(value) => updateActivityData('activityType', value)}>
                             <SelectTrigger className="mt-1">
                                 <SelectValue placeholder={`Select ${t.singular.toLowerCase()} type`}>
-                                    {gameData.gameType === 'physical'
+                                    {activityData.activityType === 'physical'
                                         ? 'Physical'
-                                        : gameData.gameType === 'virtual'
+                                        : activityData.activityType === 'virtual'
                                             ? 'Virtual'
-                                            : gameData.gameType === 'hybrid'
+                                            : activityData.activityType === 'hybrid'
                                                 ? 'Hybrid'
                                                 : null}
                                 </SelectValue>
@@ -220,10 +220,10 @@ export default function Step1BasicInfo({ gameData, updateGameData, t, organizati
                         <Label htmlFor="eventType">
                             Event Type <span className="text-red-500">*</span>
                         </Label>
-                        <Select value={gameData.eventType} onValueChange={(value) => updateGameData('eventType', value)}>
+                        <Select value={activityData.eventType} onValueChange={(value) => updateActivityData('eventType', value)}>
                             <SelectTrigger className="mt-1">
                                 <SelectValue placeholder="Select event type">
-                                    {gameData.eventType === 'public' ? 'Public Event' : gameData.eventType === 'private' ? 'Private Event' : null}
+                                    {activityData.eventType === 'public' ? 'Public Event' : activityData.eventType === 'private' ? 'Private Event' : null}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
@@ -247,7 +247,7 @@ export default function Step1BasicInfo({ gameData, updateGameData, t, organizati
                         <Label htmlFor="timezone">
                             Time Zone <span className="text-red-500">*</span>
                         </Label>
-                        <Select value={gameData.timezone || 'UTC'} onValueChange={(value) => updateGameData('timezone', value)}>
+                        <Select value={activityData.timezone || 'UTC'} onValueChange={(value) => updateActivityData('timezone', value)}>
                             <SelectTrigger className="mt-1">
                                 <SelectValue placeholder="Select time zone" />
                             </SelectTrigger>
@@ -272,12 +272,12 @@ export default function Step1BasicInfo({ gameData, updateGameData, t, organizati
                             id="description"
                             placeholder={`Describe the storyline, atmosphere, and what makes this ${t.singular.toLowerCase()} unique...`}
                             rows={6}
-                            value={gameData.description}
-                            onChange={(e) => updateGameData('description', e.target.value)}
+                            value={activityData.description}
+                            onChange={(e) => updateActivityData('description', e.target.value)}
                             className="mt-1"
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                            {gameData.description.length} / 500 characters
+                            {activityData.description.length} / 500 characters
                         </p>
                     </div>
                 </CardContent>

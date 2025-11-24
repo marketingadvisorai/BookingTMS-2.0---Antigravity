@@ -71,12 +71,12 @@ export function useBookings() {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
-        .from('bookings')
+      const { data, error: fetchError } = await (supabase
+        .from('bookings') as any)
         .select(`
           *,
           customer:customers(full_name, email),
-          game:games(name)
+          activity:activities(name)
         `)
         .eq('organization_id', currentUser!.organizationId!)
         .order('booking_date', { ascending: false })
@@ -102,7 +102,7 @@ export function useBookings() {
 // GAMES HOOKS
 // ============================================================================
 
-interface Game {
+interface Activity {
   id: string;
   name: string;
   description: string | null;
@@ -114,9 +114,9 @@ interface Game {
   is_active: boolean;
 }
 
-export function useGames() {
+export function useActivities() {
   const { currentUser } = useAuth();
-  const [games, setGames] = useState<Game[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -126,16 +126,16 @@ export function useGames() {
       return;
     }
 
-    fetchGames();
+    fetchActivities();
   }, [currentUser?.organizationId]);
 
-  const fetchGames = async () => {
+  const fetchActivities = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
-        .from('games')
+      const { data, error: fetchError } = await (supabase
+        .from('activities') as any)
         .select('*')
         .eq('organization_id', currentUser!.organizationId!)
         .order('created_at', { ascending: false });
@@ -144,16 +144,16 @@ export function useGames() {
         throw fetchError;
       }
 
-      setGames(data || []);
+      setActivities(data || []);
     } catch (err: any) {
-      console.error('Error fetching games:', err);
-      setError(err.message || 'Failed to fetch games');
+      console.error('Error fetching activities:', err);
+      setError(err.message || 'Failed to fetch activities');
     } finally {
       setIsLoading(false);
     }
   };
 
-  return { games, isLoading, error, refetch: fetchGames };
+  return { activities, isLoading, error, refetch: fetchActivities };
 }
 
 // ============================================================================
@@ -366,8 +366,8 @@ export function useNotificationsData() {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
-        .from('notifications')
+      const { data, error: fetchError } = await (supabase
+        .from('notifications') as any)
         .select('*')
         .eq('user_id', currentUser!.id)
         .order('created_at', { ascending: false })
@@ -389,8 +389,8 @@ export function useNotificationsData() {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      const { error } = await supabase
-        .from('notifications')
+      const { error } = await (supabase
+        .from('notifications') as any)
         .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('id', notificationId);
 

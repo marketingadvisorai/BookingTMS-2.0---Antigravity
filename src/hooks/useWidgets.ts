@@ -35,8 +35,8 @@ export function useWidgets(venueId?: string) {
       setLoading(true);
       setError(null);
 
-      let query = supabase
-        .from('widgets')
+      let query = (supabase
+        .from('widgets') as any)
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -62,13 +62,13 @@ export function useWidgets(venueId?: string) {
   const createWidget = async (widgetData: Omit<Widget, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      const { data, error: insertError } = await supabase
-        .from('widgets')
+      const { data, error: insertError } = await (supabase
+        .from('widgets') as any)
         .insert([{
           ...widgetData,
           created_by: user.id,
@@ -91,8 +91,8 @@ export function useWidgets(venueId?: string) {
   // Update widget
   const updateWidget = async (id: string, updates: Partial<Widget>) => {
     try {
-      const { data, error: updateError } = await supabase
-        .from('widgets')
+      const { data, error: updateError } = await (supabase
+        .from('widgets') as any)
         .update(updates)
         .eq('id', id)
         .select()
@@ -155,7 +155,7 @@ export function useWidgets(venueId?: string) {
         .rpc('sync_game_from_widget', {
           p_widget_id: widgetId,
           p_game_data: gameData,
-        });
+        } as any);
 
       if (syncError) throw syncError;
 
@@ -175,7 +175,7 @@ export function useWidgets(venueId?: string) {
     // Subscribe to widget changes
     const subscription = supabase
       .channel('widgets-changes')
-      .on('postgres_changes', 
+      .on('postgres_changes',
         { event: '*', schema: 'public', table: 'widgets' },
         (payload) => {
           console.log('Widget changed:', payload);

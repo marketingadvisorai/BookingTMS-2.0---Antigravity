@@ -30,7 +30,7 @@ export const listBookings = asyncHandler(
       date: req.query.date as string | undefined,
       date_from: req.query.date_from as string | undefined,
       date_to: req.query.date_to as string | undefined,
-      game_id: req.query.game_id as string | undefined,
+      activity_id: req.query.activity_id as string | undefined,
       customer_id: req.query.customer_id as string | undefined,
       search: req.query.search as string | undefined,
     };
@@ -97,8 +97,8 @@ export const createBooking = asyncHandler(
       throw new ValidationError('Customer ID is required');
     }
 
-    if (!bookingData.game_id) {
-      throw new ValidationError('Game ID is required');
+    if (!bookingData.activity_id) {
+      throw new ValidationError('Activity ID is required');
     }
 
     if (!bookingData.booking_date) {
@@ -228,10 +228,10 @@ export const checkAvailability = asyncHandler(
       throw new ValidationError('User not authenticated');
     }
 
-    const { game_id, date, start_time } = req.query;
+    const { activity_id, date, start_time } = req.query;
 
-    if (!game_id) {
-      throw new ValidationError('Game ID is required');
+    if (!activity_id) {
+      throw new ValidationError('Activity ID is required');
     }
 
     if (!date) {
@@ -249,7 +249,7 @@ export const checkAvailability = asyncHandler(
       success: true,
       data: {
         available: isAvailable,
-        game_id,
+        activity_id,
         date,
         start_time,
       },

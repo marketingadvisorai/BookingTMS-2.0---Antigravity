@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 
 export interface CreateAdminBookingParams {
   venue_id: string;
-  game_id: string;
+  activity_id: string;
   customer_name: string;
   customer_email: string;
   customer_phone: string;
@@ -103,7 +103,7 @@ export class AdminBookingService {
       const { data: session, error: sessionError } = await (supabase
         .from('activity_sessions') as any)
         .select('capacity_remaining')
-        .eq('activity_id', params.game_id)
+        .eq('activity_id', params.activity_id)
         .eq('start_time', `${params.booking_date}T${params.start_time}:00Z`) // Assuming UTC or handling timezone appropriately
         .single();
 
@@ -125,7 +125,7 @@ export class AdminBookingService {
           venue_id: params.venue_id,
           confirmation_code: bookingNumber,
           customer_id: customerId,
-          activity_id: params.game_id,
+          activity_id: params.activity_id,
           booking_date: params.booking_date,
           start_time: params.start_time,
           end_time: params.end_time,
@@ -159,7 +159,7 @@ export class AdminBookingService {
    * Check if a time slot is available
    */
   static async checkSlotAvailability(
-    gameId: string,
+    activityId: string,
     date: string,
     startTime: string,
     endTime: string
@@ -168,7 +168,7 @@ export class AdminBookingService {
       const { data: session, error } = await (supabase
         .from('activity_sessions') as any)
         .select('capacity_remaining')
-        .eq('activity_id', gameId)
+        .eq('activity_id', activityId)
         .eq('start_time', `${date}T${startTime}:00Z`) // Assuming UTC
         .single();
 

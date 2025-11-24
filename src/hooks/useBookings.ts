@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 export interface Booking {
   id: string;
   venue_id: string;
-  game_id: string;
+  activity_id: string;
   customer_id: string;
   booking_date: string;
   booking_time: string;
@@ -35,8 +35,8 @@ export interface Booking {
 export interface BookingWithDetails extends Booking {
   venue_name: string;
   venue_city: string;
-  game_name: string;
-  game_difficulty: string;
+  activity_name: string;
+  activity_difficulty: string;
   customer_name: string;
   customer_email: string;
   customer_phone: string;
@@ -57,7 +57,7 @@ export function useBookings(venueId?: string) {
           p_status: null,
           p_from_date: null,
           p_to_date: null,
-        });
+        } as any);
 
       if (fetchError) throw fetchError;
 
@@ -74,7 +74,7 @@ export function useBookings(venueId?: string) {
   // Create booking using the database function
   const createBooking = async (bookingData: {
     venue_id: string;
-    game_id: string;
+    activity_id: string;
     customer_id: string;
     booking_date: string;
     booking_time: string;
@@ -86,14 +86,14 @@ export function useBookings(venueId?: string) {
       const { data, error: createError } = await supabase
         .rpc('create_booking', {
           p_venue_id: bookingData.venue_id,
-          p_game_id: bookingData.game_id,
+          p_activity_id: bookingData.activity_id,
           p_customer_id: bookingData.customer_id,
           p_booking_date: bookingData.booking_date,
           p_booking_time: bookingData.booking_time,
           p_players: bookingData.players,
           p_total_amount: bookingData.total_amount,
           p_notes: bookingData.notes || null,
-        });
+        } as any);
 
       if (createError) throw createError;
 
@@ -110,9 +110,33 @@ export function useBookings(venueId?: string) {
   // Update booking
   const updateBooking = async (id: string, updates: Partial<Booking>) => {
     try {
-      const { data, error: updateError } = await supabase
-        .from('bookings')
-        .update(updates)
+      // Map Booking fields to Database fields
+      const dbUpdates: any = { ...updates };
+
+      if (updates.booking_time) {
+        dbUpdates.start_time = updates.booking_time;
+        delete dbUpdates.booking_time;
+      }
+      if (updates.players) {
+        dbUpdates.party_size = updates.players;
+        delete dbUpdates.players;
+      }
+
+      // Remove fields that are not columns in the bookings table
+      delete dbUpdates.venue_name;
+      delete dbUpdates.venue_city;
+      delete dbUpdates.activity_name;
+      delete dbUpdates.activity_difficulty;
+      delete dbUpdates.customer_name;
+      delete dbUpdates.customer_email;
+      delete dbUpdates.customer_phone;
+      delete dbUpdates.game_id; // Legacy field if present
+      delete dbUpdates.game_name;
+      delete dbUpdates.game_difficulty;
+
+      const { data, error: updateError } = await (supabase
+        .from('bookings') as any)
+        .update(dbUpdates)
         .eq('id', id)
         .select()
         .single();
@@ -137,7 +161,7 @@ export function useBookings(venueId?: string) {
           p_booking_id: id,
           p_reason: reason || null,
           p_issue_refund: issueRefund,
-        });
+        } as any);
 
       if (cancelError) throw cancelError;
 
@@ -170,14 +194,14 @@ export function useBookings(venueId?: string) {
     }
   };
 
-  // Get available time slots for a game
-  const getAvailableSlots = async (gameId: string, date: string) => {
+  // Get available time slots for an activity
+  const getAvailableSlots = async (activityId: string, date: string) => {
     try {
       const { data, error: slotsError } = await supabase
         .rpc('get_available_slots', {
-          p_game_id: gameId,
+          p_activity_id: activityId,
           p_date: date,
-        });
+        } as any);
 
       if (slotsError) throw slotsError;
 
@@ -195,7 +219,7 @@ export function useBookings(venueId?: string) {
     // Subscribe to booking changes
     const subscription = supabase
       .channel('bookings-changes')
-      .on('postgres_changes', 
+      .on('postgres_changes',
         { event: '*', schema: 'public', table: 'bookings' },
         (payload) => {
           console.log('Booking changed:', payload);

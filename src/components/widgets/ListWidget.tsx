@@ -11,9 +11,9 @@ import { Separator } from '../ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { VisuallyHidden } from '../ui/visually-hidden';
 import { Calendar as CalendarComponent } from '../ui/calendar';
-import { 
+import {
   Clock, Users, Star, Play, ChevronRight, Award, Zap, Heart,
-  Calendar, ShoppingCart, CreditCard, Lock, CheckCircle2, 
+  Calendar, ShoppingCart, CreditCard, Lock, CheckCircle2,
   Mail, Phone, User, ChevronLeft, ImageIcon
 } from 'lucide-react';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
@@ -43,7 +43,7 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
     cardCVV: '',
     cardName: '',
   });
-  
+
   // Promo code and gift card state
   const [showPromoCodeInput, setShowPromoCodeInput] = useState(false);
   const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discount: number; type: 'percentage' | 'fixed' } | null>(null);
@@ -162,7 +162,7 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
   ];
 
   const selectedExp = experiences.find(e => e.id === selectedExperience);
-  
+
   // Handlers for promo code and gift card
   const handleApplyPromoCode = (code: string, discount: number, type: 'percentage' | 'fixed') => {
     setAppliedPromoCode({ code, discount, type });
@@ -184,20 +184,20 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
 
   // Calculate prices
   const calculateSubtotal = () => selectedExp ? selectedExp.price * partySize : 0;
-  
+
   const calculateDiscount = () => {
     if (!appliedPromoCode) return 0;
     return appliedPromoCode.type === 'fixed'
       ? appliedPromoCode.discount
       : (calculateSubtotal() * appliedPromoCode.discount) / 100;
   };
-  
+
   const calculateGiftCardDiscount = () => {
     if (!appliedGiftCard) return 0;
     const afterPromo = calculateSubtotal() - calculateDiscount();
     return Math.min(appliedGiftCard.amount, afterPromo);
   };
-  
+
   const totalPrice = calculateSubtotal() - calculateDiscount() - calculateGiftCardDiscount();
   const bookingNumber = `BK-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
 
@@ -233,7 +233,7 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
   const handleCompletePayment = async () => {
     try {
       // Validate form data
-      if (!customerInfo.name || !customerInfo.email || !customerInfo.phone) {
+      if (!customerData.name || !customerData.email || !customerData.phone) {
         alert('Please fill in all customer details');
         return;
       }
@@ -251,9 +251,9 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
         gameId: selectedExperience || '',
         date: selectedDate ? selectedDate.toISOString().split('T')[0] : '',
         time: selectedTime || '',
-        customerName: customerInfo.name,
-        customerEmail: customerInfo.email,
-        customerPhone: customerInfo.phone,
+        customerName: customerData.name,
+        customerEmail: customerData.email,
+        customerPhone: customerData.phone,
         participants: partySize,
         ticketTypes: [{
           id: 'standard',
@@ -285,10 +285,10 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
       // Create booking via Supabase
       const result = await SupabaseBookingService.createWidgetBooking({
         venue_id: venueId,
-        game_id: gameId,
-        customer_name: customerInfo.name,
-        customer_email: customerInfo.email,
-        customer_phone: customerInfo.phone,
+        activity_id: gameId,
+        customer_name: customerData.name,
+        customer_email: customerData.email,
+        customer_phone: customerData.phone,
         booking_date: selectedDate!.toISOString().split('T')[0],
         start_time: startTime,
         end_time: endTime,
@@ -353,7 +353,7 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
                       className="w-full h-full object-cover"
                     />
                     {exp.featured && (
-                      <Badge 
+                      <Badge
                         className="absolute top-2 left-2 sm:top-3 sm:left-3 text-xs"
                         style={{ backgroundColor: primaryColor, color: 'white' }}
                       >
@@ -525,11 +525,10 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
                         <button
                           key={time}
                           onClick={() => setSelectedTime(time)}
-                          className={`p-2.5 sm:p-3 rounded-lg border-2 transition-all text-center ${
-                            selectedTime === time
+                          className={`p-2.5 sm:p-3 rounded-lg border-2 transition-all text-center ${selectedTime === time
                               ? 'shadow-md'
                               : 'border-gray-200 hover:border-gray-300'
-                          }`}
+                            }`}
                           style={{
                             borderColor: selectedTime === time ? primaryColor : undefined,
                             backgroundColor: selectedTime === time ? `${primaryColor}10` : undefined,
@@ -683,7 +682,7 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
             <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
               <div>
                 {!appliedPromoCode && !showPromoCodeInput && (
-                  <button 
+                  <button
                     onClick={() => setShowPromoCodeInput(true)}
                     className="text-sm text-blue-600 hover:underline"
                   >
@@ -707,10 +706,10 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
                   />
                 )}
               </div>
-              
+
               <div>
                 {!appliedGiftCard && !showGiftCardInput && (
-                  <button 
+                  <button
                     onClick={() => setShowGiftCardInput(true)}
                     className="text-sm text-blue-600 hover:underline"
                   >
@@ -892,7 +891,7 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
       {currentStep === 'success' && selectedExp && (
         <div className="max-w-4xl mx-auto p-4 md:p-8">
           <div className="flex flex-col items-center justify-center py-8 md:py-12">
-            <div 
+            <div
               className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
               style={{ backgroundColor: `${primaryColor}15` }}
             >

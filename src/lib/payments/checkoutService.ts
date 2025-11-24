@@ -114,8 +114,8 @@ export class CheckoutService {
   }) {
     try {
       // Create booking in database first
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
+      const { data: booking, error: bookingError } = await (supabase
+        .from('bookings') as any)
         .insert({
           venue_id: params.venueId,
           activity_id: params.activityId,
@@ -195,8 +195,8 @@ export class CheckoutService {
   }) {
     try {
       // Create booking in database first
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
+      const { data: booking, error: bookingError } = await (supabase
+        .from('bookings') as any)
         .insert({
           venue_id: params.venueId,
           activity_id: params.activityId,

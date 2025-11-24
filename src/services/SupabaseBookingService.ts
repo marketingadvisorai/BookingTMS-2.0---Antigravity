@@ -12,12 +12,8 @@ import { SessionService, Session } from './session.service';
 // Feature flag to enable/disable Supabase bookings
 export const USE_SUPABASE_BOOKINGS = true;
 
-// ... (rest of the file)
-
 let sessionId = '';
 let matchedSession: Session | null = null;
-
-// Simple check: if we have sessions, try to match the time part?
 
 export interface VenueConfig {
   id: string;
@@ -30,7 +26,7 @@ export interface VenueConfig {
   settings: Record<string, any>;
 }
 
-export interface VenueGame {
+export interface VenueActivity {
   id: string;
   name: string;
   slug: string;
@@ -50,7 +46,7 @@ export interface VenueGame {
 
 export interface CreateBookingParams {
   venue_id: string;
-  game_id: string;
+  activity_id: string;
   customer_name: string;
   customer_email: string;
   customer_phone: string;
@@ -78,28 +74,28 @@ export interface BookingResult {
 }
 
 export class SupabaseBookingService {
-  private static normalizeGameForWidget(game: VenueGame) {
-    const settings = game.settings || {};
+  private static normalizeActivityForWidget(activity: VenueActivity) {
+    const settings = activity.settings || {};
     return {
-      id: game.id,
-      name: game.name,
-      slug: game.slug,
-      description: game.description || 'An exciting experience awaits!',
-      tagline: game.tagline || '',
-      difficulty: game.difficulty || 'Medium',
-      duration: game.duration || 60,
-      minPlayers: game.min_players || 2,
-      maxPlayers: game.max_players || 8,
-      min_players: game.min_players || 2,
-      max_players: game.max_players || 8,
-      price: game.price || 0,
-      childPrice: game.child_price,
-      child_price: game.child_price,
-      minAge: game.min_age,
-      successRate: game.success_rate || 50,
-      image: game.image_url,
-      imageUrl: game.image_url,
-      coverImage: game.image_url,
+      id: activity.id,
+      name: activity.name,
+      slug: activity.slug,
+      description: activity.description || 'An exciting experience awaits!',
+      tagline: activity.tagline || '',
+      difficulty: activity.difficulty || 'Medium',
+      duration: activity.duration || 60,
+      minPlayers: activity.min_players || 2,
+      maxPlayers: activity.max_players || 8,
+      min_players: activity.min_players || 2,
+      max_players: activity.max_players || 8,
+      price: activity.price || 0,
+      childPrice: activity.child_price,
+      child_price: activity.child_price,
+      minAge: activity.min_age,
+      successRate: activity.success_rate || 50,
+      image: activity.image_url,
+      imageUrl: activity.image_url,
+      coverImage: activity.image_url,
       status: 'active',
       settings,
       blockedDates: settings.blockedDates || [],
@@ -125,22 +121,25 @@ export class SupabaseBookingService {
     };
   }
 
-  private static mergeWidgetConfig(venue: VenueConfig, games: VenueGame[]) {
+  private static mergeWidgetConfig(venue: VenueConfig, activities: VenueActivity[]) {
     const storedConfig = (venue.settings?.widgetConfig as Record<string, any>) || {};
-    const storedGames = Array.isArray(storedConfig.games) ? storedConfig.games : [];
+    // Handle both 'activities' and legacy 'games' keys
+    const storedActivities = Array.isArray(storedConfig.activities)
+      ? storedConfig.activities
+      : (Array.isArray(storedConfig.games) ? storedConfig.games : []);
 
-    const normalizedGames = games.map((game) => this.normalizeGameForWidget(game));
+    const normalizedActivities = activities.map((activity) => this.normalizeActivityForWidget(activity));
 
-    const mergedGames = normalizedGames.map((normalizedGame) => {
-      const storedGame = storedGames.find((game: any) => game.id === normalizedGame.id);
-      if (!storedGame) {
-        return normalizedGame;
+    const mergedActivities = normalizedActivities.map((normalizedActivity) => {
+      const storedActivity = storedActivities.find((activity: any) => activity.id === normalizedActivity.id);
+      if (!storedActivity) {
+        return normalizedActivity;
       }
 
       return {
-        ...normalizedGame,
-        ...storedGame,
-        id: normalizedGame.id,
+        ...normalizedActivity,
+        ...storedActivity,
+        id: normalizedActivity.id,
       };
     });
 
@@ -150,12 +149,13 @@ export class SupabaseBookingService {
       primaryColor: venue.primary_color,
       baseUrl: venue.base_url,
       ...storedConfig,
-      games: mergedGames,
+      activities: mergedActivities,
+      games: mergedActivities, // Keep for backward compatibility
     };
 
     return {
       config: mergedConfig,
-      games: normalizedGames,
+      activities: normalizedActivities,
     };
   }
 
@@ -187,29 +187,31 @@ export class SupabaseBookingService {
   }
 
   /**
-   * Get active games for a venue (public access)
+   * Get active activities for a venue (public access)
    */
-  static async getVenueGames(venueId: string): Promise<VenueGame[]> {
+  static async getVenueActivities(venueId: string): Promise<VenueActivity[]> {
     try {
-      const { data, error } = await (supabase as any)
-        .rpc('get_venue_games', {
-          p_venue_id: venueId,
-        });
+      // Direct query to 'activities' table
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('venue_id', venueId)
+        .eq('is_active', true);
 
       if (error) {
-        console.error('Error fetching venue games:', error);
+        console.error('Error fetching venue activities:', error);
         return [];
       }
 
-      return (data || []) as VenueGame[];
+      return (data || []) as any as VenueActivity[];
     } catch (error) {
-      console.error('Exception fetching venue games:', error);
+      console.error('Exception fetching venue activities:', error);
       return [];
     }
   }
 
   /**
-   * Get full widget configuration for embeds (venue + normalized games + stored widget settings)
+   * Get full widget configuration for embeds (venue + normalized activities + stored widget settings)
    */
   static async getVenueWidgetConfig(embedKey: string) {
     const venue = await this.getVenueByEmbedKey(embedKey);
@@ -218,12 +220,13 @@ export class SupabaseBookingService {
       return null;
     }
 
-    const games = await this.getVenueGames(venue.id);
-    const { config, games: normalizedGames } = this.mergeWidgetConfig(venue, games);
+    const activities = await this.getVenueActivities(venue.id);
+    const { config, activities: normalizedActivities } = this.mergeWidgetConfig(venue, activities);
 
     return {
       venue,
-      games: normalizedGames,
+      activities: normalizedActivities,
+      games: normalizedActivities, // Backward compatibility
       widgetConfig: config,
     };
   }
@@ -245,57 +248,21 @@ export class SupabaseBookingService {
       }
 
       // 2. Resolve Session
-      // We need to convert the input date/time to the stored session start_time (UTC ISO)
-      // This requires knowing how sessions were generated.
-      // For now, let's assume we can find it by matching the start time.
-      // Ideally, the widget should pass the session_id if it fetched sessions.
-      // If the widget is legacy, we try to find a matching session.
-
-      // Construct a timestamp. This part is tricky without date-fns-tz.
-      // We'll try to find a session that starts at the requested time on the requested date.
-      // We can use a range query on activity_sessions if exact match fails.
-
-      // Let's try to find a session that overlaps or starts at this time.
-      // We'll search for sessions on this date for this activity.
-
-      // Construct search range for the day (in UTC? No, we need to be careful).
-      // Let's use the date string and time string to construct a local ISO-like string
-      // and let the database handle the timezone comparison if possible, OR
-      // just fetch all sessions for the day and match in code.
-
       const searchDate = new Date(params.booking_date);
       const nextDate = new Date(searchDate);
       nextDate.setDate(nextDate.getDate() + 1);
 
       const sessions = await SessionService.listAvailableSessions(
-        params.game_id,
+        params.activity_id,
         searchDate,
         nextDate
       );
 
       // Find matching session
-      // We need to match params.start_time (HH:MM) to session.start_time (ISO)
-      // We need to convert session.start_time to Venue Time to compare.
-      // This is complex without a library on the client side if we don't trust the input.
-      // BUT, if we assume the widget logic is consistent with how we display times...
-
-      // Let's try to match loosely:
-      // session.start_time is UTC.
-      // We need to see if that UTC time corresponds to params.start_time in venue.timezone.
-
       let sessionId = '';
       let matchedSession: Session | null = null;
 
-      // Simple check: if we have sessions, try to match the time part?
-      // Or better: The widget SHOULD be updated to pass session_id.
-      // But for backward compatibility/refactoring step 1:
-
-      // We will iterate and check.
       for (const session of sessions) {
-        // Convert session UTC to Venue Time
-        // We can use the Intl API as we did in SessionService (but that was for generation).
-        // Here we just want to check if the time matches.
-
         const sessionDate = new Date(session.start_time);
         const timeString = sessionDate.toLocaleTimeString('en-US', {
           timeZone: venue.timezone || 'UTC',
@@ -312,21 +279,13 @@ export class SupabaseBookingService {
       }
 
       if (!sessionId) {
-        // Fallback: If no session found, maybe it's a legacy game without sessions?
-        // But we migrated everything.
-        // If we can't find a session, we can't use the new BookingService fully.
-        // However, we can try to create a booking with just activity_id if we relax constraints,
-        // but BookingService requires sessionId.
-
-        // If we are in "Open Time" mode (no specific slots), we might need a "Day Session" or similar.
-        // For now, throw error to enforce slots.
         throw new Error(`No available session found for ${params.start_time} on ${params.booking_date}`);
       }
 
       // 3. Create Booking using BookingService
       const booking = await BookingService.createBooking({
         sessionId: sessionId,
-        activityId: params.game_id,
+        activityId: params.activity_id,
         venueId: params.venue_id,
         customer: {
           firstName: params.customer_name.split(' ')[0],
@@ -359,7 +318,7 @@ export class SupabaseBookingService {
         .select(`
           *,
           customer:customers(*),
-          game:activities(*),
+          activity:activities(*),
           venue:venues(*)
         `)
         .eq('venue_id', venueId)
@@ -387,7 +346,7 @@ export class SupabaseBookingService {
         .select(`
           *,
           customer:customers(*),
-          game:activities(*),
+          activity:activities(*),
           venue:venues(*)
         `)
         .eq('confirmation_code', confirmationCode)
@@ -413,7 +372,7 @@ export class SupabaseBookingService {
       const { data, error } = await (supabase as any)
         .from('bookings')
         .update({
-          status: status, // Assuming 'updates.status' was a typo and meant the 'status' parameter
+          status: status,
           updated_at: new Date().toISOString()
         }).eq('id', bookingId)
         .select()
@@ -434,12 +393,12 @@ export class SupabaseBookingService {
   /**
    * Get booked time slots for availability checking
    */
-  static async getBookedSlots(gameId: string, date: string) {
+  static async getBookedSlots(activityId: string, date: string) {
     try {
       const { data, error } = await supabase
         .from('bookings')
         .select('start_time, end_time, players')
-        .eq('activity_id', gameId)
+        .eq('activity_id', activityId)
         .eq('booking_date', date)
         .in('status', ['pending', 'confirmed', 'checked_in']);
 

@@ -142,8 +142,8 @@ const adaptBookingFromSupabase = (sb: any): Booking => ({
   customer: sb.customer_name || 'Unknown',
   email: sb.customer_email || '',
   phone: sb.customer_phone || '',
-  game: sb.game_name || 'Unknown Game',
-  gameId: sb.game_id,
+  game: sb.activity?.name || sb.game_name || 'Unknown Activity',
+  gameId: sb.activity_id || sb.game_id,
   date: sb.booking_date || '',
   time: sb.booking_time || '',
   groupSize: sb.players || 0,
@@ -178,7 +178,7 @@ const addMinutesToTime = (time: string, minutes: number): string => {
   start.setMinutes(start.getMinutes() + minutes);
   const resultHours = start.getHours().toString().padStart(2, '0');
   const resultMinutes = start.getMinutes().toString().padStart(2, '0');
-  return `${resultHours}:${resultMinutes}`;
+  return `${resultHours}:${resultMinutes} `;
 };
 
 const formatCurrency = (amount: number) =>
@@ -318,7 +318,7 @@ export function Bookings() {
       id: g.id,
       name: g.name,
       venueId: g.venue_id,
-      duration: g.duration ?? 60,
+      duration: g.duration_minutes ?? 60,
       price: Number(g.price) || 0,
       childPrice: Number((g as any).child_price ?? g.price) || Number(g.price) || 0,
       color: gameColors[g.name] || '#6b7280'
@@ -490,11 +490,11 @@ export function Bookings() {
         doc.text('Bookings Export', 14, y);
         y += 8;
         doc.setFontSize(11);
-        doc.text(`Generated: ${new Date().toLocaleString()}`, 14, y);
+        doc.text(`Generated: ${new Date().toLocaleString()} `, 14, y);
         y += 10;
 
         records.forEach(b => {
-          const line = `ID ${b.id} • ${b.customer} • ${b.game} • ${formatDate(b.date)} ${b.time} • ${b.groupSize} ppl • $${b.amount} • ${b.status}`;
+          const line = `ID ${b.id} • ${b.customer} • ${b.game} • ${formatDate(b.date)} ${b.time} • ${b.groupSize} ppl • $${b.amount} • ${b.status} `;
           if (y > 280) { doc.addPage(); y = 20; }
           doc.text(line, 14, y);
           y += 7;
@@ -503,7 +503,7 @@ export function Bookings() {
         doc.save(`bookings_${new Date().toISOString().slice(0, 10)}.pdf`);
       }
 
-      toast.success(`Bookings exported successfully as ${exportFormat.toUpperCase()}`);
+      toast.success(`Bookings exported successfully as ${exportFormat.toUpperCase()} `);
     } catch (err) {
       console.error(err);
       toast.error('Failed to export bookings');
@@ -582,7 +582,7 @@ export function Bookings() {
     if (dateRangePreset === 'thisQuarter') return 'This Quarter';
     if (dateRangePreset === 'thisYear') return 'This Year';
     if (dateRangePreset === 'custom' && customStartDate && customEndDate) {
-      return `${customStartDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${customEndDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      return `${customStartDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${customEndDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} `;
     }
     return 'Select Date Range';
   };
@@ -767,8 +767,8 @@ export function Bookings() {
 
       await AdminBookingService.createAdminBooking({
         venue_id: values.venueId,
-        game_id: values.gameId,
-        customer_name: `${values.firstName} ${values.lastName}`.trim(),
+        activity_id: values.gameId,
+        customer_name: `${values.firstName} ${values.lastName} `.trim(),
         customer_email: values.email,
         customer_phone: values.phone,
         booking_date: values.date,
@@ -822,7 +822,7 @@ export function Bookings() {
               disabled={isRefreshing}
               className="h-11 w-11 flex-shrink-0"
             >
-              <RefreshCcw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCcw className={`w - 4 h - 4 ${isRefreshing ? 'animate-spin' : ''} `} />
             </Button>
             <Button
               className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] flex-1 sm:flex-initial sm:w-auto h-11 flex items-center justify-center gap-2"
@@ -836,12 +836,12 @@ export function Bookings() {
       />
 
       {/* Filters and Search */}
-      <Card className={`${cardBgClass} border ${borderClass} shadow-sm`}>
+      <Card className={`${cardBgClass} border ${borderClass} shadow - sm`}>
         <CardContent className="p-3 sm:p-6">
           <div className="flex flex-col gap-2.5 sm:gap-3">
             {/* Search Bar */}
             <div className="relative">
-              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-[#737373]' : 'text-gray-400'}`} />
+              <Search className={`absolute left - 3 top - 1 / 2 - translate - y - 1 / 2 w - 4 h - 4 ${isDark ? 'text-[#737373]' : 'text-gray-400'} `} />
               <Input
                 placeholder="Search by customer name, email, or booking ID..."
                 className="pl-10 h-11"
@@ -1215,7 +1215,7 @@ export function Bookings() {
         </div>
 
         <p className="text-sm text-gray-600 dark:text-[#737373]">
-          {filteredBookings.length} {filteredBookings.length !== bookings.length && `of ${bookings.length}`} booking{filteredBookings.length !== 1 ? 's' : ''}
+          {filteredBookings.length} {filteredBookings.length !== bookings.length && `of ${bookings.length} `} booking{filteredBookings.length !== 1 ? 's' : ''}
         </p>
       </div>
 
@@ -1294,13 +1294,13 @@ export function Bookings() {
                           </div>
                           <Badge
                             variant="secondary"
-                            className={`flex-shrink-0 text-xs border
+                            className={`flex - shrink - 0 text - xs border
                             ${booking.status === 'confirmed' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : ''}
                             ${booking.status === 'pending' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30' : ''}
                             ${booking.status === 'cancelled' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30' : ''}
                             ${booking.status === 'no-show' ? 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-500/30' : ''}
                             ${booking.status === 'completed' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/30' : ''}
-                          `}
+`}
                           >
                             {booking.status}
                           </Badge>
@@ -1432,7 +1432,7 @@ export function Bookings() {
                           ${booking.status === 'cancelled' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30' : ''}
                           ${booking.status === 'no-show' ? 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-500/30' : ''}
                           ${booking.status === 'completed' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/30' : ''}
-                        `}
+`}
                           >
                             {booking.status}
                           </Badge>
@@ -1577,20 +1577,20 @@ export function Bookings() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                 <button
                   onClick={() => setExportFormat('csv')}
-                  className={`p-4 border-2 rounded-lg text-left transition-all ${exportFormat === 'csv'
-                      ? 'border-[#4f46e5] dark:border-[#6366f1] bg-blue-50 dark:bg-[#4f46e5]/10'
-                      : 'border-gray-200 dark:border-[#2a2a2a] hover:border-gray-300 dark:hover:border-[#404040]'
-                    }`}
+                  className={`p - 4 border - 2 rounded - lg text - left transition - all ${exportFormat === 'csv'
+                    ? 'border-[#4f46e5] dark:border-[#6366f1] bg-blue-50 dark:bg-[#4f46e5]/10'
+                    : 'border-gray-200 dark:border-[#2a2a2a] hover:border-gray-300 dark:hover:border-[#404040]'
+                    } `}
                 >
                   <p className="text-sm text-gray-900 dark:text-white">CSV File</p>
                   <p className="text-xs text-gray-600 dark:text-[#737373] mt-1">Excel compatible spreadsheet</p>
                 </button>
                 <button
                   onClick={() => setExportFormat('pdf')}
-                  className={`p-4 border-2 rounded-lg text-left transition-all ${exportFormat === 'pdf'
-                      ? 'border-[#4f46e5] dark:border-[#6366f1] bg-blue-50 dark:bg-[#4f46e5]/10'
-                      : 'border-gray-200 dark:border-[#2a2a2a] hover:border-gray-300 dark:hover:border-[#404040]'
-                    }`}
+                  className={`p - 4 border - 2 rounded - lg text - left transition - all ${exportFormat === 'pdf'
+                    ? 'border-[#4f46e5] dark:border-[#6366f1] bg-blue-50 dark:bg-[#4f46e5]/10'
+                    : 'border-gray-200 dark:border-[#2a2a2a] hover:border-gray-300 dark:hover:border-[#404040]'
+                    } `}
                 >
                   <p className="text-sm text-gray-900 dark:text-white">PDF File</p>
                   <p className="text-xs text-gray-600 dark:text-[#737373] mt-1">Printable document format</p>
@@ -1677,7 +1677,7 @@ function MonthCalendarView({ bookings, onViewDetails, onShowAttendees, calendarM
 
   const getBookingsForDay = (day: number) => {
     const { year, month } = getDaysInMonth(calendarMonth);
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dateStr = `${year} -${String(month + 1).padStart(2, '0')} -${String(day).padStart(2, '0')} `;
     return bookings.filter((b: any) => b.date === dateStr);
   };
 
@@ -1693,7 +1693,7 @@ function MonthCalendarView({ bookings, onViewDetails, onShowAttendees, calendarM
 
   const days: React.ReactElement[] = [];
   for (let i = 0; i < startingDayOfWeek; i++) {
-    days.push(<div key={`empty-${i}`} className="min-h-[80px] sm:min-h-[120px]" />);
+    days.push(<div key={`empty - ${i} `} className="min-h-[80px] sm:min-h-[120px]" />);
   }
 
   for (let day = 1; day <= daysInMonth; day++) {
@@ -1703,11 +1703,11 @@ function MonthCalendarView({ bookings, onViewDetails, onShowAttendees, calendarM
     days.push(
       <div
         key={day}
-        className={`min-h-[80px] sm:min-h-[120px] border border-gray-200 dark:border-[#2a2a2a] p-1 sm:p-2 bg-white dark:bg-[#161616] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors ${isToday ? 'ring-1 sm:ring-2 ring-[#4f46e5] dark:ring-[#6366f1]' : ''
-          }`}
+        className={`min - h - [80px] sm: min - h - [120px] border border - gray - 200 dark: border - [#2a2a2a] p - 1 sm: p - 2 bg - white dark: bg - [#161616] hover: bg - gray - 50 dark: hover: bg - [#1a1a1a] transition - colors ${isToday ? 'ring-1 sm:ring-2 ring-[#4f46e5] dark:ring-[#6366f1]' : ''
+          } `}
       >
         <div className="flex items-center justify-between mb-1 sm:mb-2">
-          <span className={`text-xs sm:text-sm ${isToday ? 'bg-blue-600 dark:bg-[#4f46e5] text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs' : 'text-gray-900 dark:text-white'}`}>
+          <span className={`text - xs sm: text - sm ${isToday ? 'bg-blue-600 dark:bg-[#4f46e5] text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs' : 'text-gray-900 dark:text-white'} `}>
             {day}
           </span>
           {dayBookings.length > 0 && (
@@ -1729,7 +1729,7 @@ function MonthCalendarView({ bookings, onViewDetails, onShowAttendees, calendarM
               <div
                 key={booking.id}
                 className="text-xs p-1 sm:p-1.5 rounded cursor-pointer hover:opacity-80 transition-opacity"
-                style={{ backgroundColor: gameColor + '20', borderLeft: `2px sm:3px solid ${gameColor}` }}
+                style={{ backgroundColor: gameColor + '20', borderLeft: `2px sm: 3px solid ${gameColor} ` }}
                 onClick={() => onViewDetails(booking)}
               >
                 <div className="flex items-center gap-0.5 sm:gap-1">
@@ -1876,10 +1876,10 @@ function WeekView({ bookings, onViewDetails, selectedDate, setSelectedDate, game
                   return (
                     <div
                       key={idx}
-                      className={`text-center p-2 rounded-t-lg ${isToday ? 'bg-blue-50 dark:bg-[#4f46e5]/10 border border-blue-200 dark:border-[#4f46e5]/30' : 'bg-gray-50 dark:bg-[#0a0a0a]'}`}
+                      className={`text - center p - 2 rounded - t - lg ${isToday ? 'bg-blue-50 dark:bg-[#4f46e5]/10 border border-blue-200 dark:border-[#4f46e5]/30' : 'bg-gray-50 dark:bg-[#0a0a0a]'} `}
                     >
                       <p className="text-xs text-gray-600 dark:text-[#737373]">{day.toLocaleDateString('en-US', { weekday: 'short' })}</p>
-                      <p className={`text-sm ${isToday ? 'text-[#4f46e5] dark:text-[#6366f1]' : 'text-gray-900 dark:text-white'}`}>
+                      <p className={`text - sm ${isToday ? 'text-[#4f46e5] dark:text-[#6366f1]' : 'text-gray-900 dark:text-white'} `}>
                         {day.getDate()}
                       </p>
                     </div>
@@ -1907,7 +1907,7 @@ function WeekView({ bookings, onViewDetails, selectedDate, setSelectedDate, game
                               <div
                                 key={booking.id}
                                 className="text-xs p-1.5 rounded cursor-pointer hover:opacity-80 transition-opacity mb-1"
-                                style={{ backgroundColor: gameColor + '20', borderLeft: `3px solid ${gameColor}` }}
+                                style={{ backgroundColor: gameColor + '20', borderLeft: `3px solid ${gameColor} ` }}
                                 onClick={() => onViewDetails(booking)}
                               >
                                 <p className="text-gray-900 dark:text-white truncate">{booking.game}</p>
@@ -2033,7 +2033,7 @@ function DayView({ bookings, onViewDetails, selectedDate, setSelectedDate, games
                                   ${booking.status === 'confirmed' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : ''}
                                   ${booking.status === 'pending' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30' : ''}
                                   ${booking.status === 'cancelled' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30' : ''}
-                                `}
+`}
                               >
                                 {booking.status}
                               </Badge>
@@ -2143,17 +2143,17 @@ function ScheduleView({ bookings, onViewDetails, selectedDate, setSelectedDate, 
                             <div
                               key={booking.id}
                               className="text-xs p-1.5 rounded cursor-pointer hover:opacity-80 transition-opacity mb-1"
-                              style={{ backgroundColor: game.color + '20', borderLeft: `3px solid ${game.color}` }}
+                              style={{ backgroundColor: game.color + '20', borderLeft: `3px solid ${game.color} ` }}
                               onClick={() => onViewDetails(booking)}
                             >
                               <p className="text-gray-900 dark:text-white truncate">{booking.customer}</p>
                               <p className="text-gray-600 dark:text-[#737373] text-[10px]">{booking.groupSize} people</p>
                               <Badge
                                 variant="secondary"
-                                className={`text-[10px] px-1 py-0 h-4 mt-1 border
+                                className={`text - [10px] px - 1 py - 0 h - 4 mt - 1 border
                                 ${booking.status === 'confirmed' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : ''}
                                 ${booking.status === 'pending' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30' : ''}
-                              `}
+`}
                               >
                                 {booking.status}
                               </Badge>
@@ -2553,7 +2553,7 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings, gamesData, v
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Customer:</span>
-                    <span className="text-gray-900">{formData.firstName && formData.lastName ? `${formData.firstName} ${formData.lastName}` : '—'}</span>
+                    <span className="text-gray-900">{formData.firstName && formData.lastName ? `${formData.firstName} ${formData.lastName} ` : '—'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Venue:</span>
@@ -2565,7 +2565,7 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings, gamesData, v
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Date & Time:</span>
-                    <span className="text-gray-900">{formData.date || '—'}{formData.time ? ` at ${formData.time}` : ''}</span>
+                    <span className="text-gray-900">{formData.date || '—'}{formData.time ? ` at ${formData.time} ` : ''}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Estimated End:</span>
@@ -2749,13 +2749,13 @@ function BookingDetailsDialog({ open, onOpenChange, booking, onRefund, onResched
           <div className="flex items-center justify-between">
             <Badge
               variant="secondary"
-              className={`text-sm px-3 py-1 border
+              className={`text - sm px - 3 py - 1 border
                 ${booking.status === 'confirmed' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : ''}
                 ${booking.status === 'pending' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30' : ''}
                 ${booking.status === 'cancelled' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30' : ''}
                 ${booking.status === 'in-progress' ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/30' : ''}
                 ${booking.status === 'completed' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/30' : ''}
-              `}
+`}
             >
               {booking.status.toUpperCase()}
             </Badge>
@@ -3088,7 +3088,7 @@ function AttendeeListDialog({ open, onOpenChange, date, bookings, gamesData = []
     }
     const csv = buildCsv(rows);
     const ts = new Date();
-    const stamp = `${ts.getFullYear()}-${String(ts.getMonth() + 1).padStart(2, '0')}-${String(ts.getDate()).padStart(2, '0')}_${String(ts.getHours()).padStart(2, '0')}${String(ts.getMinutes()).padStart(2, '0')}`;
+    const stamp = `${ts.getFullYear()} -${String(ts.getMonth() + 1).padStart(2, '0')} -${String(ts.getDate()).padStart(2, '0')}_${String(ts.getHours()).padStart(2, '0')}${String(ts.getMinutes()).padStart(2, '0')} `;
     const filename = `attendees_${date.toISOString().split('T')[0]}_${stamp}.csv`;
     downloadCsv(csv, filename);
     toast.success(`Exported ${rows.length} records`);
@@ -3195,10 +3195,10 @@ function AttendeeListDialog({ open, onOpenChange, date, bookings, gamesData = []
                             <p className="text-xl text-gray-900">${booking.amount}</p>
                             <Badge
                               variant="secondary"
-                              className={`mt-2
+                              className={`mt - 2
                                 ${booking.status === 'confirmed' ? 'bg-green-100 text-green-700' : ''}
                                 ${booking.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : ''}
-                              `}
+`}
                             >
                               {booking.status}
                             </Badge>
@@ -3298,16 +3298,17 @@ function RescheduleDialog({ open, onOpenChange, booking, onConfirm, bookings = [
                       onClick={() => slot.available && setNewTime(slot.time)}
                       disabled={!slot.available}
                       className={`
-                        px-3 py-2 rounded-lg border-2 text-center transition-all
+px - 3 py - 2 rounded - lg border - 2 text - center transition - all
                         ${newTime === slot.time
                           ? 'bg-blue-600 text-white border-blue-600 shadow-md'
                           : slot.available
                             ? 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                            : 'border-gray-100 cursor-not-allowed opacity-50'}
-                      `}
+                            : 'border-gray-100 cursor-not-allowed opacity-50'
+                        }
+`}
                     >
                       <div className="text-sm">{slot.time}</div>
-                      <div className={`text-xs mt-0.5 ${slot.available ? 'text-green-600' : 'text-red-500'}`}>
+                      <div className={`text - xs mt - 0.5 ${slot.available ? 'text-green-600' : 'text-red-500'} `}>
                         {slot.available ? 'Available' : 'Unavailable'}
                       </div>
                     </button>

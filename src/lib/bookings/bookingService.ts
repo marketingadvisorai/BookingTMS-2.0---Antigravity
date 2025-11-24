@@ -3,7 +3,7 @@ import { PaymentService } from '../payments/paymentService';
 
 export interface CreateBookingParams {
   venueId: string;
-  gameId: string;
+  activityId: string;
   sessionId?: string; // Added sessionId
   bookingDate: string;
   startTime: string;
@@ -39,7 +39,7 @@ export class BookingService {
       // 2. Create booking record
       const booking = await this.createBooking({
         venueId: params.venueId,
-        gameId: params.gameId,
+        activityId: params.activityId,
         sessionId: params.sessionId, // Pass sessionId
         customerId: customer.id,
         bookingDate: params.bookingDate,
@@ -91,8 +91,8 @@ export class BookingService {
     }
 
     // Create new customer
-    const { data: newCustomer, error } = await supabase
-      .from('customers')
+    const { data: newCustomer, error } = await (supabase
+      .from('customers') as any)
       .insert({
         first_name: customerData.firstName,
         last_name: customerData.lastName,
@@ -116,7 +116,7 @@ export class BookingService {
    */
   static async createBooking(data: {
     venueId: string;
-    gameId: string;
+    activityId: string;
     sessionId?: string; // Added sessionId
     customerId: string;
     bookingDate: string;
@@ -127,11 +127,11 @@ export class BookingService {
     status: string;
     paymentStatus: string;
   }) {
-    const { data: booking, error } = await supabase
-      .from('bookings')
+    const { data: booking, error } = await (supabase
+      .from('bookings') as any)
       .insert({
         venue_id: data.venueId,
-        game_id: data.gameId,
+        activity_id: data.activityId,
         session_id: data.sessionId || null, // Use session_id
         customer_id: data.customerId,
         booking_date: data.bookingDate,
@@ -159,12 +159,12 @@ export class BookingService {
    * Get booking by ID with all related data
    */
   static async getBooking(bookingId: string) {
-    const { data, error } = await supabase
-      .from('bookings')
+    const { data, error } = await (supabase
+      .from('bookings') as any)
       .select(`
         *,
         venue:venues(*),
-        game:games(*),
+        activity:activities(*),
         customer:customers(*),
         payment:payments(*)
       `)
@@ -183,12 +183,12 @@ export class BookingService {
    * Get all bookings for a customer
    */
   static async getCustomerBookings(customerId: string) {
-    const { data, error } = await supabase
-      .from('bookings')
+    const { data, error } = await (supabase
+      .from('bookings') as any)
       .select(`
         *,
         venue:venues(name),
-        game:games(name, description),
+        activity:activities(name, description),
         payment:payments(status, amount)
       `)
       .eq('customer_id', customerId)
@@ -206,8 +206,8 @@ export class BookingService {
    * Cancel booking
    */
   static async cancelBooking(bookingId: string, reason?: string) {
-    const { data, error } = await supabase
-      .from('bookings')
+    const { data, error } = await (supabase
+      .from('bookings') as any)
       .update({
         status: 'canceled',
         updated_at: new Date().toISOString(),
@@ -241,8 +241,8 @@ export class BookingService {
       updates.payment_status = paymentStatus;
     }
 
-    const { data, error } = await supabase
-      .from('bookings')
+    const { data, error } = await (supabase
+      .from('bookings') as any)
       .update(updates)
       .eq('id', bookingId)
       .select()

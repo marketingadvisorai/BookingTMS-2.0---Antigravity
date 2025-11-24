@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryService } from '../services/inventoryService';
 import { Game, CreateGameDTO } from '../types';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { useAuth } from '../../../lib/auth/AuthContext';
 
 export function useInventory() {
@@ -10,13 +10,13 @@ export function useInventory() {
 
   const gamesQuery = useQuery({
     queryKey: ['games', currentUser?.organizationId],
-    queryFn: () => inventoryService.getGames(currentUser!.organizationId),
+    queryFn: () => inventoryService.getGames(currentUser?.organizationId || ''),
     enabled: !!currentUser?.organizationId,
   });
 
   const statsQuery = useQuery({
     queryKey: ['inventoryStats', currentUser?.organizationId],
-    queryFn: () => inventoryService.getStats(currentUser!.organizationId),
+    queryFn: () => inventoryService.getStats(currentUser?.organizationId || ''),
     enabled: !!currentUser?.organizationId,
   });
 
@@ -34,7 +34,7 @@ export function useInventory() {
   });
 
   const updateGameMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: any }) => 
+    mutationFn: ({ id, updates }: { id: string; updates: any }) =>
       inventoryService.updateGame(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['games'] });
@@ -74,9 +74,9 @@ export function useInventory() {
   };
 
   const toggleStatus = async (id: string, currentStatus: boolean) => {
-    return updateGameMutation.mutateAsync({ 
-      id, 
-      updates: { is_active: !currentStatus } 
+    return updateGameMutation.mutateAsync({
+      id,
+      updates: { is_active: !currentStatus }
     });
   };
 

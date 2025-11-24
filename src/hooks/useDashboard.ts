@@ -20,7 +20,7 @@ export interface WeeklyTrend {
 export interface UpcomingBooking {
   booking_id: string;
   customer_name: string;
-  game_name: string;
+  activity_name: string;
   venue_name: string;
   booking_date: string;
   start_time: string;
@@ -36,7 +36,7 @@ export interface TodaysHourly {
 export interface RecentActivity {
   booking_id: string;
   customer_name: string;
-  game_name: string;
+  activity_name: string;
   venue_name: string;
   booking_date: string;
   booking_time: string;
@@ -59,7 +59,7 @@ export function useDashboard() {
       setLoading(true);
 
       // Fetch dashboard stats
-      const { data: statsData, error: statsError } = await supabase
+      const { data: statsData, error: statsError } = await (supabase as any)
         .rpc('get_dashboard_stats');
 
       if (statsError) throw statsError;
@@ -68,32 +68,44 @@ export function useDashboard() {
       }
 
       // Fetch weekly trend
-      const { data: trendData, error: trendError } = await supabase
+      const { data: trendData, error: trendError } = await (supabase as any)
         .rpc('get_weekly_bookings_trend');
 
       if (trendError) throw trendError;
       setWeeklyTrend(trendData || []);
 
       // Fetch upcoming bookings
-      const { data: upcomingData, error: upcomingError } = await supabase
+      const { data: upcomingData, error: upcomingError } = await (supabase as any)
         .rpc('get_upcoming_bookings', { limit_count: 5 });
 
       if (upcomingError) throw upcomingError;
-      setUpcomingBookings(upcomingData || []);
+
+      // Map game_name to activity_name if necessary
+      const mappedUpcoming = (upcomingData || []).map((item: any) => ({
+        ...item,
+        activity_name: item.activity_name || item.game_name || 'Unknown Activity'
+      }));
+      setUpcomingBookings(mappedUpcoming);
 
       // Fetch today's hourly bookings
-      const { data: hourlyData, error: hourlyError } = await supabase
+      const { data: hourlyData, error: hourlyError } = await (supabase as any)
         .rpc('get_todays_bookings_by_hour');
 
       if (hourlyError) throw hourlyError;
       setTodaysHourly(hourlyData || []);
 
       // Fetch recent booking activity
-      const { data: activityData, error: activityError } = await supabase
+      const { data: activityData, error: activityError } = await (supabase as any)
         .rpc('get_recent_booking_activity', { limit_count: 10 });
 
       if (activityError) throw activityError;
-      setRecentActivity(activityData || []);
+
+      // Map game_name to activity_name if necessary
+      const mappedActivity = (activityData || []).map((item: any) => ({
+        ...item,
+        activity_name: item.activity_name || item.game_name || 'Unknown Activity'
+      }));
+      setRecentActivity(mappedActivity);
 
     } catch (err: any) {
       console.error('Error fetching dashboard data:', err);
@@ -108,7 +120,7 @@ export function useDashboard() {
     // Subscribe to bookings changes
     const subscription = supabase
       .channel('dashboard-changes')
-      .on('postgres_changes', 
+      .on('postgres_changes',
         { event: '*', schema: 'public', table: 'bookings' },
         () => {
           fetchDashboardData();

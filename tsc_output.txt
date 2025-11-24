@@ -1,0 +1,291 @@
+src/App.tsx(193,33): error TS2304: Cannot find name 'effectivePage'.
+src/App.tsx(193,60): error TS2304: Cannot find name 'setCurrentPage'.
+src/backend/api/bookings/index.ts(33,7): error TS2353: Object literal may only specify known properties, and 'game_id' does not exist in type 'BookingFilters'.
+src/backend/api/bookings/index.ts(100,22): error TS2339: Property 'game_id' does not exist on type 'CreateBookingDTO'.
+src/backend/api/routes/config.routes.ts(8,40): error TS2307: Cannot find module 'express-validator' or its corresponding type declarations.
+src/backend/api/routes/payments.routes.ts(18,47): error TS2307: Cannot find module 'express-validator' or its corresponding type declarations.
+src/backend/api/routes/stripe-connect-accounts.routes.ts(7,3): error TS2322: Type '"2023-10-16"' is not assignable to type '"2025-11-17.clover"'.
+src/backend/api/routes/stripe-connect.routes.ts(9,54): error TS2307: Cannot find module 'express-validator' or its corresponding type declarations.
+src/backend/api/routes/stripe-oauth.routes.ts(15,40): error TS2307: Cannot find module 'express-validator' or its corresponding type declarations.
+src/backend/api/routes/stripe-oauth.routes.ts(22,3): error TS2322: Type '"2023-10-16"' is not assignable to type '"2025-11-17.clover"'.
+src/backend/api/routes/stripe.routes.ts(9,47): error TS2307: Cannot find module 'express-validator' or its corresponding type declarations.
+src/backend/api/server.ts(8,18): error TS2307: Cannot find module 'cors' or its corresponding type declarations.
+src/backend/services/payment.service.ts(60,7): error TS2322: Type '"2023-10-16"' is not assignable to type '"2025-11-17.clover"'.
+src/components/email/EmailTemplateEditor.tsx(22,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/events/AddEventWizard.tsx(53,66): error TS2345: Argument of type 'ActivityData | { name: string; description: string; category: string; tagline: string; eventType: "public"; activityType: "physical"; minAdults: number; maxAdults: number; ... 33 more ...; selectedWidget: string; }' is not assignable to parameter of type 'ActivityData | (() => ActivityData)'.
+  Type '{ name: string; description: string; category: string; tagline: string; eventType: "public"; activityType: "physical"; minAdults: number; maxAdults: number; minChildren: number; maxChildren: number; ... 31 more ...; selectedWidget: string; }' is not assignable to type 'ActivityData | (() => ActivityData)'.
+    Type '{ name: string; description: string; category: string; tagline: string; eventType: "public"; activityType: "physical"; minAdults: number; maxAdults: number; minChildren: number; maxChildren: number; ... 31 more ...; selectedWidget: string; }' is missing the following properties from type 'ActivityData': requiresWaiver, selectedWaiver, cancellationWindow, specialInstructions
+src/components/events/AddEventWizard.tsx(138,17): error TS2322: Type '{ activityData: ActivityData; updateActivityData: (field: string, value: any) => void; t: { singular: string; plural: string; }; }' is not assignable to type 'ExtendedStepProps'.
+  Types of property 'updateActivityData' are incompatible.
+    Type '(field: string, value: any) => void' is not assignable to type '(field: keyof ActivityData, value: any) => void'.
+      Types of parameters 'field' and 'field' are incompatible.
+        Type 'keyof ActivityData' is not assignable to type 'string'.
+          Type 'number' is not assignable to type 'string'.
+src/components/events/AddEventWizard.tsx(140,17): error TS2322: Type '{ activityData: ActivityData; updateActivityData: (field: string, value: any) => void; t: { singular: string; plural: string; }; }' is not assignable to type 'StepProps'.
+  Types of property 'updateActivityData' are incompatible.
+    Type '(field: string, value: any) => void' is not assignable to type '(field: keyof ActivityData, value: any) => void'.
+      Types of parameters 'field' and 'field' are incompatible.
+        Type 'keyof ActivityData' is not assignable to type 'string'.
+          Type 'number' is not assignable to type 'string'.
+src/components/events/AddEventWizard.tsx(142,17): error TS2322: Type '{ activityData: ActivityData; updateActivityData: (field: string, value: any) => void; t: { singular: string; plural: string; }; }' is not assignable to type 'StepProps'.
+  Types of property 'updateActivityData' are incompatible.
+    Type '(field: string, value: any) => void' is not assignable to type '(field: keyof ActivityData, value: any) => void'.
+      Types of parameters 'field' and 'field' are incompatible.
+        Type 'keyof ActivityData' is not assignable to type 'string'.
+          Type 'number' is not assignable to type 'string'.
+src/components/events/AddEventWizard.tsx(144,17): error TS2322: Type '{ activityData: ActivityData; updateActivityData: (field: string, value: any) => void; t: { singular: string; plural: string; }; }' is not assignable to type 'StepProps'.
+  Types of property 'updateActivityData' are incompatible.
+    Type '(field: string, value: any) => void' is not assignable to type '(field: keyof ActivityData, value: any) => void'.
+      Types of parameters 'field' and 'field' are incompatible.
+        Type 'keyof ActivityData' is not assignable to type 'string'.
+          Type 'number' is not assignable to type 'string'.
+src/components/events/AddEventWizard.tsx(146,17): error TS2322: Type '{ activityData: ActivityData; updateActivityData: (field: string, value: any) => void; t: { singular: string; plural: string; }; }' is not assignable to type 'StepProps'.
+  Types of property 'updateActivityData' are incompatible.
+    Type '(field: string, value: any) => void' is not assignable to type '(field: keyof ActivityData, value: any) => void'.
+      Types of parameters 'field' and 'field' are incompatible.
+        Type 'keyof ActivityData' is not assignable to type 'string'.
+          Type 'number' is not assignable to type 'string'.
+src/components/events/StripeConfigurationModal.tsx(81,17): error TS2345: Argument of type '{ stripe_product_id: null; stripe_price_id: null; stripe_checkout_url: null; stripe_sync_status: string; stripe_last_sync: null; }' is not assignable to parameter of type 'never'.
+src/components/events/StripeConfigurationModal.tsx(143,17): error TS2345: Argument of type '{ stripe_product_id: any; stripe_price_id: any; stripe_checkout_url: any; stripe_sync_status: string; stripe_last_sync: string; }' is not assignable to parameter of type 'never'.
+src/components/payments/RefundDialog.tsx(32,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/systemadmin/DeleteOwnerDialog.tsx(10,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/systemadmin/EditOwnerDialog.tsx(12,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/systemadmin/LandingPageEditor.tsx(20,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/systemadmin/LandingPagePreview.tsx(5,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/systemadmin/ManagePlanDialog.tsx(13,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/systemadmin/ManagePlanDialog.tsx(72,7): error TS2322: Type '(node: HTMLDivElement | null) => ReactElement<unknown, string | JSXElementConstructor<any>> | null' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+  Type '(node: HTMLDivElement | null) => ReactElement<unknown, string | JSXElementConstructor<any>> | null' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'.
+    Type 'ReactElement<unknown, string | JSXElementConstructor<any>> | null' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+      Type 'null' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+src/components/systemadmin/ProfileEmbedModal.tsx(5,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/systemadmin/ProfileEmbedSettings.tsx(26,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/systemadmin/ProfileSettingsModal.tsx(9,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/systemadmin/SystemAdminSettingsModal.tsx(40,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/ui/accordion.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-accordion@1.2.3' or its corresponding type declarations.
+src/components/ui/accordion.tsx(5,33): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/alert-dialog.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-alert-dialog@1.1.6' or its corresponding type declarations.
+src/components/ui/alert.tsx(2,40): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+src/components/ui/aspect-ratio.tsx(3,39): error TS2307: Cannot find module '@radix-ui/react-aspect-ratio@1.1.2' or its corresponding type declarations.
+src/components/ui/avatar.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-avatar@1.1.3' or its corresponding type declarations.
+src/components/ui/badge.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+src/components/ui/badge.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+src/components/ui/breadcrumb.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+src/components/ui/breadcrumb.tsx(3,46): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/button.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+src/components/ui/button.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+src/components/ui/calendar.tsx(4,43): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/calendar.tsx(5,27): error TS2307: Cannot find module 'react-day-picker@8.10.1' or its corresponding type declarations.
+src/components/ui/carousel.tsx(6,8): error TS2307: Cannot find module 'embla-carousel-react@8.6.0' or its corresponding type declarations.
+src/components/ui/carousel.tsx(7,39): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/chart.tsx(4,36): error TS2307: Cannot find module 'recharts@2.15.2' or its corresponding type declarations.
+src/components/ui/checkbox.tsx(4,36): error TS2307: Cannot find module '@radix-ui/react-checkbox@1.1.4' or its corresponding type declarations.
+src/components/ui/checkbox.tsx(5,27): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/collapsible.tsx(3,39): error TS2307: Cannot find module '@radix-ui/react-collapsible@1.1.3' or its corresponding type declarations.
+src/components/ui/command.tsx(4,45): error TS2307: Cannot find module 'cmdk@1.1.1' or its corresponding type declarations.
+src/components/ui/command.tsx(5,28): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/context-menu.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-context-menu@2.2.6' or its corresponding type declarations.
+src/components/ui/context-menu.tsx(5,57): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/dialog.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-dialog@1.1.6' or its corresponding type declarations.
+src/components/ui/dialog.tsx(5,23): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/drawer.tsx(4,43): error TS2307: Cannot find module 'vaul@1.1.2' or its corresponding type declarations.
+src/components/ui/dropdown-menu.tsx(4,40): error TS2307: Cannot find module '@radix-ui/react-dropdown-menu@2.1.6' or its corresponding type declarations.
+src/components/ui/dropdown-menu.tsx(5,57): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/form.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-label@2.1.2' or its corresponding type declarations.
+src/components/ui/form.tsx(5,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+src/components/ui/form.tsx(14,8): error TS2307: Cannot find module 'react-hook-form@7.55.0' or its corresponding type declarations.
+src/components/ui/hover-card.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-hover-card@1.1.6' or its corresponding type declarations.
+src/components/ui/input-otp.tsx(4,43): error TS2307: Cannot find module 'input-otp@1.4.2' or its corresponding type declarations.
+src/components/ui/input-otp.tsx(5,27): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/input-otp.tsx(47,61): error TS2339: Property 'slots' does not exist on type '{}'.
+src/components/ui/label.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-label@2.1.2' or its corresponding type declarations.
+src/components/ui/menubar.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-menubar@1.1.6' or its corresponding type declarations.
+src/components/ui/menubar.tsx(5,57): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/navigation-menu.tsx(2,42): error TS2307: Cannot find module '@radix-ui/react-navigation-menu@1.2.5' or its corresponding type declarations.
+src/components/ui/navigation-menu.tsx(3,21): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+src/components/ui/navigation-menu.tsx(4,33): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/pagination.tsx(6,8): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/pagination.tsx(75,7): error TS2783: 'size' is specified more than once, so this usage will be overwritten.
+src/components/ui/pagination.tsx(92,7): error TS2783: 'size' is specified more than once, so this usage will be overwritten.
+src/components/ui/popover.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-popover@1.1.6' or its corresponding type declarations.
+src/components/ui/progress.tsx(4,36): error TS2307: Cannot find module '@radix-ui/react-progress@1.1.2' or its corresponding type declarations.
+src/components/ui/radio-group.tsx(4,38): error TS2307: Cannot find module '@radix-ui/react-radio-group@1.2.3' or its corresponding type declarations.
+src/components/ui/radio-group.tsx(5,28): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/resizable.tsx(4,34): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/resizable.tsx(5,37): error TS2307: Cannot find module 'react-resizable-panels@2.1.7' or its corresponding type declarations.
+src/components/ui/scroll-area.tsx(4,38): error TS2307: Cannot find module '@radix-ui/react-scroll-area@1.2.3' or its corresponding type declarations.
+src/components/ui/select.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-select@2.1.6' or its corresponding type declarations.
+src/components/ui/select.tsx(9,8): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/separator.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-separator@1.1.2' or its corresponding type declarations.
+src/components/ui/sheet.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-dialog@1.1.6' or its corresponding type declarations.
+src/components/ui/sheet.tsx(5,23): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/sidebar.tsx(4,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+src/components/ui/sidebar.tsx(5,35): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+src/components/ui/sidebar.tsx(6,31): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+src/components/ui/slider.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-slider@1.2.3' or its corresponding type declarations.
+src/components/ui/sonner.tsx(3,26): error TS2307: Cannot find module 'next-themes@0.4.6' or its corresponding type declarations.
+src/components/ui/sonner.tsx(4,49): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/ui/switch.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-switch@1.1.3' or its corresponding type declarations.
+src/components/ui/tabs.tsx(4,32): error TS2307: Cannot find module '@radix-ui/react-tabs@1.1.3' or its corresponding type declarations.
+src/components/ui/toggle-group.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-toggle-group@1.1.2' or its corresponding type declarations.
+src/components/ui/toggle-group.tsx(5,35): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+src/components/ui/toggle.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-toggle@1.1.2' or its corresponding type declarations.
+src/components/ui/toggle.tsx(5,40): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+src/components/ui/tooltip.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-tooltip@1.1.8' or its corresponding type declarations.
+src/components/venue/VenueGamesManager.tsx(19,27): error TS2307: Cannot find module '../games/AddGameWizard' or its corresponding type declarations.
+src/components/venue/VenueGamesManager.tsx(225,51): error TS2345: Argument of type '{ venue_id: string; name: any; slug: any; description: any; difficulty: "Easy" | "Medium" | "Hard" | "Expert"; duration: any; min_players: any; max_players: any; price: any; child_price: any; min_age: any; ... 9 more ...; settings: { ...; }; }' is not assignable to parameter of type 'Partial<Game>'.
+  Types of property 'difficulty' are incompatible.
+    Type '"Easy" | "Medium" | "Hard" | "Expert"' is not assignable to type 'DifficultyLevel | undefined'.
+      Type '"Easy"' is not assignable to type 'DifficultyLevel | undefined'. Did you mean '"easy"'?
+src/components/venue/VenueGamesManager.tsx(230,35): error TS2345: Argument of type '{ venue_id: string; name: any; slug: any; description: any; difficulty: "Easy" | "Medium" | "Hard" | "Expert"; duration: any; min_players: any; max_players: any; price: any; child_price: any; min_age: any; ... 9 more ...; settings: { ...; }; }' is not assignable to parameter of type 'CreateGameDTO'.
+  Type '{ venue_id: string; name: any; slug: any; description: any; difficulty: "Easy" | "Medium" | "Hard" | "Expert"; duration: any; min_players: any; max_players: any; price: any; child_price: any; min_age: any; ... 9 more ...; settings: { ...; }; }' is missing the following properties from type 'CreateGameDTO': organization_id, duration_minutes, is_active
+src/components/venue/VenueGamesManager.tsx(322,24): error TS2345: Argument of type '{ venue_id: string; name: string; slug: string; description: any; difficulty: any; duration: any; min_players: any; max_players: any; price: any; child_price: any; min_age: any; success_rate: any; image_url: any; ... 4 more ...; stripe_sync_status: string; }' is not assignable to parameter of type 'CreateGameDTO'.
+  Type '{ venue_id: string; name: string; slug: string; description: any; difficulty: any; duration: any; min_players: any; max_players: any; price: any; child_price: any; min_age: any; success_rate: any; image_url: any; ... 4 more ...; stripe_sync_status: string; }' is missing the following properties from type 'CreateGameDTO': organization_id, duration_minutes, is_active
+src/components/venue/VenueGamesManager.tsx(378,39): error TS2339: Property 'duration' does not exist on type 'Game'.
+src/components/venue/VenueGamesManager.tsx(380,72): error TS2339: Property 'status' does not exist on type 'Game'.
+src/components/venue/VenueGamesManager.tsx(381,35): error TS2339: Property 'status' does not exist on type 'Game'.
+src/components/waivers/ScanWaiverDialog.tsx(86,30): error TS2339: Property 'reset' does not exist on type 'BrowserMultiFormatReader'.
+src/components/waivers/ScanWaiverDialog.tsx(114,30): error TS2339: Property 'reset' does not exist on type 'BrowserMultiFormatReader'.
+src/components/widgets/CalendarSingleEventBookingPage.tsx(167,5): error TS2561: Object literal may only specify known properties, but 'selectedGame' does not exist in type 'UseAvailabilityProps'. Did you mean to write 'selectedDate'?
+src/components/widgets/CalendarSingleEventBookingPage.tsx(228,9): error TS2353: Object literal may only specify known properties, and 'game_id' does not exist in type 'CreateBookingParams'.
+src/components/widgets/FareBookSingleEventWidget.tsx(180,17): error TS2345: Argument of type '{ date: number; month: number; year: number; isCurrentMonth: boolean; slots: never[]; }' is not assignable to parameter of type 'never'.
+src/components/widgets/FareBookSingleEventWidget.tsx(192,17): error TS2345: Argument of type '{ date: number; month: number; year: number; isCurrentMonth: boolean; slots: number; }' is not assignable to parameter of type 'never'.
+src/components/widgets/FareBookSingleEventWidget.tsx(205,17): error TS2345: Argument of type '{ date: number; month: number; year: number; isCurrentMonth: boolean; slots: never[]; }' is not assignable to parameter of type 'never'.
+src/components/widgets/FareBookSingleEventWidget.tsx(387,9): error TS2345: Argument of type 'Element' is not assignable to parameter of type 'never'.
+src/components/widgets/FareBookSingleEventWidget.tsx(610,45): error TS2339: Property 'isCurrentMonth' does not exist on type 'never'.
+src/components/widgets/FareBookSingleEventWidget.tsx(610,67): error TS2339: Property 'slots' does not exist on type 'never'.
+src/components/widgets/FareBookSingleEventWidget.tsx(612,27): error TS2339: Property 'date' does not exist on type 'never'.
+src/components/widgets/FareBookSingleEventWidget.tsx(613,27): error TS2339: Property 'month' does not exist on type 'never'.
+src/components/widgets/FareBookSingleEventWidget.tsx(614,27): error TS2339: Property 'year' does not exist on type 'never'.
+src/components/widgets/FareBookSingleEventWidget.tsx(623,34): error TS2339: Property 'isCurrentMonth' does not exist on type 'never'.
+src/components/widgets/FareBookSingleEventWidget.tsx(638,32): error TS2339: Property 'date' does not exist on type 'never'.
+src/components/widgets/FareBookSingleEventWidget.tsx(640,30): error TS2339: Property 'isCurrentMonth' does not exist on type 'never'.
+src/components/widgets/FareBookSingleEventWidget.tsx(640,52): error TS2339: Property 'slots' does not exist on type 'never'.
+src/components/widgets/FareBookSingleEventWidget.tsx(642,34): error TS2339: Property 'slots' does not exist on type 'never'.
+src/components/widgets/FareBookWidget.tsx(175,55): error TS2339: Property 'getAllGames' does not exist on type 'typeof DataSyncServiceWithEvents'.
+src/components/widgets/FareBookWidget.tsx(188,54): error TS2339: Property 'getAllGames' does not exist on type 'typeof DataSyncServiceWithEvents'.
+src/components/widgets/GiftCardInput.tsx(5,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/widgets/ListWidget.tsx(60,47): error TS2339: Property 'getAllGames' does not exist on type 'typeof DataSyncService'.
+src/components/widgets/ListWidget.tsx(66,56): error TS2339: Property 'getAllGames' does not exist on type 'typeof DataSyncService'.
+src/components/widgets/ListWidget.tsx(72,7): error TS2304: Cannot find name 'DataSyncEvents'.
+src/components/widgets/ListWidget.tsx(76,9): error TS2304: Cannot find name 'DataSyncEvents'.
+src/components/widgets/ListWidget.tsx(236,12): error TS2304: Cannot find name 'customerInfo'.
+src/components/widgets/ListWidget.tsx(236,34): error TS2304: Cannot find name 'customerInfo'.
+src/components/widgets/ListWidget.tsx(236,57): error TS2304: Cannot find name 'customerInfo'.
+src/components/widgets/ListWidget.tsx(254,23): error TS2304: Cannot find name 'customerInfo'.
+src/components/widgets/ListWidget.tsx(255,24): error TS2304: Cannot find name 'customerInfo'.
+src/components/widgets/ListWidget.tsx(256,24): error TS2304: Cannot find name 'customerInfo'.
+src/components/widgets/ListWidget.tsx(288,9): error TS2353: Object literal may only specify known properties, and 'game_id' does not exist in type 'CreateBookingParams'.
+src/components/widgets/ListWidget.tsx(289,24): error TS2304: Cannot find name 'customerInfo'.
+src/components/widgets/ListWidget.tsx(290,25): error TS2304: Cannot find name 'customerInfo'.
+src/components/widgets/ListWidget.tsx(291,25): error TS2304: Cannot find name 'customerInfo'.
+src/components/widgets/ListWidget.tsx(476,82): error TS2339: Property 'tagline' does not exist on type '{ id: any; name: any; description: any; duration: any; difficulty: any; minAge: number; maxPlayers: any; price: any; rating: number; reviews: number; image: any; tags: string[]; } | { id: string; name: string; ... 12 more ...; players: string; }'.
+  Property 'tagline' does not exist on type '{ id: any; name: any; description: any; duration: any; difficulty: any; minAge: number; maxPlayers: any; price: any; rating: number; reviews: number; image: any; tags: string[]; }'.
+src/components/widgets/ListWidget.tsx(524,36): error TS2339: Property 'availability' does not exist on type '{ id: any; name: any; description: any; duration: any; difficulty: any; minAge: number; maxPlayers: any; price: any; rating: number; reviews: number; image: any; tags: string[]; } | { id: string; name: string; ... 12 more ...; players: string; }'.
+  Property 'availability' does not exist on type '{ id: any; name: any; description: any; duration: any; difficulty: any; minAge: number; maxPlayers: any; price: any; rating: number; reviews: number; image: any; tags: string[]; }'.
+src/components/widgets/PromoCodeInput.tsx(5,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/components/widgets/ResolvexWidget.tsx(58,45): error TS2339: Property 'getAllGames' does not exist on type 'typeof DataSyncServiceWithEvents'.
+src/components/widgets/ResolvexWidget.tsx(64,54): error TS2339: Property 'getAllGames' does not exist on type 'typeof DataSyncServiceWithEvents'.
+src/components/widgets/ResolvexWidget.tsx(681,84): error TS2345: Argument of type '{ gameName: string; gameId: string; date: string; time: string; customerName: string; customerEmail: string; customerPhone: string; participants: number; ticketTypes: { id: string; name: string; price: number; quantity: number; subtotal: number; }[]; totalPrice: number; }' is not assignable to parameter of type 'Omit<Booking, "source" | "id" | "status" | "timestamp">'.
+  Type '{ gameName: string; gameId: string; date: string; time: string; customerName: string; customerEmail: string; customerPhone: string; participants: number; ticketTypes: { id: string; name: string; price: number; quantity: number; subtotal: number; }[]; totalPrice: number; }' is missing the following properties from type 'Omit<Booking, "source" | "id" | "status" | "timestamp">': activityId, activityName
+src/components/widgets/settings/tabs/SEOSettingsTab.tsx(48,36): error TS2339: Property 'errors' does not exist on type 'ZodError<unknown>'.
+src/components/widgets/SingleGameWidget.tsx(359,63): error TS2322: Type 'Date | undefined' is not assignable to type 'ReactNode'.
+  Type 'Date' is not assignable to type 'ReactNode'.
+src/components/widgets/SingleGameWidget.tsx(604,57): error TS2322: Type 'Date | undefined' is not assignable to type 'ReactNode'.
+  Type 'Date' is not assignable to type 'ReactNode'.
+src/components/widgets/SingleGameWidget.tsx(664,25): error TS2322: Type 'Date | undefined' is not assignable to type 'ReactNode'.
+  Type 'Date' is not assignable to type 'ReactNode'.
+src/components/widgets/WidgetPaymentSettingsModal.tsx(237,17): error TS2345: Argument of type '{ stripe_product_id: string | null; stripe_price_id: string | null; stripe_checkout_url: string | null; stripe_sync_status: string; stripe_last_sync: string; }' is not assignable to parameter of type 'never'.
+src/hooks/useBookings.ts(55,43): error TS2345: Argument of type '{ p_venue_id: string | null; p_status: null; p_from_date: null; p_to_date: null; }' is not assignable to parameter of type 'undefined'.
+src/hooks/useBookings.ts(87,32): error TS2345: Argument of type '{ p_venue_id: string; p_activity_id: string; p_customer_id: string; p_booking_date: string; p_booking_time: string; p_players: number; p_total_amount: number; p_notes: string | null; }' is not assignable to parameter of type 'undefined'.
+src/hooks/useBookings.ts(115,17): error TS2345: Argument of type 'Partial<Booking>' is not assignable to parameter of type 'never'.
+src/hooks/useBookings.ts(136,32): error TS2345: Argument of type '{ p_booking_id: string; p_reason: string | null; p_issue_refund: boolean; }' is not assignable to parameter of type 'undefined'.
+src/hooks/useBookings.ts(177,37): error TS2345: Argument of type '{ p_activity_id: string; p_date: string; }' is not assignable to parameter of type 'undefined'.
+src/hooks/useDashboard.ts(66,34): error TS2339: Property 'length' does not exist on type 'never'.
+src/hooks/useDashboard.ts(79,39): error TS2345: Argument of type '{ limit_count: number; }' is not assignable to parameter of type 'undefined'.
+src/hooks/useDashboard.ts(93,45): error TS2345: Argument of type '{ limit_count: number; }' is not assignable to parameter of type 'undefined'.
+src/hooks/useNotifications.ts(53,50): error TS2339: Property 'read' does not exist on type 'never'.
+src/hooks/useNotifications.ts(67,17): error TS2345: Argument of type '{ read: boolean; }' is not assignable to parameter of type 'never'.
+src/hooks/useNotifications.ts(87,17): error TS2345: Argument of type '{ read: boolean; }' is not assignable to parameter of type 'never'.
+src/hooks/usePayments.ts(73,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "payments", never, "POST">', gave the following error.
+    Argument of type '{ created_by: string; metadata: Record<string, any>; status: "pending" | "completed" | "cancelled" | "refunded" | "failed" | "processing"; amount: number; notes?: string | undefined; ... 5 more ...; refund_date?: string | undefined; }[]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "payments", never, "POST">', gave the following error.
+    Type '{ created_by: string; metadata: Record<string, any>; status: "pending" | "processing" | "completed" | "failed" | "refunded" | "cancelled"; amount: number; notes?: string | undefined; customer_id: string; ... 4 more ...; refund_date?: string | undefined; }' is not assignable to type 'never'.
+src/hooks/usePayments.ts(97,17): error TS2345: Argument of type 'Partial<Payment>' is not assignable to parameter of type 'never'.
+src/hooks/usePayments.ts(119,17): error TS2345: Argument of type '{ status: string; refund_amount: number; refund_date: string; notes: string; }' is not assignable to parameter of type 'never'.
+src/hooks/useStaff.ts(99,38): error TS2339: Property 'organization_id' does not exist on type 'never'.
+src/hooks/useStaff.ts(135,17): error TS2345: Argument of type 'any' is not assignable to parameter of type 'never'.
+src/hooks/useStaff.ts(157,17): error TS2345: Argument of type '{ is_active: boolean; }' is not assignable to parameter of type 'never'.
+src/hooks/useStaff.ts(179,17): error TS2345: Argument of type '{ is_active: boolean; }' is not assignable to parameter of type 'never'.
+src/hooks/useStaff.ts(198,17): error TS2345: Argument of type '{ last_login_at: string; }' is not assignable to parameter of type 'never'.
+src/lib/bookings/availabilityChecker.ts(63,29): error TS2339: Property 'duration' does not exist on type 'never'.
+src/lib/notifications/NotificationContext.tsx(147,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "notifications", never, "POST">', gave the following error.
+    Argument of type '{ id: string; user_id: string; organization_id: string | undefined; type: NotificationType; priority: NotificationPriority; title: string; message: string; ... 4 more ...; created_at: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "notifications", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'id' does not exist in type 'never[]'.
+src/lib/payment/mockData.ts(193,5): error TS2322: Type '"gift_card"' is not assignable to type 'TransactionType'.
+src/lib/sync/GlobalDataSyncBridge.tsx(8,3): error TS2614: Module '"@/services/DataSyncService"' has no exported member 'Game'. Did you mean to use 'import Game from "@/services/DataSyncService"' instead?
+src/lib/sync/GlobalDataSyncBridge.tsx(9,3): error TS2614: Module '"@/services/DataSyncService"' has no exported member 'GameDifficulty'. Did you mean to use 'import GameDifficulty from "@/services/DataSyncService"' instead?
+src/lib/sync/GlobalDataSyncBridge.tsx(17,67): error TS2339: Property 'games' does not exist on type '{ organizations: { Row: { id: string; name: string; slug: string; plan: "free" | "starter" | "pro" | "enterprise"; stripe_customer_id: string | null; stripe_subscription_id: string | null; ... 4 more ...; updated_at: string; }; Insert: { ...; }; Update: { ...; }; }; ... 13 more ...; waiver_records: { ...; }; }'.
+src/lib/sync/GlobalDataSyncBridge.tsx(83,31): error TS2339: Property 'replaceAllGames' does not exist on type 'typeof DataSyncServiceWithEvents'.
+src/lib/validation/codeValidation.ts(53,19): error TS2339: Property 'expires_at' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(54,45): error TS2339: Property 'expires_at' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(61,19): error TS2339: Property 'max_uses' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(61,41): error TS2339: Property 'uses_count' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(61,65): error TS2339: Property 'max_uses' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(66,19): error TS2339: Property 'min_purchase_amount' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(66,61): error TS2339: Property 'min_purchase_amount' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(69,50): error TS2339: Property 'min_purchase_amount' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(77,25): error TS2339: Property 'discount_type' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(78,26): error TS2339: Property 'discount_value' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(112,18): error TS2339: Property 'expires_at' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(113,44): error TS2339: Property 'expires_at' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(124,18): error TS2339: Property 'balance' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(135,25): error TS2339: Property 'balance' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(217,45): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "promo_code_usage", never, "POST">', gave the following error.
+    Argument of type '{ promo_code_id: any; booking_id: string; user_id: string | undefined; used_at: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "promo_code_usage", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'promo_code_id' does not exist in type 'never[]'.
+src/lib/validation/codeValidation.ts(218,32): error TS2339: Property 'id' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(225,49): error TS2345: Argument of type '{ code_id: any; }' is not assignable to parameter of type 'undefined'.
+src/lib/validation/codeValidation.ts(225,70): error TS2339: Property 'id' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(250,33): error TS2339: Property 'balance' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(254,15): error TS2345: Argument of type '{ balance: number; status: string; }' is not assignable to parameter of type 'never'.
+src/lib/validation/codeValidation.ts(258,26): error TS2339: Property 'id' does not exist on type 'never'.
+src/lib/validation/codeValidation.ts(261,44): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: never, options?: { count?: "exact" | "planned" | "estimated" | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "gift_card_usage", never, "POST">', gave the following error.
+    Argument of type '{ gift_card_id: any; booking_id: string; amount_used: number; used_at: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(values: never[], options?: { count?: "exact" | "planned" | "estimated" | undefined; defaultToNull?: boolean | undefined; } | undefined): PostgrestFilterBuilder<{ PostgrestVersion: "12"; }, never, never, null, "gift_card_usage", never, "POST">', gave the following error.
+    Object literal may only specify known properties, and 'gift_card_id' does not exist in type 'never[]'.
+src/lib/validation/codeValidation.ts(262,30): error TS2339: Property 'id' does not exist on type 'never'.
+src/pages/AccountSettings.tsx(60,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/pages/BackendDashboard.tsx(226,22): error TS2345: Argument of type '{ name: string; url: string; method: string; status: string; statusCode: number; latency: number; message: string; }' is not assignable to parameter of type 'never'.
+src/pages/BackendDashboard.tsx(236,22): error TS2345: Argument of type '{ name: string; url: string; method: string; status: string; statusCode: number; latency: number; message: any; }' is not assignable to parameter of type 'never'.
+src/pages/Billing.tsx(412,18): error TS2345: Argument of type 'string' is not assignable to parameter of type 'never'.
+src/pages/BookingsDatabase.tsx(78,9): error TS2353: Object literal may only specify known properties, and 'game_id' does not exist in type '{ venue_id: string; activity_id: string; customer_id: string; booking_date: string; booking_time: string; players: number; total_amount: number; notes?: string | undefined; }'.
+src/pages/BookingsDatabase.tsx(151,15): error TS2339: Property 'game_name' does not exist on type 'BookingWithDetails'.
+src/pages/BookingsDatabase.tsx(317,38): error TS2339: Property 'game_name' does not exist on type 'BookingWithDetails'.
+src/pages/BookingSuccess.tsx(52,21): error TS2345: Argument of type '{ status: string; payment_status: string; confirmed_at: string; }' is not assignable to parameter of type 'never'.
+src/pages/BookingSuccess.tsx(57,28): error TS2339: Property 'id' does not exist on type 'never'.
+src/pages/Campaigns.tsx(24,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/pages/EmailTemplates.tsx(90,17): error TS18004: No value exists in scope for the shorthand property 'totalAmount'. Either declare one or provide an initializer.
+src/pages/EmailTemplates.tsx(340,26): error TS18004: No value exists in scope for the shorthand property 'creditsEarned'. Either declare one or provide an initializer.
+src/pages/EmailTemplates.tsx(341,21): error TS18004: No value exists in scope for the shorthand property 'availableBalance'. Either declare one or provide an initializer.
+src/pages/EmailTemplates.tsx(377,25): error TS18004: No value exists in scope for the shorthand property 'totalSavingsGiven'. Either declare one or provide an initializer.
+src/pages/EmailTemplates.tsx(759,19): error TS18004: No value exists in scope for the shorthand property 'refundAmount'. Either declare one or provide an initializer.
+src/pages/GiftVouchers.tsx(145,6): error TS2739: Type '{ children: Element; }' is missing the following properties from type 'AdminLayoutProps': currentPage, onNavigate
+src/pages/Marketing.tsx(72,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+src/pages/Media.tsx(356,36): error TS18046: 'file' is of type 'unknown'.
+src/pages/Media.tsx(356,70): error TS18046: 'file' is of type 'unknown'.
+src/pages/Media.tsx(358,28): error TS2345: Argument of type 'unknown[]' is not assignable to parameter of type 'SetStateAction<File[]>'.
+  Type 'unknown[]' is not assignable to type 'File[]'.
+    Type 'unknown' is not assignable to type 'File'.
+src/pages/OwnerAdminLogin.tsx(40,21): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type '{}'.
+  Type 'undefined' is not assignable to type '{}'.
+src/pages/OwnerAdminLogin.tsx(48,25): error TS2339: Property 'name' does not exist on type 'never'.
+src/pages/OwnerAdminLogin.tsx(84,35): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type '{}'.
+  Type 'undefined' is not assignable to type '{}'.
+src/pages/OwnerAdminLogin.tsx(87,43): error TS2339: Property 'role' does not exist on type 'never'.
+src/pages/PaymentHistory.tsx(62,23): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.

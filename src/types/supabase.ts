@@ -417,6 +417,7 @@ export interface Database {
           booking_number: string
           customer_id: string
           activity_id: string
+          venue_id: string
           booking_date: string
           start_time: string
           end_time: string
@@ -428,6 +429,7 @@ export interface Database {
           payment_status: 'pending' | 'paid' | 'refunded' | 'failed'
           payment_intent_id: string | null
           notes: string | null
+          ticket_types: Json | null
           created_at: string
           updated_at: string
           created_by: string
@@ -439,6 +441,7 @@ export interface Database {
           booking_number: string
           customer_id: string
           activity_id: string
+          venue_id: string
           booking_date: string
           start_time: string
           end_time: string
@@ -450,6 +453,7 @@ export interface Database {
           payment_status?: 'pending' | 'paid' | 'refunded' | 'failed'
           payment_intent_id?: string | null
           notes?: string | null
+          ticket_types?: Json | null
           created_at?: string
           updated_at?: string
           created_by: string
@@ -461,6 +465,7 @@ export interface Database {
           booking_number?: string
           customer_id?: string
           activity_id?: string
+          venue_id?: string
           booking_date?: string
           start_time?: string
           end_time?: string
@@ -472,6 +477,7 @@ export interface Database {
           payment_status?: 'pending' | 'paid' | 'refunded' | 'failed'
           payment_intent_id?: string | null
           notes?: string | null
+          ticket_types?: Json | null
           created_at?: string
           updated_at?: string
           created_by?: string
@@ -806,6 +812,93 @@ export interface Database {
           game_ids: string[]
           venue_names: string[]
           game_names: string[]
+        }[]
+      }
+      get_bookings_with_details: {
+        Args: {
+          p_venue_id: string | null
+          p_status: string | null
+          p_from_date: string | null
+          p_to_date: string | null
+        }
+        Returns: {
+          id: string
+          venue_id: string
+          activity_id: string
+          customer_id: string
+          booking_date: string
+          booking_time: string
+          end_time: string
+          players: number
+          status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no-show'
+          total_amount: number
+          deposit_amount: number
+          payment_status: 'pending' | 'paid' | 'partial' | 'refunded' | 'failed'
+          payment_method?: string
+          transaction_id?: string
+          notes?: string
+          customer_notes?: string
+          internal_notes?: string
+          confirmation_code: string
+          metadata: Json
+          created_by: string
+          created_at: string
+          updated_at: string
+          venue_name: string
+          venue_city: string
+          activity_name: string
+          activity_difficulty: string
+          customer_name: string
+          customer_email: string
+          customer_phone: string
+        }[]
+      }
+      create_booking: {
+        Args: {
+          p_venue_id: string
+          p_activity_id: string
+          p_customer_id: string
+          p_booking_date: string
+          p_booking_time: string
+          p_players: number
+          p_total_amount: number
+          p_notes?: string | null
+        }
+        Returns: string
+      }
+      get_available_slots: {
+        Args: {
+          p_activity_id: string
+          p_date: string
+        }
+        Returns: {
+          time: string
+          available: boolean
+          capacity: number
+          booked: number
+        }[]
+      }
+      cancel_booking: {
+        Args: {
+          p_booking_id: string
+          p_reason?: string | null
+          p_issue_refund?: boolean
+        }
+        Returns: boolean
+      }
+      get_venue_by_embed_key: {
+        Args: {
+          p_embed_key: string
+        }
+        Returns: {
+          id: string
+          name: string
+          slug: string
+          embed_key: string
+          primary_color: string
+          base_url: string
+          timezone: string
+          settings: Json
         }[]
       }
     }

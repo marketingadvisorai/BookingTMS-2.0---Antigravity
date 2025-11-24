@@ -8,8 +8,8 @@ import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Calendar as CalendarComponent } from '../ui/calendar';
-import { 
-  Calendar, Clock, Users, Mail, Phone, User, Star, Play, 
+import {
+  Calendar, Clock, Users, Mail, Phone, User, Star, Play,
   Image as ImageIcon, ShoppingCart, CreditCard, Lock, CheckCircle2, ChevronLeft
 } from 'lucide-react';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
@@ -26,7 +26,7 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [currentStep, setCurrentStep] = useState<'booking' | 'cart' | 'checkout' | 'success'>('booking');
   const [formData, setFormData] = useState({
-    game: '',
+    activity: '',
     date: '',
     time: '',
     players: 4,
@@ -38,47 +38,47 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
     cardCVV: '',
     cardName: '',
   });
-  const [showGameDetails, setShowGameDetails] = useState(false);
-  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+  const [showActivityDetails, setShowActivityDetails] = useState(false);
+  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
 
-  // 🔄 Real-time admin games data loading
-  const [adminGames, setAdminGames] = useState<any[]>([]);
+  // 🔄 Real-time admin activities data loading
+  const [adminActivities, setAdminActivities] = useState<any[]>([]);
 
-  // Load admin games with real-time sync
+  // Load admin activities with real-time sync
   useEffect(() => {
-    const loadAndSubscribeGames = () => {
+    const loadAndSubscribeActivities = () => {
       // Initial load
-      const games = DataSyncServiceWithEvents.getAllGames();
-      console.log('📦 QuickBookWidget loaded', games.length, 'games from admin');
-      setAdminGames(games);
+      const activities = DataSyncServiceWithEvents.getAllActivities();
+      console.log('📦 QuickBookWidget loaded', activities.length, 'activities from admin');
+      setAdminActivities(activities);
 
       // Real-time sync: Listen for admin changes
-      const handleGamesUpdate = () => {
-        const updatedGames = DataSyncServiceWithEvents.getAllGames();
-        console.log('🔄 QuickBookWidget games updated in real-time!', updatedGames.length);
-        setAdminGames(updatedGames);
+      const handleActivitiesUpdate = () => {
+        const updatedActivities = DataSyncServiceWithEvents.getAllActivities();
+        console.log('🔄 QuickBookWidget activities updated in real-time!', updatedActivities.length);
+        setAdminActivities(updatedActivities);
       };
 
       // Subscribe to events
-      DataSyncEvents.subscribe('games-updated', handleGamesUpdate);
+      DataSyncEvents.subscribe('activities-updated', handleActivitiesUpdate);
 
       // Cleanup function
       return () => {
-        DataSyncEvents.unsubscribe('games-updated', handleGamesUpdate);
+        DataSyncEvents.unsubscribe('activities-updated', handleActivitiesUpdate);
       };
     };
 
-    return loadAndSubscribeGames();
+    return loadAndSubscribeActivities();
   }, []);
-  
+
   // Promo code and gift card state
   const [showPromoCodeInput, setShowPromoCodeInput] = useState(false);
   const [appliedPromoCode, setAppliedPromoCode] = useState<{ code: string; discount: number; type: 'percentage' | 'fixed' } | null>(null);
   const [showGiftCardInput, setShowGiftCardInput] = useState(false);
   const [appliedGiftCard, setAppliedGiftCard] = useState<{ code: string; amount: number } | null>(null);
 
-  // 🔄 Use admin games when available, fallback to hardcoded games
-  const games = adminGames.length > 0 ? adminGames.map(g => ({
+  // 🔄 Use admin activities when available, fallback to hardcoded activities
+  const activities = adminActivities.length > 0 ? adminActivities.map(g => ({
     id: g.id.toString(),
     name: g.name,
     price: g.basePrice,
@@ -86,7 +86,7 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
     rating: 4.8,
     reviews: 156,
     image: g.imageUrl,
-    description: g.description || 'Amazing escape room experience'
+    description: g.description || 'Amazing experience'
   })) : [
     {
       id: '1',
@@ -127,8 +127,8 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
     '10:00 AM', '12:00 PM', '2:00 PM', '4:00 PM', '6:00 PM', '8:00 PM'
   ];
 
-  const selectedGame = games.find(g => g.id === formData.game);
-  
+  const selectedActivity = activities.find(g => g.id === formData.activity);
+
   // Handlers for promo code and gift card
   const handleApplyPromoCode = (code: string, discount: number, type: 'percentage' | 'fixed') => {
     setAppliedPromoCode({ code, discount, type });
@@ -149,25 +149,25 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
   };
 
   // Calculate prices
-  const calculateSubtotal = () => selectedGame ? selectedGame.price * formData.players : 0;
-  
+  const calculateSubtotal = () => selectedActivity ? selectedActivity.price * formData.players : 0;
+
   const calculateDiscount = () => {
     if (!appliedPromoCode) return 0;
     return appliedPromoCode.type === 'fixed'
       ? appliedPromoCode.discount
       : (calculateSubtotal() * appliedPromoCode.discount) / 100;
   };
-  
+
   const calculateGiftCardDiscount = () => {
     if (!appliedGiftCard) return 0;
     const afterPromo = calculateSubtotal() - calculateDiscount();
     return Math.min(appliedGiftCard.amount, afterPromo);
   };
-  
+
   const totalPrice = calculateSubtotal() - calculateDiscount() - calculateGiftCardDiscount();
   const bookingNumber = `BK-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
 
-  const canAddToCart = formData.game && formData.date && formData.time;
+  const canAddToCart = formData.activity && formData.date && formData.time;
   const canCheckout = formData.name && formData.email && formData.phone;
   const canCompletePay = formData.cardNumber && formData.cardExpiry && formData.cardCVV && formData.cardName;
 
@@ -175,7 +175,7 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
     setCurrentStep('booking');
     setSelectedDate(undefined);
     setFormData({
-      game: '',
+      activity: '',
       date: '',
       time: '',
       players: 4,
@@ -193,7 +193,7 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
     setShowGiftCardInput(false);
   };
 
-  const gameDetails = games.find(g => g.id === selectedGameId);
+  const activityDetails = activities.find(g => g.id === selectedActivityId);
 
   // 🎯 Handle payment completion with localStorage save
   const handleCompletePayment = () => {
@@ -204,15 +204,15 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
         return;
       }
 
-      if (!selectedGameId || !formData.date || !formData.time) {
+      if (!selectedActivityId || !formData.date || !formData.time) {
         alert('Please complete booking details');
         return;
       }
 
       // Create booking data
       const bookingData = {
-        gameName: gameDetails?.name || '',
-        gameId: selectedGameId,
+        activityName: activityDetails?.name || '',
+        activityId: selectedActivityId,
         date: formData.date,
         time: formData.time,
         customerName: formData.name,
@@ -222,9 +222,9 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
         ticketTypes: [{
           id: 'standard',
           name: 'Standard Ticket',
-          price: gameDetails?.price || 0,
+          price: activityDetails?.price || 0,
           quantity: formData.players,
-          subtotal: (gameDetails?.price || 0) * formData.players
+          subtotal: (activityDetails?.price || 0) * formData.players
         }],
         totalPrice: totalPrice,
         promoCode: appliedPromoCode?.code,
@@ -248,35 +248,35 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
 
   return (
     <div className="w-full min-h-screen bg-gray-50">
-      {/* Game Details Dialog - Full Screen on Mobile */}
-      <Dialog open={showGameDetails} onOpenChange={setShowGameDetails}>
+      {/* Activity Details Dialog - Full Screen on Mobile */}
+      <Dialog open={showActivityDetails} onOpenChange={setShowActivityDetails}>
         <DialogContent className="!w-screen !h-screen !max-w-none !max-h-none sm:!w-[90vw] sm:!h-auto sm:!max-w-[700px] sm:!max-h-[90vh] !rounded-none sm:!rounded-lg overflow-y-auto p-4 sm:p-6">
-          {gameDetails && (
+          {activityDetails && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-lg sm:text-xl lg:text-2xl">{gameDetails.name}</DialogTitle>
-                <DialogDescription className="sr-only">View details about {gameDetails.name} escape room</DialogDescription>
+                <DialogTitle className="text-lg sm:text-xl lg:text-2xl">{activityDetails.name}</DialogTitle>
+                <DialogDescription className="sr-only">View details about {activityDetails.name}</DialogDescription>
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-2 text-xs sm:text-sm">
                   <div className="flex items-center gap-1">
                     <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
-                    <span>{gameDetails.rating}</span>
-                    <span className="text-gray-500 hidden sm:inline">({gameDetails.reviews} reviews)</span>
+                    <span>{activityDetails.rating}</span>
+                    <span className="text-gray-500 hidden sm:inline">({activityDetails.reviews} reviews)</span>
                   </div>
                   <span>•</span>
-                  <span>{gameDetails.duration}</span>
+                  <span>{activityDetails.duration}</span>
                   <span>•</span>
-                  <span style={{ color: primaryColor }}>${gameDetails.price}/person</span>
+                  <span style={{ color: primaryColor }}>${activityDetails.price}/person</span>
                 </div>
               </DialogHeader>
               <div className="mt-3 sm:mt-4">
                 <div className="aspect-video rounded-lg overflow-hidden mb-3 sm:mb-4">
                   <ImageWithFallback
-                    src={gameDetails.image}
-                    alt={gameDetails.name}
+                    src={activityDetails.image}
+                    alt={activityDetails.name}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <p className="text-sm sm:text-base text-gray-600">{gameDetails.description}</p>
+                <p className="text-sm sm:text-base text-gray-600">{activityDetails.description}</p>
               </div>
             </>
           )}
@@ -288,38 +288,37 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
           <Card className="p-4 sm:p-6 overflow-y-auto">
             <h2 className="text-base sm:text-lg lg:text-xl text-gray-900 mb-4 sm:mb-6">Quick Book Your Experience</h2>
 
-            {/* Game Selection */}
+            {/* Activity Selection */}
             <div className="mb-6">
-              <Label className="mb-3 block">Select Game</Label>
+              <Label className="mb-3 block">Select Activity</Label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {games.map((game) => (
+                {activities.map((activity) => (
                   <div
-                    key={game.id}
-                    onClick={() => setFormData({ ...formData, game: game.id })}
-                    className={`relative cursor-pointer rounded-lg border-2 overflow-hidden transition-all hover:shadow-lg ${
-                      formData.game === game.id ? 'shadow-lg' : 'border-gray-200'
-                    }`}
+                    key={activity.id}
+                    onClick={() => setFormData({ ...formData, activity: activity.id })}
+                    className={`relative cursor-pointer rounded-lg border-2 overflow-hidden transition-all hover:shadow-lg ${formData.activity === activity.id ? 'shadow-lg' : 'border-gray-200'
+                      }`}
                     style={{
-                      borderColor: formData.game === game.id ? primaryColor : undefined,
+                      borderColor: formData.activity === activity.id ? primaryColor : undefined,
                     }}
                   >
                     <div className="aspect-video relative group">
                       <ImageWithFallback
-                        src={game.image}
-                        alt={game.name}
+                        src={activity.image}
+                        alt={activity.name}
                         className="w-full h-full object-cover"
                       />
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedGameId(game.id);
-                          setShowGameDetails(true);
+                          setSelectedActivityId(activity.id);
+                          setShowActivityDetails(true);
                         }}
                         className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white transition-colors"
                       >
                         <ImageIcon className="w-4 h-4 text-gray-700" />
                       </button>
-                      {game.video && (
+                      {activity.video && (
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <div className="bg-white/90 backdrop-blur-sm rounded-full p-3">
                             <Play className="w-6 h-6 text-gray-900" />
@@ -329,17 +328,17 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
                     </div>
                     <div className="p-3">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="text-sm text-gray-900">{game.name}</h3>
-                        {formData.game === game.id && (
+                        <h3 className="text-sm text-gray-900">{activity.name}</h3>
+                        {formData.activity === activity.id && (
                           <CheckCircle2 className="w-5 h-5" style={{ color: primaryColor }} />
                         )}
                       </div>
                       <div className="flex items-center justify-between text-xs text-gray-600">
                         <div className="flex items-center gap-1">
                           <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                          <span>{game.rating}</span>
+                          <span>{activity.rating}</span>
                         </div>
-                        <span>${game.price}</span>
+                        <span>${activity.price}</span>
                       </div>
                     </div>
                   </div>
@@ -419,16 +418,16 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
               </div>
             </div>
 
-            {selectedGame && (
+            {selectedActivity && (
               <>
                 <Separator className="my-6" />
                 <div className="flex justify-between items-center mb-6 p-4 bg-gray-50 rounded-lg">
                   <div>
                     <div className="text-sm text-gray-600">Total</div>
-                    <div className="text-gray-900">{selectedGame.name}</div>
+                    <div className="text-gray-900">{selectedActivity.name}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm text-gray-600">{formData.players} × ${selectedGame.price}</div>
+                    <div className="text-sm text-gray-600">{formData.players} × ${selectedActivity.price}</div>
                     <div className="text-2xl text-gray-900" style={{ color: primaryColor }}>
                       ${totalPrice}
                     </div>
@@ -467,21 +466,21 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
               Your Cart
             </h2>
 
-            {selectedGame && (
+            {selectedActivity && (
               <div className="p-4 bg-gray-50 rounded-lg mb-6">
                 <div className="flex gap-4">
                   <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                     <ImageWithFallback
-                      src={selectedGame.image}
-                      alt={selectedGame.name}
+                      src={selectedActivity.image}
+                      alt={selectedActivity.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-gray-900 mb-1">{selectedGame.name}</h3>
+                    <h3 className="text-gray-900 mb-1">{selectedActivity.name}</h3>
                     <div className="text-sm text-gray-600 space-y-1">
                       <div>Date: {selectedDate && format(selectedDate, 'dd/MM/yyyy')} at {formData.time}</div>
-                      <div>Players: {formData.players} × ${selectedGame.price}</div>
+                      <div>Players: {formData.players} × ${selectedActivity.price}</div>
                     </div>
                   </div>
                   <div className="text-gray-900" style={{ color: primaryColor }}>
@@ -541,7 +540,7 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
             <div className="space-y-4 mb-6">
               <div>
                 {!appliedPromoCode && !showPromoCodeInput && (
-                  <button 
+                  <button
                     onClick={() => setShowPromoCodeInput(true)}
                     className="text-sm text-blue-600 hover:underline"
                   >
@@ -563,10 +562,10 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
                   />
                 )}
               </div>
-              
+
               <div>
                 {!appliedGiftCard && !showGiftCardInput && (
-                  <button 
+                  <button
                     onClick={() => setShowGiftCardInput(true)}
                     className="text-sm text-blue-600 hover:underline"
                   >
@@ -629,7 +628,7 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
         </div>
       )}
 
-      {currentStep === 'checkout' && selectedGame && (
+      {currentStep === 'checkout' && selectedActivity && (
         <div className="max-w-6xl mx-auto p-4 md:p-8">
           <Button
             onClick={() => setCurrentStep('cart')}
@@ -704,8 +703,8 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
                 <h3 className="text-gray-900 mb-4">Order Summary</h3>
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Game:</span>
-                    <span className="text-gray-900">{selectedGame.name}</span>
+                    <span className="text-gray-600">Activity:</span>
+                    <span className="text-gray-900">{selectedActivity.name}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Date:</span>
@@ -743,17 +742,17 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
         </div>
       )}
 
-      {currentStep === 'success' && selectedGame && (
+      {currentStep === 'success' && selectedActivity && (
         <div className="max-w-4xl mx-auto p-4 md:p-8">
           <div className="flex flex-col items-center justify-center py-8 md:py-12">
-            <div 
+            <div
               className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
               style={{ backgroundColor: `${primaryColor}15` }}
             >
               <CheckCircle2 className="w-12 h-12" style={{ color: primaryColor }} />
             </div>
             <h2 className="text-3xl text-gray-900 mb-2 text-center">Booking Confirmed!</h2>
-            <p className="text-gray-600 mb-8 text-center">Your escape room adventure is all set</p>
+            <p className="text-gray-600 mb-8 text-center">Your adventure is all set</p>
 
             <Card className="w-full p-4 md:p-6 mb-6">
               <div className="space-y-4">
@@ -762,8 +761,8 @@ export function QuickBookWidget({ primaryColor = '#2563eb', config }: QuickBookW
                   <span className="text-gray-900">{bookingNumber}</span>
                 </div>
                 <div className="flex justify-between items-center pb-4 border-b">
-                  <span className="text-gray-600">Game</span>
-                  <span className="text-gray-900">{selectedGame.name}</span>
+                  <span className="text-gray-600">Activity</span>
+                  <span className="text-gray-900">{selectedActivity.name}</span>
                 </div>
                 <div className="flex justify-between items-center pb-4 border-b">
                   <span className="text-gray-600">Date & Time</span>

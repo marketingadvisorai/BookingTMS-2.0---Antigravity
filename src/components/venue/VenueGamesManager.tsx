@@ -51,11 +51,11 @@ interface VenueGamesManagerProps {
  * - Widget template selection
  * - Frontend preview (that's in booking widgets)
  */
-export default function VenueGamesManager({ 
-  venueId, 
+export default function VenueGamesManager({
+  venueId,
   venueName,
   embedContext,
-  onPreview 
+  onPreview
 }: VenueGamesManagerProps) {
   const [showAddGameWizard, setShowAddGameWizard] = useState(false);
   const [editingGame, setEditingGame] = useState<any>(null);
@@ -74,7 +74,7 @@ export default function VenueGamesManager({
       stripe_sync_status: game.stripe_sync_status,
       stripe_last_sync: game.stripe_last_sync
     });
-    
+
     const settings = game.settings || {};
     return {
       id: game.id,
@@ -95,7 +95,7 @@ export default function VenueGamesManager({
       groupTiers: settings.groupTiers || [],
       dynamicPricing: settings.dynamicPricing || false,
       peakPricing: settings.peakPricing || { enabled: false },
-      duration: game.duration,
+      duration: game.duration_minutes,
       difficulty: game.difficulty,
       minAge: game.min_age || 0,
       language: settings.language || ['English'],
@@ -160,7 +160,7 @@ export default function VenueGamesManager({
       slug: slug,
       description: gameData.description || '',
       difficulty: getDifficultyString(gameData.difficulty), // Convert number to string
-      duration: gameData.duration || 60,
+      duration_minutes: gameData.duration || 60,
       min_players: gameData.minAdults || 2,
       max_players: gameData.maxAdults || 8,
       price: gameData.adultPrice || 0,
@@ -168,7 +168,8 @@ export default function VenueGamesManager({
       min_age: gameData.minAge || 0,
       success_rate: gameData.successRate || 75,
       image_url: gameData.coverImage || 'https://images.unsplash.com/photo-1569002925653-ed18f55d7292',
-      status: 'active' as const,
+      is_active: true,
+      organization_id: '', // Will be handled by backend/hook
       // Stripe payment integration fields
       stripe_product_id: gameData.stripeProductId || null,
       stripe_price_id: gameData.stripePriceId || null,
@@ -217,7 +218,7 @@ export default function VenueGamesManager({
     console.log('=== STARTING GAME SAVE ===');
     console.log('Editing game?:', !!editingGame);
     console.log('Supabase game data:', JSON.stringify(supabaseGameData, null, 2));
-    
+
     try {
       let result;
       if (editingGame) {
@@ -238,14 +239,14 @@ export default function VenueGamesManager({
 
       // Close wizard first
       setShowAddGameWizard(false);
-      
+
       console.log('Triggering game list refreshes...');
       // Force multiple refreshes to ensure the game appears
       refreshGames(); // Immediate
       setTimeout(() => refreshGames(), 300); // After 300ms
       setTimeout(() => refreshGames(), 1000); // After 1 second
       setTimeout(() => refreshGames(), 2000); // After 2 seconds for slow connections
-      
+
     } catch (error: any) {
       console.error('❌ ERROR in handleWizardComplete:', {
         message: error.message,
@@ -284,10 +285,10 @@ export default function VenueGamesManager({
     try {
       // Convert game to wizard format
       const wizardData = convertGameToWizardData(game);
-      
+
       // Create a new name for the duplicate
       const duplicateName = `${game.name} (Copy)`;
-      
+
       // Create slug from duplicate name
       const slug = duplicateName
         .toLowerCase()
@@ -303,7 +304,7 @@ export default function VenueGamesManager({
         slug: slug,
         description: game.description || '',
         difficulty: game.difficulty,
-        duration: game.duration || 60,
+        duration_minutes: game.duration_minutes || 60,
         min_players: game.min_players || 2,
         max_players: game.max_players || 8,
         price: game.price || 0,
@@ -311,7 +312,8 @@ export default function VenueGamesManager({
         min_age: game.min_age || 0,
         success_rate: game.success_rate || 75,
         image_url: game.image_url || 'https://images.unsplash.com/photo-1569002925653-ed18f55d7292',
-        status: 'active' as const,
+        is_active: true,
+        organization_id: '', // Will be handled by backend/hook
         settings: game.settings || {},
         // Don't copy Stripe IDs - new game needs its own
         stripe_product_id: undefined,
@@ -341,7 +343,7 @@ export default function VenueGamesManager({
                 Manage games and experiences for {venueName}
               </CardDescription>
             </div>
-            <Button 
+            <Button
               onClick={() => {
                 setEditingGame(null);
                 setShowAddGameWizard(true);
@@ -375,10 +377,10 @@ export default function VenueGamesManager({
                         </p>
                         <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                           <span>${game.price}</span>
-                          <span>{game.duration} min</span>
+                          <span>{game.duration_minutes} min</span>
                           <span>{game.difficulty}</span>
-                          <span className={`px-2 py-0.5 rounded ${game.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                            {game.status}
+                          <span className={`px-2 py-0.5 rounded ${game.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                            {game.is_active ? 'active' : 'inactive'}
                           </span>
                         </div>
                       </div>

@@ -39,7 +39,7 @@ export function BookingsDatabase() {
 
   const [formData, setFormData] = useState({
     venue_id: '',
-    game_id: '',
+    activity_id: '',
     customer_id: '',
     booking_date: '',
     booking_time: '',
@@ -57,7 +57,7 @@ export function BookingsDatabase() {
   const resetForm = () => {
     setFormData({
       venue_id: '',
-      game_id: '',
+      activity_id: '',
       customer_id: '',
       booking_date: '',
       booking_time: '',
@@ -69,13 +69,13 @@ export function BookingsDatabase() {
   };
 
   const handleCreateBooking = async () => {
-    if (!formData.venue_id || !formData.game_id || !formData.customer_id) return;
+    if (!formData.venue_id || !formData.activity_id || !formData.customer_id) return;
 
     setSubmitting(true);
     try {
       await createBooking({
         venue_id: formData.venue_id,
-        game_id: formData.game_id,
+        activity_id: formData.activity_id,
         customer_id: formData.customer_id,
         booking_date: formData.booking_date,
         booking_time: formData.booking_time,
@@ -148,7 +148,7 @@ export function BookingsDatabase() {
       booking.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.confirmation_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.game_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      booking.activity_name?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
 
@@ -314,7 +314,7 @@ export function BookingsDatabase() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {booking.game_name}
+                            {booking.activity_name}
                           </h3>
                           <Badge className={getStatusColor(booking.status)}>
                             {booking.status}
@@ -419,7 +419,7 @@ export function BookingsDatabase() {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="venue">Venue *</Label>
-                <Select value={formData.venue_id} onValueChange={(value) => setFormData({ ...formData, venue_id: value, game_id: '' })}>
+                <Select value={formData.venue_id} onValueChange={(value) => setFormData({ ...formData, venue_id: value, activity_id: '' })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select venue" />
                   </SelectTrigger>
@@ -436,12 +436,12 @@ export function BookingsDatabase() {
               <div className="space-y-2">
                 <Label htmlFor="game">Game *</Label>
                 <Select
-                  value={formData.game_id}
+                  value={formData.activity_id}
                   onValueChange={(value) => {
                     const game = games.find(g => g.id === value);
                     setFormData({
                       ...formData,
-                      game_id: value,
+                      activity_id: value,
                       total_amount: game?.price || 0,
                     });
                   }}
@@ -540,7 +540,7 @@ export function BookingsDatabase() {
             </Button>
             <Button
               onClick={handleCreateBooking}
-              disabled={!formData.venue_id || !formData.game_id || !formData.customer_id || submitting}
+              disabled={!formData.venue_id || !formData.activity_id || !formData.customer_id || submitting}
               className="bg-blue-600 hover:bg-blue-700"
             >
               {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -574,8 +574,8 @@ export function BookingsDatabase() {
                 </div>
                 <div>
                   <p className="text-gray-600 dark:text-[#737373]">Game</p>
-                  <p className="font-semibold">{selectedBooking.game_name}</p>
-                  <p className="text-gray-600">{selectedBooking.game_difficulty}</p>
+                  <p className="font-semibold">{selectedBooking.activity_name}</p>
+                  <p className="text-gray-600">{selectedBooking.activity_difficulty}</p>
                 </div>
                 <div>
                   <p className="text-gray-600 dark:text-[#737373]">Date & Time</p>

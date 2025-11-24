@@ -284,7 +284,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
                         {booking.status}
                       </Badge>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-[#a3a3a3] truncate mb-2">{booking.game_name}</p>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-[#a3a3a3] truncate mb-2">{booking.activity_name}</p>
                     <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-[#737373]">
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
@@ -337,7 +337,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs sm:text-sm text-gray-600 dark:text-[#a3a3a3] truncate">{activity.game_name} at {activity.venue_name}</p>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-[#a3a3a3] truncate">{activity.activity_name} at {activity.venue_name}</p>
                       <div className="flex items-center gap-3 mt-1">
                         <p className="text-xs text-gray-500 dark:text-[#737373]">
                           {new Date(activity.booking_date).toLocaleDateString()} at {activity.booking_time}

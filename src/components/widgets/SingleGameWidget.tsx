@@ -7,8 +7,8 @@ import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../ui/dialog';
 import { VisuallyHidden } from '../ui/visually-hidden';
-import { 
-  Star, Clock, Users, MapPin, Award, Calendar, 
+import {
+  Star, Clock, Users, MapPin, Award, Calendar,
   ShoppingCart, CreditCard, Lock, CheckCircle2,
   Mail, Phone, User, ChevronLeft, Play, Image as ImageIcon,
   Info, Sparkles, ChevronRight
@@ -25,7 +25,7 @@ interface SingleGameWidgetProps {
   config?: any;
 }
 
-export function SingleGameWidget({ 
+export function SingleGameWidget({
   primaryColor = '#2563eb',
   gameName = 'Mystery Manor',
   gameDescription = 'Uncover the dark secrets hidden in an abandoned Victorian mansion',
@@ -174,16 +174,16 @@ export function SingleGameWidget({
                 className="w-full h-full object-cover scale-110 transition-transform duration-700 hover:scale-105"
               />
             </div>
-            
+
             {/* Animated Gradient Overlays */}
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-90" />
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-900/30 via-transparent to-blue-900/30 animate-pulse" 
-                 style={{ animationDuration: '4s' }} />
-            
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-900/30 via-transparent to-blue-900/30 animate-pulse"
+              style={{ animationDuration: '4s' }} />
+
             {/* Decorative Elements */}
             <div className="absolute top-0 left-0 w-64 sm:w-96 h-64 sm:h-96 bg-purple-500/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
             <div className="absolute bottom-0 right-0 w-64 sm:w-96 h-64 sm:h-96 bg-blue-500/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
-            
+
             {/* Hero Content */}
             <div className="absolute inset-0 flex items-end">
               <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-10 lg:pb-12">
@@ -200,7 +200,7 @@ export function SingleGameWidget({
                 </div>
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-white mb-2 sm:mb-3 drop-shadow-2xl">{gameData.name}</h1>
                 <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-100 mb-4 sm:mb-6 max-w-2xl drop-shadow-lg">{gameData.description}</p>
-                
+
                 {/* Quick Info */}
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6">
                   {gameData.features.map((feature, idx) => {
@@ -288,13 +288,12 @@ export function SingleGameWidget({
                         key={slot.time}
                         onClick={() => slot.available && setSelectedTime(slot.time)}
                         disabled={!slot.available}
-                        className={`p-2.5 sm:p-3 lg:p-4 rounded-lg border-2 text-xs sm:text-sm transition-all relative ${
-                          selectedTime === slot.time
-                            ? 'border-blue-600 shadow-md'
-                            : slot.available
+                        className={`p-2.5 sm:p-3 lg:p-4 rounded-lg border-2 text-xs sm:text-sm transition-all relative ${selectedTime === slot.time
+                          ? 'border-blue-600 shadow-md'
+                          : slot.available
                             ? 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                             : 'border-gray-100 bg-gray-50 cursor-not-allowed'
-                        }`}
+                          }`}
                         style={{
                           borderColor: selectedTime === slot.time ? primaryColor : undefined,
                           backgroundColor: selectedTime === slot.time ? `${primaryColor}10` : undefined,
@@ -320,7 +319,7 @@ export function SingleGameWidget({
                   <Card className="p-4 sm:p-6 bg-white shadow-lg border-gray-200 max-h-[calc(100vh-2rem)] overflow-y-auto">
                     <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-6">
                       <h2 className="text-base sm:text-lg text-gray-900">Your Booking</h2>
-                      
+
                       {/* Party Size */}
                       <div>
                         <label className="text-xs sm:text-sm text-gray-700 mb-2 sm:mb-3 flex items-center gap-2">
@@ -356,7 +355,9 @@ export function SingleGameWidget({
                         </div>
                         <div className="flex justify-between text-xs sm:text-sm">
                           <span className="text-gray-600">Date:</span>
-                          <span className="text-gray-900">Nov {selectedDate}, 2025</span>
+                          <span className="text-gray-900">
+                            {selectedDate ? format(selectedDate, 'MMM d, yyyy') : 'Select a date'}
+                          </span>
                         </div>
                         {selectedTime && (
                           <div className="flex justify-between text-xs sm:text-sm">
@@ -397,7 +398,7 @@ export function SingleGameWidget({
                           onClick={() => setCurrentStep('cart')}
                           disabled={!canAddToCart}
                           className="w-full text-white h-12 sm:h-14 text-base sm:text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all whitespace-nowrap"
-                          style={{ 
+                          style={{
                             backgroundColor: canAddToCart ? primaryColor : undefined,
                             opacity: canAddToCart ? 1 : 0.5
                           }}
@@ -594,42 +595,44 @@ export function SingleGameWidget({
               <div className="lg:sticky lg:top-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
                 <Card className="p-4 md:p-6">
                   <h3 className="text-xl text-gray-900 mb-4">Order Summary</h3>
-                <div className="space-y-3 mb-6">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Experience:</span>
-                    <span className="text-gray-900">{gameData.name}</span>
+                  <div className="space-y-3 mb-6">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Experience:</span>
+                      <span className="text-gray-900">{gameData.name}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Date:</span>
+                      <span className="text-gray-900">
+                        {selectedDate ? format(selectedDate, 'MMM d, yyyy') : 'Select a date'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Time:</span>
+                      <span className="text-gray-900">{selectedTime}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Players:</span>
+                      <span className="text-gray-900">{partySize}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between items-center pt-2">
+                      <span className="text-lg text-gray-900">Total</span>
+                      <span className="text-2xl text-gray-900" style={{ color: primaryColor }}>
+                        ${totalPrice}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Date:</span>
-                    <span className="text-gray-900">Nov {selectedDate}, 2025</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Time:</span>
-                    <span className="text-gray-900">{selectedTime}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Players:</span>
-                    <span className="text-gray-900">{partySize}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-lg text-gray-900">Total</span>
-                    <span className="text-2xl text-gray-900" style={{ color: primaryColor }}>
-                      ${totalPrice}
-                    </span>
-                  </div>
-                </div>
 
-                <Button
-                  onClick={() => setCurrentStep('success')}
-                  disabled={!canCompletePay}
-                  className="w-full text-white h-14 text-lg shadow-lg hover:shadow-xl"
-                  style={{ backgroundColor: canCompletePay ? primaryColor : undefined }}
-                >
-                  <CreditCard className="w-5 h-5 mr-2" />
-                  Complete Payment ${totalPrice}
-                </Button>
-              </Card>
+                  <Button
+                    onClick={() => setCurrentStep('success')}
+                    disabled={!canCompletePay}
+                    className="w-full text-white h-14 text-lg shadow-lg hover:shadow-xl"
+                    style={{ backgroundColor: canCompletePay ? primaryColor : undefined }}
+                  >
+                    <CreditCard className="w-5 h-5 mr-2" />
+                    Complete Payment ${totalPrice}
+                  </Button>
+                </Card>
               </div>
             </div>
           </div>
@@ -639,7 +642,7 @@ export function SingleGameWidget({
       {currentStep === 'success' && (
         <div className="max-w-4xl mx-auto p-4 md:p-8 min-h-screen">
           <div className="flex flex-col items-center justify-center py-8 md:py-12 max-h-screen overflow-y-auto">
-            <div 
+            <div
               className="w-24 h-24 rounded-full flex items-center justify-center mb-6 animate-pulse"
               style={{ backgroundColor: `${primaryColor}15` }}
             >
@@ -661,7 +664,7 @@ export function SingleGameWidget({
                 <div className="flex justify-between items-center pb-4 border-b">
                   <span className="text-gray-600">Date & Time</span>
                   <span className="text-gray-900">
-                    Nov {selectedDate}, 2025 at {selectedTime}
+                    {selectedDate ? format(selectedDate, 'MMM d, yyyy') : ''} at {selectedTime}
                   </span>
                 </div>
                 <div className="flex justify-between items-center pb-4 border-b">

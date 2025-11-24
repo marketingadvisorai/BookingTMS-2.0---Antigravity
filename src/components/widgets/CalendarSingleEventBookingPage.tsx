@@ -225,7 +225,7 @@ export function CalendarSingleEventBookingPage({
       // Create booking via Supabase
       const result = await SupabaseBookingService.createWidgetBooking({
         venue_id: venueId,
-        game_id: gameId,
+        activity_id: gameId,
         customer_name: customerData.name,
         customer_email: customerData.email,
         customer_phone: customerData.phone,

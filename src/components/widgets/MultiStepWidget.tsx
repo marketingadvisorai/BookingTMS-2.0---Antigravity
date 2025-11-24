@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DataSyncService as DataSyncServiceWithEvents } from '../../services/DataSyncService';
+import { DataSyncService as DataSyncServiceWithEvents, DataSyncEvents } from '../../services/DataSyncService';
 import SupabaseBookingService from '../../services/SupabaseBookingService';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
@@ -11,9 +11,9 @@ import { Progress } from '../ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Separator } from '../ui/separator';
 import { VisuallyHidden } from '../ui/visually-hidden';
-import { 
-  Check, ChevronRight, ChevronLeft, Calendar, Clock, 
-  Users, Mail, Phone, User, CreditCard, Lock, Star, Play, 
+import {
+  Check, ChevronRight, ChevronLeft, Calendar, Clock,
+  Users, Mail, Phone, User, CreditCard, Lock, Star, Play,
   Image as ImageIcon, ShoppingCart, CheckCircle2, X
 } from 'lucide-react';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
@@ -28,11 +28,11 @@ interface MultiStepWidgetProps {
 export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepWidgetProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [showGallery, setShowGallery] = useState(false);
-  const [selectedGameForGallery, setSelectedGameForGallery] = useState<string | null>(null);
+  const [selectedActivityForGallery, setSelectedActivityForGallery] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [showSuccess, setShowSuccess] = useState(false);
   const [bookingData, setBookingData] = useState({
-    game: '',
+    activity: '',
     date: '',
     time: '',
     players: 4,
@@ -46,38 +46,38 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
     cardName: '',
   });
 
-  // 🔄 Real-time admin games data loading
-  const [adminGames, setAdminGames] = useState<any[]>([]);
+  // 🔄 Real-time admin activities data loading
+  const [adminActivities, setAdminActivities] = useState<any[]>([]);
 
-  // Load admin games with real-time sync
+  // Load admin activities with real-time sync
   useEffect(() => {
-    const loadAndSubscribeGames = () => {
+    const loadAndSubscribeActivities = () => {
       // Initial load
-      const games = DataSyncServiceWithEvents.getAllGames();
-      console.log('📦 MultiStepWidget loaded', games.length, 'games from admin');
-      setAdminGames(games);
+      const activities = DataSyncServiceWithEvents.getAllActivities();
+      console.log('📦 MultiStepWidget loaded', activities.length, 'activities from admin');
+      setAdminActivities(activities);
 
       // Real-time sync: Listen for admin changes
-      const handleGamesUpdate = () => {
-        const updatedGames = DataSyncServiceWithEvents.getAllGames();
-        console.log('🔄 MultiStepWidget games updated in real-time!', updatedGames.length);
-        setAdminGames(updatedGames);
+      const handleActivitiesUpdate = () => {
+        const updatedActivities = DataSyncServiceWithEvents.getAllActivities();
+        console.log('🔄 MultiStepWidget activities updated in real-time!', updatedActivities.length);
+        setAdminActivities(updatedActivities);
       };
 
       // Subscribe to events
-      DataSyncEvents.subscribe('games-updated', handleGamesUpdate);
+      DataSyncEvents.subscribe('activities-updated', handleActivitiesUpdate);
 
       // Cleanup function
       return () => {
-        DataSyncEvents.unsubscribe('games-updated', handleGamesUpdate);
+        DataSyncEvents.unsubscribe('activities-updated', handleActivitiesUpdate);
       };
     };
 
-    return loadAndSubscribeGames();
+    return loadAndSubscribeActivities();
   }, []);
 
-  // 🔄 Use admin games when available, fallback to hardcoded games
-  const games = adminGames.length > 0 ? adminGames.map(g => ({
+  // 🔄 Use admin activities when available, fallback to hardcoded activities
+  const activities = adminActivities.length > 0 ? adminActivities.map(g => ({
     id: g.id.toString(),
     name: g.name,
     duration: g.duration,
@@ -86,9 +86,10 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
     reviews: 156,
     image: g.imageUrl,
     gallery: [g.imageUrl],
-    description: g.description || 'Amazing escape room experience',
+    description: g.description || 'Amazing experience',
     maxPlayers: g.capacity,
-    minPlayers: 2
+    minPlayers: 2,
+    tagline: g.description ? g.description.substring(0, 50) + '...' : 'An exciting adventure awaits!',
   })) : [
     {
       id: '1',
@@ -145,15 +146,15 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
     { time: '6:00 PM', available: true },
     { time: '8:00 PM', available: true },
   ];
-  
+
   const addOns = [
     { id: 'photo', name: 'Professional Photo Package', price: 15, description: 'High-quality photos of your experience' },
-    { id: 'video', name: 'Video Recording', price: 25, description: 'Full video recording of your game' },
+    { id: 'video', name: 'Video Recording', price: 25, description: 'Full video recording of your activity' },
     { id: 'hints', name: 'Extra Hint Pack', price: 5, description: 'Get 3 additional hints during gameplay' },
   ];
 
   const steps = [
-    { number: 1, name: 'Select Game', icon: Calendar },
+    { number: 1, name: 'Select Activity', icon: Calendar },
     { number: 2, name: 'Date & Time', icon: Clock },
     { number: 3, name: 'Add-ons & Cart', icon: ShoppingCart },
     { number: 4, name: 'Your Details', icon: User },
@@ -163,25 +164,25 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
   const totalSteps = 5;
   const progress = (currentStep / totalSteps) * 100;
 
-  const selectedGame = games.find(g => g.id === bookingData.game);
-  const basePrice = selectedGame ? selectedGame.price * bookingData.players : 0;
+  const selectedActivity = activities.find(g => g.id === bookingData.activity);
+  const basePrice = selectedActivity ? selectedActivity.price * bookingData.players : 0;
   const addOnsPrice = bookingData.addOns.reduce((sum, id) => {
     const addOn = addOns.find(a => a.id === id);
     return sum + (addOn?.price || 0);
   }, 0);
   const totalPrice = basePrice + addOnsPrice;
 
-  const openGallery = (gameId: string) => {
-    setSelectedGameForGallery(gameId);
+  const openGallery = (activityId: string) => {
+    setSelectedActivityForGallery(activityId);
     setShowGallery(true);
   };
 
-  const galleryGame = games.find(g => g.id === selectedGameForGallery);
+  const galleryActivity = activities.find(g => g.id === selectedActivityForGallery);
 
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return bookingData.game !== '';
+        return bookingData.activity !== '';
       case 2:
         return bookingData.date !== '' && bookingData.time !== '';
       case 3:
@@ -189,8 +190,8 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
       case 4:
         return bookingData.name !== '' && bookingData.email !== '' && bookingData.phone !== '';
       case 5:
-        return bookingData.cardNumber !== '' && bookingData.cardExpiry !== '' && 
-               bookingData.cardCVV !== '' && bookingData.cardName !== '';
+        return bookingData.cardNumber !== '' && bookingData.cardExpiry !== '' &&
+          bookingData.cardCVV !== '' && bookingData.cardName !== '';
       default:
         return false;
     }
@@ -211,25 +212,23 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
   const handlePayment = async () => {
     if (canProceed()) {
       try {
-        // Find the selected game details
-        const selectedGame = games.find(g => g.id === bookingData.game);
+        // Find the selected activity details
+        const selectedActivity = activities.find(g => g.id === bookingData.activity);
 
-        // Get venue and game IDs from config
+        // Get venue and activity IDs from config
         const venueId = config?.venueId || config?.venue?.id;
-        const gameId = bookingData.game;
+        const activityId = bookingData.activity;
 
-        if (!venueId || !gameId) {
-          toast.error('Missing venue or game information');
-          console.error('Missing IDs:', { venueId, gameId, config });
+        if (!venueId || !activityId) {
+          toast.error('Missing venue or activity information');
+          console.error('Missing IDs:', { venueId, activityId, config });
           return;
         }
 
         // Format date and time for Supabase
-        const bookingDate = bookingData.date instanceof Date 
-          ? bookingData.date.toISOString().split('T')[0]
-          : bookingData.date;
+        const bookingDate = bookingData.date; // It's already a string YYYY-MM-DD from calendar onSelect
         const startTime = bookingData.time + ':00';
-        
+
         // Calculate end time (assume 60 min duration)
         const [hour, minute] = bookingData.time.split(':');
         const endHour = String((parseInt(hour) + 1) % 24).padStart(2, '0');
@@ -239,15 +238,15 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
         const ticketTypes = [{
           id: 'standard',
           name: 'Standard Ticket',
-          price: selectedGame?.price || 0,
+          price: selectedActivity?.price || 0,
           quantity: bookingData.players,
-          subtotal: (selectedGame?.price || 0) * bookingData.players
+          subtotal: (selectedActivity?.price || 0) * bookingData.players
         }];
 
         // Create booking via Supabase
         const result = await SupabaseBookingService.createWidgetBooking({
           venue_id: venueId,
-          game_id: gameId,
+          activity_id: activityId,
           customer_name: bookingData.name,
           customer_email: bookingData.email,
           customer_phone: bookingData.phone,
@@ -282,17 +281,17 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
         <DialogContent className="!w-screen !h-screen !max-w-none !max-h-none sm:!w-[90vw] sm:!h-auto sm:!max-w-[800px] sm:!max-h-[90vh] !rounded-none sm:!rounded-lg overflow-y-auto p-4 sm:p-6">
           <VisuallyHidden>
             <DialogTitle>Booking Confirmation</DialogTitle>
-            <DialogDescription>Your escape room booking has been confirmed successfully</DialogDescription>
+            <DialogDescription>Your booking has been confirmed successfully</DialogDescription>
           </VisuallyHidden>
           <div className="flex flex-col items-center justify-center py-6 sm:py-8 px-2 sm:px-4">
-            <div 
+            <div
               className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mb-4 sm:mb-6"
               style={{ backgroundColor: `${primaryColor}15` }}
             >
               <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12" style={{ color: primaryColor }} />
             </div>
             <h2 className="text-2xl sm:text-3xl text-gray-900 mb-2 text-center">Booking Confirmed!</h2>
-            <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8 text-center">Your escape room adventure is all set</p>
+            <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8 text-center">Your adventure is all set</p>
 
             <Card className="w-full max-w-2xl p-4 sm:p-6 mb-4 sm:mb-6">
               <div className="space-y-3 sm:space-y-4">
@@ -301,13 +300,13 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
                   <span className="text-gray-900 text-xs sm:text-base">{bookingNumber}</span>
                 </div>
                 <div className="flex justify-between items-center pb-3 sm:pb-4 border-b text-sm sm:text-base">
-                  <span className="text-gray-600">Game</span>
-                  <span className="text-gray-900 text-right truncate max-w-[60%]">{selectedGame?.name}</span>
+                  <span className="text-gray-600">Activity</span>
+                  <span className="text-gray-900 text-right truncate max-w-[60%]">{selectedActivity?.name}</span>
                 </div>
                 <div className="flex justify-between items-center pb-3 sm:pb-4 border-b text-sm sm:text-base">
                   <span className="text-gray-600">Date & Time</span>
                   <span className="text-gray-900 text-xs sm:text-base text-right">
-                    Nov {selectedDate}, 2025 at {bookingData.time}
+                    {selectedDate ? format(selectedDate, 'MMM d, yyyy') : ''} at {bookingData.time}
                   </span>
                 </div>
                 <div className="flex justify-between items-center pb-3 sm:pb-4 border-b text-sm sm:text-base">
@@ -348,7 +347,7 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
                 setShowSuccess(false);
                 setCurrentStep(1);
                 setBookingData({
-                  game: '',
+                  activity: '',
                   date: '',
                   time: '',
                   players: 4,
@@ -376,15 +375,15 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
       <Dialog open={showGallery} onOpenChange={setShowGallery}>
         <DialogContent className="!w-screen !h-screen !max-w-none !max-h-none sm:!w-[90vw] sm:!h-[90vh] sm:!max-w-[900px] sm:!max-h-[90vh] !rounded-none sm:!rounded-lg overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl">{galleryGame?.name}</DialogTitle>
-            <DialogDescription className="text-sm sm:text-base">{galleryGame?.tagline}</DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">{galleryActivity?.name}</DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">{galleryActivity?.tagline}</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
-            {galleryGame?.gallery.map((image, index) => (
+            {galleryActivity?.gallery.map((image, index) => (
               <div key={index} className="aspect-video rounded-lg overflow-hidden">
                 <ImageWithFallback
                   src={image}
-                  alt={`${galleryGame.name} - Image ${index + 1}`}
+                  alt={`${galleryActivity.name} - Image ${index + 1}`}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -403,24 +402,23 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
             </Badge>
           </div>
           <Progress value={progress} className="h-1.5 sm:h-2 mb-3 sm:mb-4 lg:mb-6" style={{ '--progress-background': primaryColor } as React.CSSProperties} />
-          
+
           {/* Step Indicators - Hidden on mobile */}
           <div className="hidden lg:grid lg:grid-cols-5 gap-4">
             {steps.map((step) => {
               const Icon = step.icon;
               const isCompleted = currentStep > step.number;
               const isCurrent = currentStep === step.number;
-              
+
               return (
                 <div key={step.number} className="flex items-center gap-3">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
-                      isCompleted
-                        ? 'text-white'
-                        : isCurrent
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${isCompleted
+                      ? 'text-white'
+                      : isCurrent
                         ? 'border-2'
                         : 'bg-gray-100 text-gray-400'
-                    }`}
+                      }`}
                     style={{
                       backgroundColor: isCompleted ? primaryColor : isCurrent ? 'white' : undefined,
                       borderColor: isCurrent ? primaryColor : undefined,
@@ -444,7 +442,7 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
       {/* Main Content */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8 pb-24 sm:pb-8">
         <div className="min-h-[60vh] sm:min-h-0">
-          {/* Step 1: Select Game */}
+          {/* Step 1: Select Activity */}
           {currentStep === 1 && (
             <Card className="p-4 sm:p-6 bg-white shadow-sm border-gray-200">
               <div className="flex items-start justify-between mb-4 sm:mb-6">
@@ -452,28 +450,27 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
                 <Badge variant="secondary" className="bg-red-50 text-red-700 border-red-200 text-xs">Required</Badge>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-                {games.map((game) => (
+                {activities.map((activity) => (
                   <div
-                    key={game.id}
-                    onClick={() => setBookingData({ ...bookingData, game: game.id })}
-                    className={`cursor-pointer rounded-lg border-2 transition-all hover:shadow-lg ${
-                      bookingData.game === game.id ? 'shadow-lg' : 'border-gray-200'
-                    }`}
+                    key={activity.id}
+                    onClick={() => setBookingData({ ...bookingData, activity: activity.id })}
+                    className={`cursor-pointer rounded-lg border-2 transition-all hover:shadow-lg ${bookingData.activity === activity.id ? 'shadow-lg' : 'border-gray-200'
+                      }`}
                     style={{
-                      borderColor: bookingData.game === game.id ? primaryColor : undefined,
+                      borderColor: bookingData.activity === activity.id ? primaryColor : undefined,
                     }}
                   >
                     <div className="relative h-40 sm:h-48 lg:h-56 rounded-t-lg overflow-hidden group">
                       <ImageWithFallback
-                        src={game.image}
-                        alt={game.name}
+                        src={activity.image}
+                        alt={activity.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
                       <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex gap-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            openGallery(game.id);
+                            openGallery(activity.id);
                           }}
                           className="bg-white/90 backdrop-blur-sm p-1.5 sm:p-2 rounded-full hover:bg-white transition-colors"
                         >
@@ -483,24 +480,24 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
                     </div>
                     <div className="p-3 sm:p-4">
                       <div className="mb-2 sm:mb-3">
-                        <h4 className="text-sm sm:text-base text-gray-900 mb-1">{game.name}</h4>
-                        <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{game.tagline}</p>
+                        <h4 className="text-sm sm:text-base text-gray-900 mb-1">{activity.name}</h4>
+                        <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{activity.tagline}</p>
                       </div>
                       <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
                         <div className="flex items-center gap-1">
                           <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
-                          <span>{game.rating}</span>
-                          <span className="text-gray-400 hidden sm:inline">({game.reviews})</span>
+                          <span>{activity.rating}</span>
+                          <span className="text-gray-400 hidden sm:inline">({activity.reviews})</span>
                         </div>
                         <span className="hidden sm:inline">•</span>
-                        <span>{game.duration} min</span>
+                        <span>{activity.duration} min</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <p className="text-lg sm:text-xl lg:text-2xl text-gray-900" style={{ color: primaryColor }}>
-                          ${game.price}
+                          ${activity.price}
                           <span className="text-xs sm:text-sm text-gray-500"> /person</span>
                         </p>
-                        {bookingData.game === game.id && (
+                        {bookingData.activity === activity.id && (
                           <Check className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: primaryColor }} />
                         )}
                       </div>
@@ -546,13 +543,12 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
                         key={slot.time}
                         onClick={() => slot.available && setBookingData({ ...bookingData, time: slot.time })}
                         disabled={!slot.available}
-                        className={`p-3 md:p-4 rounded-lg border-2 text-sm transition-all relative ${
-                          bookingData.time === slot.time
-                            ? 'border-blue-600 shadow-md'
-                            : slot.available
+                        className={`p-3 md:p-4 rounded-lg border-2 text-sm transition-all relative ${bookingData.time === slot.time
+                          ? 'border-blue-600 shadow-md'
+                          : slot.available
                             ? 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                             : 'border-gray-100 bg-gray-50 cursor-not-allowed'
-                        }`}
+                          }`}
                         style={{
                           borderColor: bookingData.time === slot.time ? primaryColor : undefined,
                           backgroundColor: bookingData.time === slot.time ? `${primaryColor}10` : undefined,
@@ -575,7 +571,7 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
                 <div className="sticky top-4">
                   <Card className="p-4 md:p-6 bg-white shadow-lg border-gray-200">
                     <h3 className="text-gray-900 mb-4">Booking Summary</h3>
-                    
+
                     {/* Party Size */}
                     <div className="mb-6">
                       <Label className="text-sm text-gray-700 mb-3 flex items-center gap-2">
@@ -604,8 +600,8 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
                     {/* Summary Details */}
                     <div className="space-y-3 mb-6 pb-6 border-b border-gray-200">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Game:</span>
-                        <span className="text-gray-900">{selectedGame?.name || 'Not selected'}</span>
+                        <span className="text-gray-600">Activity:</span>
+                        <span className="text-gray-900">{selectedActivity?.name || 'Not selected'}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Date:</span>
@@ -627,7 +623,7 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
                     <div className="space-y-2 mb-4">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Price per person:</span>
-                        <span className="text-gray-900">${selectedGame?.price || 0}</span>
+                        <span className="text-gray-900">${selectedActivity?.price || 0}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Subtotal:</span>
@@ -675,9 +671,8 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
                           });
                         }
                       }}
-                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        isSelected ? 'shadow-md' : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${isSelected ? 'shadow-md' : 'border-gray-200 hover:border-gray-300'
+                        }`}
                       style={{
                         borderColor: isSelected ? primaryColor : undefined,
                         backgroundColor: isSelected ? `${primaryColor}05` : undefined,
@@ -709,8 +704,8 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
                 </h3>
                 <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3 shadow-sm">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">{selectedGame?.name}</span>
-                    <span className="text-gray-900">${selectedGame?.price} × {bookingData.players}</span>
+                    <span className="text-gray-600">{selectedActivity?.name}</span>
+                    <span className="text-gray-900">${selectedActivity?.price} × {bookingData.players}</span>
                   </div>
                   {bookingData.addOns.length > 0 && (
                     <>
@@ -799,161 +794,102 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
                 </h3>
                 <Badge variant="secondary" className="bg-red-50 text-red-700 border-red-200">Required</Badge>
               </div>
-              <div className="space-y-4 mb-6">
-                <div className="space-y-2">
-                  <Label className="text-gray-700">Cardholder Name <span className="text-red-500">*</span></Label>
-                  <Input
-                    type="text"
-                    placeholder="John Doe"
-                    value={bookingData.cardName}
-                    onChange={(e) => setBookingData({ ...bookingData, cardName: e.target.value })}
-                    className="h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500"
-                  />
+              <div className="space-y-6">
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">Total Amount</span>
+                    <span className="text-2xl font-bold text-gray-900">${totalPrice}</span>
+                  </div>
+                  <div className="text-xs text-gray-500 flex items-center gap-1">
+                    <Lock className="w-3 h-3" />
+                    Transactions are secure and encrypted
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-gray-700">Card Number <span className="text-red-500">*</span></Label>
-                  <Input
-                    type="text"
-                    placeholder="1234 5678 9012 3456"
-                    value={bookingData.cardNumber}
-                    onChange={(e) => setBookingData({ ...bookingData, cardNumber: e.target.value })}
-                    maxLength={19}
-                    className="h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-gray-700">Expiry Date <span className="text-red-500">*</span></Label>
+                    <Label className="text-gray-700">Cardholder Name</Label>
                     <Input
                       type="text"
-                      placeholder="MM/YY"
-                      value={bookingData.cardExpiry}
-                      onChange={(e) => setBookingData({ ...bookingData, cardExpiry: e.target.value })}
-                      maxLength={5}
-                      className="h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500"
+                      placeholder="Name on card"
+                      value={bookingData.cardName}
+                      onChange={(e) => setBookingData({ ...bookingData, cardName: e.target.value })}
+                      className="h-12 bg-gray-100 border-gray-300"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-gray-700">CVV <span className="text-red-500">*</span></Label>
-                    <Input
-                      type="text"
-                      placeholder="123"
-                      value={bookingData.cardCVV}
-                      onChange={(e) => setBookingData({ ...bookingData, cardCVV: e.target.value })}
-                      maxLength={4}
-                      className="h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500"
-                    />
+                    <Label className="text-gray-700">Card Number</Label>
+                    <div className="relative">
+                      <Input
+                        type="text"
+                        placeholder="0000 0000 0000 0000"
+                        value={bookingData.cardNumber}
+                        onChange={(e) => setBookingData({ ...bookingData, cardNumber: e.target.value })}
+                        className="h-12 bg-gray-100 border-gray-300 pl-10"
+                      />
+                      <CreditCard className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-gray-700">Expiry Date</Label>
+                      <Input
+                        type="text"
+                        placeholder="MM/YY"
+                        value={bookingData.cardExpiry}
+                        onChange={(e) => setBookingData({ ...bookingData, cardExpiry: e.target.value })}
+                        className="h-12 bg-gray-100 border-gray-300"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-gray-700">CVV</Label>
+                      <Input
+                        type="text"
+                        placeholder="123"
+                        value={bookingData.cardCVV}
+                        onChange={(e) => setBookingData({ ...bookingData, cardCVV: e.target.value })}
+                        className="h-12 bg-gray-100 border-gray-300"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <Separator className="my-6 bg-gray-200" />
-
-              <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-2 mb-6 shadow-sm">
-                <h4 className="text-gray-900 mb-3">Order Summary</h4>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Game</span>
-                  <span className="text-gray-900">{selectedGame?.name}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Date & Time</span>
-                  <span className="text-gray-900">
-                    Nov {selectedDate}, 2025 at {bookingData.time}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Players</span>
-                  <span className="text-gray-900">{bookingData.players} × ${selectedGame?.price}</span>
-                </div>
-                {bookingData.addOns.length > 0 && (
-                  <>
-                    <Separator className="my-2" />
-                    {bookingData.addOns.map(id => {
-                      const addOn = addOns.find(a => a.id === id);
-                      return (
-                        <div key={id} className="flex justify-between text-sm">
-                          <span className="text-gray-600">{addOn?.name}</span>
-                          <span className="text-gray-900">${addOn?.price}</span>
-                        </div>
-                      );
-                    })}
-                  </>
-                )}
-                <Separator className="my-2" />
-                <div className="flex justify-between items-center pt-2">
-                  <span className="text-gray-900">Total</span>
-                  <span className="text-2xl text-gray-900" style={{ color: primaryColor }}>
-                    ${totalPrice}
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700 flex items-start gap-2">
-                <Lock className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                <p>Your payment information is encrypted and secure</p>
               </div>
             </Card>
           )}
         </div>
 
         {/* Navigation Buttons */}
-        <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg mt-8 -mx-4 md:-mx-6 px-4 md:px-6 py-4 z-10">
-          <div className="flex flex-col sm:flex-row gap-3 items-center">
-            {currentStep > 1 && (
-              <Button
-                onClick={handleBack}
-                variant="outline"
-                className="w-full sm:w-auto h-12 border-2 hover:bg-gray-50 order-2 sm:order-1"
-              >
-                <ChevronLeft className="w-5 h-5 mr-2" />
-                Back
-              </Button>
-            )}
-            
-            <div className="flex-1 order-1 sm:order-2 w-full">
-              {currentStep < totalSteps ? (
-                <Button
-                  onClick={handleNext}
-                  disabled={!canProceed()}
-                  className="w-full h-14 text-white text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ 
-                    backgroundColor: canProceed() ? primaryColor : '#9ca3af',
-                    opacity: canProceed() ? 1 : 0.6
-                  }}
-                >
-                  {!canProceed() && currentStep === 1 && 'Select a game to continue'}
-                  {!canProceed() && currentStep === 2 && 'Select date and time to continue'}
-                  {!canProceed() && currentStep === 4 && 'Fill in all required fields'}
-                  {!canProceed() && currentStep === 5 && 'Enter payment details'}
-                  {canProceed() && 'Continue to Next Step'}
-                  <ChevronRight className="w-5 h-5 ml-2" />
-                </Button>
-              ) : (
-                <Button
-                  onClick={handlePayment}
-                  disabled={!canProceed()}
-                  className="w-full h-14 text-white text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ 
-                    backgroundColor: canProceed() ? primaryColor : '#9ca3af',
-                    opacity: canProceed() ? 1 : 0.6
-                  }}
-                >
-                  <Lock className="w-5 h-5 mr-2" />
-                  {canProceed() ? `Complete Payment - $${totalPrice}` : 'Enter payment details to complete'}
-                </Button>
-              )}
-            </div>
-          </div>
-          
-          {/* Helper Text */}
-          {!canProceed() && (
-            <div className="text-center mt-3 text-sm text-gray-500">
-              {currentStep === 1 && 'Please select an escape room game to continue'}
-              {currentStep === 2 && 'Please select both date and time slot to proceed'}
-              {currentStep === 3 && 'Optional: Add enhancements or continue to the next step'}
-              {currentStep === 4 && 'Please fill in your name, email, and phone number'}
-              {currentStep === 5 && 'Please enter your complete payment information'}
-            </div>
+        <div className="mt-6 sm:mt-8 flex justify-between gap-4">
+          <Button
+            variant="outline"
+            onClick={handleBack}
+            disabled={currentStep === 1}
+            className="w-full sm:w-auto h-10 sm:h-12 px-6 sm:px-8 text-sm sm:text-base"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+
+          {currentStep === totalSteps ? (
+            <Button
+              onClick={handlePayment}
+              disabled={!canProceed()}
+              className="w-full sm:w-auto h-10 sm:h-12 px-6 sm:px-8 text-sm sm:text-base text-white shadow-lg hover:shadow-xl transition-all"
+              style={{ backgroundColor: primaryColor }}
+            >
+              Complete Booking
+              <Check className="w-4 h-4 ml-2" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleNext}
+              disabled={!canProceed()}
+              className="w-full sm:w-auto h-10 sm:h-12 px-6 sm:px-8 text-sm sm:text-base text-white shadow-lg hover:shadow-xl transition-all"
+              style={{ backgroundColor: primaryColor }}
+            >
+              Next Step
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
           )}
         </div>
       </div>

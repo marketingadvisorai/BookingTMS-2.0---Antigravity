@@ -82,7 +82,7 @@ export default function CalendarWidgetSettings({
         <TabsList className="flex w-full gap-1 overflow-x-auto">
           <TabsTrigger value="general" className="text-xs sm:text-sm">General</TabsTrigger>
           <TabsTrigger value="venue" className="text-xs sm:text-sm">Venue</TabsTrigger>
-          <TabsTrigger value="games" className="text-xs sm:text-sm">{t.plural}</TabsTrigger>
+          <TabsTrigger value="activities" className="text-xs sm:text-sm">{t.plural}</TabsTrigger>
           <TabsTrigger value="availability" className="text-xs sm:text-sm">Availability</TabsTrigger>
           <TabsTrigger value="custom" className="text-xs sm:text-sm">Custom</TabsTrigger>
           <TabsTrigger value="seo" className="text-xs sm:text-sm">SEO</TabsTrigger>
@@ -101,7 +101,7 @@ export default function CalendarWidgetSettings({
           />
         </TabsContent>
 
-        <TabsContent value="games">
+        <TabsContent value="activities">
           <ServiceItemsSettingsTab
             config={config}
             onConfigChange={onConfigChange}

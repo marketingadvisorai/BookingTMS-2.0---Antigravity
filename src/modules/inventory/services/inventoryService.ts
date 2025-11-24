@@ -48,7 +48,7 @@ const mapToActivityInput = (dto: CreateGameDTO): CreateActivityInput => {
             customDates: [],
             blockedDates: []
         }
-    };
+    } as any;
 };
 
 export const inventoryService = {
@@ -70,7 +70,7 @@ export const inventoryService = {
                     .limit(1)
                 );
             if (venues && venues.length > 0) {
-                targetVenueId = venues[0].id;
+                targetVenueId = (venues as any)[0].id;
             }
         }
 
@@ -93,7 +93,7 @@ export const inventoryService = {
                 );
 
             if (venues && venues.length > 0) {
-                gameData.venue_id = venues[0].id;
+                gameData.venue_id = (venues as any)[0].id;
             } else {
                 console.warn('No venue found for organization. Game creation might fail.');
             }

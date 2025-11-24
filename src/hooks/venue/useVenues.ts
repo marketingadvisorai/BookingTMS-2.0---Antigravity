@@ -85,8 +85,8 @@ export function useVenues() {
 
       console.log('Inserting venue data:', insertData);
 
-      const { data, error: insertError } = await supabase
-        .from('venues')
+      const { data, error: insertError } = await (supabase
+        .from('venues') as any)
         .insert([insertData])
         .select()
         .single();
@@ -113,8 +113,8 @@ export function useVenues() {
   // Update venue
   const updateVenue = async (id: string, updates: Partial<Venue>) => {
     try {
-      const { data, error: updateError } = await supabase
-        .from('venues')
+      const { data, error: updateError } = await (supabase
+        .from('venues') as any)
         .update(updates)
         .eq('id', id)
         .select()
@@ -174,7 +174,7 @@ export function useVenues() {
   const getVenueStats = async (venueId: string) => {
     try {
       const { data, error: statsError } = await supabase
-        .rpc('get_venue_stats', { p_venue_id: venueId });
+        .rpc('get_venue_stats', { p_venue_id: venueId } as any);
 
       if (statsError) throw statsError;
 

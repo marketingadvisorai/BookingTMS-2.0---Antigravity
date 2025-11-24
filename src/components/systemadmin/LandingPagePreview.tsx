@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../layout/ThemeContext';
 import { Monitor, Smartphone, Tablet, RefreshCw, ExternalLink } from 'lucide-react';
 import { Button } from '../ui/button';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface LandingPagePreviewProps {
   venueSlug: string;

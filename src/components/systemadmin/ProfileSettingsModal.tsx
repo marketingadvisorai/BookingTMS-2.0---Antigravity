@@ -6,7 +6,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useTheme } from '../layout/ThemeContext';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { ProfileEmbedSettings } from './ProfileEmbedSettings';
 import { LandingPageEditor } from './LandingPageEditor';
 import { LandingPagePreview } from './LandingPagePreview';

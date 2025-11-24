@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Tag, Check, X } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface PromoCodeInputProps {
   onApply: (code: string, discount: number, type: 'percentage' | 'fixed') => void;

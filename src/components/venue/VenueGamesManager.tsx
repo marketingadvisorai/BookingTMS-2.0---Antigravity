@@ -16,7 +16,7 @@ import {
 } from '../ui/dropdown-menu';
 import { ScrollArea } from '../ui/scroll-area';
 import { toast } from 'sonner';
-import AddGameWizard from '../games/AddGameWizard';
+import AddEventWizard from '../events/AddEventWizard';
 import { useGames } from '../../hooks/useGames';
 
 interface EmbedContext {
@@ -83,7 +83,7 @@ export default function VenueGamesManager({
       tagline: settings.tagline || '',
       category: settings.category || '',
       eventType: settings.eventType || 'public',
-      gameType: settings.gameType || 'physical',
+      activityType: settings.activityType || settings.gameType || 'physical',
       minAdults: game.min_players,
       maxAdults: game.max_players,
       minChildren: settings.minChildren || 0,
@@ -96,7 +96,7 @@ export default function VenueGamesManager({
       dynamicPricing: settings.dynamicPricing || false,
       peakPricing: settings.peakPricing || { enabled: false },
       duration: game.duration_minutes,
-      difficulty: game.difficulty,
+      difficulty: typeof game.difficulty === 'string' ? { 'Easy': 1, 'Medium': 3, 'Hard': 4, 'Expert': 5 }[game.difficulty] || 3 : game.difficulty || 3,
       minAge: game.min_age || 0,
       language: settings.language || ['English'],
       successRate: game.success_rate || 75,
@@ -134,15 +134,15 @@ export default function VenueGamesManager({
   };
 
   // Helper function to convert difficulty number to string
-  const getDifficultyString = (difficulty: number): 'Easy' | 'Medium' | 'Hard' | 'Expert' => {
-    const difficultyMap: { [key: number]: 'Easy' | 'Medium' | 'Hard' | 'Expert' } = {
-      1: 'Easy',
-      2: 'Easy',
-      3: 'Medium',
-      4: 'Hard',
-      5: 'Expert',
+  const getDifficultyString = (difficulty: number): 'easy' | 'medium' | 'hard' | 'expert' => {
+    const difficultyMap: { [key: number]: 'easy' | 'medium' | 'hard' | 'expert' } = {
+      1: 'easy',
+      2: 'easy',
+      3: 'medium',
+      4: 'hard',
+      5: 'expert',
     };
-    return difficultyMap[difficulty] || 'Medium';
+    return difficultyMap[difficulty] || 'medium';
   };
 
   // Handle wizard complete (create or update)
@@ -169,7 +169,7 @@ export default function VenueGamesManager({
       success_rate: gameData.successRate || 75,
       image_url: gameData.coverImage || 'https://images.unsplash.com/photo-1569002925653-ed18f55d7292',
       is_active: true,
-      organization_id: '', // Will be handled by backend/hook
+      organization_id: '00000000-0000-0000-0000-000000000001', // Default org ID
       // Stripe payment integration fields
       stripe_product_id: gameData.stripeProductId || null,
       stripe_price_id: gameData.stripePriceId || null,
@@ -181,7 +181,7 @@ export default function VenueGamesManager({
         tagline: gameData.tagline,
         category: gameData.category,
         eventType: gameData.eventType,
-        gameType: gameData.gameType || 'physical',
+        gameType: gameData.activityType || gameData.gameType,
         minChildren: gameData.minChildren,
         maxChildren: gameData.maxChildren,
         customCapacityFields: gameData.customCapacityFields,
@@ -223,12 +223,12 @@ export default function VenueGamesManager({
       let result;
       if (editingGame) {
         console.log('Updating existing game:', editingGame.id);
-        result = await updateGame(editingGame.id, supabaseGameData);
+        result = await updateGame(editingGame.id, supabaseGameData as any);
         setEditingGame(null);
         toast.success('Game updated successfully!');
       } else {
         console.log('Creating new game...');
-        result = await createGame(supabaseGameData);
+        result = await createGame(supabaseGameData as any);
         console.log('✅ Game created successfully:', result);
         toast.success('Game created successfully!');
       }
@@ -476,7 +476,7 @@ export default function VenueGamesManager({
               </Button>
             </div>
             <div className="flex-1 overflow-auto">
-              <AddGameWizard
+              <AddEventWizard
                 onComplete={handleWizardComplete}
                 onCancel={() => {
                   setShowAddGameWizard(false);
@@ -484,7 +484,6 @@ export default function VenueGamesManager({
                 }}
                 initialData={editingGame ? convertGameToWizardData(editingGame) : undefined}
                 mode={editingGame ? 'edit' : 'create'}
-                embedContext={embedContext}
               />
             </div>
           </div>

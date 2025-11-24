@@ -10,7 +10,7 @@ import { Badge } from '../ui/badge';
 import { Switch } from '../ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useState, useCallback } from 'react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { Crown, CheckCircle, Save, X, Users, DollarSign, Plus, Trash2, GripVertical, Star, Percent, Tag } from 'lucide-react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';

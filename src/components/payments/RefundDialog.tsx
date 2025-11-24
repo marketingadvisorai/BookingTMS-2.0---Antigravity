@@ -29,7 +29,7 @@ import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
 import { AlertCircle, DollarSign } from 'lucide-react';
 import { Transaction, RefundReason } from '../../types/payment';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface RefundDialogProps {
   transaction: Transaction | null;

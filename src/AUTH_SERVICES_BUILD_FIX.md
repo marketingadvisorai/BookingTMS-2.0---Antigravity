@@ -80,7 +80,7 @@ const hasSupabaseKey = !!publicAnonKey;
 import { toast } from 'sonner';
 
 // ✅ AFTER
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 ```
 
 ---
@@ -98,7 +98,7 @@ import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Switch } from '../ui/switch';
 import { Separator } from '../ui/separator';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { /* all icons */ } from 'lucide-react';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 ```
@@ -171,7 +171,7 @@ npm run build
 
 1. **Always use relative imports** in this environment, not `@/` aliases
 2. **Access Supabase config** via `/utils/supabase/info.tsx`, not `process.env`
-3. **Specify sonner version** as `sonner@2.0.3`
+3. **Specify sonner version** as `sonner`
 4. **Test imports** match project structure and file locations
 
 ---

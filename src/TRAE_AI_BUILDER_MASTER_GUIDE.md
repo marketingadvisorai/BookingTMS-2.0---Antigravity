@@ -246,7 +246,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface MyFormProps {
   open: boolean;
@@ -1075,7 +1075,7 @@ const MyComponent = () => {
 ```tsx
 import { createClient } from '@supabase/supabase-js';
 import { projectId, publicAnonKey } from '@/utils/supabase/info';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 const supabase = createClient(
   `https://${projectId}.supabase.co`,
@@ -1457,7 +1457,7 @@ export const bookingsApi = {
 ```tsx
 import { useState, useEffect } from 'react';
 import { bookingsApi } from '@/utils/api/bookings';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 const BookingsPage = () => {
   const [bookings, setBookings] = useState([]);

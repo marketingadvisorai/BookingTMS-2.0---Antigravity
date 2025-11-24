@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DataSyncService as DataSyncServiceWithEvents } from '../../services/DataSyncService';
+import DataSyncServiceWithEvents, { DataSyncEvents } from '../../services/DataSyncService';
 import SupabaseBookingService from '../../services/SupabaseBookingService';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
@@ -57,23 +57,23 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
   useEffect(() => {
     const loadAndSubscribeGames = () => {
       // Initial load
-      const games = DataSyncServiceWithEvents.getAllGames();
+      const games = DataSyncServiceWithEvents.getAllActivities();
       console.log('📦 ListWidget loaded', games.length, 'games from admin');
       setAdminGames(games);
 
       // Real-time sync: Listen for admin changes
       const handleGamesUpdate = () => {
-        const updatedGames = DataSyncServiceWithEvents.getAllGames();
+        const updatedGames = DataSyncServiceWithEvents.getAllActivities();
         console.log('🔄 ListWidget games updated in real-time!', updatedGames.length);
         setAdminGames(updatedGames);
       };
 
       // Subscribe to events
-      DataSyncEvents.subscribe('games-updated', handleGamesUpdate);
+      DataSyncEvents.subscribe('activities-updated', handleGamesUpdate);
 
       // Cleanup function
       return () => {
-        DataSyncEvents.unsubscribe('games-updated', handleGamesUpdate);
+        DataSyncEvents.unsubscribe('activities-updated', handleGamesUpdate);
       };
     };
 
@@ -93,7 +93,9 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
     rating: 4.8,
     reviews: 156,
     image: g.imageUrl,
-    tags: ['Family Friendly', 'Adventure', 'Puzzle']
+    tags: ['Family Friendly', 'Adventure', 'Puzzle'],
+    tagline: g.tagline || '',
+    availability: g.availability || {}
   })) : [
     {
       id: '1',
@@ -247,8 +249,8 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
 
       // Create booking data
       const bookingData = {
-        gameName: selectedExp?.name || '',
-        gameId: selectedExperience || '',
+        activityName: selectedExp?.name || '',
+        activityId: selectedExperience || '',
         date: selectedDate ? selectedDate.toISOString().split('T')[0] : '',
         time: selectedTime || '',
         customerName: customerData.name,
@@ -526,8 +528,8 @@ export function BookGoWidget({ primaryColor = '#2563eb', config }: BookGoWidgetP
                           key={time}
                           onClick={() => setSelectedTime(time)}
                           className={`p-2.5 sm:p-3 rounded-lg border-2 transition-all text-center ${selectedTime === time
-                              ? 'shadow-md'
-                              : 'border-gray-200 hover:border-gray-300'
+                            ? 'shadow-md'
+                            : 'border-gray-200 hover:border-gray-300'
                             }`}
                           style={{
                             borderColor: selectedTime === time ? primaryColor : undefined,

@@ -69,7 +69,7 @@ import {
   Save,
   Calendar
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { useTheme } from '../components/layout/ThemeContext';
 import { EmailTemplateEditor } from '../components/email/EmailTemplateEditor';

@@ -5,37 +5,37 @@ import DataSyncServiceWithEvents, {
   DataSyncEvents,
   DATA_SYNC_STORAGE_KEYS,
   DEFAULT_ORGANIZATION_ID,
-  Game,
-  GameDifficulty,
+  Activity,
+  ActivityDifficulty,
 } from '@/services/DataSyncService';
 import type { Database } from '@/types/supabase';
 
-// Fallback image for games without an image_url
-const DEFAULT_GAME_IMAGE = 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=800&h=600&fit=crop';
+// Fallback image for activities without an image_url
+const DEFAULT_ACTIVITY_IMAGE = 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=800&h=600&fit=crop';
 
-// Map Supabase game row -> local DataSyncService game shape
-function mapSupabaseGameToLocal(row: Database['public']['Tables']['games']['Row']): Game {
+// Map Supabase activity row -> local DataSyncService activity shape
+function mapSupabaseActivityToLocal(row: Database['public']['Tables']['activities']['Row']): Activity {
   const extendedRow = row as any;
   // Convert difficulty enum to numeric scale used by widgets (1–5)
-  const difficultyLabelMap: Record<string, GameDifficulty> = {
+  const difficultyLabelMap: Record<string, ActivityDifficulty> = {
     easy: 'Easy',
     medium: 'Medium',
     hard: 'Hard',
     expert: 'Extreme',
   };
-  const difficultyNumericMap: Record<GameDifficulty, number> = {
+  const difficultyNumericMap: Record<ActivityDifficulty, number> = {
     Easy: 2,
     Medium: 3,
     Hard: 4,
     Extreme: 5,
   };
 
-  const difficultyLabel = difficultyLabelMap[row.difficulty ?? ''] ?? 'Medium';
+  const difficultyLabel = difficultyLabelMap[(row.difficulty || '').toLowerCase()] ?? 'Medium';
   const numericDifficulty = difficultyNumericMap[difficultyLabel];
-  const durationValue = row.duration_minutes ?? 60;
+  const durationValue = row.duration ?? 60;
 
   // Store both image and imageUrl for cross-component compatibility
-  const imageUrl = row.image_url || DEFAULT_GAME_IMAGE;
+  const imageUrl = row.image_url || DEFAULT_ACTIVITY_IMAGE;
 
   return {
     id: String(row.id),
@@ -54,56 +54,57 @@ function mapSupabaseGameToLocal(row: Database['public']['Tables']['games']['Row'
     status: row.is_active ? 'active' : 'inactive',
     blockedDates: [],
     availability: {},
-    galleryImages: Array.isArray(extendedRow?.gallery_images) ? extendedRow.gallery_images : [],
-    videos: Array.isArray(extendedRow?.videos) ? extendedRow.videos : [],
-    categoryId: extendedRow?.category_id ?? 'default',
+    galleryImages: [], // extendedRow?.gallery_images ?? [],
+    videos: [], // extendedRow?.videos ?? [],
+    categoryId: 'default', // extendedRow?.category_id ?? 'default',
     organizationId: row.organization_id ?? DEFAULT_ORGANIZATION_ID,
     createdAt: row.created_at ?? new Date().toISOString(),
     updatedAt: row.updated_at ?? row.created_at ?? new Date().toISOString(),
-    createdBy: extendedRow?.created_by ?? undefined,
-    updatedBy: extendedRow?.updated_by ?? undefined,
-    settings: {
-      visibility: extendedRow?.visibility === 'private' ? 'private' : 'public',
+    createdBy: row.created_by ?? undefined,
+    updatedBy: undefined, // extendedRow?.updated_by ?? undefined,
+    settings: (row.settings as any) || {
+      visibility: 'public',
       publishingTargets: {
         widgets: true,
         embed: true,
         calendars: true,
         previews: true,
       },
-      bookingLeadTime: extendedRow?.booking_lead_time ?? 0,
-      cancellationWindow: extendedRow?.cancellation_window ?? 24,
-      specialInstructions: extendedRow?.special_instructions ?? undefined,
+      bookingLeadTime: 0,
+      cancellationWindow: 24,
+      specialInstructions: undefined,
     },
-  };
+    schedule: row.schedule as any,
+  } as Activity;
 }
 
-// Persist fetched games to a base key so widgets/pages can consume them
-function persistGamesToLocalBase(games: Game[], orgId?: string) {
+// Persist fetched activities to a base key so widgets/pages can consume them
+function persistActivitiesToLocalBase(activities: Activity[], orgId?: string) {
   try {
-    DataSyncServiceWithEvents.replaceAllGames(games, {
-      organizationId: orgId ?? games[0]?.organizationId ?? DEFAULT_ORGANIZATION_ID,
+    DataSyncServiceWithEvents.replaceAllActivities(activities, {
+      organizationId: orgId ?? activities[0]?.organizationId ?? DEFAULT_ORGANIZATION_ID,
     });
-    console.log(`✅ Synced ${games.length} games to shared storage and emitted update event`);
+    console.log(`✅ Synced ${activities.length} activities to shared storage and emitted update event`);
   } catch (err) {
-    console.error('❌ Failed to persist games to shared storage', err);
+    console.error('❌ Failed to persist activities to shared storage', err);
   }
 }
 
-// Fetch all org-scoped games and persist
-async function fetchAndStoreOrgGames(orgId: string) {
+// Fetch all org-scoped activities and persist
+async function fetchAndStoreOrgActivities(orgId: string) {
   const { data, error } = await supabase
-    .from('games')
+    .from('activities')
     .select('*')
     .eq('organization_id', orgId)
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.warn('⚠️ Supabase games fetch error:', error);
+    console.warn('⚠️ Supabase activities fetch error:', error);
     return;
   }
 
-  const mapped = (data || []).map(mapSupabaseGameToLocal);
-  persistGamesToLocalBase(mapped, orgId);
+  const mapped = (data || []).map(mapSupabaseActivityToLocal);
+  persistActivitiesToLocalBase(mapped, orgId);
 }
 
 interface Props {
@@ -119,11 +120,12 @@ export default function GlobalDataSyncBridge({ embedMode = false }: Props) {
     const handleStorage = (e: StorageEvent) => {
       const key = e.key || '';
       if (
+        key === DATA_SYNC_STORAGE_KEYS.ACTIVITIES ||
         key === DATA_SYNC_STORAGE_KEYS.GAMES ||
         key === 'admin_games' ||
         key === 'bookingtms_games'
       ) {
-        DataSyncEvents.emit('games-updated');
+        DataSyncEvents.emit('activities-updated');
       }
       if (key === DATA_SYNC_STORAGE_KEYS.BOOKINGS || key === 'bookings') {
         DataSyncEvents.emit('bookings-updated');
@@ -134,29 +136,29 @@ export default function GlobalDataSyncBridge({ embedMode = false }: Props) {
     // Initial sync from Supabase (only in admin app, not embed)
     const orgId = currentUser?.organizationId;
     if (!embedMode && orgId) {
-      fetchAndStoreOrgGames(orgId);
+      fetchAndStoreOrgActivities(orgId);
     }
 
-    // Realtime subscription: keep shared games storage in sync (only in admin app)
+    // Realtime subscription: keep shared activities storage in sync (only in admin app)
     let channel: ReturnType<typeof supabase.channel> | null = null;
     if (!embedMode && orgId) {
       channel = supabase
-        .channel(`games-org-${orgId}`)
+        .channel(`activities-org-${orgId}`)
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
-            table: 'games',
+            table: 'activities',
             filter: `organization_id=eq.${orgId}`,
           },
           async () => {
-            console.log('🔔 Supabase games change detected — refreshing local cache');
-            await fetchAndStoreOrgGames(orgId);
+            console.log('🔔 Supabase activities change detected — refreshing local cache');
+            await fetchAndStoreOrgActivities(orgId);
           }
         )
         .subscribe((status) => {
-          console.log('📡 Supabase games channel status:', status);
+          console.log('📡 Supabase activities channel status:', status);
         });
     }
 

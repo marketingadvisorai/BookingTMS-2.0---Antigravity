@@ -452,7 +452,7 @@ textArea.style.top = '-999999px';    // Far offscreen
 - `handleCopyLink()` - Now uses `copyToClipboard()` with error handling
 
 ### Dependencies
-- `toast` from `sonner@2.0.3` - For success/error notifications
+- `toast` from `sonner` - For success/error notifications
 - Native browser APIs - `navigator.clipboard`, `document.execCommand()`
 
 ---

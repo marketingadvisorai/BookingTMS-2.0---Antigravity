@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Gift, Check, X } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface GiftCardInputProps {
   onApply: (code: string, amount: number) => void;

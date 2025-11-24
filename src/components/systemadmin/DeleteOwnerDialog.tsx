@@ -7,7 +7,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { AlertTriangle, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface DeleteOwnerDialogProps {
   isOpen: boolean;

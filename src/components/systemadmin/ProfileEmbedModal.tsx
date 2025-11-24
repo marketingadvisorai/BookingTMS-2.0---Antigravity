@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Copy, Check, Code } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useTheme } from '../layout/ThemeContext';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface ProfileEmbedModalProps {
   isOpen: boolean;

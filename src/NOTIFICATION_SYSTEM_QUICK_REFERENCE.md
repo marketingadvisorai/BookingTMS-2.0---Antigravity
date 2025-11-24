@@ -205,7 +205,7 @@ import { NotificationSettings } from '@/components/notifications/NotificationSet
 
 ### Pattern 1: Show Toast on New Notification
 ```tsx
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { useNotifications } from '@/lib/notifications/NotificationContext';
 
 function MyComponent() {

@@ -59,7 +59,7 @@ import {
 import { RefundDialog } from '../components/payments/RefundDialog';
 import { mockTransactions, mockRevenueMetrics, mockReconciliationSummary } from '../lib/payment/mockData';
 import { Transaction, PaymentStatus, PaymentMethod, RefundReason } from '../types/payment';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 
 export function PaymentHistory() {

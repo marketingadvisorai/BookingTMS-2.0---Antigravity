@@ -164,8 +164,8 @@ export function CalendarSingleEventBookingPage({
 
   const { timeSlots, loading: slotsLoading = false, error: slotsError } = useAvailability({
     config,
-    selectedGame: config?.gameId || selectedGame?.id,
-    selectedGameData: gameData,
+    selectedActivity: config?.gameId || selectedGame?.id,
+    selectedActivityData: gameData,
     selectedDate,
     currentMonth: currentDate.getMonth(),
     currentYear: currentDate.getFullYear()

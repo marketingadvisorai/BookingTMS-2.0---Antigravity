@@ -901,6 +901,65 @@ export interface Database {
           settings: Json
         }[]
       }
+      get_dashboard_stats: {
+        Args: Record<string, never>
+        Returns: {
+          total_bookings: number
+          confirmed_bookings: number
+          total_revenue: number
+          average_order_value: number
+          avg_group_size: number
+          total_customers: number
+          active_customers: number
+        }[]
+      }
+      get_weekly_bookings_trend: {
+        Args: Record<string, never>
+        Returns: {
+          week_start: string
+          week_label: string
+          bookings_count: number
+        }[]
+      }
+      get_upcoming_bookings: {
+        Args: {
+          limit_count: number
+        }
+        Returns: {
+          booking_id: string
+          customer_name: string
+          activity_name: string
+          venue_name: string
+          booking_date: string
+          start_time: string
+          status: string
+          total_amount: number
+        }[]
+      }
+      get_todays_bookings_by_hour: {
+        Args: Record<string, never>
+        Returns: {
+          hour_slot: string
+          bookings_count: number
+        }[]
+      }
+      get_recent_booking_activity: {
+        Args: {
+          limit_count: number
+        }
+        Returns: {
+          booking_id: string
+          customer_name: string
+          activity_name: string
+          venue_name: string
+          booking_date: string
+          booking_time: string
+          status: string
+          total_amount: number
+          created_at: string
+          is_future_booking: boolean
+        }[]
+      }
     }
     Enums: {
       user_role: 'super-admin' | 'admin' | 'manager' | 'staff'

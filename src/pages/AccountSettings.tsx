@@ -57,7 +57,7 @@ import {
   Save,
 } from 'lucide-react';
 import { User, UserRole, CreateUserPayload } from '../types/auth';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { NotificationSettings } from '../components/notifications/NotificationSettings';
 
 export function AccountSettings() {

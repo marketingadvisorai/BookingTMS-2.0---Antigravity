@@ -53,6 +53,8 @@ interface PaymentSettingsProps {
   onNext: () => void;
   onPrevious: () => void;
   t: any;
+  venueId?: string;
+  organizationId?: string;
 }
 
 type SyncStatus = 'not_synced' | 'pending' | 'synced' | 'error';
@@ -62,7 +64,9 @@ export default function Step6PaymentSettings({
   onUpdate,
   onNext,
   onPrevious,
-  t
+  t,
+  venueId,
+  organizationId
 }: PaymentSettingsProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
@@ -324,7 +328,8 @@ export default function Step6PaymentSettings({
           duration: gameData.duration?.toString() || '60',
           category: gameData.category || '',
           difficulty: gameData.difficulty?.toString() || '3',
-          venue_id: gameData.venueId || '',
+          venue_id: venueId || gameData.venueId || '',
+          organization_id: organizationId || '',
           image_url: gameData.imageUrl || '',
         },
       });
@@ -1144,17 +1149,7 @@ export default function Step6PaymentSettings({
         </Card>
       )}
 
-      {/* Navigation */}
-      <div className="flex justify-between pt-6">
-        <Button variant="outline" onClick={onPrevious}>
-          <ChevronLeft className="w-4 h-4 mr-2" />
-          Previous
-        </Button>
-        <Button onClick={onNext}>
-          {isConfigured ? 'Next' : 'Skip for Now'}
-          <ChevronRight className="w-4 h-4 ml-2" />
-        </Button>
-      </div>
+
 
       {/* Edit Configuration Dialog */}
       <AlertDialog open={showEditDialog} onOpenChange={setShowEditDialog}>

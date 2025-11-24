@@ -13,6 +13,7 @@ import { DEFAULT_VENUE_COLOR } from './venueConstants';
  */
 export const mapDBVenueToUI = (dbVenue: any): Venue => ({
   id: dbVenue.id,
+  organizationId: dbVenue.organization_id,
   name: dbVenue.name,
   type: dbVenue.settings?.type || 'other',
   description: dbVenue.settings?.description || '',

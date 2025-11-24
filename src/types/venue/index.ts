@@ -7,6 +7,7 @@ import { VenueWidgetConfig } from '../venueWidget';
 
 export interface Venue {
   id: string;
+  organizationId?: string;
   name: string;
   type: string;
   description: string;

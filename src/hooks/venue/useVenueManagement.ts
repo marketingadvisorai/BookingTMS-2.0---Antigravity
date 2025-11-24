@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { useVenues as useVenuesDB } from '../useVenues';
+import { useVenues as useVenuesDB } from './useVenues';
 import { useAuth } from '../../lib/auth/AuthContext';
 import { Venue, VenueInput, VenueFormData } from '../../types/venue';
 import { VenueWidgetConfig, createDefaultVenueWidgetConfig } from '../../types/venueWidget';
@@ -14,13 +14,13 @@ import { DEFAULT_FORM_DATA } from '../../utils/venue/venueConstants';
 
 export function useVenueManagement() {
   const { currentUser } = useAuth();
-  const { 
-    venues: dbVenues, 
-    loading: dbLoading, 
-    createVenue: createVenueDB, 
-    updateVenue: updateVenueDB, 
-    deleteVenue: deleteVenueDB, 
-    refreshVenues 
+  const {
+    venues: dbVenues,
+    loading: dbLoading,
+    createVenue: createVenueDB,
+    updateVenue: updateVenueDB,
+    deleteVenue: deleteVenueDB,
+    refreshVenues
   } = useVenuesDB();
 
   // State
@@ -43,7 +43,7 @@ export function useVenueManagement() {
   const loading = dbLoading;
 
   // Permission checks
-  const canCreateVenue = ['super-admin', 'beta-owner', 'admin', 'manager'].includes(currentUser?.role || '');
+  const canCreateVenue = ['super-admin', 'beta-owner', 'admin', 'manager', 'staff'].includes(currentUser?.role || '');
   const canEditVenue = ['super-admin', 'beta-owner', 'admin', 'manager'].includes(currentUser?.role || '');
   const canDeleteVenue = ['super-admin', 'beta-owner', 'admin'].includes(currentUser?.role || '');
 
@@ -72,8 +72,13 @@ export function useVenueManagement() {
         widgetConfig: createDefaultVenueWidgetConfig(),
         isActive: true,
       };
-      
-      await createVenueDB(mapUIVenueToDB(newVenue));
+
+      const venuePayload = {
+        ...mapUIVenueToDB(newVenue),
+        organization_id: currentUser?.organizationId
+      };
+
+      await createVenueDB(venuePayload);
       setShowCreateDialog(false);
       resetForm();
       toast.success('Venue created! Embed key generated automatically.');
@@ -126,7 +131,7 @@ export function useVenueManagement() {
   const toggleVenueStatus = async (venueId: string) => {
     const venue = venues.find(v => v.id === venueId);
     if (!venue) return;
-    
+
     try {
       const updatedVenue = { ...venue, isActive: !venue.isActive };
       await updateVenueDB(venueId, mapUIVenueToDB(updatedVenue));
@@ -137,20 +142,20 @@ export function useVenueManagement() {
 
   const handleUpdateWidgetConfig = async (config: VenueWidgetConfig) => {
     if (!selectedVenue) return;
-    
+
     setSaveStatus('saving');
     try {
-      const updatedVenue = { 
-        ...selectedVenue, 
+      const updatedVenue = {
+        ...selectedVenue,
         widgetConfig: config,
       };
-      
+
       await updateVenueDB(selectedVenue.id, mapUIVenueToDB(updatedVenue));
       setSelectedVenue(updatedVenue);
-      
+
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 2000);
-      
+
       console.log('Widget config updated for venue:', updatedVenue.name, 'Games:', config.games?.length || 0);
     } catch (error) {
       console.error('Error updating widget config:', error);
@@ -190,7 +195,7 @@ export function useVenueManagement() {
     isRefreshing,
     copiedEmbed,
     saveStatus,
-    
+
     // Dialog states
     showCreateDialog,
     showEditDialog,
@@ -198,12 +203,12 @@ export function useVenueManagement() {
     showWidgetSettings,
     showWidgetPreview,
     showEmbedCode,
-    
+
     // Permissions
     canCreateVenue,
     canEditVenue,
     canDeleteVenue,
-    
+
     // Setters
     setSelectedVenue,
     setFormData,
@@ -215,7 +220,7 @@ export function useVenueManagement() {
     setShowWidgetPreview,
     setShowEmbedCode,
     setCopiedEmbed,
-    
+
     // Handlers
     handleRefresh,
     handleCreateVenue,

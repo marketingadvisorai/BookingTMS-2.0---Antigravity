@@ -191,6 +191,7 @@ export class CheckoutService {
     };
     totalPrice: number;
     priceId: string;
+    paymentLink?: string; // Optional custom payment link
   }) {
     try {
       // Create booking in database first
@@ -199,7 +200,7 @@ export class CheckoutService {
         .insert({
           venue_id: params.venueId,
           game_id: params.gameId,
-          time_slot_id: params.sessionId || null, // Map sessionId to time_slot_id
+          session_id: params.sessionId || null, // Map sessionId to session_id
           booking_date: params.bookingDate,
           start_time: params.startTime,
           end_time: params.endTime,
@@ -216,37 +217,34 @@ export class CheckoutService {
 
       if (bookingError) throw bookingError;
 
-      // Create Payment Link
-      const paymentLink = await this.createPaymentLink({
-        priceId: params.priceId,
-        quantity: params.partySize, // Use party size as quantity for correct total
-        metadata: {
-          booking_id: booking.id,
-          game_id: params.gameId,
-          venue_id: params.venueId,
-          party_size: params.partySize.toString(),
-        },
-      });
+      // Create or use existing Payment Link
+      let paymentLinkUrl = params.paymentLink;
+
+      if (!paymentLinkUrl) {
+        const paymentLink = await this.createPaymentLink({
+          priceId: params.priceId,
+          quantity: params.partySize, // Use party size as quantity for correct total
+          metadata: {
+            booking_id: booking.id,
+            game_id: params.gameId,
+            venue_id: params.venueId,
+            party_size: params.partySize.toString(),
+          },
+        });
+        paymentLinkUrl = paymentLink.url;
+      }
 
       // Update booking with payment link
       await supabase
         .from('bookings')
         .update({
-          payment_link: paymentLink.url,
-        })
-        .eq('id', booking.id);
-
-      // Update booking with payment link
-      await supabase
-        .from('bookings')
-        .update({
-          payment_link: paymentLink.url,
+          payment_link: paymentLinkUrl,
         })
         .eq('id', booking.id);
 
       return {
         booking,
-        paymentLink: paymentLink.url,
+        paymentLink: paymentLinkUrl,
       };
     } catch (error: any) {
       console.error('Error creating booking with payment link:', error);

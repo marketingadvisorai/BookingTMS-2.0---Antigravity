@@ -1,4 +1,4 @@
-import { ActivityService, Activity, CreateActivityInput } from '../../../services/activity.service';
+import { ActivityService, Activity, CreateActivityInput } from './activity.service';
 import { Game, CreateGameDTO, UpdateGameDTO, InventoryStats, DifficultyLevel } from '../types';
 
 // Helper to map Activity (DB) to Game (UI)

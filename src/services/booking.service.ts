@@ -171,7 +171,8 @@ export class BookingService {
             .from('customers')
             .insert({
                 organization_id: organizationId,
-                full_name: fullName,
+                first_name: customerData.firstName,
+                last_name: customerData.lastName,
                 email: email,
                 phone: customerData.phone,
                 total_bookings: 0,

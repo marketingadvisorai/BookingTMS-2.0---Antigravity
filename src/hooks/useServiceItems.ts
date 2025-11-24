@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ActivityService, Activity, CreateActivityInput, ActivityScheduleRules } from '../services/activity.service';
+import { ActivityService, Activity, CreateActivityInput, ActivityScheduleRules } from '../modules/inventory/services/activity.service';
 import { toast } from 'sonner';
 
 // Adapter interface to match what the UI expects (flattened schedule)
-export interface ServiceItem extends Omit<Activity, 'schedule'> {
+export interface ServiceItem extends Omit<Activity, 'schedule' | 'min_players' | 'max_players'> {
     schedule?: ActivityScheduleRules;
     // Flattened fields for UI compatibility
     operatingDays?: string[];
@@ -18,7 +18,9 @@ export interface ServiceItem extends Omit<Activity, 'schedule'> {
     // Legacy fields
     min_players?: number;
     max_players?: number;
+
     child_price?: number;
+    minAge?: number;
 }
 
 export const useServiceItems = (venueId?: string) => {
@@ -30,8 +32,10 @@ export const useServiceItems = (venueId?: string) => {
         const schedule = activity.schedule;
         return {
             ...activity,
-            min_players: 1, // Default
-            max_players: activity.capacity,
+            min_players: activity.min_players || 1,
+            max_players: activity.max_players || activity.capacity,
+            child_price: activity.child_price || 0,
+            minAge: activity.min_age || 0,
             operatingDays: schedule?.operatingDays,
             startTime: schedule?.startTime,
             endTime: schedule?.endTime,
@@ -61,13 +65,17 @@ export const useServiceItems = (venueId?: string) => {
         const {
             operatingDays, startTime, endTime, slotInterval, advanceBooking,
             customHoursEnabled, customHours, customDates, blockedDates,
-            min_players, max_players, child_price,
+            min_players, max_players, child_price, minAge,
             ...rest
         } = item;
 
         return {
             ...rest,
             capacity: max_players || item.capacity || 10,
+            min_players: min_players || 1,
+            max_players: max_players || item.capacity || 10,
+            child_price: child_price || 0,
+            min_age: minAge || 0,
             schedule
         };
     };

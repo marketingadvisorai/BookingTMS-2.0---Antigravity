@@ -10,7 +10,7 @@ export interface GameData {
     name: string;
     description: string;
     category: string;
-    tagline: string;
+    tagline?: string;
     eventType: 'public' | 'private';
     gameType: 'physical' | 'virtual' | 'hybrid';
 

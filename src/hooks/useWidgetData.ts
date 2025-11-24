@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { VenueService, Venue } from '../services/venue.service';
-import { ActivityService, Activity } from '../services/activity.service';
+import { ActivityService, Activity } from '../modules/inventory/services/activity.service';
 import { SessionService, Session } from '../services/session.service';
 import { startOfDay, endOfDay, addDays } from 'date-fns';
 
@@ -70,8 +70,11 @@ export const useWidgetData = ({ venueId, activityId, date }: UseWidgetDataProps)
             // Fetch for the whole day (UTC)
             // Note: Ideally we should respect venue timezone for "start of day"
             // But for now, we fetch a slightly wider range to be safe or rely on client filtering
-            const start = startOfDay(targetDate);
-            const end = endOfDay(targetDate);
+            // Fetch for a wider range to account for timezone differences
+            // We fetch from 1 day before to 2 days after to ensure we cover the full venue day
+            // regardless of the user's local timezone.
+            const start = startOfDay(addDays(targetDate, -1));
+            const end = endOfDay(addDays(targetDate, 1));
 
             const data = await SessionService.listAvailableSessions(targetActivityId, start, end);
             setSessions(data);

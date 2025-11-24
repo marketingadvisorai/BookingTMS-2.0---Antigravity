@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabase';
-import { StripeIntegrationService } from './stripe-integration.service';
+import { supabase } from '../../../lib/supabase';
+import { StripeIntegrationService } from '../../../services/stripe-integration.service';
 import { toast } from 'sonner';
 
 // Define the Schedule Rules interface (formerly ServiceItemSchedule)
@@ -24,8 +24,14 @@ export interface Activity {
     description: string;
     difficulty: 'Easy' | 'Medium' | 'Hard' | 'Expert';
     duration: number; // in minutes
+
     capacity: number; // formerly min_players/max_players, now unified capacity per session
+    min_players: number;
+    max_players: number;
     price: number;
+    child_price?: number;
+    min_age?: number;
+
     image_url?: string;
     status: 'active' | 'inactive' | 'maintenance';
     settings: Record<string, any>;
@@ -70,6 +76,12 @@ export class ActivityService {
                 ...item,
                 // Map legacy fields if necessary, or just pass through
                 capacity: item.max_players || item.capacity || 1, // Fallback
+                min_players: item.min_players || 1,
+                max_players: item.max_players || item.capacity || 10,
+
+                child_price: item.settings?.child_price || 0,
+                min_age: item.settings?.min_age || 0,
+                status: item.is_active ? 'active' : 'inactive', // Map is_active to status
             }));
         } catch (error: any) {
             console.error('Error fetching activities:', error);
@@ -94,6 +106,12 @@ export class ActivityService {
             return {
                 ...data,
                 capacity: data.max_players || data.capacity || 1,
+                min_players: data.min_players || 1,
+                max_players: data.max_players || data.capacity || 10,
+
+                child_price: data.settings?.child_price || 0,
+                min_age: data.settings?.min_age || 0,
+                status: data.is_active ? 'active' : 'inactive', // Map is_active to status
             };
         } catch (error: any) {
             console.error('Error fetching activity:', error);
@@ -105,24 +123,33 @@ export class ActivityService {
      * Create a new activity
      */
     static async createActivity(input: CreateActivityInput): Promise<Activity> {
+        console.log('ActivityService.createActivity called with:', input);
         try {
             if (!input.venue_id) throw new Error('Venue ID is required');
 
             // 1. Fetch venue to get organization_id
-            const { data: fetchedVenueData } = await supabase
+            const { data: fetchedVenueData, error: venueError } = await supabase
                 .from('venues')
                 .select('organization_id, name, id')
                 .eq('id', input.venue_id)
                 .single();
 
-            const orgId = fetchedVenueData?.organization_id;
+            if (venueError || !fetchedVenueData) {
+                console.error('Error fetching venue:', venueError);
+                throw new Error('Venue not found or invalid');
+            }
+
+            const orgId = fetchedVenueData.organization_id;
             if (!orgId) throw new Error('Venue must belong to an organization');
 
             // 2. Prepare Insert Data
             const { data: { session } } = await supabase.auth.getSession();
 
+            const { capacity, child_price, min_age, slug, tagline, success_rate, status, ...restInput } = input as any;
+
+            // Construct the insert object matching the 'activities' table schema
             const insertData = {
-                ...input,
+                ...restInput,
                 organization_id: orgId,
                 created_by: session?.user?.id,
                 stripe_product_id: input.stripe_product_id || null,
@@ -131,9 +158,20 @@ export class ActivityService {
                 stripe_sync_status: input.stripe_product_id ? 'synced' : 'pending',
                 stripe_last_sync: input.stripe_product_id ? new Date().toISOString() : null,
                 // Map capacity to legacy columns if they still exist or use new ones
-                min_players: 1,
-                max_players: input.capacity,
+                min_players: input.min_players || 1,
+                max_players: input.max_players || capacity,
+                is_active: status === 'active', // Map status to is_active
+                settings: {
+                    ...input.settings,
+                    child_price: input.child_price,
+                    min_age: input.min_age,
+                    slug: (input as any).slug,
+                    tagline: (input as any).tagline,
+                    success_rate: (input as any).success_rate
+                }
             };
+
+            console.log('Attempting to insert activity with data:', insertData);
 
             // 3. Insert into DB
             const { data: createdActivity, error } = await supabase
@@ -142,7 +180,12 @@ export class ActivityService {
                 .select()
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                console.error('Supabase insert error:', error);
+                throw error;
+            }
+
+            console.log('Activity created successfully:', createdActivity);
 
             // 4. Sync with Stripe (if not already synced)
             // We use the created activity which has the ID
@@ -165,7 +208,24 @@ export class ActivityService {
                 return updatedActivity as Activity;
             }
 
-            return createdActivity as Activity;
+            // 6. Create Default Pricing Tiers
+            if (input.price || input.child_price) {
+                const { error: rpcError } = await supabase.rpc('create_default_pricing_tiers', {
+                    p_game_id: createdActivity.id,
+                    p_organization_id: orgId,
+                    p_adult_price: input.price || 0,
+                    p_child_price: input.child_price || 0
+                });
+
+                if (rpcError) {
+                    console.warn('Failed to create default pricing tiers:', rpcError);
+                }
+            }
+
+            return {
+                ...createdActivity,
+                status: createdActivity.is_active ? 'active' : 'inactive'
+            } as Activity;
         } catch (error: any) {
             console.error('Error creating activity:', error);
             throw new Error(error.message || 'Failed to create activity');
@@ -195,6 +255,30 @@ export class ActivityService {
             // Map capacity if needed
             if (finalUpdates.capacity) {
                 (finalUpdates as any).max_players = finalUpdates.capacity;
+                delete (finalUpdates as any).capacity;
+            }
+            if (finalUpdates.min_players) {
+                (finalUpdates as any).min_players = finalUpdates.min_players;
+            }
+            if (finalUpdates.child_price !== undefined) {
+                finalUpdates.settings = {
+                    ...currentActivity.settings,
+                    ...finalUpdates.settings,
+                    child_price: finalUpdates.child_price
+                };
+                delete (finalUpdates as any).child_price;
+            }
+            if (finalUpdates.min_age !== undefined) {
+                finalUpdates.settings = {
+                    ...currentActivity.settings,
+                    ...finalUpdates.settings,
+                    min_age: finalUpdates.min_age
+                };
+                delete (finalUpdates as any).min_age;
+            }
+            if ((finalUpdates as any).status) {
+                (finalUpdates as any).is_active = (finalUpdates as any).status === 'active';
+                delete (finalUpdates as any).status;
             }
 
             // 4. Update DB
@@ -206,7 +290,11 @@ export class ActivityService {
                 .single();
 
             if (error) throw error;
-            return data as Activity;
+
+            return {
+                ...data,
+                status: data.is_active ? 'active' : 'inactive'
+            } as Activity;
         } catch (error: any) {
             console.error('Error updating activity:', error);
             throw new Error(error.message || 'Failed to update activity');

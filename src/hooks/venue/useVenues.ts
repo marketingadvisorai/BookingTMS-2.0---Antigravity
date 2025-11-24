@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
 
 export interface Venue {
@@ -74,7 +74,7 @@ export function useVenues() {
   const createVenue = async (venueData: Omit<Venue, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
     try {
       console.log('Creating venue with data:', venueData);
-      
+
       // Use Supabase session for UUID
       const { data: { session } } = await supabase.auth.getSession();
 
@@ -192,7 +192,7 @@ export function useVenues() {
     // Subscribe to venue changes
     const subscription = supabase
       .channel('venues-changes')
-      .on('postgres_changes', 
+      .on('postgres_changes',
         { event: '*', schema: 'public', table: 'venues' },
         (payload) => {
           console.log('Venue changed:', payload);

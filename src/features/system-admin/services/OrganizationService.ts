@@ -174,7 +174,7 @@ export class OrganizationService {
         // Step 3: Update organization with Stripe customer ID
         const { error: updateError } = await supabase
           .from('organizations')
-          .update({ 
+          .update({
             stripe_customer_id: stripeCustomerId,
             updated_at: new Date().toISOString(),
           })
@@ -191,7 +191,7 @@ export class OrganizationService {
       // Step 4: Create initial organization member (owner)
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        
+
         if (user) {
           const { error: memberError } = await supabase
             .from('organization_members')
@@ -204,6 +204,16 @@ export class OrganizationService {
 
           if (memberError) {
             console.error('Failed to create organization member:', memberError);
+          } else {
+            // Step 5: Update user's organization_id in users table
+            const { error: userUpdateError } = await supabase
+              .from('users')
+              .update({ organization_id: org.id })
+              .eq('id', user.id);
+
+            if (userUpdateError) {
+              console.error('Failed to update user organization_id:', userUpdateError);
+            }
           }
         }
       } catch (memberErr) {

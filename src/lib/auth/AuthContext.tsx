@@ -19,13 +19,13 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { 
-  User, 
-  AuthContextType, 
-  CreateUserPayload, 
+import {
+  User,
+  AuthContextType,
+  CreateUserPayload,
   UpdateUserPayload,
   Permission,
-  UserRole 
+  UserRole
 } from '../../types/auth';
 import { ROLES, getRolePermissions, getRoutePermission } from './permissions';
 
@@ -45,27 +45,30 @@ const getEnvVar = (key: string): string | undefined => {
 };
 
 const loadSupabase = async () => {
+  // FORCE MOCK AUTH FOR DEV MODE
+  return null;
+
   if (typeof window === 'undefined') return null;
-  
+
   // Access environment variables safely in client-side code
   // Next.js should replace these at build time, but we add extra safety
   let supabaseUrl: string | undefined;
   let supabaseKey: string | undefined;
-  
+
   try {
     // Try to access via process.env (works if Next.js replaced at build time)
-    supabaseUrl = (typeof process !== 'undefined' && process.env) 
-      ? process.env.NEXT_PUBLIC_SUPABASE_URL 
+    supabaseUrl = (typeof process !== 'undefined' && process.env)
+      ? process.env.NEXT_PUBLIC_SUPABASE_URL
       : getEnvVar('NEXT_PUBLIC_SUPABASE_URL');
-      
-    supabaseKey = (typeof process !== 'undefined' && process.env) 
-      ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY 
+
+    supabaseKey = (typeof process !== 'undefined' && process.env)
+      ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
       : getEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY');
   } catch (error) {
     console.log('📦 Cannot access environment variables - using mock data');
     return null;
   }
-  
+
   if (!supabaseUrl || !supabaseKey) {
     console.log('📦 Supabase not configured - using mock data');
     return null;
@@ -107,7 +110,7 @@ const MOCK_USERS: User[] = [
     status: 'active',
     createdAt: '2024-01-01T00:00:00Z',
     lastLogin: '2025-11-04T10:30:00Z',
-    organizationId: '00000000-0000-0000-0000-000000000001',
+    organizationId: '64fa1946-3cdd-43af-b7de-cc4708cd4b80', // Real Org ID for Dev Mode
   },
   {
     id: '00000000-0000-0000-0000-000000000002',
@@ -183,10 +186,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const initializeAuth = async () => {
     try {
       setIsLoading(true);
-      
+
       // Try to load Supabase
       const supabase = await loadSupabase();
-      
+
       if (supabase) {
         setUseSupabase(true);
         await initializeSupabaseAuth(supabase);
@@ -222,7 +225,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (event: string, session: any) => {
           console.log('Auth state changed:', event);
-          
+
           if (event === 'SIGNED_IN' && session?.user) {
             setAuthUser(session.user);
             await loadUserProfile(session.user.id);
@@ -252,7 +255,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return;
         }
       }
-      
+
       // Don't auto-login - require user to log in
       setCurrentUser(null);
     } catch (error) {
@@ -345,14 +348,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Check demo credentials first
       const inputUsername = usernameOrEmail.toLowerCase().trim();
       const demoCred = demoCredentials[inputUsername];
-      
+
       console.log('🔐 Login attempt:', {
         inputUsername,
         passwordLength: password.length,
         expectedPasswordLength: demoCred?.password?.length || 0,
         credentialFound: !!demoCred
       });
-      
+
       if (demoCred) {
         // Validate password (trim whitespace from password too)
         const trimmedPassword = password.trim();
@@ -361,10 +364,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.error('Expected:', demoCred.password, 'Got:', trimmedPassword);
           throw new Error('Invalid credentials');
         }
-        
+
         // Find user with this role
         let user = MOCK_USERS.find(u => u.role === demoCred.role);
-        
+
         if (!user) {
           // Create a demo user if not found (shouldn't happen with our MOCK_USERS)
           console.warn('Creating new demo user for role:', demoCred.role);
@@ -379,10 +382,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             organizationId: '00000000-0000-0000-0000-000000000001',
           };
         }
-        
+
         // Update last login time
         user.lastLogin = new Date().toISOString();
-        
+
         setCurrentUser(user);
         localStorage.setItem('currentUserId', user.id);
         console.log('✅ Login successful:', user.email, user.role);
@@ -400,7 +403,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('✅ Login successful via email:', user.email);
         return;
       }
-      
+
       // No matching credentials found
       console.error('Login failed: No user found for:', usernameOrEmail);
       throw new Error('Invalid credentials');
@@ -466,11 +469,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isRole = (role: UserRole | UserRole[]): boolean => {
     if (!currentUser) return false;
-    
+
     if (Array.isArray(role)) {
       return role.includes(currentUser.role);
     }
-    
+
     return currentUser.role === role;
   };
 
@@ -625,7 +628,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
 
       setUsers(prev => prev.map(u => u.id === userId ? updated : u));
-      
+
       if (currentUser?.id === userId) {
         setCurrentUser(updated);
       }
@@ -741,11 +744,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  
+
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  
+
   return context;
 };
 

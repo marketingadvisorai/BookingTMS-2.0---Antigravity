@@ -18,7 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Separator } from '../components/ui/separator';
 import { useGames } from '../hooks/useGames';
-import { useVenues } from '../hooks/useVenues';
+import { useVenues } from '../hooks/venue/useVenues';
 
 const difficultyLevels = [
   { value: 'Easy', label: 'Easy', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
@@ -30,7 +30,7 @@ const difficultyLevels = [
 export function GamesDatabase() {
   const { games, loading, createGame, updateGame, deleteGame } = useGames();
   const { venues } = useVenues();
-  
+
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -39,7 +39,7 @@ export function GamesDatabase() {
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
   const [venueFilter, setVenueFilter] = useState<string>('all');
-  
+
   const [formData, setFormData] = useState({
     venue_id: '',
     name: '',
@@ -72,7 +72,7 @@ export function GamesDatabase() {
 
   const handleCreateGame = async () => {
     if (!formData.name || !formData.venue_id) return;
-    
+
     setSubmitting(true);
     try {
       await createGame(formData);
@@ -87,7 +87,7 @@ export function GamesDatabase() {
 
   const handleUpdateGame = async () => {
     if (!selectedGame) return;
-    
+
     setSubmitting(true);
     try {
       await updateGame(selectedGame.id, formData);
@@ -103,7 +103,7 @@ export function GamesDatabase() {
 
   const handleDeleteGame = async () => {
     if (!selectedGame) return;
-    
+
     setSubmitting(true);
     try {
       await deleteGame(selectedGame.id);
@@ -145,13 +145,13 @@ export function GamesDatabase() {
 
   // Filter games
   const filteredGames = games.filter(game => {
-    const matchesSearch = 
+    const matchesSearch =
       game.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       game.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesDifficulty = difficultyFilter === 'all' || game.difficulty === difficultyFilter;
     const matchesVenue = venueFilter === 'all' || game.venue_id === venueFilter;
-    
+
     return matchesSearch && matchesDifficulty && matchesVenue;
   });
 

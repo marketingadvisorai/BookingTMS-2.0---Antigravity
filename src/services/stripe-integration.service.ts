@@ -1,5 +1,5 @@
 import { StripeProductService } from '../lib/stripe/stripeProductService';
-import { Activity } from './activity.service';
+import { Activity } from '../modules/inventory/services/activity.service';
 import { supabase } from '../lib/supabase';
 
 export class StripeIntegrationService {

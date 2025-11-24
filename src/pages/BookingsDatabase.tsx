@@ -18,7 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Separator } from '../components/ui/separator';
 import { useBookings } from '../hooks/useBookings';
-import { useVenues } from '../hooks/useVenues';
+import { useVenues } from '../hooks/venue/useVenues';
 import { useGames } from '../hooks/useGames';
 import { useCustomers } from '../hooks/useCustomers';
 import { format } from 'date-fns';
@@ -28,7 +28,7 @@ export function BookingsDatabase() {
   const { venues } = useVenues();
   const { games } = useGames();
   const { customers } = useCustomers();
-  
+
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -36,7 +36,7 @@ export function BookingsDatabase() {
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  
+
   const [formData, setFormData] = useState({
     venue_id: '',
     game_id: '',
@@ -70,7 +70,7 @@ export function BookingsDatabase() {
 
   const handleCreateBooking = async () => {
     if (!formData.venue_id || !formData.game_id || !formData.customer_id) return;
-    
+
     setSubmitting(true);
     try {
       await createBooking({
@@ -94,7 +94,7 @@ export function BookingsDatabase() {
 
   const handleCancelBooking = async () => {
     if (!selectedBooking) return;
-    
+
     setSubmitting(true);
     try {
       await cancelBooking(selectedBooking.id, cancelData.reason, cancelData.issueRefund);
@@ -144,14 +144,14 @@ export function BookingsDatabase() {
 
   // Filter bookings
   const filteredBookings = bookings.filter(booking => {
-    const matchesSearch = 
+    const matchesSearch =
       booking.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.confirmation_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.game_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -287,7 +287,7 @@ export function BookingsDatabase() {
               {searchTerm || statusFilter !== 'all' ? 'No bookings found' : 'No bookings yet'}
             </h3>
             <p className="text-sm text-gray-600 dark:text-[#737373] mb-6 max-w-md mx-auto">
-              {searchTerm || statusFilter !== 'all' 
+              {searchTerm || statusFilter !== 'all'
                 ? 'Try adjusting your search or filters'
                 : 'Create your first booking to get started'}
             </p>
@@ -435,12 +435,12 @@ export function BookingsDatabase() {
 
               <div className="space-y-2">
                 <Label htmlFor="game">Game *</Label>
-                <Select 
-                  value={formData.game_id} 
+                <Select
+                  value={formData.game_id}
                   onValueChange={(value) => {
                     const game = games.find(g => g.id === value);
-                    setFormData({ 
-                      ...formData, 
+                    setFormData({
+                      ...formData,
                       game_id: value,
                       total_amount: game?.price || 0,
                     });

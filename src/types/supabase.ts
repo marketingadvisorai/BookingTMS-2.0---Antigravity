@@ -95,51 +95,105 @@ export interface Database {
           updated_at?: string
         }
       }
-      games: {
+      activities: {
         Row: {
           id: string
           organization_id: string
+          venue_id: string
           name: string
           description: string | null
-          difficulty: 'easy' | 'medium' | 'hard' | 'expert'
-          duration_minutes: number
-          min_players: number
-          max_players: number
-          price: number
+          difficulty: string | null
+          duration: number
+          min_players: number | null
+          max_players: number | null
+          price: number | null
           image_url: string | null
           is_active: boolean
           created_at: string
           updated_at: string
+          created_by: string | null
+          settings: Json | null
+          setup_time: number | null
+          cleanup_time: number | null
+          booking_cutoff_minutes: number | null
+          cancellation_policy: string | null
+          stripe_product_id: string | null
+          stripe_price_id: string | null
+          stripe_checkout_url: string | null
+          stripe_sync_status: string | null
+          stripe_last_sync: string | null
+          stripe_metadata: Json | null
+          price_lookup_key: string | null
+          active_price_id: string | null
+          venue_name: string | null
+          organization_name: string | null
+          schedule: Json | null
         }
         Insert: {
           id?: string
           organization_id: string
+          venue_id: string
           name: string
           description?: string | null
-          difficulty?: 'easy' | 'medium' | 'hard' | 'expert'
-          duration_minutes: number
-          min_players: number
-          max_players: number
-          price: number
+          difficulty?: string | null
+          duration: number
+          min_players?: number | null
+          max_players?: number | null
+          price?: number | null
           image_url?: string | null
           is_active?: boolean
           created_at?: string
           updated_at?: string
+          created_by?: string | null
+          settings?: Json | null
+          setup_time?: number | null
+          cleanup_time?: number | null
+          booking_cutoff_minutes?: number | null
+          cancellation_policy?: string | null
+          stripe_product_id?: string | null
+          stripe_price_id?: string | null
+          stripe_checkout_url?: string | null
+          stripe_sync_status?: string | null
+          stripe_last_sync?: string | null
+          stripe_metadata?: Json | null
+          price_lookup_key?: string | null
+          active_price_id?: string | null
+          venue_name?: string | null
+          organization_name?: string | null
+          schedule?: Json | null
         }
         Update: {
           id?: string
           organization_id?: string
+          venue_id?: string
           name?: string
           description?: string | null
-          difficulty?: 'easy' | 'medium' | 'hard' | 'expert'
-          duration_minutes?: number
-          min_players?: number
-          max_players?: number
-          price?: number
+          difficulty?: string | null
+          duration?: number
+          min_players?: number | null
+          max_players?: number | null
+          price?: number | null
           image_url?: string | null
           is_active?: boolean
           created_at?: string
           updated_at?: string
+          created_by?: string | null
+          settings?: Json | null
+          setup_time?: number | null
+          cleanup_time?: number | null
+          booking_cutoff_minutes?: number | null
+          cancellation_policy?: string | null
+          stripe_product_id?: string | null
+          stripe_price_id?: string | null
+          stripe_checkout_url?: string | null
+          stripe_sync_status?: string | null
+          stripe_last_sync?: string | null
+          stripe_metadata?: Json | null
+          price_lookup_key?: string | null
+          active_price_id?: string | null
+          venue_name?: string | null
+          organization_name?: string | null
+          schedule?: Json | null
         }
       }
       customers: {

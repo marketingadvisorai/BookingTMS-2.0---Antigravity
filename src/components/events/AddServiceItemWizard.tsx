@@ -17,6 +17,7 @@ import { basicInfoSchema, capacityPricingSchema, gameDetailsSchema, mediaSchema,
 import Step7WidgetEmbed from './steps/Step7WidgetEmbed';
 import Step8Review from './steps/Step8Review';
 import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 interface AddServiceItemWizardProps {
   onComplete: (gameData: GameData) => void;
@@ -26,6 +27,8 @@ interface AddServiceItemWizardProps {
   theme?: string;
   embedContext?: EmbedContext;
   venueType?: string;
+  venueId?: string;
+  organizationId?: string;
 }
 
 const generateSlug = (value: string | undefined) => {
@@ -38,7 +41,7 @@ const generateSlug = (value: string | undefined) => {
     .replace(/-+/g, '-');
 };
 
-export default function AddServiceItemWizard({ onComplete, onCancel, initialData, mode = 'create', theme, embedContext, venueType }: AddServiceItemWizardProps) {
+export default function AddServiceItemWizard({ onComplete, onCancel, initialData, mode = 'create', theme, embedContext, venueType, venueId, organizationId }: AddServiceItemWizardProps) {
   const t = useTerminology(venueType || 'escape_room');
   const [currentStep, setCurrentStep] = useState(1);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -120,6 +123,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
   };
 
   const methods = useForm<GameData>({
+    resolver: zodResolver(gameDataSchema),
     defaultValues: {
       name: '',
       description: '',
@@ -192,6 +196,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
   const handleNext = async () => {
     // Validation for each step using Zod via trigger
     let isValid = false;
+    console.log(`Validating step ${currentStep}...`);
 
     switch (currentStep) {
       case 1:
@@ -213,7 +218,9 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
         isValid = true;
     }
 
+    console.log(`Step ${currentStep} validation result:`, isValid);
     if (!isValid) {
+      console.log('Validation errors:', errors);
       // Show first error
       const firstErrorKey = Object.keys(errors)[0];
       if (firstErrorKey) {
@@ -329,6 +336,8 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
           onNext={() => setCurrentStep(7)}
           onPrevious={() => setCurrentStep(5)}
           t={t}
+          venueId={venueId}
+          organizationId={organizationId}
         />;
       case 7:
         return <Step7WidgetEmbed gameData={gameData} updateGameData={updateGameData} t={t} />;
@@ -568,7 +577,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
 
           {currentStep < STEPS.length ? (
             <Button onClick={handleNext} className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca]">
-              Next
+              {currentStep === 6 && !gameData.stripeProductId ? 'Skip for Now' : 'Next'}
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (

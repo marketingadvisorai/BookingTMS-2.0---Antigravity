@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Separator } from '../components/ui/separator';
-import { useVenues } from '../hooks/useVenues';
+import { useVenues } from '../hooks/venue/useVenues';
 import { toast } from 'sonner';
 
 const venueTypes = [
@@ -33,7 +33,7 @@ const venueTypes = [
 export function VenuesDatabase() {
   const { venues, loading, createVenue, updateVenue, deleteVenue, refreshVenues } = useVenues();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -45,13 +45,13 @@ export function VenuesDatabase() {
       setIsRefreshing(false);
     }
   };
-  
+
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedVenue, setSelectedVenue] = useState<any | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -86,7 +86,7 @@ export function VenuesDatabase() {
 
   const handleCreateVenue = async () => {
     if (!formData.name) return;
-    
+
     setSubmitting(true);
     try {
       await createVenue(formData);
@@ -101,7 +101,7 @@ export function VenuesDatabase() {
 
   const handleUpdateVenue = async () => {
     if (!selectedVenue) return;
-    
+
     setSubmitting(true);
     try {
       await updateVenue(selectedVenue.id, formData);
@@ -117,7 +117,7 @@ export function VenuesDatabase() {
 
   const handleDeleteVenue = async () => {
     if (!selectedVenue) return;
-    
+
     setSubmitting(true);
     try {
       await deleteVenue(selectedVenue.id);
@@ -170,7 +170,7 @@ export function VenuesDatabase() {
         sticky
         action={
           <div className="flex gap-2">
-            <Button 
+            <Button
               variant="outline"
               className="h-11"
               onClick={handleRefresh}
@@ -179,7 +179,7 @@ export function VenuesDatabase() {
               <RefreshCcw className={`w-4 h-4 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Refresh</span>
             </Button>
-            <Button 
+            <Button
               className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] h-11"
               onClick={() => setShowCreateDialog(true)}
             >
@@ -309,8 +309,8 @@ export function VenuesDatabase() {
                       </p>
                     </div>
                   </div>
-                  <Badge 
-                    variant={venue.status === 'active' ? 'default' : 'secondary'} 
+                  <Badge
+                    variant={venue.status === 'active' ? 'default' : 'secondary'}
                     className="flex-shrink-0"
                   >
                     {venue.status}

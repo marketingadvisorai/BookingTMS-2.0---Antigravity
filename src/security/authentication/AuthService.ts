@@ -67,11 +67,11 @@ export class AuthService {
   private async initializeAuth(): Promise<void> {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (session?.user) {
         await this.loadUserProfile(session.user.id);
       }
-      
+
       // Listen for auth changes
       supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
@@ -93,28 +93,28 @@ export class AuthService {
     try {
       // Validate credentials
       this.validateLoginCredentials(credentials);
-      
+
       // Attempt login
       const { data, error } = await supabase.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password,
       });
-      
+
       if (error) {
         throw new AuthenticationError(error.message);
       }
-      
+
       if (!data.user) {
         throw new AuthenticationError('Login failed');
       }
-      
+
       // Load user profile
       await this.loadUserProfile(data.user.id);
-      
+
       if (!this.currentUser) {
         throw new AuthenticationError('Failed to load user profile');
       }
-      
+
       return this.currentUser;
     } catch (error) {
       errorHandler.handle(error as Error, { context: 'login' });
@@ -129,7 +129,7 @@ export class AuthService {
     try {
       // Validate registration data
       this.validateRegistrationData(data);
-      
+
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
@@ -142,15 +142,15 @@ export class AuthService {
           },
         },
       });
-      
+
       if (authError) {
         throw new AuthenticationError(authError.message);
       }
-      
+
       if (!authData.user) {
         throw new AuthenticationError('Registration failed');
       }
-      
+
       // Create user profile
       const { error: profileError } = await supabase
         .from('users')
@@ -162,18 +162,18 @@ export class AuthService {
           role: data.role || 'staff',
           is_active: true,
         });
-      
+
       if (profileError) {
         throw new AuthenticationError('Failed to create user profile');
       }
-      
+
       // Load user profile
       await this.loadUserProfile(authData.user.id);
-      
+
       if (!this.currentUser) {
         throw new AuthenticationError('Failed to load user profile');
       }
-      
+
       return this.currentUser;
     } catch (error) {
       errorHandler.handle(error as Error, { context: 'register' });
@@ -187,11 +187,11 @@ export class AuthService {
   async logout(): Promise<void> {
     try {
       const { error } = await supabase.auth.signOut();
-      
+
       if (error) {
         throw new AuthenticationError(error.message);
       }
-      
+
       this.currentUser = null;
       this.notifyListeners(null);
     } catch (error) {
@@ -210,11 +210,11 @@ export class AuthService {
           email: ['Please provide a valid email address'],
         });
       }
-      
+
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
         redirectTo: data.redirectUrl || `${window.location.origin}/reset-password`,
       });
-      
+
       if (error) {
         throw new AuthenticationError(error.message);
       }
@@ -230,17 +230,17 @@ export class AuthService {
   async updatePassword(newPassword: string): Promise<void> {
     try {
       const validation = isStrongPassword(newPassword);
-      
+
       if (!validation.isValid) {
         throw new ValidationError('Weak password', {
           password: validation.errors,
         });
       }
-      
+
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
-      
+
       if (error) {
         throw new AuthenticationError(error.message);
       }
@@ -269,7 +269,7 @@ export class AuthService {
    */
   hasRole(role: string | string[]): boolean {
     if (!this.currentUser) return false;
-    
+
     const roles = Array.isArray(role) ? role : [role];
     return roles.includes(this.currentUser.role);
   }
@@ -308,11 +308,11 @@ export class AuthService {
         .select('*')
         .eq('id', userId)
         .single();
-      
+
       if (error || !data) {
         throw new AuthenticationError('Failed to load user profile');
       }
-      
+
       this.currentUser = {
         id: data.id,
         email: data.email,
@@ -321,7 +321,7 @@ export class AuthService {
         organizationId: data.organization_id,
         metadata: data.metadata,
       };
-      
+
       this.notifyListeners(this.currentUser);
     } catch (error) {
       errorHandler.handle(error as Error, { context: 'loadUserProfile' });
@@ -334,15 +334,23 @@ export class AuthService {
    */
   private validateLoginCredentials(credentials: LoginCredentials): void {
     const errors: Record<string, string[]> = {};
-    
+
     if (!isValidEmail(credentials.email)) {
       errors.email = ['Invalid email address'];
+    } else {
+      try {
+        this.validateEmailForEnvironment(credentials.email);
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          errors.email = error.fields.email;
+        }
+      }
     }
-    
+
     if (!credentials.password || credentials.password.length < 6) {
       errors.password = ['Password must be at least 6 characters'];
     }
-    
+
     if (Object.keys(errors).length > 0) {
       throw new ValidationError('Invalid login credentials', errors);
     }
@@ -353,26 +361,54 @@ export class AuthService {
    */
   private validateRegistrationData(data: RegisterData): void {
     const errors: Record<string, string[]> = {};
-    
+
     if (!isValidEmail(data.email)) {
       errors.email = ['Invalid email address'];
+    } else {
+      try {
+        this.validateEmailForEnvironment(data.email);
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          errors.email = error.fields.email;
+        }
+      }
     }
-    
+
     const passwordValidation = isStrongPassword(data.password);
     if (!passwordValidation.isValid) {
       errors.password = passwordValidation.errors;
     }
-    
+
     if (!data.fullName || data.fullName.trim().length < 2) {
       errors.fullName = ['Full name must be at least 2 characters'];
     }
-    
+
     if (!data.organizationId) {
       errors.organizationId = ['Organization ID is required'];
     }
-    
+
     if (Object.keys(errors).length > 0) {
       throw new ValidationError('Invalid registration data', errors);
+    }
+  }
+
+  /**
+   * Validate email for current environment
+   * Blocks invalid domains in development to prevent bounces
+   */
+  private validateEmailForEnvironment(email: string): void {
+    // Check if we are in development mode
+    const isDev = import.meta.env?.DEV;
+
+    if (isDev) {
+      const invalidDomains = ['test.com', 'example.com', 'sample.com', 'demo.com'];
+      const domain = email.split('@')[1]?.toLowerCase();
+
+      if (domain && invalidDomains.includes(domain)) {
+        throw new ValidationError('Email Validation Error', {
+          email: [`Email domain "@${domain}" is restricted in development mode to prevent bounces. Please use a real email address or a different test domain.`]
+        });
+      }
     }
   }
 

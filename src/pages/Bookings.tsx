@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTheme } from '../components/layout/ThemeContext';
 import { useBookings } from '../hooks/useBookings';
 import { useGames, type Game } from '../hooks/useGames';
-import { useVenues, type Venue } from '../hooks/useVenues';
+import { useVenues, type Venue } from '../hooks/venue/useVenues';
 import { useAuth } from '../lib/auth/AuthContext';
 import { PageLoadingScreen } from '../components/layout/PageLoadingScreen';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -26,13 +26,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-import { 
-  Calendar as CalendarIcon, 
-  Search, 
-  Filter, 
-  Download, 
-  MoreVertical, 
-  CalendarDays, 
+import {
+  Calendar as CalendarIcon,
+  Search,
+  Filter,
+  Download,
+  MoreVertical,
+  CalendarDays,
   List,
   Plus,
   Users,
@@ -302,18 +302,18 @@ const seedBookings: Booking[] = [
 export function Bookings() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  
+
   // Venue filter state
   const [selectedVenueId, setSelectedVenueId] = useState<string | undefined>(undefined);
-  
+
   // Supabase hooks
   const { bookings: supabaseBookings, loading: bookingsLoading, updateBooking, cancelBooking, refreshBookings } = useBookings(selectedVenueId);
   const { games, loading: gamesLoading } = useGames();
   const { venues, loading: venuesLoading } = useVenues();
   const { currentUser } = useAuth();
-  
+
   // Build games data with colors for calendar
-  const gamesData: GameOption[] = useMemo(() => 
+  const gamesData: GameOption[] = useMemo(() =>
     (games || []).map(g => ({
       id: g.id,
       name: g.name,
@@ -325,7 +325,7 @@ export function Bookings() {
     })),
     [games]
   );
-  
+
   // Semantic class variables
   const textClass = isDark ? 'text-white' : 'text-gray-900';
   const textMutedClass = isDark ? 'text-[#a3a3a3]' : 'text-gray-600';
@@ -333,7 +333,7 @@ export function Bookings() {
   const cardBgClass = isDark ? 'bg-[#161616]' : 'bg-white';
   const bgElevatedClass = isDark ? 'bg-[#1e1e1e]' : 'bg-gray-50';
   const codeBgClass = isDark ? 'bg-[#1e1e1e]' : 'bg-gray-100';
-  
+
   const [view, setView] = useState<'table' | 'month' | 'week' | 'day' | 'schedule'>(() => {
     // Check if there's a preferred view from Dashboard navigation
     const savedView = localStorage.getItem('bookingsDefaultView');
@@ -352,8 +352,8 @@ export function Bookings() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showAttendeeList, setShowAttendeeList] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
-const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportFormat, setExportFormat] = useState('csv');
   const [exportDateRange, setExportDateRange] = useState('all');
@@ -369,20 +369,20 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
   }, []);
 
   // Convert Supabase bookings to UI format
-  const bookings = useMemo(() => 
+  const bookings = useMemo(() =>
     (supabaseBookings || []).map(adaptBookingFromSupabase),
     [supabaseBookings]
   );
-  
+
   // Staff list - for now empty, will be populated from auth users in future
   const [staffList, setStaffList] = useState<{ id: string; name: string }[]>([]);
-  
+
   // Date range states
   const [dateRangePreset, setDateRangePreset] = useState('all');
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>(undefined);
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
-  
+
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -445,7 +445,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
 
       if (exportFormat === 'csv') {
         const headers = [
-          'Booking ID','Customer','Email','Phone','Game','Date','Time','Group Size','Adults','Children','Amount','Status','Payment Method','Assigned Staff','Check In','Check Out','Notes'
+          'Booking ID', 'Customer', 'Email', 'Phone', 'Game', 'Date', 'Time', 'Group Size', 'Adults', 'Children', 'Amount', 'Status', 'Payment Method', 'Assigned Staff', 'Check In', 'Check Out', 'Notes'
         ];
 
         const escape = (val: any) => {
@@ -478,7 +478,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `bookings_${new Date().toISOString().slice(0,10)}.csv`;
+        a.download = `bookings_${new Date().toISOString().slice(0, 10)}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -500,7 +500,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
           y += 7;
         });
 
-        doc.save(`bookings_${new Date().toISOString().slice(0,10)}.pdf`);
+        doc.save(`bookings_${new Date().toISOString().slice(0, 10)}.pdf`);
       }
 
       toast.success(`Bookings exported successfully as ${exportFormat.toUpperCase()}`);
@@ -522,7 +522,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
     if (!selectedBooking) return;
     try {
       // Find the original Supabase booking
-      const sbBooking = (supabaseBookings || []).find(b => 
+      const sbBooking = (supabaseBookings || []).find(b =>
         b.confirmation_code === selectedBooking.id || b.id === selectedBooking.id
       );
       if (sbBooking) {
@@ -549,7 +549,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
   const confirmCancel = async (reason?: string) => {
     if (!selectedBooking) return;
     try {
-      const sbBooking = (supabaseBookings || []).find(b => 
+      const sbBooking = (supabaseBookings || []).find(b =>
         b.confirmation_code === selectedBooking.id || b.id === selectedBooking.id
       );
       if (sbBooking) {
@@ -589,7 +589,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
 
   const isDateInRange = (dateStr: string) => {
     if (dateRangePreset === 'all') return true;
-    
+
     const bookingDate = new Date(dateStr);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -666,23 +666,23 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
 
   // Filter bookings based on search, filters, and date range
   const filteredBookings = bookings.filter(booking => {
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch = searchTerm === '' ||
       booking.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.id.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
-    
+
     const matchesGame = gameFilter === 'all-games' || booking.game === gameFilter;
-    
+
     const matchesDateRange = isDateInRange(booking.date);
-    
+
     return matchesSearch && matchesStatus && matchesGame && matchesDateRange;
   });
 
   const assignStaff = async (bookingId: string, staffId: string) => {
     try {
-      const sbBooking = (supabaseBookings || []).find(b => 
+      const sbBooking = (supabaseBookings || []).find(b =>
         b.confirmation_code === bookingId || b.id === bookingId
       );
       if (sbBooking) {
@@ -702,7 +702,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
 
   const updateStatus = async (bookingId: string, status: Booking['status']) => {
     try {
-      const sbBooking = (supabaseBookings || []).find(b => 
+      const sbBooking = (supabaseBookings || []).find(b =>
         b.confirmation_code === bookingId || b.id === bookingId
       );
       if (sbBooking) {
@@ -718,7 +718,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
   const checkIn = async (bookingId: string) => {
     try {
       const ts = new Date().toISOString();
-      const sbBooking = (supabaseBookings || []).find(b => 
+      const sbBooking = (supabaseBookings || []).find(b =>
         b.confirmation_code === bookingId || b.id === bookingId
       );
       if (sbBooking) {
@@ -740,7 +740,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
   const checkOut = async (bookingId: string) => {
     try {
       const ts = new Date().toISOString();
-      const sbBooking = (supabaseBookings || []).find(b => 
+      const sbBooking = (supabaseBookings || []).find(b =>
         b.confirmation_code === bookingId || b.id === bookingId
       );
       if (sbBooking) {
@@ -824,7 +824,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
             >
               <RefreshCcw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
-            <Button 
+            <Button
               className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] flex-1 sm:flex-initial sm:w-auto h-11 flex items-center justify-center gap-2"
               onClick={() => setShowAddBooking(true)}
             >
@@ -1063,7 +1063,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               {/* All Games filter and 3-dot menu on same line */}
               <Select value={gameFilter} onValueChange={setGameFilter}>
                 <SelectTrigger className="h-11">
@@ -1086,7 +1086,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end">
                   <PermissionGuard permissions={['bookings.export']}>
                     <DropdownMenuItem onClick={() => setShowExportDialog(true)}>
                       <Download className="w-4 h-4 mr-2" />
@@ -1149,7 +1149,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                     <button onClick={() => setSelectedVenueId(undefined)} className="ml-1 hover:text-red-600 dark:hover:text-red-500">×</button>
                   </Badge>
                 )}
-                <button 
+                <button
                   onClick={() => {
                     setSearchTerm('');
                     setStatusFilter('all');
@@ -1194,7 +1194,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          
+
           {/* Venue Filter */}
           <Select value={selectedVenueId || 'all'} onValueChange={(value) => {
             setSelectedVenueId(value === 'all' ? undefined : value);
@@ -1213,7 +1213,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
             </SelectContent>
           </Select>
         </div>
-        
+
         <p className="text-sm text-gray-600 dark:text-[#737373]">
           {filteredBookings.length} {filteredBookings.length !== bookings.length && `of ${bookings.length}`} booking{filteredBookings.length !== 1 ? 's' : ''}
         </p>
@@ -1221,7 +1221,7 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
 
       {/* Month Calendar View */}
       {view === 'month' && (
-        <MonthCalendarView 
+        <MonthCalendarView
           bookings={filteredBookings}
           onViewDetails={handleViewDetails}
           onShowAttendees={handleShowAttendees}
@@ -1281,212 +1281,212 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                 </div>
               ) : (
                 filteredBookings.map((booking) => (
-                <Card key={booking.id} className="border border-gray-200 dark:border-[#2a2a2a] shadow-sm hover:shadow-md dark:hover:shadow-[0_0_15px_rgba(79,70,229,0.1)] transition-all">
-                  <CardContent className="p-4">
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-900 dark:text-white truncate">{booking.customer}</p>
-                          <p className="text-xs text-gray-500 dark:text-[#737373]">{booking.id}</p>
-                          {booking.assignedStaffId && (
-                            <p className="text-xs text-gray-600 dark:text-[#737373] mt-1">Assigned: {staffList.find(s => s.id === booking.assignedStaffId)?.name || booking.assignedStaffId}</p>
-                          )}
-                        </div>
-                        <Badge
-                          variant="secondary"
-                          className={`flex-shrink-0 text-xs border
+                  <Card key={booking.id} className="border border-gray-200 dark:border-[#2a2a2a] shadow-sm hover:shadow-md dark:hover:shadow-[0_0_15px_rgba(79,70,229,0.1)] transition-all">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-900 dark:text-white truncate">{booking.customer}</p>
+                            <p className="text-xs text-gray-500 dark:text-[#737373]">{booking.id}</p>
+                            {booking.assignedStaffId && (
+                              <p className="text-xs text-gray-600 dark:text-[#737373] mt-1">Assigned: {staffList.find(s => s.id === booking.assignedStaffId)?.name || booking.assignedStaffId}</p>
+                            )}
+                          </div>
+                          <Badge
+                            variant="secondary"
+                            className={`flex-shrink-0 text-xs border
                             ${booking.status === 'confirmed' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : ''}
                             ${booking.status === 'pending' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30' : ''}
                             ${booking.status === 'cancelled' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30' : ''}
                             ${booking.status === 'no-show' ? 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-500/30' : ''}
                             ${booking.status === 'completed' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/30' : ''}
                           `}
-                        >
-                          {booking.status}
-                        </Badge>
-                      </div>
-                      <Separator className="dark:bg-[#2a2a2a]" />
-                      <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm">
-                        <div className="min-w-0">
-                          <p className="text-gray-500 dark:text-[#737373] text-xs">Game</p>
-                          <p className="text-gray-900 dark:text-white truncate">{booking.game}</p>
+                          >
+                            {booking.status}
+                          </Badge>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-gray-500 dark:text-[#737373] text-xs">Date & Time</p>
-                          <p className="text-gray-900 dark:text-white text-xs sm:text-sm">{formatDate(booking.date)}</p>
-                          <p className="text-xs text-gray-500 dark:text-[#737373]">{booking.time}</p>
+                        <Separator className="dark:bg-[#2a2a2a]" />
+                        <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm">
+                          <div className="min-w-0">
+                            <p className="text-gray-500 dark:text-[#737373] text-xs">Game</p>
+                            <p className="text-gray-900 dark:text-white truncate">{booking.game}</p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-gray-500 dark:text-[#737373] text-xs">Date & Time</p>
+                            <p className="text-gray-900 dark:text-white text-xs sm:text-sm">{formatDate(booking.date)}</p>
+                            <p className="text-xs text-gray-500 dark:text-[#737373]">{booking.time}</p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-gray-500 dark:text-[#737373] text-xs">Group Size</p>
+                            <p className="text-gray-900 dark:text-white">{booking.groupSize} people</p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-gray-500 dark:text-[#737373] text-xs">Amount</p>
+                            <p className="text-gray-900 dark:text-white">${booking.amount}</p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-gray-500 dark:text-[#737373] text-xs">Group Size</p>
-                          <p className="text-gray-900 dark:text-white">{booking.groupSize} people</p>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-gray-500 dark:text-[#737373] text-xs">Amount</p>
-                          <p className="text-gray-900 dark:text-white">${booking.amount}</p>
-                        </div>
-                      </div>
-                      <Separator className="dark:bg-[#2a2a2a]" />
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="flex-1 h-9"
-                          onClick={() => handleViewDetails(booking)}
-                        >
-                          <Eye className="w-4 h-4 mr-1.5" />
-                          <span className="text-xs sm:text-sm">View</span>
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-9 w-9 p-0">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleReschedule(booking)}>
-                              <RefreshCcw className="w-4 h-4 mr-2" />
-                              Reschedule
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleSendConfirmation(booking)}>
-                              <Mail className="w-4 h-4 mr-2" />
-                              Send Confirmation
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleRefund(booking)}>
-                              <DollarSign className="w-4 h-4 mr-2" />
-                              Process Refund
-                            </DropdownMenuItem>
-                            <Separator />
-                            <DropdownMenuItem onClick={() => checkIn(booking.id)}>
-                              <Clock className="w-4 h-4 mr-2" />
-                              Check In
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => checkOut(booking.id)}>
-                              <Clock className="w-4 h-4 mr-2" />
-                              Check Out
-                            </DropdownMenuItem>
-                            <Separator />
-                            {booking.status !== 'cancelled' && (
-                              <DropdownMenuItem className="text-red-600 dark:text-red-500" onClick={() => handleCancel(booking)}>
-                                <AlertCircle className="w-4 h-4 mr-2" />
-                                Cancel Booking
+                        <Separator className="dark:bg-[#2a2a2a]" />
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 h-9"
+                            onClick={() => handleViewDetails(booking)}
+                          >
+                            <Eye className="w-4 h-4 mr-1.5" />
+                            <span className="text-xs sm:text-sm">View</span>
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-9 w-9 p-0">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleReschedule(booking)}>
+                                <RefreshCcw className="w-4 h-4 mr-2" />
+                                Reschedule
                               </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <DropdownMenuItem onClick={() => handleSendConfirmation(booking)}>
+                                <Mail className="w-4 h-4 mr-2" />
+                                Send Confirmation
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleRefund(booking)}>
+                                <DollarSign className="w-4 h-4 mr-2" />
+                                Process Refund
+                              </DropdownMenuItem>
+                              <Separator />
+                              <DropdownMenuItem onClick={() => checkIn(booking.id)}>
+                                <Clock className="w-4 h-4 mr-2" />
+                                Check In
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => checkOut(booking.id)}>
+                                <Clock className="w-4 h-4 mr-2" />
+                                Check Out
+                              </DropdownMenuItem>
+                              <Separator />
+                              {booking.status !== 'cancelled' && (
+                                <DropdownMenuItem className="text-red-600 dark:text-red-500" onClick={() => handleCancel(booking)}>
+                                  <AlertCircle className="w-4 h-4 mr-2" />
+                                  Cancel Booking
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )))}
+                    </CardContent>
+                  </Card>
+                )))}
             </div>
 
             {/* Desktop Table View */}
             <div className="hidden lg:block overflow-x-auto">
-            {filteredBookings.length === 0 ? (
-              <div className="text-center py-12">
-                <Search className="w-12 h-12 mx-auto text-gray-300 dark:text-[#404040] mb-3" />
-                <p className="text-gray-500 dark:text-[#737373]">No bookings found</p>
-                <p className="text-sm text-gray-400 dark:text-[#525252] mt-1">Try adjusting your filters</p>
-              </div>
-            ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-200 dark:border-[#2a2a2a]">
-                  <TableHead>Booking ID</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Game</TableHead>
-                  <TableHead>Date & Time</TableHead>
-                  <TableHead>Group Size</TableHead>
-                  <TableHead>Assigned Staff</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredBookings.map((booking) => (
-                  <TableRow key={booking.id} className="border-gray-200 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#1a1a1a]">
-                    <TableCell className="text-gray-900 dark:text-white">{booking.id}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="text-sm text-gray-900 dark:text-white">{booking.customer}</p>
-                        <p className="text-xs text-gray-500 dark:text-[#737373]">{booking.email}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-gray-900 dark:text-white">{booking.game}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="text-sm text-gray-900 dark:text-white">{formatDate(booking.date)}</p>
-                        <p className="text-xs text-gray-500 dark:text-[#737373]">{booking.time}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-gray-900 dark:text-white">{booking.groupSize} people</TableCell>
-                    <TableCell className="text-gray-900 dark:text-white">{booking.assignedStaffId ? (staffList.find(s => s.id === booking.assignedStaffId)?.name || booking.assignedStaffId) : '-'}</TableCell>
-                    <TableCell className="text-gray-900 dark:text-white">${booking.amount}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={`border
+              {filteredBookings.length === 0 ? (
+                <div className="text-center py-12">
+                  <Search className="w-12 h-12 mx-auto text-gray-300 dark:text-[#404040] mb-3" />
+                  <p className="text-gray-500 dark:text-[#737373]">No bookings found</p>
+                  <p className="text-sm text-gray-400 dark:text-[#525252] mt-1">Try adjusting your filters</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-200 dark:border-[#2a2a2a]">
+                      <TableHead>Booking ID</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Game</TableHead>
+                      <TableHead>Date & Time</TableHead>
+                      <TableHead>Group Size</TableHead>
+                      <TableHead>Assigned Staff</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredBookings.map((booking) => (
+                      <TableRow key={booking.id} className="border-gray-200 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#1a1a1a]">
+                        <TableCell className="text-gray-900 dark:text-white">{booking.id}</TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="text-sm text-gray-900 dark:text-white">{booking.customer}</p>
+                            <p className="text-xs text-gray-500 dark:text-[#737373]">{booking.email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-gray-900 dark:text-white">{booking.game}</TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="text-sm text-gray-900 dark:text-white">{formatDate(booking.date)}</p>
+                            <p className="text-xs text-gray-500 dark:text-[#737373]">{booking.time}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-gray-900 dark:text-white">{booking.groupSize} people</TableCell>
+                        <TableCell className="text-gray-900 dark:text-white">{booking.assignedStaffId ? (staffList.find(s => s.id === booking.assignedStaffId)?.name || booking.assignedStaffId) : '-'}</TableCell>
+                        <TableCell className="text-gray-900 dark:text-white">${booking.amount}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className={`border
                           ${booking.status === 'confirmed' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : ''}
                           ${booking.status === 'pending' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30' : ''}
                           ${booking.status === 'cancelled' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30' : ''}
                           ${booking.status === 'no-show' ? 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-500/30' : ''}
                           ${booking.status === 'completed' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/30' : ''}
                         `}
-                      >
-                        {booking.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewDetails(booking)}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleSendConfirmation(booking)}>
-                            <Mail className="w-4 h-4 mr-2" />
-                            Send Confirmation
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleReschedule(booking)}>
-                            <RefreshCcw className="w-4 h-4 mr-2" />
-                            Reschedule
-                          </DropdownMenuItem>
-                          {booking.status === 'confirmed' && (
-                            <DropdownMenuItem onClick={() => handleRefund(booking)}>
-                              <RefreshCcw className="w-4 h-4 mr-2" />
-                              Process Refund
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => checkIn(booking.id)}>
-                            <Clock className="w-4 h-4 mr-2" />
-                            Check In
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => checkOut(booking.id)}>
-                            <Clock className="w-4 h-4 mr-2" />
-                            Check Out
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-[#4f46e5]" onClick={() => { setSelectedBooking(booking); setShowBookingDetails(true); }}>
-                            <Users className="w-4 h-4 mr-2" />
-                            Assign Staff
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600 dark:text-red-500" onClick={() => handleCancel(booking)}>
-                            <AlertCircle className="w-4 h-4 mr-2" />
-                            Cancel Booking
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            )}
+                          >
+                            {booking.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewDetails(booking)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleSendConfirmation(booking)}>
+                                <Mail className="w-4 h-4 mr-2" />
+                                Send Confirmation
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleReschedule(booking)}>
+                                <RefreshCcw className="w-4 h-4 mr-2" />
+                                Reschedule
+                              </DropdownMenuItem>
+                              {booking.status === 'confirmed' && (
+                                <DropdownMenuItem onClick={() => handleRefund(booking)}>
+                                  <RefreshCcw className="w-4 h-4 mr-2" />
+                                  Process Refund
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => checkIn(booking.id)}>
+                                <Clock className="w-4 h-4 mr-2" />
+                                Check In
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => checkOut(booking.id)}>
+                                <Clock className="w-4 h-4 mr-2" />
+                                Check Out
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-[#4f46e5]" onClick={() => { setSelectedBooking(booking); setShowBookingDetails(true); }}>
+                                <Users className="w-4 h-4 mr-2" />
+                                Assign Staff
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600 dark:text-red-500" onClick={() => handleCancel(booking)}>
+                                <AlertCircle className="w-4 h-4 mr-2" />
+                                Cancel Booking
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -1577,22 +1577,20 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                 <button
                   onClick={() => setExportFormat('csv')}
-                  className={`p-4 border-2 rounded-lg text-left transition-all ${
-                    exportFormat === 'csv' 
-                      ? 'border-[#4f46e5] dark:border-[#6366f1] bg-blue-50 dark:bg-[#4f46e5]/10' 
+                  className={`p-4 border-2 rounded-lg text-left transition-all ${exportFormat === 'csv'
+                      ? 'border-[#4f46e5] dark:border-[#6366f1] bg-blue-50 dark:bg-[#4f46e5]/10'
                       : 'border-gray-200 dark:border-[#2a2a2a] hover:border-gray-300 dark:hover:border-[#404040]'
-                  }`}
+                    }`}
                 >
                   <p className="text-sm text-gray-900 dark:text-white">CSV File</p>
                   <p className="text-xs text-gray-600 dark:text-[#737373] mt-1">Excel compatible spreadsheet</p>
                 </button>
                 <button
                   onClick={() => setExportFormat('pdf')}
-                  className={`p-4 border-2 rounded-lg text-left transition-all ${
-                    exportFormat === 'pdf' 
-                      ? 'border-[#4f46e5] dark:border-[#6366f1] bg-blue-50 dark:bg-[#4f46e5]/10' 
+                  className={`p-4 border-2 rounded-lg text-left transition-all ${exportFormat === 'pdf'
+                      ? 'border-[#4f46e5] dark:border-[#6366f1] bg-blue-50 dark:bg-[#4f46e5]/10'
                       : 'border-gray-200 dark:border-[#2a2a2a] hover:border-gray-300 dark:hover:border-[#404040]'
-                  }`}
+                    }`}
                 >
                   <p className="text-sm text-gray-900 dark:text-white">PDF File</p>
                   <p className="text-xs text-gray-600 dark:text-[#737373] mt-1">Printable document format</p>
@@ -1625,8 +1623,8 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
                 <Download className="w-4 h-4 text-blue-600 dark:text-[#6366f1] mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs text-blue-900 dark:text-[#a5b4fc]">
-                    {exportDateRange === 'all' ? 'All' : exportDateRange === 'today' ? 'Today\'s' : 
-                     exportDateRange === 'quarter' ? 'This quarter\'s' : exportDateRange === 'year' ? 'This year\'s' : 'Selected'} bookings will be exported
+                    {exportDateRange === 'all' ? 'All' : exportDateRange === 'today' ? 'Today\'s' :
+                      exportDateRange === 'quarter' ? 'This quarter\'s' : exportDateRange === 'year' ? 'This year\'s' : 'Selected'} bookings will be exported
                   </p>
                   <p className="text-xs text-blue-700 dark:text-[#818cf8] mt-1">
                     Estimated: {filteredBookings.length} records
@@ -1640,8 +1638,8 @@ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().get
             <Button variant="outline" onClick={() => setShowExportDialog(false)} disabled={isExporting} className="w-full sm:w-auto h-11">
               Cancel
             </Button>
-            <Button 
-              className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] w-full sm:w-auto h-11" 
+            <Button
+              className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] w-full sm:w-auto h-11"
               onClick={handleExport}
               disabled={isExporting}
             >
@@ -1701,13 +1699,12 @@ function MonthCalendarView({ bookings, onViewDetails, onShowAttendees, calendarM
   for (let day = 1; day <= daysInMonth; day++) {
     const dayBookings = getBookingsForDay(day);
     const isToday = new Date().getDate() === day && new Date().getMonth() === month && new Date().getFullYear() === year;
-    
+
     days.push(
       <div
         key={day}
-        className={`min-h-[80px] sm:min-h-[120px] border border-gray-200 dark:border-[#2a2a2a] p-1 sm:p-2 bg-white dark:bg-[#161616] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors ${
-          isToday ? 'ring-1 sm:ring-2 ring-[#4f46e5] dark:ring-[#6366f1]' : ''
-        }`}
+        className={`min-h-[80px] sm:min-h-[120px] border border-gray-200 dark:border-[#2a2a2a] p-1 sm:p-2 bg-white dark:bg-[#161616] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors ${isToday ? 'ring-1 sm:ring-2 ring-[#4f46e5] dark:ring-[#6366f1]' : ''
+          }`}
       >
         <div className="flex items-center justify-between mb-1 sm:mb-2">
           <span className={`text-xs sm:text-sm ${isToday ? 'bg-blue-600 dark:bg-[#4f46e5] text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs' : 'text-gray-900 dark:text-white'}`}>
@@ -1812,7 +1809,7 @@ function WeekView({ bookings, onViewDetails, selectedDate, setSelectedDate, game
     const days: Date[] = [];
     const startOfWeek = new Date(date);
     startOfWeek.setDate(date.getDate() - date.getDay());
-    
+
     for (let i = 0; i < 7; i++) {
       const day = new Date(startOfWeek);
       day.setDate(startOfWeek.getDate() + i);
@@ -1871,60 +1868,60 @@ function WeekView({ bookings, onViewDetails, selectedDate, setSelectedDate, game
         <div className="relative">
           <div className="overflow-x-auto overflow-y-visible scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
             <div className="min-w-[800px]">
-            {/* Week Days Header */}
-            <div className="grid grid-cols-8 gap-1 mb-2">
-              <div className="text-xs text-gray-600 dark:text-[#737373] p-2">Time</div>
-              {weekDays.map((day, idx) => {
-                const isToday = day.toDateString() === new Date().toDateString();
-                return (
-                  <div
-                    key={idx}
-                    className={`text-center p-2 rounded-t-lg ${isToday ? 'bg-blue-50 dark:bg-[#4f46e5]/10 border border-blue-200 dark:border-[#4f46e5]/30' : 'bg-gray-50 dark:bg-[#0a0a0a]'}`}
-                  >
-                    <p className="text-xs text-gray-600 dark:text-[#737373]">{day.toLocaleDateString('en-US', { weekday: 'short' })}</p>
-                    <p className={`text-sm ${isToday ? 'text-[#4f46e5] dark:text-[#6366f1]' : 'text-gray-900 dark:text-white'}`}>
-                      {day.getDate()}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+              {/* Week Days Header */}
+              <div className="grid grid-cols-8 gap-1 mb-2">
+                <div className="text-xs text-gray-600 dark:text-[#737373] p-2">Time</div>
+                {weekDays.map((day, idx) => {
+                  const isToday = day.toDateString() === new Date().toDateString();
+                  return (
+                    <div
+                      key={idx}
+                      className={`text-center p-2 rounded-t-lg ${isToday ? 'bg-blue-50 dark:bg-[#4f46e5]/10 border border-blue-200 dark:border-[#4f46e5]/30' : 'bg-gray-50 dark:bg-[#0a0a0a]'}`}
+                    >
+                      <p className="text-xs text-gray-600 dark:text-[#737373]">{day.toLocaleDateString('en-US', { weekday: 'short' })}</p>
+                      <p className={`text-sm ${isToday ? 'text-[#4f46e5] dark:text-[#6366f1]' : 'text-gray-900 dark:text-white'}`}>
+                        {day.getDate()}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
 
-            {/* Time Slots Grid */}
-            <div className="space-y-1">
-              {timeSlots.map((time) => (
-                <div key={time} className="grid grid-cols-8 gap-1">
-                  <div className="text-xs text-gray-600 dark:text-[#737373] p-2 flex items-center">
-                    {time}
+              {/* Time Slots Grid */}
+              <div className="space-y-1">
+                {timeSlots.map((time) => (
+                  <div key={time} className="grid grid-cols-8 gap-1">
+                    <div className="text-xs text-gray-600 dark:text-[#737373] p-2 flex items-center">
+                      {time}
+                    </div>
+                    {weekDays.map((day, idx) => {
+                      const dayBookings = getBookingsForTimeSlot(day, time);
+                      return (
+                        <div
+                          key={idx}
+                          className="border border-gray-200 dark:border-[#2a2a2a] p-1 min-h-[60px] bg-white dark:bg-[#161616] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
+                        >
+                          {dayBookings.map((booking: any) => {
+                            const gameColor = gamesData.find(g => g.name === booking.game)?.color || '#6b7280';
+                            return (
+                              <div
+                                key={booking.id}
+                                className="text-xs p-1.5 rounded cursor-pointer hover:opacity-80 transition-opacity mb-1"
+                                style={{ backgroundColor: gameColor + '20', borderLeft: `3px solid ${gameColor}` }}
+                                onClick={() => onViewDetails(booking)}
+                              >
+                                <p className="text-gray-900 dark:text-white truncate">{booking.game}</p>
+                                <p className="text-gray-600 dark:text-[#737373] text-[10px] truncate">{booking.customer}</p>
+                                <p className="text-gray-500 dark:text-[#525252] text-[10px]">{booking.groupSize} people</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
                   </div>
-                  {weekDays.map((day, idx) => {
-                    const dayBookings = getBookingsForTimeSlot(day, time);
-                    return (
-                      <div
-                        key={idx}
-                        className="border border-gray-200 dark:border-[#2a2a2a] p-1 min-h-[60px] bg-white dark:bg-[#161616] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
-                      >
-                        {dayBookings.map((booking: any) => {
-                          const gameColor = gamesData.find(g => g.name === booking.game)?.color || '#6b7280';
-                          return (
-                            <div
-                              key={booking.id}
-                              className="text-xs p-1.5 rounded cursor-pointer hover:opacity-80 transition-opacity mb-1"
-                              style={{ backgroundColor: gameColor + '20', borderLeft: `3px solid ${gameColor}` }}
-                              onClick={() => onViewDetails(booking)}
-                            >
-                              <p className="text-gray-900 dark:text-white truncate">{booking.game}</p>
-                              <p className="text-gray-600 dark:text-[#737373] text-[10px] truncate">{booking.customer}</p>
-                              <p className="text-gray-500 dark:text-[#525252] text-[10px]">{booking.groupSize} people</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
             </div>
           </div>
           {/* Scroll indicator for mobile */}
@@ -1940,7 +1937,7 @@ function WeekView({ bookings, onViewDetails, selectedDate, setSelectedDate, game
 // Day View Component
 function DayView({ bookings, onViewDetails, selectedDate, setSelectedDate, gamesData }: any) {
   const timeSlots = Array.from({ length: 14 }, (_, i) => `${String(10 + i).padStart(2, '0')}:00`);
-  
+
   const getBookingsForTimeSlot = (time: string) => {
     const dateStr = selectedDate.toISOString().split('T')[0];
     return bookings.filter((b: any) => {
@@ -2059,7 +2056,7 @@ function DayView({ bookings, onViewDetails, selectedDate, setSelectedDate, games
 // Schedule View Component (All Rooms Side by Side)
 function ScheduleView({ bookings, onViewDetails, selectedDate, setSelectedDate, gamesData }: any) {
   const timeSlots = Array.from({ length: 14 }, (_, i) => `${String(10 + i).padStart(2, '0')}:00`);
-  
+
   const getBookingsForGameAndTime = (game: string, time: string) => {
     const dateStr = selectedDate.toISOString().split('T')[0];
     return bookings.filter((b: any) => {
@@ -2113,61 +2110,61 @@ function ScheduleView({ bookings, onViewDetails, selectedDate, setSelectedDate, 
         <div className="relative">
           <div className="overflow-x-auto overflow-y-visible scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
             <div className="min-w-[900px]">
-            {/* Room Headers */}
-            <div className="grid gap-1 mb-2" style={{ gridTemplateColumns: `100px repeat(${gamesData.length}, 1fr)` }}>
-              <div className="text-xs text-gray-600 dark:text-[#737373] p-2">Time</div>
-              {gamesData.map((game) => (
-                <div
-                  key={game.id}
-                  className="text-center p-2 rounded-t-lg"
-                  style={{ backgroundColor: game.color + '20' }}
-                >
-                  <div className="w-3 h-3 rounded mx-auto mb-1" style={{ backgroundColor: game.color }} />
-                  <p className="text-xs text-gray-900 dark:text-white">{game.name}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Time Slots Grid */}
-            <div className="space-y-1">
-              {timeSlots.map((time) => (
-                <div key={time} className="grid gap-1" style={{ gridTemplateColumns: `100px repeat(${gamesData.length}, 1fr)` }}>
-                  <div className="text-xs text-gray-600 dark:text-[#737373] p-2 flex items-center">
-                    {time}
+              {/* Room Headers */}
+              <div className="grid gap-1 mb-2" style={{ gridTemplateColumns: `100px repeat(${gamesData.length}, 1fr)` }}>
+                <div className="text-xs text-gray-600 dark:text-[#737373] p-2">Time</div>
+                {gamesData.map((game) => (
+                  <div
+                    key={game.id}
+                    className="text-center p-2 rounded-t-lg"
+                    style={{ backgroundColor: game.color + '20' }}
+                  >
+                    <div className="w-3 h-3 rounded mx-auto mb-1" style={{ backgroundColor: game.color }} />
+                    <p className="text-xs text-gray-900 dark:text-white">{game.name}</p>
                   </div>
-                  {gamesData.map((game) => {
-                    const gameBookings = getBookingsForGameAndTime(game.name, time);
-                    return (
-                      <div
-                        key={game.id}
-                        className="border border-gray-200 dark:border-[#2a2a2a] p-1 min-h-[60px] bg-white dark:bg-[#161616] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
-                      >
-                        {gameBookings.map((booking: any) => (
-                          <div
-                            key={booking.id}
-                            className="text-xs p-1.5 rounded cursor-pointer hover:opacity-80 transition-opacity mb-1"
-                            style={{ backgroundColor: game.color + '20', borderLeft: `3px solid ${game.color}` }}
-                            onClick={() => onViewDetails(booking)}
-                          >
-                            <p className="text-gray-900 dark:text-white truncate">{booking.customer}</p>
-                            <p className="text-gray-600 dark:text-[#737373] text-[10px]">{booking.groupSize} people</p>
-                            <Badge
-                              variant="secondary"
-                              className={`text-[10px] px-1 py-0 h-4 mt-1 border
+                ))}
+              </div>
+
+              {/* Time Slots Grid */}
+              <div className="space-y-1">
+                {timeSlots.map((time) => (
+                  <div key={time} className="grid gap-1" style={{ gridTemplateColumns: `100px repeat(${gamesData.length}, 1fr)` }}>
+                    <div className="text-xs text-gray-600 dark:text-[#737373] p-2 flex items-center">
+                      {time}
+                    </div>
+                    {gamesData.map((game) => {
+                      const gameBookings = getBookingsForGameAndTime(game.name, time);
+                      return (
+                        <div
+                          key={game.id}
+                          className="border border-gray-200 dark:border-[#2a2a2a] p-1 min-h-[60px] bg-white dark:bg-[#161616] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors"
+                        >
+                          {gameBookings.map((booking: any) => (
+                            <div
+                              key={booking.id}
+                              className="text-xs p-1.5 rounded cursor-pointer hover:opacity-80 transition-opacity mb-1"
+                              style={{ backgroundColor: game.color + '20', borderLeft: `3px solid ${game.color}` }}
+                              onClick={() => onViewDetails(booking)}
+                            >
+                              <p className="text-gray-900 dark:text-white truncate">{booking.customer}</p>
+                              <p className="text-gray-600 dark:text-[#737373] text-[10px]">{booking.groupSize} people</p>
+                              <Badge
+                                variant="secondary"
+                                className={`text-[10px] px-1 py-0 h-4 mt-1 border
                                 ${booking.status === 'confirmed' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : ''}
                                 ${booking.status === 'pending' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30' : ''}
                               `}
-                            >
-                              {booking.status}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
+                              >
+                                {booking.status}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           {/* Scroll indicator for mobile */}
@@ -2334,7 +2331,7 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings, gamesData, v
                 <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm">1</div>
                 <h3 className="text-sm sm:text-base text-gray-900">Customer Information</h3>
               </div>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName" className="text-sm">First Name *</Label>
@@ -2471,15 +2468,15 @@ function AddBookingDialog({ open, onOpenChange, onCreate, bookings, gamesData, v
                       <SelectValue placeholder={formData.gameId ? 'Select time' : 'Select a game first'} />
                     </SelectTrigger>
                     <SelectContent>
-                      {['10:00','12:00','14:00','16:00','18:00','20:00'].map((t) => {
+                      {['10:00', '12:00', '14:00', '16:00', '18:00', '20:00'].map((t) => {
                         const unavailable = formData.date && formData.gameId ? !isSlotAvailable(formData.date, t) : true;
                         const label = (
                           t === '10:00' ? '10:00 AM' :
-                          t === '12:00' ? '12:00 PM' :
-                          t === '14:00' ? '2:00 PM' :
-                          t === '16:00' ? '4:00 PM' :
-                          t === '18:00' ? '6:00 PM' :
-                          '8:00 PM'
+                            t === '12:00' ? '12:00 PM' :
+                              t === '14:00' ? '2:00 PM' :
+                                t === '16:00' ? '4:00 PM' :
+                                  t === '18:00' ? '6:00 PM' :
+                                    '8:00 PM'
                         );
                         return (
                           <SelectItem key={t} value={t} disabled={unavailable}>
@@ -3284,7 +3281,7 @@ function RescheduleDialog({ open, onOpenChange, booking, onConfirm, bookings = [
                 mode="single"
                 selected={newDate}
                 onSelect={setNewDate}
-                disabled={(date: Date) => date < new Date(new Date().setHours(0,0,0,0))}
+                disabled={(date: Date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 className="rounded-md [&_.rdp-day_selected]:bg-blue-600 [&_.rdp-day_selected]:text-white"
               />
             </div>

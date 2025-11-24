@@ -24,7 +24,7 @@ import { SystemAdminNotificationsModal } from '../components/systemadmin/SystemA
 import { useFeatureFlags } from '../lib/featureflags/FeatureFlagContext';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { Checkbox } from '../components/ui/checkbox';
-import { useVenues } from '../hooks/useVenues';
+import { useVenues } from '../hooks/venue/useVenues';
 import { useGames } from '../hooks/useGames';
 import { useBookings } from '../hooks/useBookings';
 import { useOrganizations as useOrgsFeature, usePlatformMetrics, useOrganizationMetrics } from '../features/system-admin/hooks';
@@ -506,19 +506,19 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { featureFlags, toggleFeature } = useFeatureFlags();
-  
+
   // 🔥 REAL DATA FROM SUPABASE
   const { venues, loading: venuesLoading } = useVenues();
   const { games, loading: gamesLoading } = useGames();
   const { bookings, loading: bookingsLoading } = useBookings();
-  
+
   // 🔥 SYSTEM ADMIN REAL DATA (will be fetched below)
   const { metrics: platformMetrics, isLoading: platformMetricsLoading } = usePlatformMetrics();
-  
+
   // Selected organization state
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
   const { metrics: orgMetrics, isLoading: orgMetricsLoading } = useOrganizationMetrics(selectedOrgId || undefined);
-  
+
   // Initialize plans from localStorage or use default data
   const [plans, setPlans] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -543,10 +543,10 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
   const [selectedOwnerForDelete, setSelectedOwnerForDelete] = useState<any>(null);
   const [showAddOwnerDialog, setShowAddOwnerDialog] = useState(false);
   const [selectedPlanForManage, setSelectedPlanForManage] = useState<any>(null);
-  
+
   // 🔥 Use real organizations from Supabase
   const { organizations: realOrganizations, isLoading: orgsLoading, refetch: refetchOrgs } = useOrgsFeature({}, 1, 100);
-  
+
   // Convert organizations to owners format for display
   const computedOwners = useMemo(() => {
     if (!realOrganizations || realOrganizations.length === 0) return ownersData; // Fallback to demo data
@@ -569,22 +569,22 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
       gameIds: [],
     }));
   }, [realOrganizations]);
-  
+
   // Local state for owners (allows CRUD operations)
   const [owners, setOwners] = useState(computedOwners);
-  
+
   // Update owners when computed owners change
   useEffect(() => {
     setOwners(computedOwners);
   }, [computedOwners]);
-  
+
   const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
   const [locationValue, setLocationValue] = useState<number>(0);
-  
+
   // Modal states
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5; // Show 5 organizations per page on dashboard
@@ -662,7 +662,7 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
       isRecent: false,
     }));
   }, [realOrganizations, owners]);
-  
+
   // Recent accounts (top 3). Eventually replace with server-side recent tracking
   const recentAccounts = useMemo(() => allAccounts.slice(0, 3), [allAccounts]);
 
@@ -754,7 +754,7 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
         mrr: orgMetrics.mrr || 0,
       };
     }
-    
+
     // Fallback to calculating from filtered owners
     const accountOwners = filteredOwners;
     const totalVenues = accountOwners.reduce((sum, owner) => sum + (owner.venues || 0), 0);
@@ -763,10 +763,10 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
     const accountOrgIds = accountOwners.map(o => o.organizationId);
     const accountVenues = venuesData.filter(v => accountOrgIds.includes(v.organizationId));
     const totalGames = accountVenues.reduce((sum, venue) => sum + (venue.games || 0), 0);
-    
+
     // Estimate total bookings (average 50 bookings per venue)
     const totalBookings = totalVenues * 50;
-    
+
     // Estimate MRR based on plans
     const mrr = accountOwners.reduce((sum, owner) => {
       const plan = plansData.find(p => p.name === owner.plan);
@@ -861,7 +861,7 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
   };
 
   const handleSaveLocation = (ownerId: number) => {
-    setOwners(prev => prev.map(o => 
+    setOwners(prev => prev.map(o =>
       o.id === ownerId ? { ...o, locations: locationValue } : o
     ));
     setEditingLocationId(null);
@@ -970,7 +970,7 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
           <div className="flex items-center justify-between mb-4">
             <h2 className={`text-lg font-medium ${textClass}`}>Overview Metrics</h2>
           </div>
-          <div 
+          <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
             <KPICard
@@ -1009,7 +1009,7 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
           // Find the full owner data for the selected account
           const ownerData = owners.find(o => o.organizationId === selectedAccount.id);
           if (!ownerData) return null;
-          
+
           return (
             <div className={`border-b-2 ${borderColor} pb-6 mb-6`}>
               <UserAccountStripeConnect
@@ -1056,561 +1056,544 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
             <div className="flex items-center justify-between mb-4">
               <h2 className={`text-lg font-medium ${textClass}`}>Organizations Management</h2>
             </div>
-            
-          {/* Owners & Venues Table - Improved Design */}
-        <Card 
-          className={`${cardBgClass} border ${borderColor} shadow-sm`}
-        >
-          {/* Enhanced Header with Better Spacing */}
-          <CardHeader className="space-y-4 pb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="space-y-2">
-                <CardTitle className={`text-2xl ${textClass}`}>Owners & Venues</CardTitle>
-                <p className={`text-sm ${mutedTextClass}`}>
-                  Showing <span className="font-medium">{startIndex + 1}-{Math.min(endIndex, filteredOwners.length)}</span> of <span className="font-medium">{filteredOwners.length}</span> organizations
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3">
-                {/* Column Visibility Selector */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button 
+
+            {/* Owners & Venues Table - Improved Design */}
+            <Card
+              className={`${cardBgClass} border ${borderColor} shadow-sm`}
+            >
+              {/* Enhanced Header with Better Spacing */}
+              <CardHeader className="space-y-4 pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="space-y-2">
+                    <CardTitle className={`text-2xl ${textClass}`}>Owners & Venues</CardTitle>
+                    <p className={`text-sm ${mutedTextClass}`}>
+                      Showing <span className="font-medium">{startIndex + 1}-{Math.min(endIndex, filteredOwners.length)}</span> of <span className="font-medium">{filteredOwners.length}</span> organizations
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    {/* Column Visibility Selector */}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={`h-11 px-6 ${borderColor} ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50'}`}
+                        >
+                          <Columns3 className="w-4 h-4 mr-2" />
+                          Columns
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className={`w-64 p-4 ${isDark ? 'bg-[#161616] border-[#333]' : 'bg-white border-gray-200'}`}
+                        align="end"
+                      >
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className={`font-medium ${textClass}`}>Modify columns</h4>
+                          </div>
+
+                          {/* Column Checkboxes */}
+                          <div className="space-y-3 max-h-80 overflow-y-auto">
+                            {columns.map((column) => (
+                              <div key={column.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={column.id}
+                                  checked={visibleColumns[column.id]}
+                                  onCheckedChange={() => handleToggleColumn(column.id)}
+                                  className={isDark ? 'border-[#333]' : 'border-gray-300'}
+                                />
+                                <label
+                                  htmlFor={column.id}
+                                  className={`text-sm cursor-pointer ${textClass}`}
+                                >
+                                  {column.label}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Quick Actions */}
+                          <div className={`pt-3 border-t ${isDark ? 'border-[#333]' : 'border-gray-200'} flex gap-2`}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleShowAllColumns}
+                              className={`flex-1 text-xs ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-100'}`}
+                            >
+                              Show All
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleHideAllColumns}
+                              className={`flex-1 text-xs ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-100'}`}
+                            >
+                              Hide All
+                            </Button>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+
+                    <Button
+                      onClick={handleViewAllOrganizations}
                       variant="outline"
                       className={`h-11 px-6 ${borderColor} ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50'}`}
                     >
-                      <Columns3 className="w-4 h-4 mr-2" />
-                      Columns
+                      <List className="w-4 h-4 mr-2" />
+                      View All
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent 
-                    className={`w-64 p-4 ${isDark ? 'bg-[#161616] border-[#333]' : 'bg-white border-gray-200'}`}
-                    align="end"
-                  >
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className={`font-medium ${textClass}`}>Modify columns</h4>
-                      </div>
-                      
-                      {/* Column Checkboxes */}
-                      <div className="space-y-3 max-h-80 overflow-y-auto">
-                        {columns.map((column) => (
-                          <div key={column.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={column.id}
-                              checked={visibleColumns[column.id]}
-                              onCheckedChange={() => handleToggleColumn(column.id)}
-                              className={isDark ? 'border-[#333]' : 'border-gray-300'}
-                            />
-                            <label
-                              htmlFor={column.id}
-                              className={`text-sm cursor-pointer ${textClass}`}
-                            >
-                              {column.label}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Quick Actions */}
-                      <div className={`pt-3 border-t ${isDark ? 'border-[#333]' : 'border-gray-200'} flex gap-2`}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleShowAllColumns}
-                          className={`flex-1 text-xs ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-100'}`}
-                        >
-                          Show All
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleHideAllColumns}
-                          className={`flex-1 text-xs ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-100'}`}
-                        >
-                          Hide All
-                        </Button>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-
-                <Button 
-                  onClick={handleViewAllOrganizations}
-                  variant="outline"
-                  className={`h-11 px-6 ${borderColor} ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50'}`}
-                >
-                  <List className="w-4 h-4 mr-2" />
-                  View All
-                </Button>
-                <Button 
-                  onClick={handleViewUserStripeAccounts}
-                  variant="outline"
-                  className={`h-11 px-6 ${borderColor} ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50'}`}
-                >
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  User Accounts
-                </Button>
-                <Button 
-                  onClick={() => setShowAddOwnerDialog(true)}
-                  style={{ backgroundColor: '#4f46e5' }}
-                  className="h-11 px-6 text-white hover:bg-[#4338ca]"
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  Add Owner
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="px-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className={`border-y ${borderColor} ${isDark ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
-                    {visibleColumns.organizationId && (
-                      <th className={`text-left py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Organization ID</th>
-                    )}
-                    {visibleColumns.organizationName && (
-                      <th className={`text-left py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Organization Name</th>
-                    )}
-                    {visibleColumns.ownerName && (
-                      <th className={`text-left py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Owner Name</th>
-                    )}
-                    {visibleColumns.website && (
-                      <th className={`text-left py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Website</th>
-                    )}
-                    {visibleColumns.email && (
-                      <th className={`text-left py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Email</th>
-                    )}
-                    {visibleColumns.plan && (
-                      <th className={`text-left py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Plan</th>
-                    )}
-                    {visibleColumns.venues && (
-                      <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Venues</th>
-                    )}
-                    {visibleColumns.venueIds && (
-                      <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Venue IDs</th>
-                    )}
-                    {visibleColumns.venueNames && (
-                      <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Venue Names</th>
-                    )}
-                    {visibleColumns.games && (
-                      <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Games</th>
-                    )}
-                    {visibleColumns.gameIds && (
-                      <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Game IDs</th>
-                    )}
-                    {visibleColumns.gameNames && (
-                      <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Game Names</th>
-                    )}
-                    {visibleColumns.locations && (
-                      <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Locations</th>
-                    )}
-                    {visibleColumns.staffAccounts && (
-                      <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Staff Accounts</th>
-                    )}
-                    <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentOwners.map((owner, index) => (
-                    <tr 
-                      key={owner.id} 
-                      className={`border-b ${borderColor} ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-50'} transition-colors group`}
+                    <Button
+                      onClick={handleViewUserStripeAccounts}
+                      variant="outline"
+                      className={`h-11 px-6 ${borderColor} ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50'}`}
                     >
-                      {/* Organization ID - Improved Badge */}
-                      {visibleColumns.organizationId && (
-                        <td className="py-5 px-6">
-                          <code className={`inline-flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-md ${
-                            isDark 
-                              ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' 
-                              : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                          }`}>
-                            <Building2 className="w-3 h-3" />
-                            {owner.organizationId}
-                          </code>
-                        </td>
-                      )}
-                      
-                      {/* Organization Name - Bolder */}
-                      {visibleColumns.organizationName && (
-                        <td className={`py-5 px-6 font-medium ${textClass}`}>
-                          {owner.organizationName}
-                        </td>
-                      )}
-                      
-                      {/* Owner Name - With Icon */}
-                      {visibleColumns.ownerName && (
-                        <td className={`py-5 px-6 ${textClass}`}>
-                          <div className="flex items-center gap-2">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
-                              isDark ? 'bg-[#2a2a2a] text-gray-300' : 'bg-gray-200 text-gray-700'
-                            }`}>
-                              {owner.ownerName.split(' ').map(n => n[0]).join('')}
-                            </div>
-                            <span>{owner.ownerName}</span>
-                          </div>
-                        </td>
-                      )}
-                      
-                      {/* Website - Enhanced Link */}
-                      {visibleColumns.website && (
-                        <td className="py-5 px-6">
-                          <a 
-                            href={owner.website} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className={`inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-md ${mutedTextClass} ${
-                              isDark 
-                                ? 'hover:bg-[#2a2a2a] hover:text-indigo-400' 
-                                : 'hover:bg-gray-100 hover:text-indigo-600'
-                            } transition-all group-hover:bg-opacity-100`}
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                            <span className="font-mono text-xs">{getDomainFromUrl(owner.website)}</span>
-                          </a>
-                        </td>
-                      )}
-                      
-                      {/* Email - Truncated */}
-                      {visibleColumns.email && (
-                        <td className={`py-5 px-6 text-sm ${mutedTextClass}`}>
-                          <span className="truncate max-w-[180px] block">{owner.email}</span>
-                        </td>
-                      )}
-                      
-                      {/* Plan - Enhanced Badge */}
-                      {visibleColumns.plan && (
-                        <td className="py-5 px-6">
-                          <Badge
-                            style={{
-                              backgroundColor: owner.plan === 'Pro' 
-                                ? '#4f46e5' 
-                                : owner.plan === 'Growth' 
-                                ? '#10b981' 
-                                : '#6b7280'
-                            }}
-                            className="text-white font-medium px-3 py-1 text-xs"
-                          >
-                            {owner.plan === 'Pro' && <Crown className="w-3 h-3 mr-1 inline" />}
-                            {owner.plan}
-                          </Badge>
-                        </td>
-                      )}
-                      
-                      {/* Venues - With Icon */}
-                      {visibleColumns.venues && (
-                        <td className="py-5 px-6 text-center">
-                          <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md ${
-                            isDark ? 'bg-[#1e1e1e]' : 'bg-gray-100'
-                          }`}>
-                            <Building2 className={`w-3.5 h-3.5 ${mutedTextClass}`} />
-                            <span className={`font-medium ${textClass}`}>{owner.venues}</span>
-                          </div>
-                        </td>
-                      )}
-                      
-                      {/* Venue IDs - Show venue IDs for this organization */}
-                      {visibleColumns.venueIds && (
-                        <td className="py-5 px-6">
-                          <div className="flex flex-wrap gap-1 justify-center">
-                            {venuesData
-                              .filter(v => v.organizationId === owner.organizationId)
-                              .slice(0, 3)
-                              .map(venue => (
-                                <code 
-                                  key={venue.id}
-                                  className={`text-xs font-mono px-2 py-0.5 rounded ${
-                                    isDark 
-                                      ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' 
-                                      : 'bg-blue-50 text-blue-700 border border-blue-200'
-                                  }`}
-                                >
-                                  {venue.id}
-                                </code>
-                              ))}
-                            {venuesData.filter(v => v.organizationId === owner.organizationId).length > 3 && (
-                              <span className={`text-xs ${mutedTextClass}`}>
-                                +{venuesData.filter(v => v.organizationId === owner.organizationId).length - 3} more
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                      
-                      {/* Venue Names - Show venue names for this organization */}
-                      {visibleColumns.venueNames && (
-                        <td className="py-5 px-6">
-                          <div className="flex flex-wrap gap-1 justify-center">
-                            {venuesData
-                              .filter(v => v.organizationId === owner.organizationId)
-                              .slice(0, 2)
-                              .map(venue => (
-                                <span 
-                                  key={venue.id}
-                                  className={`text-xs px-2 py-1 rounded ${
-                                    isDark 
-                                      ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' 
-                                      : 'bg-purple-50 text-purple-700 border border-purple-200'
-                                  }`}
-                                >
-                                  {venue.name}
-                                </span>
-                              ))}
-                            {venuesData.filter(v => v.organizationId === owner.organizationId).length > 2 && (
-                              <span className={`text-xs ${mutedTextClass}`}>
-                                +{venuesData.filter(v => v.organizationId === owner.organizationId).length - 2} more
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                      
-                      {/* Games - Total games count for this organization */}
-                      {visibleColumns.games && (
-                        <td className="py-5 px-6 text-center">
-                          <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md ${
-                            isDark ? 'bg-[#1e1e1e]' : 'bg-gray-100'
-                          }`}>
-                            <Gamepad2 className={`w-3.5 h-3.5 ${mutedTextClass}`} />
-                            <span className={`font-medium ${textClass}`}>
-                              {venuesData
-                                .filter(v => v.organizationId === owner.organizationId)
-                                .reduce((sum, v) => sum + v.games, 0)}
-                            </span>
-                          </div>
-                        </td>
-                      )}
-                      
-                      {/* Game IDs - Show game IDs for this organization */}
-                      {visibleColumns.gameIds && (
-                        <td className="py-5 px-6">
-                          <div className="flex flex-wrap gap-1 justify-center">
-                            {(() => {
-                              const orgVenues = venuesData.filter(v => v.organizationId === owner.organizationId);
-                              const orgGames = gamesData.filter(game => 
-                                orgVenues.some(venue => venue.id === game.venueId)
-                              );
-                              return (
-                                <>
-                                  {orgGames.slice(0, 3).map(game => (
-                                    <code 
-                                      key={game.id}
-                                      className={`text-xs font-mono px-2 py-0.5 rounded ${
-                                        isDark 
-                                          ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
-                                          : 'bg-green-50 text-green-700 border border-green-200'
-                                      }`}
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      User Accounts
+                    </Button>
+                    <Button
+                      onClick={() => setShowAddOwnerDialog(true)}
+                      style={{ backgroundColor: '#4f46e5' }}
+                      className="h-11 px-6 text-white hover:bg-[#4338ca]"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Add Owner
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="px-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className={`border-y ${borderColor} ${isDark ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
+                        {visibleColumns.organizationId && (
+                          <th className={`text-left py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Organization ID</th>
+                        )}
+                        {visibleColumns.organizationName && (
+                          <th className={`text-left py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Organization Name</th>
+                        )}
+                        {visibleColumns.ownerName && (
+                          <th className={`text-left py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Owner Name</th>
+                        )}
+                        {visibleColumns.website && (
+                          <th className={`text-left py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Website</th>
+                        )}
+                        {visibleColumns.email && (
+                          <th className={`text-left py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Email</th>
+                        )}
+                        {visibleColumns.plan && (
+                          <th className={`text-left py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Plan</th>
+                        )}
+                        {visibleColumns.venues && (
+                          <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Venues</th>
+                        )}
+                        {visibleColumns.venueIds && (
+                          <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Venue IDs</th>
+                        )}
+                        {visibleColumns.venueNames && (
+                          <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Venue Names</th>
+                        )}
+                        {visibleColumns.games && (
+                          <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Games</th>
+                        )}
+                        {visibleColumns.gameIds && (
+                          <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Game IDs</th>
+                        )}
+                        {visibleColumns.gameNames && (
+                          <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Game Names</th>
+                        )}
+                        {visibleColumns.locations && (
+                          <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Locations</th>
+                        )}
+                        {visibleColumns.staffAccounts && (
+                          <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Staff Accounts</th>
+                        )}
+                        <th className={`text-center py-4 px-6 text-sm font-medium ${mutedTextClass}`}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentOwners.map((owner, index) => (
+                        <tr
+                          key={owner.id}
+                          className={`border-b ${borderColor} ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-50'} transition-colors group`}
+                        >
+                          {/* Organization ID - Improved Badge */}
+                          {visibleColumns.organizationId && (
+                            <td className="py-5 px-6">
+                              <code className={`inline-flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-md ${isDark
+                                  ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                                  : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                }`}>
+                                <Building2 className="w-3 h-3" />
+                                {owner.organizationId}
+                              </code>
+                            </td>
+                          )}
+
+                          {/* Organization Name - Bolder */}
+                          {visibleColumns.organizationName && (
+                            <td className={`py-5 px-6 font-medium ${textClass}`}>
+                              {owner.organizationName}
+                            </td>
+                          )}
+
+                          {/* Owner Name - With Icon */}
+                          {visibleColumns.ownerName && (
+                            <td className={`py-5 px-6 ${textClass}`}>
+                              <div className="flex items-center gap-2">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${isDark ? 'bg-[#2a2a2a] text-gray-300' : 'bg-gray-200 text-gray-700'
+                                  }`}>
+                                  {owner.ownerName.split(' ').map(n => n[0]).join('')}
+                                </div>
+                                <span>{owner.ownerName}</span>
+                              </div>
+                            </td>
+                          )}
+
+                          {/* Website - Enhanced Link */}
+                          {visibleColumns.website && (
+                            <td className="py-5 px-6">
+                              <a
+                                href={owner.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-md ${mutedTextClass} ${isDark
+                                    ? 'hover:bg-[#2a2a2a] hover:text-indigo-400'
+                                    : 'hover:bg-gray-100 hover:text-indigo-600'
+                                  } transition-all group-hover:bg-opacity-100`}
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                <span className="font-mono text-xs">{getDomainFromUrl(owner.website)}</span>
+                              </a>
+                            </td>
+                          )}
+
+                          {/* Email - Truncated */}
+                          {visibleColumns.email && (
+                            <td className={`py-5 px-6 text-sm ${mutedTextClass}`}>
+                              <span className="truncate max-w-[180px] block">{owner.email}</span>
+                            </td>
+                          )}
+
+                          {/* Plan - Enhanced Badge */}
+                          {visibleColumns.plan && (
+                            <td className="py-5 px-6">
+                              <Badge
+                                style={{
+                                  backgroundColor: owner.plan === 'Pro'
+                                    ? '#4f46e5'
+                                    : owner.plan === 'Growth'
+                                      ? '#10b981'
+                                      : '#6b7280'
+                                }}
+                                className="text-white font-medium px-3 py-1 text-xs"
+                              >
+                                {owner.plan === 'Pro' && <Crown className="w-3 h-3 mr-1 inline" />}
+                                {owner.plan}
+                              </Badge>
+                            </td>
+                          )}
+
+                          {/* Venues - With Icon */}
+                          {visibleColumns.venues && (
+                            <td className="py-5 px-6 text-center">
+                              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md ${isDark ? 'bg-[#1e1e1e]' : 'bg-gray-100'
+                                }`}>
+                                <Building2 className={`w-3.5 h-3.5 ${mutedTextClass}`} />
+                                <span className={`font-medium ${textClass}`}>{owner.venues}</span>
+                              </div>
+                            </td>
+                          )}
+
+                          {/* Venue IDs - Show venue IDs for this organization */}
+                          {visibleColumns.venueIds && (
+                            <td className="py-5 px-6">
+                              <div className="flex flex-wrap gap-1 justify-center">
+                                {venuesData
+                                  .filter(v => v.organizationId === owner.organizationId)
+                                  .slice(0, 3)
+                                  .map(venue => (
+                                    <code
+                                      key={venue.id}
+                                      className={`text-xs font-mono px-2 py-0.5 rounded ${isDark
+                                          ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                          : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                        }`}
                                     >
-                                      {game.id}
+                                      {venue.id}
                                     </code>
                                   ))}
-                                  {orgGames.length > 3 && (
-                                    <span className={`text-xs ${mutedTextClass}`}>
-                                      +{orgGames.length - 3} more
-                                    </span>
-                                  )}
-                                </>
-                              );
-                            })()}
-                          </div>
-                        </td>
-                      )}
-                      
-                      {/* Game Names - Show game names for this organization */}
-                      {visibleColumns.gameNames && (
-                        <td className="py-5 px-6">
-                          <div className="flex flex-wrap gap-1 justify-center">
-                            {(() => {
-                              const orgVenues = venuesData.filter(v => v.organizationId === owner.organizationId);
-                              const orgGames = gamesData.filter(game => 
-                                orgVenues.some(venue => venue.id === game.venueId)
-                              );
-                              return (
-                                <>
-                                  {orgGames.slice(0, 2).map(game => (
-                                    <span 
-                                      key={game.id}
-                                      className={`text-xs px-2 py-1 rounded ${
-                                        isDark 
-                                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' 
-                                          : 'bg-amber-50 text-amber-700 border border-amber-200'
-                                      }`}
+                                {venuesData.filter(v => v.organizationId === owner.organizationId).length > 3 && (
+                                  <span className={`text-xs ${mutedTextClass}`}>
+                                    +{venuesData.filter(v => v.organizationId === owner.organizationId).length - 3} more
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          )}
+
+                          {/* Venue Names - Show venue names for this organization */}
+                          {visibleColumns.venueNames && (
+                            <td className="py-5 px-6">
+                              <div className="flex flex-wrap gap-1 justify-center">
+                                {venuesData
+                                  .filter(v => v.organizationId === owner.organizationId)
+                                  .slice(0, 2)
+                                  .map(venue => (
+                                    <span
+                                      key={venue.id}
+                                      className={`text-xs px-2 py-1 rounded ${isDark
+                                          ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                                          : 'bg-purple-50 text-purple-700 border border-purple-200'
+                                        }`}
                                     >
-                                      {game.name}
+                                      {venue.name}
                                     </span>
                                   ))}
-                                  {orgGames.length > 2 && (
-                                    <span className={`text-xs ${mutedTextClass}`}>
-                                      +{orgGames.length - 2} more
-                                    </span>
-                                  )}
-                                </>
-                              );
-                            })()}
-                          </div>
-                        </td>
-                      )}
-                      
-                      {/* Locations - Editable with Better UI */}
-                      {visibleColumns.locations && (
-                        <td className="py-5 px-6 text-center">
-                        {editingLocationId === owner.id ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <input
-                              type="number"
-                              min="0"
-                              value={locationValue}
-                              onChange={(e) => setLocationValue(parseInt(e.target.value) || 0)}
-                              className={`w-20 h-9 px-3 text-center text-sm border rounded-md ${
-                                isDark 
-                                  ? 'bg-[#0a0a0a] border-[#2a2a2a] text-white focus:border-indigo-500' 
-                                  : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
-                              } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
-                              autoFocus
-                            />
-                            <button
-                              onClick={() => handleSaveLocation(owner.id)}
-                              className={`p-2 rounded-md ${
-                                isDark ? 'hover:bg-green-500/10' : 'hover:bg-green-50'
-                              } text-green-600 dark:text-green-400 transition-colors`}
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={handleCancelEditLocation}
-                              className={`p-2 rounded-md ${
-                                isDark ? 'hover:bg-red-500/10' : 'hover:bg-red-50'
-                              } text-red-600 dark:text-red-400 transition-colors`}
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => handleStartEditLocation(owner.id, owner.locations || 0)}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md ${
-                              isDark 
-                                ? 'hover:bg-indigo-500/10 text-gray-300' 
-                                : 'hover:bg-indigo-50 text-gray-700'
-                            } transition-all cursor-pointer group/location`}
-                            title="Click to edit locations"
-                          >
-                            <MapPin className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                            <span className={`font-medium ${textClass}`}>{owner.locations || 0}</span>
-                            <Edit className="w-3 h-3 opacity-0 group-hover/location:opacity-100 text-indigo-600 dark:text-indigo-400 transition-opacity" />
-                          </button>
-                        )}
-                        </td>
-                      )}
-                      
-                      {/* Staff Accounts - Number of staff for this organization */}
-                      {visibleColumns.staffAccounts && (
-                        <td className="py-5 px-6 text-center">
-                          <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md ${
-                            isDark ? 'bg-[#1e1e1e]' : 'bg-gray-100'
-                          }`}>
-                            <Users className={`w-3.5 h-3.5 ${mutedTextClass}`} />
-                            <span className={`font-medium ${textClass}`}>
-                              {Math.floor(3 + (owner.id * 1.7) % 13)}
-                            </span>
-                          </div>
-                        </td>
-                      )}
-                      
-                      {/* Actions - Better Layout */}
-                      <td className="py-5 px-6">
-                        <div className="flex items-center justify-center gap-1">
-                          <ProfileDropdown
-                            ownerName={owner.ownerName}
-                            profileSlug={owner.profileSlug}
-                            organizationName={owner.organizationName}
-                            onViewProfile={() => handleViewProfile(owner)}
-                            onProfileSettings={() => handleProfileSettings(owner)}
-                            onProfileEmbed={() => handleProfileEmbed(owner)}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewOwner(owner.id)}
-                            className={`h-9 w-9 p-0 ${
-                              isDark 
-                                ? 'hover:bg-indigo-500/10 hover:text-indigo-400' 
-                                : 'hover:bg-indigo-50 hover:text-indigo-600'
-                            }`}
-                            title="View details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditOwner(owner.id)}
-                            className={`h-9 w-9 p-0 ${
-                              isDark 
-                                ? 'hover:bg-blue-500/10 hover:text-blue-400' 
-                                : 'hover:bg-blue-50 hover:text-blue-600'
-                            }`}
-                            title="Edit organization"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteOwner(owner.id)}
-                            className={`h-9 w-9 p-0 ${
-                              isDark 
-                                ? 'hover:bg-red-500/10 hover:text-red-400' 
-                                : 'hover:bg-red-50 hover:text-red-600'
-                            } text-red-600 dark:text-red-400`}
-                            title="Delete organization"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                                {venuesData.filter(v => v.organizationId === owner.organizationId).length > 2 && (
+                                  <span className={`text-xs ${mutedTextClass}`}>
+                                    +{venuesData.filter(v => v.organizationId === owner.organizationId).length - 2} more
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          )}
 
-            {/* Pagination Controls - Fixed Spacing */}
-            {totalPages > 1 && (
-              <div className={`flex items-center justify-between px-6 py-6 mt-6 border-t ${borderColor} ${isDark ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
-                <div className={`text-sm ${mutedTextClass}`}>
-                  <span className="font-medium">Page {currentPage}</span> of <span className="font-medium">{totalPages}</span>
+                          {/* Games - Total games count for this organization */}
+                          {visibleColumns.games && (
+                            <td className="py-5 px-6 text-center">
+                              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md ${isDark ? 'bg-[#1e1e1e]' : 'bg-gray-100'
+                                }`}>
+                                <Gamepad2 className={`w-3.5 h-3.5 ${mutedTextClass}`} />
+                                <span className={`font-medium ${textClass}`}>
+                                  {venuesData
+                                    .filter(v => v.organizationId === owner.organizationId)
+                                    .reduce((sum, v) => sum + v.games, 0)}
+                                </span>
+                              </div>
+                            </td>
+                          )}
+
+                          {/* Game IDs - Show game IDs for this organization */}
+                          {visibleColumns.gameIds && (
+                            <td className="py-5 px-6">
+                              <div className="flex flex-wrap gap-1 justify-center">
+                                {(() => {
+                                  const orgVenues = venuesData.filter(v => v.organizationId === owner.organizationId);
+                                  const orgGames = gamesData.filter(game =>
+                                    orgVenues.some(venue => venue.id === game.venueId)
+                                  );
+                                  return (
+                                    <>
+                                      {orgGames.slice(0, 3).map(game => (
+                                        <code
+                                          key={game.id}
+                                          className={`text-xs font-mono px-2 py-0.5 rounded ${isDark
+                                              ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                                              : 'bg-green-50 text-green-700 border border-green-200'
+                                            }`}
+                                        >
+                                          {game.id}
+                                        </code>
+                                      ))}
+                                      {orgGames.length > 3 && (
+                                        <span className={`text-xs ${mutedTextClass}`}>
+                                          +{orgGames.length - 3} more
+                                        </span>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            </td>
+                          )}
+
+                          {/* Game Names - Show game names for this organization */}
+                          {visibleColumns.gameNames && (
+                            <td className="py-5 px-6">
+                              <div className="flex flex-wrap gap-1 justify-center">
+                                {(() => {
+                                  const orgVenues = venuesData.filter(v => v.organizationId === owner.organizationId);
+                                  const orgGames = gamesData.filter(game =>
+                                    orgVenues.some(venue => venue.id === game.venueId)
+                                  );
+                                  return (
+                                    <>
+                                      {orgGames.slice(0, 2).map(game => (
+                                        <span
+                                          key={game.id}
+                                          className={`text-xs px-2 py-1 rounded ${isDark
+                                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                            }`}
+                                        >
+                                          {game.name}
+                                        </span>
+                                      ))}
+                                      {orgGames.length > 2 && (
+                                        <span className={`text-xs ${mutedTextClass}`}>
+                                          +{orgGames.length - 2} more
+                                        </span>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            </td>
+                          )}
+
+                          {/* Locations - Editable with Better UI */}
+                          {visibleColumns.locations && (
+                            <td className="py-5 px-6 text-center">
+                              {editingLocationId === owner.id ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={locationValue}
+                                    onChange={(e) => setLocationValue(parseInt(e.target.value) || 0)}
+                                    className={`w-20 h-9 px-3 text-center text-sm border rounded-md ${isDark
+                                        ? 'bg-[#0a0a0a] border-[#2a2a2a] text-white focus:border-indigo-500'
+                                        : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                                      } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={() => handleSaveLocation(owner.id)}
+                                    className={`p-2 rounded-md ${isDark ? 'hover:bg-green-500/10' : 'hover:bg-green-50'
+                                      } text-green-600 dark:text-green-400 transition-colors`}
+                                  >
+                                    <CheckCircle className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={handleCancelEditLocation}
+                                    className={`p-2 rounded-md ${isDark ? 'hover:bg-red-500/10' : 'hover:bg-red-50'
+                                      } text-red-600 dark:text-red-400 transition-colors`}
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handleStartEditLocation(owner.id, owner.locations || 0)}
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md ${isDark
+                                      ? 'hover:bg-indigo-500/10 text-gray-300'
+                                      : 'hover:bg-indigo-50 text-gray-700'
+                                    } transition-all cursor-pointer group/location`}
+                                  title="Click to edit locations"
+                                >
+                                  <MapPin className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                                  <span className={`font-medium ${textClass}`}>{owner.locations || 0}</span>
+                                  <Edit className="w-3 h-3 opacity-0 group-hover/location:opacity-100 text-indigo-600 dark:text-indigo-400 transition-opacity" />
+                                </button>
+                              )}
+                            </td>
+                          )}
+
+                          {/* Staff Accounts - Number of staff for this organization */}
+                          {visibleColumns.staffAccounts && (
+                            <td className="py-5 px-6 text-center">
+                              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md ${isDark ? 'bg-[#1e1e1e]' : 'bg-gray-100'
+                                }`}>
+                                <Users className={`w-3.5 h-3.5 ${mutedTextClass}`} />
+                                <span className={`font-medium ${textClass}`}>
+                                  {Math.floor(3 + (owner.id * 1.7) % 13)}
+                                </span>
+                              </div>
+                            </td>
+                          )}
+
+                          {/* Actions - Better Layout */}
+                          <td className="py-5 px-6">
+                            <div className="flex items-center justify-center gap-1">
+                              <ProfileDropdown
+                                ownerName={owner.ownerName}
+                                profileSlug={owner.profileSlug}
+                                organizationName={owner.organizationName}
+                                onViewProfile={() => handleViewProfile(owner)}
+                                onProfileSettings={() => handleProfileSettings(owner)}
+                                onProfileEmbed={() => handleProfileEmbed(owner)}
+                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewOwner(owner.id)}
+                                className={`h-9 w-9 p-0 ${isDark
+                                    ? 'hover:bg-indigo-500/10 hover:text-indigo-400'
+                                    : 'hover:bg-indigo-50 hover:text-indigo-600'
+                                  }`}
+                                title="View details"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditOwner(owner.id)}
+                                className={`h-9 w-9 p-0 ${isDark
+                                    ? 'hover:bg-blue-500/10 hover:text-blue-400'
+                                    : 'hover:bg-blue-50 hover:text-blue-600'
+                                  }`}
+                                title="Edit organization"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteOwner(owner.id)}
+                                className={`h-9 w-9 p-0 ${isDark
+                                    ? 'hover:bg-red-500/10 hover:text-red-400'
+                                    : 'hover:bg-red-50 hover:text-red-600'
+                                  } text-red-600 dark:text-red-400`}
+                                title="Delete organization"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handlePreviousPage}
-                    disabled={currentPage === 1}
-                    className={`h-10 px-4 ${borderColor} ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-white'}`}
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-2" />
-                    Previous
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleNextPage}
-                    disabled={currentPage === totalPages}
-                    className={`h-10 px-4 ${borderColor} ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-white'}`}
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        </div>
+
+                {/* Pagination Controls - Fixed Spacing */}
+                {totalPages > 1 && (
+                  <div className={`flex items-center justify-between px-6 py-6 mt-6 border-t ${borderColor} ${isDark ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
+                    <div className={`text-sm ${mutedTextClass}`}>
+                      <span className="font-medium">Page {currentPage}</span> of <span className="font-medium">{totalPages}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 1}
+                        className={`h-10 px-4 ${borderColor} ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-white'}`}
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-2" />
+                        Previous
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                        className={`h-10 px-4 ${borderColor} ${isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-white'}`}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* Conditional: Show Account Performance Metrics ONLY when a specific account is selected */}
@@ -1630,86 +1613,86 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
               <span className={`text-xs ${mutedTextClass}`}>Drag to resize</span>
             </div>
           </div>
-          
-        {/* Plans & Features Section */}
-        <div 
-          className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-        >
-          {plans.map((plan, index) => (
-            <Card key={index} className={`${cardBgClass} border ${borderColor} relative ${plan.isFeatured ? 'ring-2 ring-yellow-500' : ''}`}>
-              {/* Featured Badge */}
-              {plan.isFeatured && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
-                  <Badge className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-0 px-3 py-1 shadow-lg">
-                    <Star className="w-3 h-3 mr-1 fill-white" />
-                    Most Popular
-                  </Badge>
-                </div>
-              )}
 
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className={textClass}>{plan.name}</CardTitle>
-                  <Crown 
-                    className="w-6 h-6" 
-                    style={{ color: plan.color }}
-                  />
-                </div>
-                <div className="mt-2">
-                  {plan.discount && plan.discount.type !== 'none' && plan.discount.value > 0 ? (
-                    <div>
-                      <div className={`text-sm line-through ${mutedTextClass}`}>
-                        ${plan.price}/month
-                      </div>
-                      <div className="flex items-baseline gap-2">
-                        <span className={`text-3xl ${textClass}`}>
-                          ${plan.discount.type === 'percentage' 
-                            ? (plan.price * (1 - plan.discount.value / 100)).toFixed(2)
-                            : (plan.price - plan.discount.value).toFixed(2)
+          {/* Plans & Features Section */}
+          <div
+            className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+          >
+            {plans.map((plan, index) => (
+              <Card key={index} className={`${cardBgClass} border ${borderColor} relative ${plan.isFeatured ? 'ring-2 ring-yellow-500' : ''}`}>
+                {/* Featured Badge */}
+                {plan.isFeatured && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                    <Badge className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-0 px-3 py-1 shadow-lg">
+                      <Star className="w-3 h-3 mr-1 fill-white" />
+                      Most Popular
+                    </Badge>
+                  </div>
+                )}
+
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className={textClass}>{plan.name}</CardTitle>
+                    <Crown
+                      className="w-6 h-6"
+                      style={{ color: plan.color }}
+                    />
+                  </div>
+                  <div className="mt-2">
+                    {plan.discount && plan.discount.type !== 'none' && plan.discount.value > 0 ? (
+                      <div>
+                        <div className={`text-sm line-through ${mutedTextClass}`}>
+                          ${plan.price}/month
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className={`text-3xl ${textClass}`}>
+                            ${plan.discount.type === 'percentage'
+                              ? (plan.price * (1 - plan.discount.value / 100)).toFixed(2)
+                              : (plan.price - plan.discount.value).toFixed(2)
+                            }
+                          </span>
+                          <span className={mutedTextClass}>/month</span>
+                        </div>
+                        <div className={`text-xs mt-1 ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                          Save {plan.discount.type === 'percentage'
+                            ? `${plan.discount.value}%`
+                            : `$${plan.discount.value}`
                           }
-                        </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <span className={`text-3xl ${textClass}`}>${plan.price}</span>
                         <span className={mutedTextClass}>/month</span>
                       </div>
-                      <div className={`text-xs mt-1 ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                        Save {plan.discount.type === 'percentage' 
-                          ? `${plan.discount.value}%` 
-                          : `$${plan.discount.value}`
-                        }
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className={`p-3 rounded-lg ${isDark ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
+                    <div className={`text-sm ${mutedTextClass} mb-1`}>Active Subscribers</div>
+                    <div className={`text-2xl ${textClass}`}>{plan.subscribers}</div>
+                  </div>
+                  <div className="space-y-2">
+                    {plan.features.map((feature, idx) => (
+                      <div key={idx} className="flex items-start space-x-2">
+                        <CheckCircle className="w-4 h-4 mt-0.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <span className={`text-sm ${mutedTextClass}`}>{feature}</span>
                       </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <span className={`text-3xl ${textClass}`}>${plan.price}</span>
-                      <span className={mutedTextClass}>/month</span>
-                    </div>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className={`p-3 rounded-lg ${isDark ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
-                  <div className={`text-sm ${mutedTextClass} mb-1`}>Active Subscribers</div>
-                  <div className={`text-2xl ${textClass}`}>{plan.subscribers}</div>
-                </div>
-                <div className="space-y-2">
-                  {plan.features.map((feature, idx) => (
-                    <div key={idx} className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 mt-0.5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                      <span className={`text-sm ${mutedTextClass}`}>{feature}</span>
-                    </div>
-                  ))}
-                </div>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setSelectedPlanForManage(plan)}
-                  className={`w-full ${borderColor}`}
-                  style={{ borderColor: plan.color, color: plan.color }}
-                >
-                  Manage Plan
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedPlanForManage(plan)}
+                    className={`w-full ${borderColor}`}
+                    style={{ borderColor: plan.color, color: plan.color }}
+                  >
+                    Manage Plan
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
 
         {/* Feature Flags Section - Context-Aware */}
@@ -1717,81 +1700,80 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
           <div className="flex items-center justify-between mb-4">
             <h2 className={`text-lg font-medium ${textClass}`}>Feature Flags</h2>
           </div>
-          
-        {/* Feature Flags */}
-        <Card 
-          className={`${cardBgClass} border ${borderColor}`}
-        >
-          <CardHeader className="space-y-3 pb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className={`text-xl ${textClass}`}>
-                  {selectedAccount ? `Active Features - ${selectedAccount.name}` : 'Platform Features'}
-                </CardTitle>
-                <p className={`text-sm mt-2 ${mutedTextClass}`}>
-                  {selectedAccount 
-                    ? `Features enabled for this account (Plan: ${selectedAccount.company || 'N/A'})`
-                    : 'Enable or disable features across all organizations'}
-                </p>
-              </div>
-              <Badge 
-                variant="outline" 
-                className={`px-3 py-1 ${isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-indigo-50 text-indigo-700 border-indigo-200'}`}
-              >
-                {selectedAccount 
-                  ? `${featureFlags.filter(f => f.enabled).length} Active Features`
-                  : `${featureFlags.filter(f => f.enabled).length} / ${featureFlags.length} Active`}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="px-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {/* Show ALL flags with toggles when "All Accounts", or only ACTIVE flags when specific account */}
-              {(selectedAccount ? featureFlags.filter(f => f.enabled) : featureFlags).map((feature) => (
-                <div
-                  key={feature.id}
-                  className={`p-5 rounded-lg border ${borderColor} ${
-                    isDark ? 'bg-[#0a0a0a] hover:bg-[#1a1a1a]' : 'bg-white hover:bg-gray-50'
-                  } transition-all duration-200 shadow-sm`}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 pr-4">
-                      <h4 className={`font-medium mb-1 ${textClass}`}>{feature.name}</h4>
-                      {feature.description && (
-                        <p className={`text-xs leading-relaxed ${mutedTextClass}`}>
-                          {feature.description}
-                        </p>
-                      )}
-                    </div>
-                    {/* Only show toggle for "All Accounts" mode, hide for specific account */}
-                    {!selectedAccount && (
-                      <Switch
-                        checked={feature.enabled}
-                        onCheckedChange={() => handleToggleFeature(feature.id)}
-                        className="flex-shrink-0"
-                      />
-                    )}
-                  </div>
-                  <div className="flex items-center pt-3 border-t border-opacity-50" style={{ borderColor: isDark ? '#333' : '#e5e7eb' }}>
-                    <div className="flex items-center space-x-2">
-                      {feature.enabled ? (
-                        <>
-                          <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                          <span className="text-xs font-medium text-green-600 dark:text-green-400">Active</span>
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Inactive</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
+
+          {/* Feature Flags */}
+          <Card
+            className={`${cardBgClass} border ${borderColor}`}
+          >
+            <CardHeader className="space-y-3 pb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className={`text-xl ${textClass}`}>
+                    {selectedAccount ? `Active Features - ${selectedAccount.name}` : 'Platform Features'}
+                  </CardTitle>
+                  <p className={`text-sm mt-2 ${mutedTextClass}`}>
+                    {selectedAccount
+                      ? `Features enabled for this account (Plan: ${selectedAccount.company || 'N/A'})`
+                      : 'Enable or disable features across all organizations'}
+                  </p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <Badge
+                  variant="outline"
+                  className={`px-3 py-1 ${isDark ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-indigo-50 text-indigo-700 border-indigo-200'}`}
+                >
+                  {selectedAccount
+                    ? `${featureFlags.filter(f => f.enabled).length} Active Features`
+                    : `${featureFlags.filter(f => f.enabled).length} / ${featureFlags.length} Active`}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="px-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {/* Show ALL flags with toggles when "All Accounts", or only ACTIVE flags when specific account */}
+                {(selectedAccount ? featureFlags.filter(f => f.enabled) : featureFlags).map((feature) => (
+                  <div
+                    key={feature.id}
+                    className={`p-5 rounded-lg border ${borderColor} ${isDark ? 'bg-[#0a0a0a] hover:bg-[#1a1a1a]' : 'bg-white hover:bg-gray-50'
+                      } transition-all duration-200 shadow-sm`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 pr-4">
+                        <h4 className={`font-medium mb-1 ${textClass}`}>{feature.name}</h4>
+                        {feature.description && (
+                          <p className={`text-xs leading-relaxed ${mutedTextClass}`}>
+                            {feature.description}
+                          </p>
+                        )}
+                      </div>
+                      {/* Only show toggle for "All Accounts" mode, hide for specific account */}
+                      {!selectedAccount && (
+                        <Switch
+                          checked={feature.enabled}
+                          onCheckedChange={() => handleToggleFeature(feature.id)}
+                          className="flex-shrink-0"
+                        />
+                      )}
+                    </div>
+                    <div className="flex items-center pt-3 border-t border-opacity-50" style={{ borderColor: isDark ? '#333' : '#e5e7eb' }}>
+                      <div className="flex items-center space-x-2">
+                        {feature.enabled ? (
+                          <>
+                            <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                            <span className="text-xs font-medium text-green-600 dark:text-green-400">Active</span>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Inactive</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

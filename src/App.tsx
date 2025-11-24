@@ -45,7 +45,7 @@ import BookingEngineTest from './pages/BookingEngineTest';
 // ============================================================================
 // Set DEV_MODE to true to bypass login (auto-login as Super Admin)
 // Set DEV_MODE to false to require authentication (production-like behavior)
-const DEV_MODE = false; // Changed to false to test beta login
+const DEV_MODE = true; // Changed to true for testing
 
 // Protected App Content Component
 function AppContent() {

@@ -6,16 +6,18 @@ import { InventoryStats } from '../modules/inventory/components/InventoryStats';
 import { GameGrid } from '../modules/inventory/components/GameGrid';
 import { useTerminology } from '../hooks/useTerminology';
 import { useServiceItems } from '../hooks/useServiceItems';
-import { useVenues } from '../hooks/useVenues';
+import { useVenues } from '../hooks/venue/useVenues';
 import AddServiceItemWizard from '../components/events/AddServiceItemWizard';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { VisuallyHidden } from '../components/ui/visually-hidden';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { toast } from 'sonner';
 import BookingsDialog from '../components/events/BookingsDialog';
+import { useAuth } from '../lib/auth/AuthContext';
 
 export function Events() {
   const t = useTerminology();
+  const { currentUser } = useAuth();
   const { venues, loading: venuesLoading } = useVenues();
 
   // Determine the active venue ID. 
@@ -25,6 +27,12 @@ export function Events() {
 
   // Use the new hook with the active venue ID
   const { serviceItems, loading: itemsLoading, createServiceItem, updateServiceItem, deleteServiceItem, refreshServiceItems } = useServiceItems(activeVenueId);
+
+  // Debug: Expose createServiceItem to window
+  React.useEffect(() => {
+    (window as any).debugCreateServiceItem = createServiceItem;
+    (window as any).debugActiveVenueId = activeVenueId;
+  }, [createServiceItem, activeVenueId]);
 
   const loading = venuesLoading || itemsLoading;
 
@@ -135,14 +143,17 @@ export function Events() {
         },
       };
 
+      console.log('Creating/Updating service item with data:', serviceItemData);
       let result;
       if (editingServiceItem) {
         result = await updateServiceItem({ id: editingServiceItem.id, updates: serviceItemData });
       } else {
         result = await createServiceItem(serviceItemData as any);
       }
+      console.log('Service item created/updated result:', result);
       await refreshServiceItems();
-      setIsAddWizardOpen(false);
+      // Do not close wizard here, let the wizard show success screen
+      // setIsAddWizardOpen(false); 
       setEditingServiceItem(null);
       return result;
     } catch (error) {
@@ -279,6 +290,8 @@ export function Events() {
             mode={editingServiceItem ? "edit" : "create"}
             initialData={getInitialWizardData(editingServiceItem)}
             venueType="escape_room" // Default or fetch from context
+            venueId={activeVenueId}
+            organizationId={currentUser?.organizationId}
           />
         </DialogContent>
       </Dialog>

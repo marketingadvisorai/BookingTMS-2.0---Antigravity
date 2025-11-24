@@ -1,33 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Button } from '../../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { Textarea } from '../../ui/textarea';
-import { Copy, Check, ExternalLink, Code } from 'lucide-react';
+import { Copy, Check, ExternalLink, Code, Calendar, Eye, Globe } from 'lucide-react';
 import { StepProps, EmbedContext } from '../types';
-import { WIDGET_OPTIONS } from '../constants';
+import { CalendarSingleEventBookingPage } from '../../widgets/CalendarSingleEventBookingPage';
+import { Badge } from '../../ui/badge';
+import { WidgetThemeProvider } from '../../widgets/WidgetThemeContext';
 
 export default function Step7WidgetEmbed({ gameData, updateGameData, t }: StepProps) {
     const [copied, setCopied] = useState(false);
     const [embedContext, setEmbedContext] = useState<EmbedContext>({
-        embedKey: 'demo-key-123',
-        primaryColor: '#3b82f6',
+        embedKey: 'YOUR_EMBED_KEY', // Placeholder until saved
+        primaryColor: '#2563eb',
         venueName: 'My Venue',
-        baseUrl: 'https://booking.example.com',
+        baseUrl: window.location.origin,
     });
 
+    // Default to calendar-single widget
+    useEffect(() => {
+        if (gameData.selectedWidget !== 'calendar-single') {
+            updateGameData('selectedWidget', 'calendar-single');
+        }
+    }, []);
+
     const generateEmbedCode = () => {
-        const widgetType = gameData.selectedWidget || 'calendar-single';
+        const widgetType = 'singlegame'; // Matches Embed.tsx routing
+        const embedUrl = `${embedContext.baseUrl}/embed?widget=${widgetType}&key=${embedContext.embedKey}`;
+
         return `<!-- ${t.singular} Booking Widget -->
-<div id="booking-widget-${widgetType}" 
-     data-key="${embedContext.embedKey}"
-     data-service="${gameData.name.toLowerCase().replace(/\s+/g, '-')}"
-     data-theme="${embedContext.primaryColor}">
-</div>
-<script src="${embedContext.baseUrl}/widgets/${widgetType}.js" async></script>`;
+<iframe 
+  src="${embedUrl}" 
+  width="100%" 
+  height="700" 
+  frameborder="0" 
+  style="border:none; max-width:100%; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+</iframe>
+<script>
+  window.addEventListener('message', function(e) {
+    if (e.data.type === 'resize-iframe') {
+      const iframe = document.querySelector('iframe[src*="${embedUrl}"]');
+      if (iframe) iframe.style.height = e.data.height + 'px';
+    }
+  });
+</script>`;
+    };
+
+    const generatePreviewUrl = () => {
+        const params = new URLSearchParams({
+            widget: 'singlegame',
+            gameName: gameData.name,
+            gameDescription: gameData.description,
+            gamePrice: gameData.adultPrice?.toString() || '0',
+            color: (embedContext.primaryColor || '#2563eb').replace('#', ''),
+            theme: 'light' // Default to light for now
+        });
+        return `${embedContext.baseUrl}/embed?${params.toString()}`;
     };
 
     const copyToClipboard = () => {
@@ -38,140 +69,134 @@ export default function Step7WidgetEmbed({ gameData, updateGameData, t }: StepPr
 
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Widget & Embed Settings</CardTitle>
-                    <CardDescription>
-                        Customize how your {t.singular.toLowerCase()} appears on your website
-                    </CardDescription>
+            <Card className="border-blue-100 shadow-md">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-xl border-b border-blue-100">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-600 rounded-lg shadow-sm">
+                            <Calendar className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-xl text-blue-900">Booking Widget & Embed</CardTitle>
+                            <CardDescription className="text-blue-700">
+                                Preview and configure your booking page
+                            </CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                    {/* Widget Selection */}
-                    <div>
-                        <Label className="mb-3 block">Select Widget Style</Label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {WIDGET_OPTIONS.map((widget) => {
-                                const Icon = widget.icon;
-                                return (
-                                    <div
-                                        key={widget.id}
-                                        className={`
-                      relative flex items-start space-x-4 p-4 rounded-lg border-2 cursor-pointer transition-all
-                      ${gameData.selectedWidget === widget.id
-                                                ? 'border-blue-600 bg-blue-50'
-                                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                            }
-                    `}
-                                        onClick={() => updateGameData('selectedWidget', widget.id)}
-                                    >
-                                        <div
-                                            className={`p-2 rounded-lg ${gameData.selectedWidget === widget.id
-                                                    ? 'bg-blue-100 text-blue-600'
-                                                    : 'bg-gray-100 text-gray-500'
-                                                }`}
-                                        >
-                                            <Icon className="w-6 h-6" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h4 className="font-medium text-gray-900">{widget.name}</h4>
-                                            <p className="text-sm text-gray-500 mt-1">{widget.description}</p>
-                                        </div>
-                                        {gameData.selectedWidget === widget.id && (
-                                            <div className="absolute top-4 right-4">
-                                                <div className="bg-blue-600 rounded-full p-1">
-                                                    <Check className="w-3 h-3 text-white" />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                <CardContent className="p-6 space-y-8">
+
+                    {/* Selected Widget Info */}
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 flex items-start gap-4 shadow-sm">
+                        <div className="p-3 bg-blue-50 rounded-full">
+                            <Calendar className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                                Calendar Single Event Widget
+                                <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200">Active</Badge>
+                            </h3>
+                            <p className="text-sm text-gray-500 mt-1">
+                                A dedicated booking page for <strong>{gameData.name || 'your event'}</strong>.
+                                Optimized for conversion with a clean calendar view and integrated checkout.
+                            </p>
                         </div>
                     </div>
 
-                    {/* Customization & Embed Code */}
-                    <div className="border-t pt-6">
-                        <Tabs defaultValue="customize" className="w-full">
-                            <TabsList className="grid w-full grid-cols-2 mb-4">
-                                <TabsTrigger value="customize">Customize Appearance</TabsTrigger>
-                                <TabsTrigger value="code">Get Embed Code</TabsTrigger>
-                            </TabsList>
+                    <Tabs defaultValue="preview" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 mb-6 p-1 bg-gray-100 rounded-lg">
+                            <TabsTrigger value="preview" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md py-2">
+                                <Eye className="w-4 h-4 mr-2" />
+                                Live Preview
+                            </TabsTrigger>
+                            <TabsTrigger value="code" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md py-2">
+                                <Code className="w-4 h-4 mr-2" />
+                                Get Embed Code
+                            </TabsTrigger>
+                        </TabsList>
 
-                            <TabsContent value="customize" className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <Label>Primary Color</Label>
-                                        <div className="flex items-center gap-2 mt-1">
+                        {/* Live Preview Tab */}
+                        <TabsContent value="preview" className="space-y-4 animate-in fade-in-50 duration-300">
+                            <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center justify-between mb-4">
+                                <div className="space-y-1">
+                                    <Label className="text-sm font-medium text-gray-700">Primary Brand Color</Label>
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative">
                                             <Input
                                                 type="color"
                                                 value={embedContext.primaryColor}
                                                 onChange={(e) =>
                                                     setEmbedContext({ ...embedContext, primaryColor: e.target.value })
                                                 }
-                                                className="w-12 h-10 p-1 cursor-pointer"
-                                            />
-                                            <Input
-                                                value={embedContext.primaryColor}
-                                                onChange={(e) =>
-                                                    setEmbedContext({ ...embedContext, primaryColor: e.target.value })
-                                                }
-                                                className="flex-1"
+                                                className="w-10 h-10 p-1 cursor-pointer rounded-lg border-gray-300"
                                             />
                                         </div>
-                                    </div>
-                                    <div>
-                                        <Label>Theme Mode</Label>
-                                        <Select defaultValue="light">
-                                            <SelectTrigger className="mt-1">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="light">Light Mode</SelectItem>
-                                                <SelectItem value="dark">Dark Mode</SelectItem>
-                                                <SelectItem value="auto">System Auto</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        <Input
+                                            value={embedContext.primaryColor}
+                                            onChange={(e) =>
+                                                setEmbedContext({ ...embedContext, primaryColor: e.target.value })
+                                            }
+                                            className="w-28 font-mono text-sm uppercase"
+                                        />
                                     </div>
                                 </div>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => window.open(generatePreviewUrl(), '_blank')}
+                                    className="w-full sm:w-auto border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+                                >
+                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                    Open Full Page Preview
+                                </Button>
+                            </div>
 
-                                <div className="bg-gray-100 p-4 rounded-lg border border-gray-200">
-                                    <Label className="mb-2 block text-gray-500 text-xs uppercase tracking-wider">
-                                        Preview
-                                    </Label>
-                                    <div className="bg-white p-4 rounded shadow-sm border border-gray-200">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <div
-                                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                                                style={{ backgroundColor: embedContext.primaryColor }}
-                                            >
-                                                {gameData.name.charAt(0) || 'G'}
-                                            </div>
-                                            <div>
-                                                <div className="h-4 w-32 bg-gray-200 rounded mb-1"></div>
-                                                <div className="h-3 w-20 bg-gray-100 rounded"></div>
-                                            </div>
-                                        </div>
-                                        <div
-                                            className="h-8 w-full rounded text-white text-sm font-medium flex items-center justify-center"
-                                            style={{ backgroundColor: embedContext.primaryColor }}
-                                        >
-                                            Book Now
-                                        </div>
+                            <div className="border rounded-xl overflow-hidden shadow-lg bg-gray-50 relative">
+                                <div className="absolute top-0 left-0 right-0 h-8 bg-gray-100 border-b flex items-center px-4 gap-2 z-10">
+                                    <div className="flex gap-1.5">
+                                        <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                                        <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                        <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                                    </div>
+                                    <div className="flex-1 text-center text-xs text-gray-500 font-mono bg-white mx-4 rounded px-2 py-0.5 truncate">
+                                        {generatePreviewUrl()}
                                     </div>
                                 </div>
-                            </TabsContent>
+                                <div className="h-[600px] overflow-y-auto pt-8 bg-white scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                                    <div className="transform scale-[0.85] origin-top h-[120%] w-[117.6%] -ml-[8.8%]">
+                                        <WidgetThemeProvider initialTheme="light">
+                                            <CalendarSingleEventBookingPage
+                                                primaryColor={embedContext.primaryColor}
+                                                gameName={gameData.name}
+                                                gameDescription={gameData.description}
+                                                gamePrice={gameData.adultPrice}
+                                                config={{
+                                                    // Pass minimal config for preview
+                                                    businessName: embedContext.venueName,
+                                                }}
+                                            />
+                                        </WidgetThemeProvider>
+                                    </div>
+                                </div>
+                            </div>
+                        </TabsContent>
 
-                            <TabsContent value="code" className="space-y-4">
-                                <div className="relative">
-                                    <Textarea
-                                        value={generateEmbedCode()}
-                                        readOnly
-                                        className="font-mono text-xs bg-gray-900 text-gray-100 h-32 p-4 resize-none"
-                                    />
+                        {/* Embed Code Tab */}
+                        <TabsContent value="code" className="space-y-6 animate-in fade-in-50 duration-300">
+                            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3">
+                                <Globe className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                <div className="space-y-1">
+                                    <h4 className="font-medium text-blue-900">Ready to Integrate</h4>
+                                    <p className="text-sm text-blue-700">
+                                        Copy the code below and paste it into your website's HTML. It works with WordPress, Wix, Squarespace, and custom sites.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="relative group">
+                                <div className="absolute top-0 right-0 p-2 z-10">
                                     <Button
                                         size="sm"
                                         variant="secondary"
-                                        className="absolute top-2 right-2 h-7 text-xs"
+                                        className="h-8 text-xs bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm"
                                         onClick={copyToClipboard}
                                     >
                                         {copied ? (
@@ -185,21 +210,29 @@ export default function Step7WidgetEmbed({ gameData, updateGameData, t }: StepPr
                                         )}
                                     </Button>
                                 </div>
-                                <div className="flex items-start gap-2 text-sm text-gray-500 bg-blue-50 p-3 rounded text-blue-700">
-                                    <Code className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                    <p>
-                                        Paste this code into your website's HTML where you want the booking widget to
-                                        appear. It works with WordPress, Wix, Squarespace, and custom sites.
-                                    </p>
+                                <Textarea
+                                    value={generateEmbedCode()}
+                                    readOnly
+                                    className="font-mono text-xs bg-[#1e1e1e] text-gray-300 h-64 p-4 resize-none rounded-lg border-gray-700 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="p-4 border rounded-lg bg-gray-50">
+                                    <h5 className="font-medium text-gray-900 mb-1">Responsive Design</h5>
+                                    <p className="text-xs text-gray-500">Automatically adjusts to fit mobile, tablet, and desktop screens.</p>
                                 </div>
-                                <div className="flex justify-end">
-                                    <Button variant="outline" size="sm" className="text-xs">
-                                        <ExternalLink className="w-3 h-3 mr-1" /> Developer Documentation
-                                    </Button>
+                                <div className="p-4 border rounded-lg bg-gray-50">
+                                    <h5 className="font-medium text-gray-900 mb-1">Secure Checkout</h5>
+                                    <p className="text-xs text-gray-500">Integrated Stripe payments with SSL encryption.</p>
                                 </div>
-                            </TabsContent>
-                        </Tabs>
-                    </div>
+                                <div className="p-4 border rounded-lg bg-gray-50">
+                                    <h5 className="font-medium text-gray-900 mb-1">Real-time Sync</h5>
+                                    <p className="text-xs text-gray-500">Availability updates instantly to prevent double bookings.</p>
+                                </div>
+                            </div>
+                        </TabsContent>
+                    </Tabs>
                 </CardContent>
             </Card>
         </div>

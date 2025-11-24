@@ -32,6 +32,18 @@ export class EmailService {
    * Send a generic email via Supabase Edge Function
    */
   static async sendEmail(options: SendEmailOptions): Promise<{ success: boolean; data?: any; error?: any }> {
+    // Check if we are in development mode
+    const isDev = import.meta.env?.DEV;
+
+    if (isDev) {
+      console.log('📧 [DEV MODE] Mocking email send:', {
+        to: options.to,
+        subject: options.subject,
+        templateId: options.templateId
+      });
+      return { success: true, data: { id: 'mock-email-id', message: 'Email mocked in dev mode' } };
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: options
@@ -72,7 +84,7 @@ export class EmailService {
 
       // Generate waiver URL if template exists
       const baseUrl = businessInfo.baseUrl || window.location.origin;
-      const waiverUrl = booking.waiver_template_id 
+      const waiverUrl = booking.waiver_template_id
         ? `${baseUrl}/waiver/${booking.waiver_template_id}`
         : undefined;
 

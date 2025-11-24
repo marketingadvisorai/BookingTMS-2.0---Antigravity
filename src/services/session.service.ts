@@ -1,5 +1,6 @@
+
 import { supabase } from '../lib/supabase';
-import { Activity, ActivityService, ActivityScheduleRules } from './activity.service';
+import { Activity, ActivityService, ActivityScheduleRules } from '../modules/inventory/services/activity.service';
 import { addDays, format, parse, addMinutes, isBefore, startOfDay } from 'date-fns';
 
 export interface Session {

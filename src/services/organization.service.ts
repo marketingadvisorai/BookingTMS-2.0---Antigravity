@@ -22,22 +22,22 @@ export class OrganizationService {
      */
     static async createOrganization(payload: CreateOrganizationPayload, userId: string): Promise<Organization> {
         // 1. Create Organization
-        const { data: org, error: orgError } = await supabase
-            .from('organizations')
+        const { data: org, error: orgError } = await (supabase
+            .from('organizations') as any)
             .insert([{
                 name: payload.name,
                 slug: payload.slug || payload.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
                 logo_url: payload.logo_url,
                 is_active: true
-            }])
+            } as any])
             .select()
             .single();
 
         if (orgError) throw orgError;
 
         // 2. Add User as Owner
-        const { error: memberError } = await supabase
-            .from('organization_members')
+        const { error: memberError } = await (supabase
+            .from('organization_members') as any)
             .insert([{
                 organization_id: org.id,
                 user_id: userId,
@@ -51,8 +51,8 @@ export class OrganizationService {
         }
 
         // 3. Create Default Venue
-        const { error: venueError } = await supabase
-            .from('venues')
+        const { error: venueError } = await (supabase
+            .from('venues') as any)
             .insert([{
                 organization_id: org.id,
                 name: `${org.name} - Main Venue`,

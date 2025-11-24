@@ -11,52 +11,52 @@ import { Trash2, Plus } from 'lucide-react';
 import { StepProps } from '../types';
 import { LANGUAGES, EXISTING_FAQS, EXISTING_POLICIES } from '../constants';
 
-export default function Step3GameDetails({ gameData, updateGameData, t }: StepProps) {
+export default function Step3ActivityDetails({ activityData, updateActivityData, t }: StepProps) {
     const toggleLanguage = (lang: string) => {
-        const currentLangs = gameData.language;
+        const currentLangs = activityData.language;
         if (currentLangs.includes(lang)) {
-            updateGameData(
+            updateActivityData(
                 'language',
                 currentLangs.filter((l) => l !== lang)
             );
         } else {
-            updateGameData('language', [...currentLangs, lang]);
+            updateActivityData('language', [...currentLangs, lang]);
         }
     };
 
     const addFaq = () => {
-        const newFaqs = [...gameData.faqs, { id: Date.now().toString(), question: '', answer: '' }];
-        updateGameData('faqs', newFaqs);
+        const newFaqs = [...activityData.faqs, { id: Date.now().toString(), question: '', answer: '' }];
+        updateActivityData('faqs', newFaqs);
     };
 
     const removeFaq = (index: number) => {
-        const newFaqs = gameData.faqs.filter((_, i) => i !== index);
-        updateGameData('faqs', newFaqs);
+        const newFaqs = activityData.faqs.filter((_, i) => i !== index);
+        updateActivityData('faqs', newFaqs);
     };
 
     const updateFaq = (index: number, field: string, value: string) => {
-        const newFaqs = [...gameData.faqs];
+        const newFaqs = [...activityData.faqs];
         newFaqs[index] = { ...newFaqs[index], [field]: value };
-        updateGameData('faqs', newFaqs);
+        updateActivityData('faqs', newFaqs);
     };
 
     const addPolicy = () => {
         const newPolicies = [
-            ...gameData.cancellationPolicies,
+            ...activityData.cancellationPolicies,
             { id: Date.now().toString(), title: '', description: '' },
         ];
-        updateGameData('cancellationPolicies', newPolicies);
+        updateActivityData('cancellationPolicies', newPolicies);
     };
 
     const removePolicy = (index: number) => {
-        const newPolicies = gameData.cancellationPolicies.filter((_, i) => i !== index);
-        updateGameData('cancellationPolicies', newPolicies);
+        const newPolicies = activityData.cancellationPolicies.filter((_, i) => i !== index);
+        updateActivityData('cancellationPolicies', newPolicies);
     };
 
     const updatePolicy = (index: number, field: string, value: string) => {
-        const newPolicies = [...gameData.cancellationPolicies];
+        const newPolicies = [...activityData.cancellationPolicies];
         newPolicies[index] = { ...newPolicies[index], [field]: value };
-        updateGameData('cancellationPolicies', newPolicies);
+        updateActivityData('cancellationPolicies', newPolicies);
     };
 
     return (
@@ -77,16 +77,16 @@ export default function Step3GameDetails({ gameData, updateGameData, t }: StepPr
                                 id="duration"
                                 type="number"
                                 min="1"
-                                value={gameData.duration}
-                                onChange={(e) => updateGameData('duration', parseInt(e.target.value))}
+                                value={activityData.duration}
+                                onChange={(e) => updateActivityData('duration', parseInt(e.target.value))}
                                 className="mt-1"
                             />
                         </div>
                         <div>
                             <Label htmlFor="difficulty">Difficulty (1-5)</Label>
                             <Select
-                                value={gameData.difficulty.toString()}
-                                onValueChange={(value) => updateGameData('difficulty', parseInt(value))}
+                                value={activityData.difficulty.toString()}
+                                onValueChange={(value) => updateActivityData('difficulty', parseInt(value))}
                             >
                                 <SelectTrigger className="mt-1">
                                     <SelectValue placeholder="Select difficulty" />
@@ -110,8 +110,8 @@ export default function Step3GameDetails({ gameData, updateGameData, t }: StepPr
                                 id="minAge"
                                 type="number"
                                 min="0"
-                                value={gameData.minAge}
-                                onChange={(e) => updateGameData('minAge', parseInt(e.target.value))}
+                                value={activityData.minAge}
+                                onChange={(e) => updateActivityData('minAge', parseInt(e.target.value))}
                                 className="mt-1"
                             />
                         </div>
@@ -122,8 +122,8 @@ export default function Step3GameDetails({ gameData, updateGameData, t }: StepPr
                                 type="number"
                                 min="0"
                                 max="100"
-                                value={gameData.successRate}
-                                onChange={(e) => updateGameData('successRate', parseInt(e.target.value))}
+                                value={activityData.successRate}
+                                onChange={(e) => updateActivityData('successRate', parseInt(e.target.value))}
                                 className="mt-1"
                             />
                         </div>
@@ -136,7 +136,7 @@ export default function Step3GameDetails({ gameData, updateGameData, t }: StepPr
                             {LANGUAGES.map((lang) => (
                                 <Badge
                                     key={lang}
-                                    variant={gameData.language.includes(lang) ? 'default' : 'outline'}
+                                    variant={activityData.language.includes(lang) ? 'default' : 'outline'}
                                     className="cursor-pointer"
                                     onClick={() => toggleLanguage(lang)}
                                 >
@@ -152,8 +152,8 @@ export default function Step3GameDetails({ gameData, updateGameData, t }: StepPr
                         <Input
                             id="location"
                             placeholder="e.g., Room 101, Main Hall, or Online Link"
-                            value={gameData.location}
-                            onChange={(e) => updateGameData('location', e.target.value)}
+                            value={activityData.location}
+                            onChange={(e) => updateActivityData('location', e.target.value)}
                             className="mt-1"
                         />
                     </div>
@@ -167,10 +167,10 @@ export default function Step3GameDetails({ gameData, updateGameData, t }: StepPr
                             </Label>
                             <Switch
                                 id="wheelchair"
-                                checked={gameData.accessibility.wheelchairAccessible}
+                                checked={activityData.accessibility.wheelchairAccessible}
                                 onCheckedChange={(checked) =>
-                                    updateGameData('accessibility', {
-                                        ...gameData.accessibility,
+                                    updateActivityData('accessibility', {
+                                        ...activityData.accessibility,
                                         wheelchairAccessible: checked,
                                     })
                                 }
@@ -182,10 +182,10 @@ export default function Step3GameDetails({ gameData, updateGameData, t }: StepPr
                             </Label>
                             <Switch
                                 id="stroller"
-                                checked={gameData.accessibility.strollerAccessible}
+                                checked={activityData.accessibility.strollerAccessible}
                                 onCheckedChange={(checked) =>
-                                    updateGameData('accessibility', {
-                                        ...gameData.accessibility,
+                                    updateActivityData('accessibility', {
+                                        ...activityData.accessibility,
                                         strollerAccessible: checked,
                                     })
                                 }
@@ -201,7 +201,7 @@ export default function Step3GameDetails({ gameData, updateGameData, t }: StepPr
                                 <Select onValueChange={(value) => {
                                     const faq = EXISTING_FAQS.find(f => f.id === value);
                                     if (faq) {
-                                        updateGameData('faqs', [...gameData.faqs, { ...faq, id: Date.now().toString() }]);
+                                        updateActivityData('faqs', [...activityData.faqs, { ...faq, id: Date.now().toString() }]);
                                     }
                                 }}>
                                     <SelectTrigger className="w-[180px] h-8 text-xs">
@@ -220,7 +220,7 @@ export default function Step3GameDetails({ gameData, updateGameData, t }: StepPr
                         </div>
 
                         <div className="space-y-4">
-                            {gameData.faqs.map((faq, index) => (
+                            {activityData.faqs.map((faq, index) => (
                                 <div key={faq.id} className="space-y-2 bg-gray-50 p-3 rounded-lg relative group">
                                     <Button
                                         variant="ghost"
@@ -255,7 +255,7 @@ export default function Step3GameDetails({ gameData, updateGameData, t }: StepPr
                                 <Select onValueChange={(value) => {
                                     const policy = EXISTING_POLICIES.find(p => p.id === value);
                                     if (policy) {
-                                        updateGameData('cancellationPolicies', [...gameData.cancellationPolicies, { ...policy, id: Date.now().toString() }]);
+                                        updateActivityData('cancellationPolicies', [...activityData.cancellationPolicies, { ...policy, id: Date.now().toString() }]);
                                     }
                                 }}>
                                     <SelectTrigger className="w-[180px] h-8 text-xs">
@@ -274,7 +274,7 @@ export default function Step3GameDetails({ gameData, updateGameData, t }: StepPr
                         </div>
 
                         <div className="space-y-4">
-                            {gameData.cancellationPolicies.map((policy, index) => (
+                            {activityData.cancellationPolicies.map((policy, index) => (
                                 <div key={policy.id} className="space-y-2 bg-gray-50 p-3 rounded-lg relative group">
                                     <Button
                                         variant="ghost"

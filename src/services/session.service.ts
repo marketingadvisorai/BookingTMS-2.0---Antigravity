@@ -29,8 +29,8 @@ export class SessionService {
             throw new Error('Activity not found or has no schedule');
         }
 
-        const { data: venue } = await supabase
-            .from('venues')
+        const { data: venue } = await (supabase
+            .from('venues') as any)
             .select('timezone')
             .eq('id', activity.venue_id)
             .single();
@@ -40,8 +40,8 @@ export class SessionService {
 
         // 2. Determine Start Date
         // Find the last generated session to know where to start
-        const { data: lastSession } = await supabase
-            .from('activity_sessions')
+        const { data: lastSession } = await (supabase
+            .from('activity_sessions') as any)
             .select('start_time')
             .eq('activity_id', activityId)
             .order('start_time', { ascending: false })

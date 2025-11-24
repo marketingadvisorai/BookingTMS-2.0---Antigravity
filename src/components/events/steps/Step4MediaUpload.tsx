@@ -87,7 +87,7 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
                 <CardContent className="space-y-6">
                     {/* Cover Image */}
                     <div>
-                        <Label className="mb-2 block">Cover Image</Label>
+                        <Label className="mb-2 block">Cover Image <span className="text-red-500">*</span></Label>
                         <div className={`border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors relative ${uploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                             <Input
                                 type="file"
@@ -133,6 +133,18 @@ export default function Step4MediaUpload({ gameData, updateGameData, t }: StepPr
                                     <p className="text-xs text-gray-500 mt-1">SVG, PNG, JPG or GIF (max. 800x400px)</p>
                                 </div>
                             )}
+                        </div>
+
+                        <div className="mt-4">
+                            <Label htmlFor="coverImageUrl" className="mb-2 block text-sm text-gray-500">Or enter image URL directly</Label>
+                            <div className="flex gap-2">
+                                <Input
+                                    id="coverImageUrl"
+                                    placeholder="https://example.com/image.jpg"
+                                    value={gameData.coverImage && gameData.coverImage.startsWith('http') ? gameData.coverImage : ''}
+                                    onChange={(e) => updateGameData('coverImage', e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
 

@@ -94,7 +94,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
-      },
+      }
       venues: {
         Row: {
           id: string
@@ -135,7 +135,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
-      },
+      }
       activity_sessions: {
         Row: {
           id: string
@@ -179,7 +179,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
-      },
+      }
       activities: {
         Row: {
           id: string
@@ -601,7 +601,7 @@ export interface Database {
           created_at?: string
           processed_at?: string | null
         }
-      },
+      }
       waiver_templates: {
         Row: {
           id: string
@@ -645,7 +645,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
-      },
+      }
       waiver_records: {
         Row: {
           id: string

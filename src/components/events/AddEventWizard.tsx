@@ -2002,8 +2002,8 @@ function Step5Schedule({ gameData, updateGameData }: any) {
           <div>
             <Label htmlFor="slotInterval">Time Slot Interval (minutes)</Label>
             <Select
-              value={gameData.slotInterval.toString()}
-              onValueChange={(value) => updateGameData('slotInterval', parseInt(value))}
+              value={activityData.slotInterval.toString()}
+              onValueChange={(value) => updateActivityData('slotInterval', parseInt(value))}
             >
               <SelectTrigger className="mt-1">
                 <SelectValue />
@@ -2024,8 +2024,8 @@ function Step5Schedule({ gameData, updateGameData }: any) {
               type="number"
               min="1"
               max="365"
-              value={gameData.advanceBooking}
-              onChange={(e) => updateGameData('advanceBooking', parseInt(e.target.value))}
+              value={activityData.advanceBooking}
+              onChange={(e) => updateActivityData('advanceBooking', parseInt(e.target.value))}
               className="mt-1"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -2048,10 +2048,10 @@ function Step5Schedule({ gameData, updateGameData }: any) {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Existing custom dates */}
-          {gameData.customDates.length > 0 && (
+          {activityData.customDates.length > 0 && (
             <div className="space-y-2">
               <Label>Active custom dates</Label>
-              {gameData.customDates.map((customDate: any) => (
+              {activityData.customDates.map((customDate: any) => (
                 <div
                   key={customDate.id}
                   className="flex items-center justify-between p-3 border border-blue-200 bg-blue-50 rounded-lg"
@@ -2142,10 +2142,10 @@ function Step5Schedule({ gameData, updateGameData }: any) {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Existing blocked dates */}
-          {gameData.blockedDates.length > 0 && (
+          {activityData.blockedDates.length > 0 && (
             <div className="space-y-2">
               <Label>Blocked dates</Label>
-              {gameData.blockedDates.map((date: string) => (
+              {activityData.blockedDates.map((date: string) => (
                 <div
                   key={date}
                   className="flex items-center justify-between p-3 border border-red-200 bg-red-50 rounded-lg"
@@ -2205,23 +2205,23 @@ function Step5Schedule({ gameData, updateGameData }: any) {
 }
 
 // Step 6: Review & Publish
-function Step6Review({ gameData }: any) {
+function Step6Review({ activityData }: any) {
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Review Your Game</CardTitle>
+          <CardTitle>Review Your Activity</CardTitle>
           <CardDescription>
             Double-check all information before publishing
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Cover Image Preview */}
-          {gameData.coverImage && (
+          {activityData.coverImage && (
             <div>
               <img
-                src={gameData.coverImage}
-                alt={gameData.name}
+                src={activityData.coverImage}
+                alt={activityData.name}
                 className="w-full h-48 object-cover rounded-lg mb-4"
               />
             </div>
@@ -2229,11 +2229,11 @@ function Step6Review({ gameData }: any) {
 
           {/* Basic Info */}
           <div>
-            <h3 className="text-lg text-gray-900 mb-1">{gameData.name}</h3>
-            {gameData.tagline && (
-              <p className="text-sm text-gray-600 mb-2">{gameData.tagline}</p>
+            <h3 className="text-lg text-gray-900 mb-1">{activityData.name}</h3>
+            {activityData.tagline && (
+              <p className="text-sm text-gray-600 mb-2">{activityData.tagline}</p>
             )}
-            <Badge>{gameData.category}</Badge>
+            <Badge>{activityData.category}</Badge>
           </div>
 
           <Separator />
@@ -2244,18 +2244,18 @@ function Step6Review({ gameData }: any) {
               <div>
                 <p className="text-sm text-gray-500">Capacity</p>
                 <p className="text-gray-900">
-                  {gameData.minAdults}-{gameData.maxAdults} adults
-                  {gameData.maxChildren > 0 && `, up to ${gameData.maxChildren} children`}
+                  {activityData.minAdults}-{activityData.maxAdults} adults
+                  {activityData.maxChildren > 0 && `, up to ${activityData.maxChildren} children`}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Duration</p>
-                <p className="text-gray-900">{gameData.duration} minutes</p>
+                <p className="text-gray-900">{activityData.duration} minutes</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Difficulty</p>
                 <div className="flex gap-0.5">
-                  {Array.from({ length: gameData.difficulty }).map((_, i) => (
+                  {Array.from({ length: activityData.difficulty }).map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
@@ -2265,16 +2265,16 @@ function Step6Review({ gameData }: any) {
               <div>
                 <p className="text-sm text-gray-500">Pricing</p>
                 <p className="text-gray-900">
-                  ${gameData.adultPrice} (adult), ${gameData.childPrice} (child)
+                  ${activityData.adultPrice} (adult), ${activityData.childPrice} (child)
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Min Age</p>
-                <p className="text-gray-900">{gameData.minAge}+</p>
+                <p className="text-gray-900">{activityData.minAge}+</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Languages</p>
-                <p className="text-gray-900">{gameData.language.join(', ')}</p>
+                <p className="text-gray-900">{activityData.language.join(', ')}</p>
               </div>
             </div>
           </div>
@@ -2284,14 +2284,14 @@ function Step6Review({ gameData }: any) {
           {/* Description */}
           <div>
             <p className="text-sm text-gray-500 mb-2">Description</p>
-            <p className="text-sm text-gray-700">{gameData.description}</p>
+            <p className="text-sm text-gray-700">{activityData.description}</p>
           </div>
 
           {/* Operating Days */}
           <div>
             <p className="text-sm text-gray-500 mb-2">Operating Days</p>
             <div className="flex flex-wrap gap-2">
-              {gameData.operatingDays.map((day: string) => (
+              {activityData.operatingDays.map((day: string) => (
                 <Badge key={day} variant="secondary">
                   {day}
                 </Badge>
@@ -2300,11 +2300,11 @@ function Step6Review({ gameData }: any) {
           </div>
 
           {/* Gallery Preview */}
-          {gameData.galleryImages.length > 0 && (
+          {activityData.galleryImages.length > 0 && (
             <div>
-              <p className="text-sm text-gray-500 mb-2">Gallery ({gameData.galleryImages.length} images)</p>
+              <p className="text-sm text-gray-500 mb-2">Gallery ({activityData.galleryImages.length} images)</p>
               <div className="grid grid-cols-4 gap-2">
-                {gameData.galleryImages.slice(0, 4).map((img: string, index: number) => (
+                {activityData.galleryImages.slice(0, 4).map((img: string, index: number) => (
                   <img
                     key={index}
                     src={img}
@@ -2316,9 +2316,9 @@ function Step6Review({ gameData }: any) {
             </div>
           )}
 
-          {gameData.videos.length > 0 && (
+          {activityData.videos.length > 0 && (
             <div>
-              <p className="text-sm text-gray-500">Videos: {gameData.videos.length} uploaded</p>
+              <p className="text-sm text-gray-500">Videos: {activityData.videos.length} uploaded</p>
             </div>
           )}
         </CardContent>
@@ -2330,7 +2330,7 @@ function Step6Review({ gameData }: any) {
           <div>
             <p className="text-green-900 mb-1">Ready to publish!</p>
             <p className="text-sm text-green-700">
-              Your game will be immediately available for booking once published.
+              Your activity will be immediately available for booking once published.
             </p>
           </div>
         </div>

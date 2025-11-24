@@ -42,7 +42,7 @@ export function GameCard({
     onToggleStatus
 }: GameCardProps) {
     return (
-        <Card className="overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-200">
+        <Card className="overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-200" data-testid={`game-card-${game.name}`}>
             <div className="relative h-48 bg-gray-100 dark:bg-[#2a2a2a]">
                 {game.image_url ? (
                     <img
@@ -79,13 +79,13 @@ export function GameCard({
                     </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" data-testid="game-actions-trigger">
                                 <MoreVertical className="w-4 h-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => onEdit(game)}>
+                            <DropdownMenuItem onClick={() => onEdit(game)} data-testid="edit-game-action">
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit Game
                             </DropdownMenuItem>
@@ -136,13 +136,21 @@ export function GameCard({
                 </div>
             </CardContent>
 
-            <CardFooter className="p-4 pt-0">
+            <CardFooter className="p-4 pt-0 flex gap-2">
                 <Button
                     variant="outline"
-                    className="w-full"
+                    className="flex-1"
                     onClick={() => onViewBookings(game)}
                 >
                     Manage Schedule
+                </Button>
+                <Button
+                    variant="secondary"
+                    className="flex-1"
+                    onClick={() => onEdit(game)}
+                    data-testid="direct-edit-button"
+                >
+                    Edit
                 </Button>
             </CardFooter>
         </Card>

@@ -9,8 +9,8 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader } f
 import { VisuallyHidden } from '../ui/visually-hidden';
 import { ScrollArea } from '../ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { 
-  Star, Clock, Users, MapPin, Award, Calendar, 
+import {
+  Star, Clock, Users, MapPin, Award, Calendar,
   ShoppingCart, CreditCard, Lock, CheckCircle2,
   Mail, Phone, User, ChevronLeft, Play, Image as ImageIcon,
   Info, Sparkles, ChevronRight, Target, X, Zap,
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { format } from 'date-fns';
+import { useAvailability } from './booking/hooks/useAvailability';
 import { PromoCodeInput } from './PromoCodeInput';
 import { GiftCardInput } from './GiftCardInput';
 import { useWidgetTheme } from './WidgetThemeContext';
@@ -29,22 +30,25 @@ interface CalendarSingleEventBookingPageProps {
   gameName?: string;
   gameDescription?: string;
   gamePrice?: number;
+  gameSchedule?: any;
   config?: any;
 }
 
-export function CalendarSingleEventBookingPage({ 
+export function CalendarSingleEventBookingPage({
   primaryColor: propPrimaryColor,
-  gameName = 'Mystery Manor',
-  gameDescription = 'Uncover the dark secrets hidden in an abandoned Victorian mansion',
+  gameName,
+  gameDescription,
   config,
-  gamePrice = 30
+  gamePrice,
+  gameSchedule
 }: CalendarSingleEventBookingPageProps) {
   const { widgetTheme, getCurrentPrimaryColor } = useWidgetTheme();
   // Use prop value if provided, otherwise fall back to context
   const primaryColor = propPrimaryColor || getCurrentPrimaryColor() || '#2563eb';
   const isDark = widgetTheme === 'dark';
 
-  const [selectedDate, setSelectedDate] = useState<number>(15);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<number>(currentDate.getDate());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [partySize, setPartySize] = useState(4);
   const [currentStep, setCurrentStep] = useState<'booking' | 'cart' | 'checkout' | 'success'>('booking');
@@ -69,22 +73,29 @@ export function CalendarSingleEventBookingPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingNumber, setBookingNumber] = useState<string>('');
 
+  // Resolve game data from config if not provided in props
+  const selectedGame = Array.isArray(config?.games) && config.games.length > 0 ? config.games[0] : null;
+
+  const effectiveGameName = gameName || selectedGame?.name || 'Mystery Manor';
+  const effectiveDescription = gameDescription || selectedGame?.description || 'Uncover the dark secrets hidden in an abandoned Victorian mansion';
+  const effectivePrice = gamePrice !== undefined ? gamePrice : (selectedGame?.price || 30);
+
   const gameData = {
-    name: gameName,
-    description: gameDescription,
-    price: gamePrice,
-    duration: '60 min',
-    difficulty: 'Medium',
+    name: effectiveGameName,
+    description: effectiveDescription,
+    price: effectivePrice,
+    duration: selectedGame?.duration || '60 min',
+    difficulty: selectedGame?.difficulty || 'Medium',
     difficultyLevel: 3,
-    players: '2-8 players',
+    players: selectedGame?.players || '2-8 players',
     gameType: 'physical',
     minAge: 10,
     ageRecommendation: '10+',
     rating: 4.9,
     reviewCount: 234,
-    location: 'Downtown Location',
-    image: 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=1200&h=800&fit=crop',
-    gallery: [
+    location: (config?.city && config?.state) ? `${config.city}, ${config.state}` : 'Downtown Location',
+    image: selectedGame?.image || selectedGame?.imageUrl || 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=1200&h=800&fit=crop',
+    gallery: selectedGame?.galleryImages || [
       'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=800&h=600&fit=crop',
       'https://images.unsplash.com/photo-1560184897-ae75f418493e?w=800&h=600&fit=crop',
       'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&h=600&fit=crop',
@@ -134,39 +145,38 @@ export function CalendarSingleEventBookingPage({
         date: 'October 2025',
         comment: 'Best escape room we\'ve ever done! The atmosphere was incredible and the story kept us engaged throughout.'
       }
-    ]
+    ],
+    schedule: gameSchedule || selectedGame?.schedule || {
+      operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      startTime: '09:00',
+      endTime: '22:00',
+      slotInterval: 60,
+      duration: 60
+    }
   };
 
   // Prefer user-provided images from config when available
-  const selectedGame = Array.isArray(config?.games) && config.games.length > 0 ? config.games[0] : null;
-  const heroImage: string =
-    (selectedGame?.coverImage as string) ||
-    (selectedGame?.imageUrl as string) ||
-    (selectedGame?.image as string) ||
-    gameData.image;
-  const galleryImages: string[] =
-    (Array.isArray(selectedGame?.galleryImages) && selectedGame!.galleryImages!.length > 0
-      ? (selectedGame!.galleryImages as string[])
-      : gameData.gallery);
+  const heroImage: string = gameData.image;
+  const galleryImages: string[] = gameData.gallery;
 
-  const timeSlots = [
-    { time: '10:00 AM', available: true, spots: 6 },
-    { time: '11:30 AM', available: true, spots: 3 },
-    { time: '1:00 PM', available: false, spots: 0 },
-    { time: '2:30 PM', available: true, spots: 8 },
-    { time: '4:00 PM', available: true, spots: 5 },
-    { time: '5:30 PM', available: true, spots: 2 },
-    { time: '7:00 PM', available: false, spots: 0 },
-    { time: '8:30 PM', available: true, spots: 4 },
-  ];
+  const { timeSlots, loading: slotsLoading = false, error: slotsError } = useAvailability({
+    config,
+    selectedGame: config?.gameId || selectedGame?.id,
+    selectedGameData: gameData,
+    selectedDate,
+    currentMonth: currentDate.getMonth(),
+    currentYear: currentDate.getFullYear()
+  });
+
+  console.log('CalendarSingleEventBookingPage: slotsLoading:', slotsLoading);
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  
+
   const subtotal = gameData.price * partySize;
   const promoDiscount = appliedPromoCode
-    ? (appliedPromoCode.type === 'fixed' 
-        ? appliedPromoCode.discount 
-        : (subtotal * appliedPromoCode.discount) / 100)
+    ? (appliedPromoCode.type === 'fixed'
+      ? appliedPromoCode.discount
+      : (subtotal * appliedPromoCode.discount) / 100)
     : 0;
   const giftCardCredit = appliedGiftCard ? appliedGiftCard.amount : 0;
   const totalPrice = Math.max(0, subtotal - promoDiscount - giftCardCredit);
@@ -195,7 +205,7 @@ export function CalendarSingleEventBookingPage({
       const bookingDate = `2025-11-${String(selectedDate).padStart(2, '0')}`;
       const [startHour, startMinute] = selectedTime!.split(':');
       const startTime = `${startHour.padStart(2, '0')}:${startMinute.padStart(2, '0')}:00`;
-      
+
       // Calculate end time (assume 60 min duration)
       const endHour = String((parseInt(startHour) + 1) % 24).padStart(2, '0');
       const endTime = `${endHour}:${startMinute.padStart(2, '0')}:00`;
@@ -398,7 +408,7 @@ export function CalendarSingleEventBookingPage({
               </DialogDescription>
             </DialogHeader>
           </VisuallyHidden>
-          
+
           <div className="flex-1 overflow-hidden">
             <ScrollArea className="h-full w-full">
               {/* Hero Cover Section */}
@@ -409,7 +419,7 @@ export function CalendarSingleEventBookingPage({
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                
+
                 <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 lg:p-12 text-white">
                   <div className="max-w-5xl mx-auto">
                     <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -424,7 +434,7 @@ export function CalendarSingleEventBookingPage({
                     </div>
                     <h1 className="text-3xl sm:text-4xl lg:text-5xl mb-4">{gameData.name}</h1>
                     <p className="text-lg sm:text-xl text-gray-100 mb-6 max-w-3xl">{gameData.description}</p>
-                    
+
                     <div className="flex flex-wrap items-center gap-4">
                       <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
                         <Clock className="w-5 h-5" />
@@ -614,10 +624,10 @@ export function CalendarSingleEventBookingPage({
                 className="w-full h-full object-cover"
               />
             </div>
-            
+
             {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/30" />
-            
+
             {/* Content */}
             <div className="relative h-full flex flex-col justify-between">
               {/* Top Bar - Badges & Actions */}
@@ -633,7 +643,7 @@ export function CalendarSingleEventBookingPage({
                     <span className="text-gray-200 text-xs">({gameData.reviewCount})</span>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowGameDetails(true)}
@@ -659,11 +669,11 @@ export function CalendarSingleEventBookingPage({
                 <h1 className="text-3xl sm:text-4xl md:text-5xl text-white mb-2 drop-shadow-lg tracking-tight">
                   {gameData.name}
                 </h1>
-                
+
                 <p className="text-sm sm:text-base text-gray-200 mb-4 max-w-2xl line-clamp-2">
                   {gameData.description}
                 </p>
-                
+
                 {/* Compact Info Pills - Single Row */}
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/20">
@@ -721,11 +731,33 @@ export function CalendarSingleEventBookingPage({
                   <div className="flex items-center justify-between mb-6 gap-2">
                     <h2 className="text-lg sm:text-xl text-gray-900">Select Date</h2>
                     <div className="flex items-center gap-3">
-                      <Button variant="outline" size="icon" className="h-10 w-10 rounded-lg border-gray-300 hover:bg-gray-50">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10 rounded-lg border-gray-300 hover:bg-gray-50"
+                        onClick={() => {
+                          const newDate = new Date(currentDate);
+                          newDate.setMonth(newDate.getMonth() - 1);
+                          setCurrentDate(newDate);
+                          setSelectedDate(1); // Reset selection
+                        }}
+                      >
                         <ChevronLeft className="w-4 h-4" />
                       </Button>
-                      <span className="text-sm sm:text-base text-gray-900 px-2 whitespace-nowrap min-w-[140px] text-center">November 2025</span>
-                      <Button variant="outline" size="icon" className="h-10 w-10 rounded-lg border-gray-300 hover:bg-gray-50">
+                      <span className="text-sm sm:text-base text-gray-900 px-2 whitespace-nowrap min-w-[140px] text-center">
+                        {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10 rounded-lg border-gray-300 hover:bg-gray-50"
+                        onClick={() => {
+                          const newDate = new Date(currentDate);
+                          newDate.setMonth(newDate.getMonth() + 1);
+                          setCurrentDate(newDate);
+                          setSelectedDate(1); // Reset selection
+                        }}
+                      >
                         <ChevronRight className="w-4 h-4" />
                       </Button>
                     </div>
@@ -736,11 +768,18 @@ export function CalendarSingleEventBookingPage({
                         {day}
                       </div>
                     ))}
-                    {Array.from({ length: 30 }).map((_, i) => {
+                    {/* Empty slots for days before start of month */}
+                    {Array.from({ length: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay() }).map((_, i) => (
+                      <div key={`empty-${i}`} />
+                    ))}
+                    {/* Days of the month */}
+                    {Array.from({ length: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate() }).map((_, i) => {
                       const day = i + 1;
                       const isSelected = selectedDate === day;
-                      const isAvailable = day > 0;
-                      const isToday = day === 12;
+                      const dateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                      const isToday = new Date().toDateString() === dateObj.toDateString();
+                      const isPast = dateObj < new Date(new Date().setHours(0, 0, 0, 0));
+                      const isAvailable = !isPast; // Basic check, useAvailability handles specific blocked dates
 
                       return (
                         <button
@@ -750,11 +789,11 @@ export function CalendarSingleEventBookingPage({
                           className={`
                             aspect-square rounded-xl text-base transition-all flex items-center justify-center
                             ${isToday && !isSelected
-                              ? 'text-white shadow-md' 
-                              : isSelected 
-                                ? 'text-gray-900 border-2 shadow-sm bg-white hover:bg-gray-50' 
-                                : isAvailable 
-                                  ? 'text-gray-700 hover:bg-gray-50 border border-gray-200' 
+                              ? 'text-white shadow-md'
+                              : isSelected
+                                ? 'text-gray-900 border-2 shadow-sm bg-white hover:bg-gray-50'
+                                : isAvailable
+                                  ? 'text-gray-700 hover:bg-gray-50 border border-gray-200'
                                   : 'text-gray-300 cursor-not-allowed border border-gray-100'
                             }
                           `}
@@ -773,44 +812,63 @@ export function CalendarSingleEventBookingPage({
                 {/* Time Slots */}
                 {selectedDate && (
                   <Card className="p-6 sm:p-8 bg-white shadow-sm border border-gray-200 rounded-2xl">
-                    <h2 className="text-lg sm:text-xl text-gray-900 mb-4 sm:mb-6">Available Times - Nov {selectedDate}</h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                      {timeSlots.map((slot) => (
-                        <button
-                          key={slot.time}
-                          onClick={() => slot.available && setSelectedTime(slot.time)}
-                          disabled={!slot.available}
-                          className={`
-                            p-4 sm:p-5 rounded-xl border-2 text-center transition-all
-                            ${selectedTime === slot.time
-                              ? 'shadow-lg transform scale-105'
-                              : slot.available
-                                ? 'border-gray-200 hover:border-gray-300 hover:shadow-md hover:scale-102'
-                                : 'border-gray-100 cursor-not-allowed opacity-50'
-                            }
-                          `}
-                          style={{
-                            backgroundColor: selectedTime === slot.time ? primaryColor : undefined,
-                            borderColor: selectedTime === slot.time ? primaryColor : undefined,
-                          }}
-                        >
-                          <div className={`text-sm sm:text-base mb-2 ${
-                            selectedTime === slot.time ? 'text-white' : slot.available ? 'text-gray-900' : 'text-gray-400'
-                          }`}>
-                            {slot.time}
-                          </div>
-                          {slot.available ? (
-                            <div className={`text-xs ${
-                              selectedTime === slot.time ? 'text-white/90' : 'text-green-600'
-                            }`}>
-                              {slot.spots} spots left
-                            </div>
-                          ) : (
-                            <div className="text-xs text-red-500">Sold Out</div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                    <h2 className="text-lg sm:text-xl text-gray-900 mb-4 sm:mb-6">
+                      Available Times - {currentDate.toLocaleString('default', { month: 'short' })} {selectedDate}
+                    </h2>
+
+                    {slotsLoading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                      </div>
+                    ) : timeSlots.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        No available times for this date.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                        {timeSlots.map((slot) => {
+                          // Format time for display (e.g. 14:00 -> 2:00 PM)
+                          const [hours, minutes] = slot.time.split(':');
+                          const date = new Date();
+                          date.setHours(parseInt(hours), parseInt(minutes));
+                          const displayTime = date.toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          });
+
+                          return (
+                            <button
+                              key={slot.time}
+                              onClick={() => slot.available && setSelectedTime(slot.time)}
+                              disabled={!slot.available}
+                              className={`
+                                p-4 sm:p-5 rounded-xl border-2 text-center transition-all
+                                ${selectedTime === slot.time
+                                  ? 'shadow-lg transform scale-105'
+                                  : slot.available
+                                    ? 'border-gray-200 hover:border-gray-300 hover:shadow-md hover:scale-102'
+                                    : 'border-gray-100 cursor-not-allowed opacity-50'
+                                }
+                              `}
+                              style={{
+                                backgroundColor: selectedTime === slot.time ? primaryColor : undefined,
+                                borderColor: selectedTime === slot.time ? primaryColor : undefined,
+                              }}
+                            >
+                              <div className={`text-sm sm:text-base mb-2 ${selectedTime === slot.time ? 'text-white' : slot.available ? 'text-gray-900' : 'text-gray-400'
+                                }`}>
+                                {displayTime}
+                              </div>
+                              <div className={`text-xs ${selectedTime === slot.time ? 'text-blue-100' : 'text-gray-500'
+                                }`}>
+                                {slot.available ? `${slot.capacity || slot.spots || 0} spots left` : 'Sold Out'}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </Card>
                 )}
               </div>
@@ -826,7 +884,7 @@ export function CalendarSingleEventBookingPage({
                         </div>
                         <h2 className="text-xl text-gray-900">Your Booking</h2>
                       </div>
-                      
+
                       {/* Party Size */}
                       <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
                         <label className="text-sm text-gray-700 mb-3 flex items-center gap-2">
@@ -968,7 +1026,7 @@ export function CalendarSingleEventBookingPage({
                           onClick={() => setCurrentStep('cart')}
                           disabled={!canAddToCart}
                           className="w-full text-white h-14 text-lg shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition-all relative overflow-hidden group"
-                          style={{ 
+                          style={{
                             backgroundColor: canAddToCart ? primaryColor : undefined,
                             opacity: canAddToCart ? 1 : 0.5
                           }}
@@ -1319,7 +1377,7 @@ export function CalendarSingleEventBookingPage({
       {currentStep === 'success' && (
         <div className="max-w-4xl mx-auto p-4 md:p-8">
           <div className="flex flex-col items-center justify-center py-8 md:py-12">
-            <div 
+            <div
               className="w-24 h-24 rounded-full flex items-center justify-center mb-6 animate-pulse"
               style={{ backgroundColor: `${primaryColor}15` }}
             >

@@ -163,8 +163,8 @@ export class ActivityService {
                 is_active: status === 'active', // Map status to is_active
                 settings: {
                     ...input.settings,
-                    child_price: input.child_price,
-                    min_age: input.min_age,
+                    child_price: child_price !== undefined ? child_price : input.settings?.child_price,
+                    min_age: min_age !== undefined ? min_age : input.settings?.min_age,
                     slug: (input as any).slug,
                     tagline: (input as any).tagline,
                     success_rate: (input as any).success_rate

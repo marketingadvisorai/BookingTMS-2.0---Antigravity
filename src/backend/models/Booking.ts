@@ -9,7 +9,7 @@ export interface Booking {
   organization_id: string;
   booking_number: string;
   customer_id: string;
-  game_id: string;
+  activity_id: string; // Refactored from game_id
   booking_date: string; // YYYY-MM-DD
   start_time: string; // HH:MM
   end_time: string; // HH:MM
@@ -23,14 +23,14 @@ export interface Booking {
   created_at: string;
   updated_at: string;
   created_by: string;
-  
+
   // Relationships (from SELECT with joins)
   customer?: {
     full_name: string;
     email: string;
     phone?: string;
   };
-  game?: {
+  activity?: {
     name: string;
     duration_minutes: number;
     price?: number;
@@ -56,7 +56,7 @@ export type PaymentStatus =
  */
 export interface CreateBookingDTO {
   customer_id: string;
-  game_id: string;
+  activity_id: string;
   booking_date: string; // YYYY-MM-DD
   start_time: string; // HH:MM
   party_size: number;
@@ -88,7 +88,7 @@ export interface BookingFilters {
   date?: string;
   date_from?: string;
   date_to?: string;
-  game_id?: string;
+  activity_id?: string;
   customer_id?: string;
   search?: string; // Search by booking number or customer name
 }
@@ -108,7 +108,7 @@ export interface BookingListResponse {
  * DTO for availability check
  */
 export interface AvailabilityRequest {
-  game_id: string;
+  activity_id: string;
   date: string; // YYYY-MM-DD
   start_time?: string; // Optional, check all slots if not provided
 }
@@ -134,6 +134,6 @@ export interface BookingStats {
   cancelled_bookings: number;
   total_revenue: number;
   average_party_size: number;
-  most_popular_game?: string;
+  most_popular_activity?: string;
   busiest_time_slot?: string;
 }

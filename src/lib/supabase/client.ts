@@ -11,13 +11,15 @@ import type { Database } from '@/types/supabase';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
 // Get Supabase configuration
-// First try environment variables, then fall back to info.tsx
-const supabaseUrl = 
-  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) || 
+// First try Vite environment variables, then Next.js env vars, then fall back to info.tsx
+const supabaseUrl =
+  import.meta.env?.VITE_SUPABASE_URL ||
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
   `https://${projectId}.supabase.co`;
 
-const supabaseAnonKey = 
-  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) || 
+const supabaseAnonKey =
+  import.meta.env?.VITE_SUPABASE_ANON_KEY ||
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
   publicAnonKey;
 
 /**
@@ -26,7 +28,7 @@ const supabaseAnonKey =
  * Automatically handles auth state
  */
 export const supabase = createClient<Database>(
-  supabaseUrl || 'https://placeholder.supabase.co', 
+  supabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder-key',
   {
     auth: {
@@ -56,8 +58,8 @@ export const createAuthenticatedClient = (accessToken: string) => {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-    },
-  });
+      },
+    });
 };
 
 /**
@@ -66,10 +68,10 @@ export const createAuthenticatedClient = (accessToken: string) => {
  * NEVER expose service role key to the client
  */
 export const createServiceRoleClient = () => {
-  const serviceRoleKey = (typeof process !== 'undefined' && process.env) 
-    ? process.env.SUPABASE_SERVICE_ROLE_KEY 
+  const serviceRoleKey = (typeof process !== 'undefined' && process.env)
+    ? process.env.SUPABASE_SERVICE_ROLE_KEY
     : undefined;
-  
+
   if (!serviceRoleKey) {
     throw new Error(
       'Missing SUPABASE_SERVICE_ROLE_KEY. This should only be used server-side.'
@@ -139,7 +141,7 @@ export const handleSupabaseError = (error: any) => {
   if (error?.code === '42501') {
     return 'You do not have permission to perform this action';
   }
-  
+
   return error?.message || 'An unexpected error occurred';
 };
 

@@ -950,6 +950,7 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
         recentAccounts={recentAccounts}
         onNotificationsClick={() => setShowNotificationsModal(true)}
         onSettingsClick={() => setShowSettingsModal(true)}
+        onAddOrganization={() => setShowAddOwnerDialog(true)}
         notificationCount={3}
       />
 
@@ -1222,8 +1223,8 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
                           {visibleColumns.organizationId && (
                             <td className="py-5 px-6">
                               <code className={`inline-flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-md ${isDark
-                                  ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-                                  : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                                : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
                                 }`}>
                                 <Building2 className="w-3 h-3" />
                                 {owner.organizationId}
@@ -1259,8 +1260,8 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className={`inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-md ${mutedTextClass} ${isDark
-                                    ? 'hover:bg-[#2a2a2a] hover:text-indigo-400'
-                                    : 'hover:bg-gray-100 hover:text-indigo-600'
+                                  ? 'hover:bg-[#2a2a2a] hover:text-indigo-400'
+                                  : 'hover:bg-gray-100 hover:text-indigo-600'
                                   } transition-all group-hover:bg-opacity-100`}
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
@@ -1317,8 +1318,8 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
                                     <code
                                       key={venue.id}
                                       className={`text-xs font-mono px-2 py-0.5 rounded ${isDark
-                                          ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                          : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                        ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                        : 'bg-blue-50 text-blue-700 border border-blue-200'
                                         }`}
                                     >
                                       {venue.id}
@@ -1344,8 +1345,8 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
                                     <span
                                       key={venue.id}
                                       className={`text-xs px-2 py-1 rounded ${isDark
-                                          ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                                          : 'bg-purple-50 text-purple-700 border border-purple-200'
+                                        ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                                        : 'bg-purple-50 text-purple-700 border border-purple-200'
                                         }`}
                                     >
                                       {venue.name}
@@ -1390,8 +1391,8 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
                                         <code
                                           key={game.id}
                                           className={`text-xs font-mono px-2 py-0.5 rounded ${isDark
-                                              ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                                              : 'bg-green-50 text-green-700 border border-green-200'
+                                            ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                                            : 'bg-green-50 text-green-700 border border-green-200'
                                             }`}
                                         >
                                           {game.id}
@@ -1424,8 +1425,8 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
                                         <span
                                           key={game.id}
                                           className={`text-xs px-2 py-1 rounded ${isDark
-                                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                            : 'bg-amber-50 text-amber-700 border border-amber-200'
                                             }`}
                                         >
                                           {game.name}
@@ -1454,8 +1455,8 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
                                     value={locationValue}
                                     onChange={(e) => setLocationValue(parseInt(e.target.value) || 0)}
                                     className={`w-20 h-9 px-3 text-center text-sm border rounded-md ${isDark
-                                        ? 'bg-[#0a0a0a] border-[#2a2a2a] text-white focus:border-indigo-500'
-                                        : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
+                                      ? 'bg-[#0a0a0a] border-[#2a2a2a] text-white focus:border-indigo-500'
+                                      : 'bg-white border-gray-300 text-gray-900 focus:border-indigo-500'
                                       } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
                                     autoFocus
                                   />
@@ -1478,8 +1479,8 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
                                 <button
                                   onClick={() => handleStartEditLocation(owner.id, owner.locations || 0)}
                                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md ${isDark
-                                      ? 'hover:bg-indigo-500/10 text-gray-300'
-                                      : 'hover:bg-indigo-50 text-gray-700'
+                                    ? 'hover:bg-indigo-500/10 text-gray-300'
+                                    : 'hover:bg-indigo-50 text-gray-700'
                                     } transition-all cursor-pointer group/location`}
                                   title="Click to edit locations"
                                 >
@@ -1520,8 +1521,8 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
                                 size="sm"
                                 onClick={() => handleViewOwner(owner.id)}
                                 className={`h-9 w-9 p-0 ${isDark
-                                    ? 'hover:bg-indigo-500/10 hover:text-indigo-400'
-                                    : 'hover:bg-indigo-50 hover:text-indigo-600'
+                                  ? 'hover:bg-indigo-500/10 hover:text-indigo-400'
+                                  : 'hover:bg-indigo-50 hover:text-indigo-600'
                                   }`}
                                 title="View details"
                               >
@@ -1532,8 +1533,8 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
                                 size="sm"
                                 onClick={() => handleEditOwner(owner.id)}
                                 className={`h-9 w-9 p-0 ${isDark
-                                    ? 'hover:bg-blue-500/10 hover:text-blue-400'
-                                    : 'hover:bg-blue-50 hover:text-blue-600'
+                                  ? 'hover:bg-blue-500/10 hover:text-blue-400'
+                                  : 'hover:bg-blue-50 hover:text-blue-600'
                                   }`}
                                 title="Edit organization"
                               >
@@ -1544,8 +1545,8 @@ const SystemAdminDashboardInner = ({ onNavigate }: SystemAdminDashboardInnerProp
                                 size="sm"
                                 onClick={() => handleDeleteOwner(owner.id)}
                                 className={`h-9 w-9 p-0 ${isDark
-                                    ? 'hover:bg-red-500/10 hover:text-red-400'
-                                    : 'hover:bg-red-50 hover:text-red-600'
+                                  ? 'hover:bg-red-500/10 hover:text-red-400'
+                                  : 'hover:bg-red-50 hover:text-red-600'
                                   } text-red-600 dark:text-red-400`}
                                 title="Delete organization"
                               >

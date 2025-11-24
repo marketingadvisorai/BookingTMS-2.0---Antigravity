@@ -606,10 +606,11 @@ export default function Venues() {
                   key={`widget-preview-${selectedVenue.id}`}
                   primaryColor={selectedVenue.primaryColor}
                   config={{
-                    ...selectedVenue.widgetConfig,
+                    // Debug: Expose createVenue to window
+                    embedKey: selectedVenue.embedKey,
+                    ...selectedVenue.widgetConfig, // Ensure existing config is spread
                     venueId: selectedVenue.id,
                     venueName: selectedVenue.name,
-                    embedKey: selectedVenue.embedKey
                   }}
                 />
               )}

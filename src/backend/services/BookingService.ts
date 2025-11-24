@@ -30,7 +30,7 @@ export class BookingService {
 
     // Check availability
     const isAvailable = await this.checkAvailability(
-      data.game_id,
+      data.activity_id,
       data.booking_date,
       data.start_time
     );
@@ -45,11 +45,11 @@ export class BookingService {
     // Generate booking number
     const bookingNumber = await this.generateBookingNumber();
 
-    // Get game details for pricing
-    const game = await this.getGame(data.game_id);
+    // Get activity details for pricing
+    const activity = await this.getActivity(data.activity_id);
 
     // Calculate total amount
-    const totalAmount = game.price * data.party_size;
+    const totalAmount = activity.price * data.party_size;
 
     // Create booking
     const { data: booking, error } = await this.supabase
@@ -58,7 +58,7 @@ export class BookingService {
         organization_id: organizationId,
         booking_number: bookingNumber,
         customer_id: data.customer_id,
-        game_id: data.game_id,
+        activity_id: data.activity_id,
         booking_date: data.booking_date,
         start_time: data.start_time,
         end_time: endTime,
@@ -74,7 +74,7 @@ export class BookingService {
       .select(`
         *,
         customer:customers(full_name, email, phone),
-        game:games(name, duration_minutes)
+        activity:activities(name, duration_minutes)
       `)
       .single();
 
@@ -113,7 +113,7 @@ export class BookingService {
       const time = updates.start_time || existing.start_time;
 
       const isAvailable = await this.checkAvailability(
-        existing.game_id,
+        existing.activity_id,
         date,
         time,
         bookingId // Exclude current booking
@@ -136,7 +136,7 @@ export class BookingService {
       .select(`
         *,
         customer:customers(full_name, email, phone),
-        game:games(name, duration_minutes)
+        activity:activities(name, duration_minutes)
       `)
       .single();
 
@@ -166,7 +166,7 @@ export class BookingService {
   ): Promise<Booking> {
     const booking = await this.updateBooking(
       bookingId,
-      { 
+      {
         status: 'cancelled',
         notes: reason ? `Cancelled: ${reason}` : 'Cancelled',
       },
@@ -208,7 +208,7 @@ export class BookingService {
       .select(`
         *,
         customer:customers(full_name, email, phone),
-        game:games(name, duration_minutes, price)
+        activity:activities(name, duration_minutes, price)
       `)
       .eq('id', bookingId)
       .eq('organization_id', organizationId)
@@ -230,7 +230,7 @@ export class BookingService {
     filters?: {
       status?: string;
       date?: string;
-      gameId?: string;
+      activityId?: string;
       customerId?: string;
     }
   ): Promise<Booking[]> {
@@ -239,7 +239,7 @@ export class BookingService {
       .select(`
         *,
         customer:customers(full_name, email, phone),
-        game:games(name)
+        activity:activities(name)
       `)
       .eq('organization_id', organizationId);
 
@@ -251,8 +251,8 @@ export class BookingService {
       query = query.eq('booking_date', filters.date);
     }
 
-    if (filters?.gameId) {
-      query = query.eq('game_id', filters.gameId);
+    if (filters?.activityId) {
+      query = query.eq('activity_id', filters.activityId);
     }
 
     if (filters?.customerId) {
@@ -276,7 +276,7 @@ export class BookingService {
    * Check availability for a time slot
    */
   private async checkAvailability(
-    gameId: string,
+    activityId: string,
     date: string,
     time: string,
     excludeBookingId?: string
@@ -284,7 +284,7 @@ export class BookingService {
     let query = this.supabase
       .from('bookings')
       .select('id', { count: 'exact', head: true })
-      .eq('game_id', gameId)
+      .eq('activity_id', activityId)
       .eq('booking_date', date)
       .eq('start_time', time)
       .neq('status', 'cancelled');
@@ -325,17 +325,17 @@ export class BookingService {
   }
 
   /**
-   * Get game details
+   * Get activity details
    */
-  private async getGame(gameId: string): Promise<any> {
+  private async getActivity(activityId: string): Promise<any> {
     const { data, error } = await this.supabase
-      .from('games')
+      .from('activities')
       .select('*')
-      .eq('id', gameId)
+      .eq('id', activityId)
       .single();
 
     if (error || !data) {
-      throw new Error('Game not found');
+      throw new Error('Activity not found');
     }
 
     return data;
@@ -345,8 +345,8 @@ export class BookingService {
    * Validate booking data
    */
   private validateBookingData(data: CreateBookingDTO): void {
-    if (!data.game_id) {
-      throw new Error('Game is required');
+    if (!data.activity_id) {
+      throw new Error('Activity is required');
     }
 
     if (!data.customer_id) {
@@ -422,7 +422,7 @@ export class BookingService {
     action: 'created' | 'updated' | 'cancelled'
   ): Promise<void> {
     const messages = {
-      created: `New booking ${booking.booking_number} for ${booking.game?.name || 'game'}`,
+      created: `New booking ${booking.booking_number} for ${booking.activity?.name || 'activity'}`,
       updated: `Booking ${booking.booking_number} has been updated`,
       cancelled: `Booking ${booking.booking_number} has been cancelled`,
     };

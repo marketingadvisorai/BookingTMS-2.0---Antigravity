@@ -140,6 +140,9 @@ export const AddOwnerDialog = ({ isOpen, onClose, onAdd }: AddOwnerDialogProps) 
               </svg>
             </div>
             <p className={mutedTextClass}>The database tables don't exist yet. Please run migrations first.</p>
+            <p className="text-xs text-red-500 mt-2">
+              Error: {orgsError?.message || plansError?.message}
+            </p>
             <div className="mt-4">
               <Button onClick={() => onClose()} variant="outline" className="w-full">
                 Close

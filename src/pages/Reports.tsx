@@ -24,13 +24,13 @@ import { Label } from '../components/ui/label';
 import { Separator } from '../components/ui/separator';
 import { Checkbox } from '../components/ui/checkbox';
 import { Badge } from '../components/ui/badge';
-import { 
-  Download, 
-  TrendingUp, 
-  TrendingDown, 
-  FileText, 
-  Clock, 
-  CheckCircle2, 
+import {
+  Download,
+  TrendingUp,
+  TrendingDown,
+  FileText,
+  Clock,
+  CheckCircle2,
   Calendar,
   DollarSign,
   Users,
@@ -75,14 +75,14 @@ export function Reports() {
   const chartAxisColor = isDark ? '#737373' : '#6b7280';
   const tooltipBg = isDark ? '#1e1e1e' : 'white';
   const tooltipBorder = isDark ? '#2a2a2a' : '#e5e7eb';
-  
+
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportFormat, setExportFormat] = useState('csv');
   const [isExporting, setIsExporting] = useState(false);
   const [selectedReports, setSelectedReports] = useState<string[]>(['revenue', 'games', 'occupancy', 'summary']);
   const [dateRange, setDateRange] = useState('last-30');
   const [loading, setLoading] = useState(true);
-  
+
   // Real data state
   const [reportData, setReportData] = useState({
     stats: {
@@ -95,7 +95,7 @@ export function Reports() {
       occupancyTrend: 0
     },
     revenueData: [] as Array<{ month: string; revenue: number; bookings: number }>,
-    gamePopularityData: [] as Array<{ name: string; bookings: number; fill: string }>,
+    activityPopularityData: [] as Array<{ name: string; bookings: number; fill: string }>,
     occupancyData: [] as Array<{ day: string; rate: number }>
   });
 
@@ -108,8 +108,8 @@ export function Reports() {
   const getDateRange = (range: string) => {
     const endDate = new Date();
     let startDate = new Date();
-    
-    switch(range) {
+
+    switch (range) {
       case 'last-7':
         startDate.setDate(endDate.getDate() - 7);
         break;
@@ -126,7 +126,7 @@ export function Reports() {
         startDate = new Date(2020, 0, 1);
         break;
     }
-    
+
     return { startDate, endDate };
   };
 
@@ -135,19 +135,19 @@ export function Reports() {
     try {
       setLoading(true);
       const { startDate, endDate } = getDateRange(dateRange);
-      
+
       // Fetch all data in parallel
-      const [stats, revenueTrend, gamePopularity, occupancy] = await Promise.all([
+      const [stats, revenueTrend, activityPopularity, occupancy] = await Promise.all([
         fetchSummaryStats(startDate, endDate),
         fetchRevenueTrend(startDate, endDate),
-        fetchGamePopularity(startDate, endDate),
+        fetchActivityPopularity(startDate, endDate),
         fetchOccupancyData(startDate, endDate)
       ]);
-      
+
       setReportData({
         stats,
         revenueData: revenueTrend,
-        gamePopularityData: gamePopularity,
+        activityPopularityData: activityPopularity,
         occupancyData: occupancy
       });
     } catch (error) {
@@ -213,15 +213,15 @@ export function Reports() {
     if (error) throw error;
 
     const monthlyData = new Map<string, { revenue: number; bookings: number }>();
-    
+
     data?.filter(b => b.status !== 'cancelled').forEach(booking => {
       const date = new Date(booking.booking_date);
       const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
-      
+
       if (!monthlyData.has(monthKey)) {
         monthlyData.set(monthKey, { revenue: 0, bookings: 0 });
       }
-      
+
       const current = monthlyData.get(monthKey)!;
       current.revenue += parseFloat(booking.total_amount || '0');
       current.bookings += 1;
@@ -234,28 +234,28 @@ export function Reports() {
     }));
   };
 
-  // Fetch game popularity
-  const fetchGamePopularity = async (startDate: Date, endDate: Date) => {
+  // Fetch activity popularity
+  const fetchActivityPopularity = async (startDate: Date, endDate: Date) => {
     const { data, error } = await supabase
       .from('bookings')
       .select(`
-        game_id,
+        activity_id,
         status,
-        games (name)
+        activities (name)
       `)
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString());
 
     if (error) throw error;
 
-    const gameStats = new Map<string, number>();
-    
+    const activityStats = new Map<string, number>();
+
     data?.filter(b => b.status !== 'cancelled').forEach(booking => {
-      const gameName = (booking.games as any)?.name || 'Unknown';
-      gameStats.set(gameName, (gameStats.get(gameName) || 0) + 1);
+      const activityName = (booking.activities as any)?.name || 'Unknown';
+      activityStats.set(activityName, (activityStats.get(activityName) || 0) + 1);
     });
 
-    return Array.from(gameStats.entries())
+    return Array.from(activityStats.entries())
       .map(([name, bookings], index) => ({
         name,
         bookings,
@@ -277,7 +277,7 @@ export function Reports() {
 
     const dayStats = new Map<string, number>();
     const dayCounts = new Map<string, number>();
-    
+
     data?.filter(b => b.status !== 'cancelled').forEach(booking => {
       const date = new Date(booking.booking_date);
       const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
@@ -297,24 +297,24 @@ export function Reports() {
     try {
       const dateLabel =
         dateRange === 'last-7' ? 'Last 7 days' :
-        dateRange === 'last-30' ? 'Last 30 days' :
-        dateRange === 'last-90' ? 'Last 90 days' :
-        dateRange === 'year' ? 'This year' : 'All time';
+          dateRange === 'last-30' ? 'Last 30 days' :
+            dateRange === 'last-90' ? 'Last 90 days' :
+              dateRange === 'year' ? 'This year' : 'All time';
 
       const summary = (() => {
-        const { stats, revenueData, gamePopularityData, occupancyData } = reportData;
-        const topGame = gamePopularityData.length > 0 
-          ? gamePopularityData.reduce((prev, cur) => cur.bookings > prev.bookings ? cur : prev, gamePopularityData[0])
+        const { stats, revenueData, activityPopularityData, occupancyData } = reportData;
+        const topActivity = activityPopularityData.length > 0
+          ? activityPopularityData.reduce((prev, cur) => cur.bookings > prev.bookings ? cur : prev, activityPopularityData[0])
           : { name: 'N/A', bookings: 0 };
         const avgOccupancy = occupancyData.length > 0
           ? Math.round(occupancyData.reduce((sum, o) => sum + o.rate, 0) / occupancyData.length)
           : 0;
-        return { 
-          totalRevenue: stats.totalRevenue, 
-          totalBookings: stats.totalBookings, 
-          avgValue: stats.avgBookingValue, 
-          topGame: topGame.name, 
-          avgOccupancy 
+        return {
+          totalRevenue: stats.totalRevenue,
+          totalBookings: stats.totalBookings,
+          avgValue: stats.avgBookingValue,
+          topActivity: topActivity.name,
+          avgOccupancy
         };
       })();
 
@@ -327,7 +327,7 @@ export function Reports() {
           sections.push(`Total Revenue,$${summary.totalRevenue}`);
           sections.push(`Total Bookings,${summary.totalBookings}`);
           sections.push(`Average Booking Value,$${summary.avgValue.toFixed(2)}`);
-          sections.push(`Top Game,${summary.topGame}`);
+          sections.push(`Top Activity,${summary.topActivity}`);
           sections.push(`Average Occupancy,${summary.avgOccupancy}%`);
         }
 
@@ -338,9 +338,9 @@ export function Reports() {
         }
 
         if (selectedReports.includes('games')) {
-          sections.push('', 'Section: Game Popularity');
-          sections.push('Game,Bookings');
-          reportData.gamePopularityData.forEach(g => sections.push(`${g.name},${g.bookings}`));
+          sections.push('', 'Section: Activity Popularity');
+          sections.push('Activity,Bookings');
+          reportData.activityPopularityData.forEach(g => sections.push(`${g.name},${g.bookings}`));
         }
 
         if (selectedReports.includes('occupancy')) {
@@ -354,7 +354,7 @@ export function Reports() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `reports_${new Date().toISOString().slice(0,10)}.csv`;
+        a.download = `reports_${new Date().toISOString().slice(0, 10)}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -388,7 +388,7 @@ export function Reports() {
           addLine(`Total Revenue: $${summary.totalRevenue}`);
           addLine(`Total Bookings: ${summary.totalBookings}`);
           addLine(`Average Booking Value: $${summary.avgValue.toFixed(2)}`);
-          addLine(`Top Game: ${summary.topGame}`);
+          addLine(`Top Activity: ${summary.topActivity}`);
           addLine(`Average Occupancy: ${summary.avgOccupancy}%`);
           y += 4;
         }
@@ -400,8 +400,8 @@ export function Reports() {
         }
 
         if (selectedReports.includes('games')) {
-          addHeading('Game Popularity');
-          reportData.gamePopularityData.forEach(g => addLine(`${g.name}: ${g.bookings} bookings`));
+          addHeading('Activity Popularity');
+          reportData.activityPopularityData.forEach(g => addLine(`${g.name}: ${g.bookings} bookings`));
           y += 4;
         }
 
@@ -410,7 +410,7 @@ export function Reports() {
           reportData.occupancyData.forEach(o => addLine(`${o.day}: ${o.rate}%`));
         }
 
-        doc.save(`reports_${new Date().toISOString().slice(0,10)}.pdf`);
+        doc.save(`reports_${new Date().toISOString().slice(0, 10)}.pdf`);
       }
 
       toast.success(`Report exported successfully as ${exportFormat.toUpperCase()}`);
@@ -454,10 +454,10 @@ export function Reports() {
               </SelectContent>
             </Select>
             <PermissionGuard permissions={['reports.export']}>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowExportDialog(true)} 
-                className="h-11 w-11 flex-shrink-0 p-0" 
+              <Button
+                variant="outline"
+                onClick={() => setShowExportDialog(true)}
+                className="h-11 w-11 flex-shrink-0 p-0"
                 size="icon"
               >
                 <Download className="w-4 h-4" />
@@ -553,65 +553,65 @@ export function Reports() {
               <p className={textMutedClass}>No revenue data available for this period</p>
             </div>
           ) : (
-          <div className="overflow-x-auto -mx-6 px-6">
-            <div className="min-w-[500px]">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={reportData.revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
-                  <XAxis 
-                    dataKey="month" 
-                    stroke={chartAxisColor} 
-                    fontSize={12}
-                    tick={{ fill: chartAxisColor }}
-                  />
-                  <YAxis 
-                    yAxisId="left" 
-                    stroke={chartAxisColor} 
-                    fontSize={12} 
-                    width={60}
-                    tick={{ fill: chartAxisColor }}
-                  />
-                  <YAxis 
-                    yAxisId="right" 
-                    orientation="right" 
-                    stroke={chartAxisColor} 
-                    fontSize={12} 
-                    width={40}
-                    tick={{ fill: chartAxisColor }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: tooltipBg,
-                      border: `1px solid ${tooltipBorder}`,
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      color: isDark ? 'white' : 'black',
-                    }}
-                  />
-                  <Legend 
-                    wrapperStyle={{ 
-                      fontSize: '12px',
-                      color: chartAxisColor
-                    }} 
-                  />
-                  <Bar 
-                    yAxisId="left" 
-                    dataKey="revenue" 
-                    fill={isDark ? '#4f46e5' : '#2563eb'} 
-                    name="Revenue ($)" 
-                    radius={[4, 4, 0, 0]} 
-                  />
-                  <Bar 
-                    yAxisId="right" 
-                    dataKey="bookings" 
-                    fill={isDark ? '#7c3aed' : '#7c3aed'} 
-                    name="Bookings" 
-                    radius={[4, 4, 0, 0]} 
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="overflow-x-auto -mx-6 px-6">
+              <div className="min-w-[500px]">
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={reportData.revenueData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
+                    <XAxis
+                      dataKey="month"
+                      stroke={chartAxisColor}
+                      fontSize={12}
+                      tick={{ fill: chartAxisColor }}
+                    />
+                    <YAxis
+                      yAxisId="left"
+                      stroke={chartAxisColor}
+                      fontSize={12}
+                      width={60}
+                      tick={{ fill: chartAxisColor }}
+                    />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      stroke={chartAxisColor}
+                      fontSize={12}
+                      width={40}
+                      tick={{ fill: chartAxisColor }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: tooltipBg,
+                        border: `1px solid ${tooltipBorder}`,
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        color: isDark ? 'white' : 'black',
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{
+                        fontSize: '12px',
+                        color: chartAxisColor
+                      }}
+                    />
+                    <Bar
+                      yAxisId="left"
+                      dataKey="revenue"
+                      fill={isDark ? '#4f46e5' : '#2563eb'}
+                      name="Revenue ($)"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      yAxisId="right"
+                      dataKey="bookings"
+                      fill={isDark ? '#7c3aed' : '#7c3aed'}
+                      name="Bookings"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
           )}
         </CardContent>
       </Card>
@@ -623,10 +623,10 @@ export function Reports() {
           <CardHeader className="p-6">
             <div className="flex items-center gap-2">
               <PieChartIcon className={`w-5 h-5 ${isDark ? 'text-[#6366f1]' : 'text-blue-600'}`} />
-              <CardTitle className={textClass}>Game Popularity</CardTitle>
+              <CardTitle className={textClass}>Activity Popularity</CardTitle>
             </div>
             <CardDescription className={`${textMutedClass} mt-1`}>
-              Bookings by game
+              Bookings by activity
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-0">
@@ -634,58 +634,58 @@ export function Reports() {
               <div className="flex items-center justify-center h-[260px]">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
-            ) : reportData.gamePopularityData.length === 0 ? (
+            ) : reportData.activityPopularityData.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[260px] text-center">
                 <PieChartIcon className={`w-12 h-12 mb-3 ${textMutedClass}`} />
-                <p className={textMutedClass}>No game data available</p>
+                <p className={textMutedClass}>No activity data available</p>
               </div>
             ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie
-                  data={reportData.gamePopularityData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={false}
-                  outerRadius={100}
-                  dataKey="bookings"
-                >
-                  {reportData.gamePopularityData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: tooltipBg,
-                    border: `1px solid ${tooltipBorder}`,
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    color: isDark ? 'white' : 'black',
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            )}
-            {!loading && reportData.gamePopularityData.length > 0 && (
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {reportData.gamePopularityData.map((game) => (
-                <div key={game.name} className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full flex-shrink-0" 
-                    style={{ backgroundColor: game.fill }} 
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={reportData.activityPopularityData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={false}
+                    outerRadius={100}
+                    dataKey="bookings"
+                  >
+                    {reportData.activityPopularityData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: tooltipBg,
+                      border: `1px solid ${tooltipBorder}`,
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      color: isDark ? 'white' : 'black',
+                    }}
                   />
-                  <div className="flex-1 min-w-0">
-                    <span className={`text-sm truncate block ${textMutedClass}`}>
-                      {game.name}
-                    </span>
-                    <span className={`text-xs ${textMutedClass}`}>
-                      {game.bookings} bookings
-                    </span>
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+            {!loading && reportData.activityPopularityData.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {reportData.activityPopularityData.map((activity) => (
+                  <div key={activity.name} className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: game.fill }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-sm truncate block ${textMutedClass}`}>
+                        {game.name}
+                      </span>
+                      <span className={`text-xs ${textMutedClass}`}>
+                        {game.bookings} bookings
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -712,42 +712,42 @@ export function Reports() {
                 <p className={textMutedClass}>No occupancy data available</p>
               </div>
             ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={reportData.occupancyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
-                <XAxis 
-                  dataKey="day" 
-                  stroke={chartAxisColor} 
-                  fontSize={12}
-                  tick={{ fill: chartAxisColor }}
-                />
-                <YAxis 
-                  stroke={chartAxisColor} 
-                  fontSize={12} 
-                  unit="%" 
-                  width={45}
-                  tick={{ fill: chartAxisColor }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: tooltipBg,
-                    border: `1px solid ${tooltipBorder}`,
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    color: isDark ? 'white' : 'black',
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="rate"
-                  stroke={isDark ? '#10b981' : '#16a34a'}
-                  strokeWidth={3}
-                  dot={{ fill: isDark ? '#10b981' : '#16a34a', r: 4 }}
-                  activeDot={{ r: 6 }}
-                  name="Occupancy Rate (%)"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={reportData.occupancyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
+                  <XAxis
+                    dataKey="day"
+                    stroke={chartAxisColor}
+                    fontSize={12}
+                    tick={{ fill: chartAxisColor }}
+                  />
+                  <YAxis
+                    stroke={chartAxisColor}
+                    fontSize={12}
+                    unit="%"
+                    width={45}
+                    tick={{ fill: chartAxisColor }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: tooltipBg,
+                      border: `1px solid ${tooltipBorder}`,
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      color: isDark ? 'white' : 'black',
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="rate"
+                    stroke={isDark ? '#10b981' : '#16a34a'}
+                    strokeWidth={3}
+                    dot={{ fill: isDark ? '#10b981' : '#16a34a', r: 4 }}
+                    activeDot={{ r: 6 }}
+                    name="Occupancy Rate (%)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             )}
           </CardContent>
         </Card>
@@ -769,17 +769,16 @@ export function Reports() {
               <div className="grid grid-cols-2 gap-3 mt-2">
                 <button
                   onClick={() => setExportFormat('csv')}
-                  className={`p-4 border-2 rounded-lg text-left transition-all ${
-                    exportFormat === 'csv' 
-                      ? (isDark 
-                          ? 'border-[#4f46e5] bg-[#4f46e5]/10' 
-                          : 'border-blue-600 bg-blue-50'
-                        )
+                  className={`p-4 border-2 rounded-lg text-left transition-all ${exportFormat === 'csv'
+                      ? (isDark
+                        ? 'border-[#4f46e5] bg-[#4f46e5]/10'
+                        : 'border-blue-600 bg-blue-50'
+                      )
                       : (isDark
-                          ? `border-[#2a2a2a] ${hoverBgClass}`
-                          : 'border-gray-200 hover:border-gray-300'
-                        )
-                  }`}
+                        ? `border-[#2a2a2a] ${hoverBgClass}`
+                        : 'border-gray-200 hover:border-gray-300'
+                      )
+                    }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <FileText className={`w-4 h-4 flex-shrink-0 ${isDark ? 'text-[#6366f1]' : 'text-blue-600'}`} />
@@ -789,17 +788,16 @@ export function Reports() {
                 </button>
                 <button
                   onClick={() => setExportFormat('pdf')}
-                  className={`p-4 border-2 rounded-lg text-left transition-all ${
-                    exportFormat === 'pdf' 
-                      ? (isDark 
-                          ? 'border-[#4f46e5] bg-[#4f46e5]/10' 
-                          : 'border-blue-600 bg-blue-50'
-                        )
+                  className={`p-4 border-2 rounded-lg text-left transition-all ${exportFormat === 'pdf'
+                      ? (isDark
+                        ? 'border-[#4f46e5] bg-[#4f46e5]/10'
+                        : 'border-blue-600 bg-blue-50'
+                      )
                       : (isDark
-                          ? `border-[#2a2a2a] ${hoverBgClass}`
-                          : 'border-gray-200 hover:border-gray-300'
-                        )
-                  }`}
+                        ? `border-[#2a2a2a] ${hoverBgClass}`
+                        : 'border-gray-200 hover:border-gray-300'
+                      )
+                    }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <FileText className={`w-4 h-4 flex-shrink-0 ${isDark ? 'text-red-400' : 'text-red-600'}`} />
@@ -893,16 +891,16 @@ export function Reports() {
           </div>
 
           <DialogFooter className="gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowExportDialog(false)} 
-              disabled={isExporting} 
+            <Button
+              variant="outline"
+              onClick={() => setShowExportDialog(false)}
+              disabled={isExporting}
               className="w-full sm:w-auto h-11"
             >
               Cancel
             </Button>
             <PermissionGuard permissions={['reports.export']}>
-              <Button 
+              <Button
                 style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
                 className={!isDark ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-[#4338ca]'}
                 onClick={handleExport}

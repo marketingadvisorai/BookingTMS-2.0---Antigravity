@@ -40,6 +40,18 @@ export const router = createBrowserRouter([
     element: <App />,
   },
   {
+    path: '/service-items',
+    element: <App />,
+  },
+  {
+    path: '/payment-history',
+    element: <App />,
+  },
+  {
+    path: '/stripe-oauth-callback',
+    element: <App />,
+  },
+  {
     path: '/customers',
     element: <App />,
   },

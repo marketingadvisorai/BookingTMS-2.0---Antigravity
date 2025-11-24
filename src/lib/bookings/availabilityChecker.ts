@@ -16,12 +16,13 @@ export class AvailabilityChecker {
     startTime: string,
     endTime: string
   ): Promise<boolean> {
+
     try {
       // Check for overlapping bookings
       const { data: overlapping, error } = await supabase
         .from('bookings')
         .select('id, start_time, end_time')
-        .eq('game_id', gameId)
+        .eq('activity_id', gameId) // Refactored from game_id
         .eq('booking_date', date)
         .neq('status', 'canceled')
         .or(`and(start_time.lt.${endTime},end_time.gt.${startTime})`);
@@ -48,10 +49,11 @@ export class AvailabilityChecker {
     try {
       // Get game details
       const { data: game, error: gameError } = await supabase
-        .from('games')
+        .from('activities') // Refactored from games
         .select('duration, min_players, max_players')
         .eq('id', gameId)
         .single();
+
 
       if (gameError || !game) {
         console.error('Error fetching game:', gameError);

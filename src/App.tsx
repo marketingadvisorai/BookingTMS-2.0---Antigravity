@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { ThemeProvider } from './components/layout/ThemeContext';
 import { LoadingScreen } from './components/layout/LoadingScreen';
@@ -45,14 +46,12 @@ import BookingEngineTest from './pages/BookingEngineTest';
 // ============================================================================
 // Set DEV_MODE to true to bypass login (auto-login as Super Admin)
 // Set DEV_MODE to false to require authentication (production-like behavior)
-const DEV_MODE = true; // Changed to true for testing
+const DEV_MODE = false; // Changed to false for testing
 
 // Protected App Content Component
 function AppContent() {
-  const [currentPage, setCurrentPage] = useState<string | null>(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('page');
-  });
+  const location = useLocation();
+  const navigate = useNavigate();
   const { currentUser, isLoading, login } = useAuth();
 
   // Auto-login in DEV_MODE
@@ -70,17 +69,38 @@ function AppContent() {
     autoLogin();
   }, [currentUser, isLoading, login]);
 
-  const effectivePage = currentPage ?? (currentUser?.role === 'system-admin' ? 'system-admin' : 'dashboard');
+  // Derive current page from URL path
+  const getPageFromPath = (path: string) => {
+    // Remove trailing slash
+    const cleanPath = path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path;
+
+    if (cleanPath === '/' || cleanPath === '/dashboard') return 'dashboard';
+    if (cleanPath.startsWith('/system-admin')) return 'system-admin';
+
+    // Handle specific mappings if needed, otherwise use path segment
+    const segment = cleanPath.split('/')[1];
+    return segment || 'dashboard';
+  };
+
+  const currentPage = getPageFromPath(location.pathname);
+
+  const handleNavigate = (page: string) => {
+    if (page === 'dashboard') navigate('/dashboard');
+    else if (page === 'system-admin') navigate('/system-admin');
+    else if (page.startsWith('/')) navigate(page);
+    else navigate(`/${page}`);
+  };
 
   const renderPage = () => {
-    switch (effectivePage) {
+    switch (currentPage) {
       case 'dashboard':
-        return <Dashboard onNavigate={setCurrentPage} />;
+        return <Dashboard onNavigate={handleNavigate} />;
       case 'inbox':
         return <Inbox />;
       case 'bookings':
         return <Bookings />;
       case 'events':
+      case 'service-items': // Alias for events
         return <Events />;
       case 'customers':
         return <Customers />;
@@ -109,7 +129,7 @@ function AppContent() {
       case 'settings':
         return <Settings />;
       case 'myaccount':
-        return <MyAccount onNavigate={setCurrentPage} />;
+        return <MyAccount onNavigate={handleNavigate} />;
       case 'account':
         return <Account />;
       case 'profile':
@@ -123,9 +143,9 @@ function AppContent() {
       case 'backend-dashboard':
         return <BackendDashboard />;
       case 'system-admin':
-        return <SystemAdminDashboard onNavigate={setCurrentPage} />;
+        return <SystemAdminDashboard onNavigate={handleNavigate} />;
       case 'view-all-organizations':
-        return <ViewAllOrganizations onBack={() => setCurrentPage('system-admin')} />;
+        return <ViewAllOrganizations onBack={() => handleNavigate('system-admin')} />;
       case 'user-stripe-accounts':
         return <UserStripeAccounts />;
       case 'stripe-oauth-callback':
@@ -135,7 +155,7 @@ function AppContent() {
       case 'booking-test':
         return <BookingEngineTest />;
       default:
-        return <Dashboard onNavigate={setCurrentPage} />;
+        return <Dashboard onNavigate={handleNavigate} />;
     }
   };
 

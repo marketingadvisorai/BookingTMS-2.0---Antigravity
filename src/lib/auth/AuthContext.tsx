@@ -45,9 +45,6 @@ const getEnvVar = (key: string): string | undefined => {
 };
 
 const loadSupabase = async () => {
-  // FORCE MOCK AUTH FOR DEV MODE
-  return null;
-
   if (typeof window === 'undefined') return null;
 
   // Access environment variables safely in client-side code

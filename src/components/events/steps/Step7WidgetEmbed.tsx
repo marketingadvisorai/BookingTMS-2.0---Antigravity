@@ -169,6 +169,7 @@ export default function Step7WidgetEmbed({ gameData, updateGameData, t }: StepPr
                                                 gameDescription={gameData.description}
                                                 gamePrice={gameData.adultPrice}
                                                 gameSchedule={gameData.schedule}
+                                                timezone={gameData.timezone}
                                                 config={{
                                                     // Pass minimal config for preview
                                                     businessName: embedContext.venueName,

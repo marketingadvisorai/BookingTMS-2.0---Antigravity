@@ -6,8 +6,8 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
-import { 
-  Users, 
+import {
+  Users,
   Search,
   Mail,
   Phone,
@@ -129,7 +129,7 @@ export default function AttendeeListDialog({ booking, isOpen, onClose }: Attende
   const fetchAttendees = async () => {
     try {
       setLoading(true);
-      
+
       // Query waivers table for attendees
       const { data, error } = await supabase
         .from('waivers')
@@ -145,13 +145,13 @@ export default function AttendeeListDialog({ booking, isOpen, onClose }: Attende
 
       if (data && data.length > 0) {
         // Transform database data to attendee format
-        const transformedAttendees: Attendee[] = data.map(waiver => ({
+        const transformedAttendees: Attendee[] = (data as any[]).map(waiver => ({
           id: waiver.waiver_code || waiver.id,
           name: waiver.participant_name || 'Unknown',
           email: waiver.participant_email || '',
           phone: waiver.participant_phone || '',
           waiverStatus: waiver.status === 'signed' ? 'signed' : 'pending',
-          waiverDate: waiver.signed_at 
+          waiverDate: waiver.signed_at
             ? new Date(waiver.signed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
             : '-',
           isMinor: waiver.is_minor || false,
@@ -173,7 +173,7 @@ export default function AttendeeListDialog({ booking, isOpen, onClose }: Attende
 
   const filteredAttendees = attendees.filter(attendee => {
     const matchesSearch = attendee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         attendee.email.toLowerCase().includes(searchQuery.toLowerCase());
+      attendee.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterStatus === 'all' || attendee.waiverStatus === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -187,7 +187,7 @@ export default function AttendeeListDialog({ booking, isOpen, onClose }: Attende
 
   const handleSendReminders = async () => {
     const pendingAttendees = attendees.filter(a => a.waiverStatus === 'pending');
-    
+
     if (pendingAttendees.length === 0) {
       toast.info('No pending waivers to send reminders for');
       return;
@@ -203,26 +203,26 @@ export default function AttendeeListDialog({ booking, isOpen, onClose }: Attende
             .select('reminder_sent_count')
             .eq('id', attendee.waiverId)
             .single();
-          
+
           const currentCount = (currentData as any)?.reminder_sent_count || 0;
-          
+
           // Then update with incremented value
-          const { error } = await supabase
+          const { error } = await (supabase
             .from('waivers')
-            .update({ 
+            .update as any)({
               reminder_sent_count: currentCount + 1,
               last_reminder_sent_at: new Date().toISOString()
-            } as any)
+            })
             .eq('id', attendee.waiverId);
-          
+
           if (error) console.error('Error updating reminder:', error);
         }
       });
 
       await Promise.all(updates);
-      
+
       toast.success(`Reminders queued for ${pendingAttendees.length} attendee(s) - Email system pending`);
-      
+
       // Refresh attendee list
       await fetchAttendees();
     } catch (err) {
@@ -460,7 +460,7 @@ export default function AttendeeListDialog({ booking, isOpen, onClose }: Attende
               <Download className="w-4 h-4 mr-2" />
               Export List
             </Button>
-            <Button 
+            <Button
               onClick={onClose}
               style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
               className={`h-11 ${isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}`}

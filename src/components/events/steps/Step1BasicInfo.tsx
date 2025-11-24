@@ -1,13 +1,74 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { Textarea } from '../../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { StepProps } from '../types';
-import { CATEGORIES } from '../constants';
+import { CATEGORIES, TIMEZONES } from '../constants';
+import { useAuth } from '../../../lib/auth/AuthContext';
+import { supabase } from '../../../lib/supabase';
 
-export default function Step1BasicInfo({ gameData, updateGameData, t }: StepProps) {
+interface ExtendedStepProps extends StepProps {
+    organizationId?: string;
+    venueId?: string;
+    organizationName?: string;
+    venueName?: string;
+}
+
+export default function Step1BasicInfo({ gameData, updateGameData, t, organizationId, venueId, organizationName, venueName }: ExtendedStepProps) {
+    const { currentUser } = useAuth();
+    const isSystemAdmin = currentUser?.role === 'system-admin';
+
+    const [organizations, setOrganizations] = useState<any[]>([]);
+    const [venues, setVenues] = useState<any[]>([]);
+    const [loadingOrgs, setLoadingOrgs] = useState(false);
+    const [loadingVenues, setLoadingVenues] = useState(false);
+
+    // Fetch organizations for System Admin
+    useEffect(() => {
+        if (isSystemAdmin) {
+            const fetchOrgs = async () => {
+                setLoadingOrgs(true);
+                const { data } = await supabase.from('organizations').select('id, name').order('name');
+                setOrganizations(data || []);
+                setLoadingOrgs(false);
+            };
+            fetchOrgs();
+        }
+    }, [isSystemAdmin]);
+
+    // Fetch venues when organization changes (for System Admin)
+    useEffect(() => {
+        if (isSystemAdmin && gameData.organizationId) {
+            const fetchVenues = async () => {
+                setLoadingVenues(true);
+                const { data } = await supabase
+                    .from('venues')
+                    .select('id, name')
+                    .eq('organization_id', gameData.organizationId!)
+                    .order('name');
+                setVenues(data || []);
+                setLoadingVenues(false);
+            };
+            fetchVenues();
+        } else if (isSystemAdmin) {
+            setVenues([]);
+        }
+    }, [isSystemAdmin, gameData.organizationId]);
+
+    // Initialize default values for Org Admin
+    useEffect(() => {
+        if (!isSystemAdmin) {
+            if (organizationId && !gameData.organizationId) {
+                updateGameData('organizationId', organizationId);
+            }
+            if (venueId && !gameData.venueId) {
+                updateGameData('venueId', venueId);
+            }
+        }
+    }, [isSystemAdmin, organizationId, venueId, gameData.organizationId, gameData.venueId, updateGameData]);
+
     return (
         <div className="space-y-6">
             <Card>
@@ -18,6 +79,62 @@ export default function Step1BasicInfo({ gameData, updateGameData, t }: StepProp
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    {/* Organization & Venue Selection */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="organization">Organization</Label>
+                            {isSystemAdmin ? (
+                                <Select
+                                    value={gameData.organizationId || ''}
+                                    onValueChange={(value) => {
+                                        updateGameData('organizationId', value);
+                                        updateGameData('venueId', ''); // Reset venue when org changes
+                                    }}
+                                >
+                                    <SelectTrigger className="mt-1">
+                                        <SelectValue placeholder="Select Organization" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {organizations.map((org) => (
+                                            <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <Input
+                                    value={organizationName || 'Current Organization'}
+                                    disabled
+                                    className="mt-1 bg-gray-100 dark:bg-gray-800"
+                                />
+                            )}
+                        </div>
+                        <div>
+                            <Label htmlFor="venue">Venue</Label>
+                            {isSystemAdmin ? (
+                                <Select
+                                    value={gameData.venueId || ''}
+                                    onValueChange={(value) => updateGameData('venueId', value)}
+                                    disabled={!gameData.organizationId}
+                                >
+                                    <SelectTrigger className="mt-1">
+                                        <SelectValue placeholder="Select Venue" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {venues.map((venue) => (
+                                            <SelectItem key={venue.id} value={venue.id}>{venue.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <Input
+                                    value={venueName || 'Current Venue'}
+                                    disabled
+                                    className="mt-1 bg-gray-100 dark:bg-gray-800"
+                                />
+                            )}
+                        </div>
+                    </div>
+
                     <div>
                         <Label htmlFor="name">
                             {t.singular} Name <span className="text-red-500">*</span>
@@ -124,6 +241,27 @@ export default function Step1BasicInfo({ gameData, updateGameData, t }: StepProp
                                 </SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    <div>
+                        <Label htmlFor="timezone">
+                            Time Zone <span className="text-red-500">*</span>
+                        </Label>
+                        <Select value={gameData.timezone || 'UTC'} onValueChange={(value) => updateGameData('timezone', value)}>
+                            <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Select time zone" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {TIMEZONES.map((tz) => (
+                                    <SelectItem key={tz.value} value={tz.value}>
+                                        {tz.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <p className="text-xs text-gray-500 mt-1">
+                            This time zone will be used for all bookings and availability.
+                        </p>
                     </div>
 
                     <div>

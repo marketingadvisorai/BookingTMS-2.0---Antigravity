@@ -7,7 +7,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/supabase';
+import type { Database } from '../../types/supabase';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
 // Get Supabase configuration

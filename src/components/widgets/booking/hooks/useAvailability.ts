@@ -76,7 +76,7 @@ export const useAvailability = ({
                     hour: '2-digit',
                     minute: '2-digit',
                     hour12: false,
-                    timeZone: activeVenue?.timezone
+                    timeZone: selectedGameData?.timezone || activeVenue?.timezone || 'UTC'
                 });
 
                 return {
@@ -115,7 +115,7 @@ export const useAvailability = ({
             ...slot,
             sessionId: undefined // No session ID in template mode
         }));
-    }, [selectedDate, currentMonth, currentYear, selectedGameData, config, fetchedSessions, activeVenue?.timezone]);
+    }, [selectedDate, currentMonth, currentYear, selectedGameData, config, fetchedSessions, activeVenue?.timezone, selectedGameData?.timezone]);
 
     const isLoading = dataLoading.venue || dataLoading.activities || dataLoading.sessions;
 

@@ -267,7 +267,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
 
     switch (currentStep) {
       case 1:
-        isValid = await trigger(['name', 'description', 'category', 'eventType', 'gameType']);
+        isValid = await trigger(['name', 'description', 'category', 'eventType', 'gameType', 'timezone']);
         break;
       case 2:
         isValid = await trigger(['minAdults', 'maxAdults', 'adultPrice', 'childPrice']);
@@ -387,7 +387,17 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        return <Step1BasicInfo gameData={gameData} updateGameData={updateGameData} t={t} />;
+        return (
+          <Step1BasicInfo
+            gameData={gameData}
+            updateGameData={updateGameData}
+            t={t}
+            organizationId={organizationId}
+            venueId={venueId}
+            organizationName={organizationName}
+            venueName={venueName}
+          />
+        );
       case 2:
         return <Step2CapacityPricing gameData={gameData} updateGameData={updateGameData} t={t} />;
       case 3:

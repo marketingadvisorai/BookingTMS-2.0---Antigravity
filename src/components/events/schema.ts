@@ -7,6 +7,9 @@ export const basicInfoSchema = z.object({
     tagline: z.string().optional(),
     eventType: z.enum(['public', 'private']),
     gameType: z.enum(['physical', 'virtual', 'hybrid']),
+    organizationId: z.string().optional(),
+    venueId: z.string().optional(),
+    timezone: z.string().min(1, "Time zone is required"),
 });
 
 export const capacityPricingSchema = z.object({

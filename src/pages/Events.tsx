@@ -88,15 +88,19 @@ export function Events() {
 
   const handleAddComplete = async (data: any) => {
     try {
-      if (!activeVenueId) {
-        toast.error("No venue found. Please create a venue first.");
+      // Use the venue ID from the wizard data (if selected by System Admin) or the active context venue
+      const targetVenueId = data.venueId || activeVenueId;
+
+      if (!targetVenueId) {
+        toast.error("No venue selected. Please select a venue.");
         return;
       }
 
       const slug = data.slug || data.name.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
 
       const serviceItemData = {
-        venue_id: activeVenueId,
+        venue_id: targetVenueId,
+        organization_id: data.organizationId || currentUser?.organizationId, // Ensure org ID is passed
         name: data.name,
         slug: slug,
         description: data.description || '',

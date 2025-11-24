@@ -516,6 +516,94 @@ export interface Database {
           created_at?: string
           processed_at?: string | null
         }
+      },
+      waiver_templates: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          description: string | null
+          type: string
+          content: string
+          status: 'active' | 'inactive' | 'draft'
+          usage_count: number
+          assigned_activities: string[] | null
+          required_fields: string[] | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+          description?: string | null
+          type: string
+          content: string
+          status?: 'active' | 'inactive' | 'draft'
+          usage_count?: number
+          assigned_activities?: string[] | null
+          required_fields?: string[] | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          name?: string
+          description?: string | null
+          type?: string
+          content?: string
+          status?: 'active' | 'inactive' | 'draft'
+          usage_count?: number
+          assigned_activities?: string[] | null
+          required_fields?: string[] | null
+          created_at?: string
+          updated_at?: string
+        }
+      },
+      waiver_records: {
+        Row: {
+          id: string
+          organization_id: string
+          guest_name: string
+          guest_email: string
+          activity: string | null
+          booking_id: string | null
+          template_id: string | null
+          signed_at: string
+          status: 'valid' | 'expired' | 'revoked'
+          pdf_url: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          guest_name: string
+          guest_email: string
+          activity?: string | null
+          booking_id?: string | null
+          template_id?: string | null
+          signed_at?: string
+          status?: 'valid' | 'expired' | 'revoked'
+          pdf_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          guest_name?: string
+          guest_email?: string
+          activity?: string | null
+          booking_id?: string | null
+          template_id?: string | null
+          signed_at?: string
+          status?: 'valid' | 'expired' | 'revoked'
+          pdf_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
       }
     }
     Views: {

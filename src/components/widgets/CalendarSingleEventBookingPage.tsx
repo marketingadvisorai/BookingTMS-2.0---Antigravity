@@ -31,6 +31,7 @@ interface CalendarSingleEventBookingPageProps {
   gameDescription?: string;
   gamePrice?: number;
   gameSchedule?: any;
+  timezone?: string;
   config?: any;
 }
 
@@ -38,9 +39,10 @@ export function CalendarSingleEventBookingPage({
   primaryColor: propPrimaryColor,
   gameName,
   gameDescription,
-  config,
   gamePrice,
-  gameSchedule
+  gameSchedule,
+  timezone,
+  config
 }: CalendarSingleEventBookingPageProps) {
   const { widgetTheme, getCurrentPrimaryColor } = useWidgetTheme();
   // Use prop value if provided, otherwise fall back to context
@@ -152,7 +154,8 @@ export function CalendarSingleEventBookingPage({
       endTime: '22:00',
       slotInterval: 60,
       duration: 60
-    }
+    },
+    timezone: timezone || gameSchedule?.timezone || selectedGame?.timezone || config?.timezone || 'UTC'
   };
 
   // Prefer user-provided images from config when available

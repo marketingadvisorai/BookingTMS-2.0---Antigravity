@@ -13,6 +13,9 @@ export interface GameData {
     tagline?: string;
     eventType: 'public' | 'private';
     gameType: 'physical' | 'virtual' | 'hybrid';
+    organizationId?: string;
+    venueId?: string;
+    timezone?: string;
 
     // Step 2: Capacity & Pricing
     minAdults: number;

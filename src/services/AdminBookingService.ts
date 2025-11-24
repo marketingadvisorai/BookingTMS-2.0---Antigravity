@@ -36,8 +36,8 @@ export class AdminBookingService {
   ): Promise<string> {
     try {
       // Try to find existing customer by email
-      const { data: existingCustomer, error: findError } = await supabase
-        .from('customers')
+      const { data: existingCustomer, error: findError } = await (supabase
+        .from('customers') as any)
         .select('id')
         .eq('email', email)
         .maybeSingle();
@@ -165,8 +165,8 @@ export class AdminBookingService {
     endTime: string
   ): Promise<boolean> {
     try {
-      const { data: session, error } = await supabase
-        .from('activity_sessions')
+      const { data: session, error } = await (supabase
+        .from('activity_sessions') as any)
         .select('capacity_remaining')
         .eq('activity_id', gameId)
         .eq('start_time', `${date}T${startTime}:00Z`) // Assuming UTC

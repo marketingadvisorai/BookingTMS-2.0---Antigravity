@@ -236,6 +236,79 @@ export class SupabaseBookingService {
   }
 
   /**
+   * Get single activity by ID (public access for single-activity embeds)
+   */
+  static async getActivityById(activityId: string): Promise<VenueActivity | null> {
+    try {
+      console.log('🔍 Fetching activity by ID:', activityId);
+      
+      const { data, error } = await (supabase
+        .from('activities')
+        .select('*')
+        .eq('id', activityId)
+        .eq('is_active', true)
+        .single() as any);
+
+      if (error) {
+        console.error('Error fetching activity by ID:', error);
+        return null;
+      }
+
+      if (!data) {
+        console.warn(`No active activity found for ID: ${activityId}`);
+        return null;
+      }
+
+      console.log('✅ Activity found:', data.name, '(ID:', data.id, ')');
+      return data as VenueActivity;
+    } catch (error) {
+      console.error('Exception fetching activity:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get widget config for single activity embed
+   * Returns activity data + venue data needed for booking widget
+   */
+  static async getActivityWidgetConfig(activityId: string) {
+    const activity = await this.getActivityById(activityId);
+    
+    if (!activity) {
+      return null;
+    }
+
+    // Fetch the associated venue for timezone and settings
+    const { data: venue, error: venueError } = await (supabase
+      .from('venues')
+      .select('id, name, slug, embed_key, primary_color, base_url, timezone, settings')
+      .eq('id', (activity as any).venue_id)
+      .single() as any);
+
+    if (venueError || !venue) {
+      console.error('Error fetching venue for activity:', venueError);
+      // Continue without venue - use defaults
+    }
+
+    const normalizedActivity = this.normalizeActivityForWidget(activity);
+    const venueData = venue as VenueConfig | null;
+    
+    return {
+      activity: normalizedActivity,
+      venue: venueData,
+      widgetConfig: {
+        venueId: venueData?.id,
+        venueName: venueData?.name,
+        primaryColor: venueData?.primary_color,
+        baseUrl: venueData?.base_url,
+        timezone: venueData?.timezone || 'UTC',
+        activities: [normalizedActivity],
+        games: [normalizedActivity], // Backward compatibility
+      },
+    };
+  }
+
+  /**
    * Get full widget configuration for embeds (venue + normalized activities + stored widget settings)
    */
   static async getVenueWidgetConfig(embedKey: string) {

@@ -297,28 +297,28 @@ export default function Step7WidgetEmbedNew({
                     <ActivityPreviewCard
                       activity={{
                         id: activityId || 'preview',
-                        name: activityData.name || 'Your Activity',
-                        description: activityData.description,
+                        name: activityData.name || 'Sample Activity',
+                        description: activityData.description || 'Experience an amazing adventure with your group.',
                         duration: activityData.duration || 60,
-                        difficulty: String(activityData.difficulty || 'Medium'),
-                        min_players: activityData.minPlayers || 1,
-                        max_players: activityData.maxPlayers || 8,
+                        difficulty: activityData.difficulty ? String(activityData.difficulty) : '3',
+                        min_players: activityData.minAdults || 2,
+                        max_players: activityData.maxAdults || 8,
                         price: activityData.adultPrice || 30,
-                        child_price: activityData.childPrice,
-                        image_url: activityData.coverImage,
-                        gallery_images: activityData.galleryImages,
-                        video_url: activityData.videoUrl,
-                        age_guideline: activityData.ageGuideline,
-                        faqs: activityData.faqs,
-                        highlights: activityData.highlights,
+                        child_price: activityData.childPrice || 20,
+                        image_url: activityData.coverImage || undefined,
+                        gallery_images: activityData.galleryImages || [],
+                        video_url: activityData.videos?.[0],
+                        age_guideline: activityData.minAge ? `Ages ${activityData.minAge}+` : undefined,
+                        faqs: activityData.faqs || [],
+                        highlights: [],
                         schedule: {
-                          operatingDays: activityData.operatingDays,
+                          operatingDays: activityData.operatingDays || ['Monday', 'Friday'],
                           startTime: activityData.startTime || '10:00',
                           endTime: activityData.endTime || '22:00',
                           slotInterval: activityData.slotInterval || 60,
                         },
                       }}
-                      venueName={activityData.venueName}
+                      venueName={undefined}
                       primaryColor={primaryColor}
                       theme={theme}
                       showBookingFlow={true}

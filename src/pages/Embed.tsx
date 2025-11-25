@@ -7,6 +7,7 @@ import { ResolvexWidget } from '../components/widgets/ResolvexWidget';
 import { CalendarSingleEventBookingPage } from '../components/widgets/CalendarSingleEventBookingPage';
 import FareBookWidget from '../components/widgets/FareBookWidget';
 import { WidgetThemeProvider } from '../components/widgets/WidgetThemeContext';
+import { ActivityPreviewCard } from '../components/widgets/ActivityPreviewCard';
 import { supabase } from '../lib/supabase';
 import SupabaseBookingService from '../services/SupabaseBookingService';
 
@@ -73,6 +74,7 @@ export function Embed() {
     const mode = params.get('mode'); // Check for fullpage mode
     
     // Activity-specific parameters (for single activity embeds)
+    // Handle preview mode - when activityId is 'preview', show safe preview
     const actId = params.get('activityId') || undefined;
     const venId = params.get('venueId') || undefined;
 
@@ -248,8 +250,16 @@ export function Embed() {
    */
   const fetchWidgetConfig = useCallback(
     async ({ showLoading = true }: { showLoading?: boolean } = {}) => {
+      // Handle preview mode - skip database fetch, use default config
+      if (activityId === 'preview') {
+        console.log('👁️ Preview mode detected - using safe preview');
+        setIsLoading(false);
+        setError(null);
+        return;
+      }
+
       // Handle single activity embed (activityId takes priority)
-      if (activityId && activityId !== 'preview') {
+      if (activityId) {
         try {
           if (showLoading) setIsLoading(true);
           setError(null);
@@ -452,6 +462,33 @@ export function Embed() {
       case 'singlegame':
       case 'calendar-booking': // New unified booking widget route
       case 'booking':
+        // Handle preview mode with safe preview component
+        if (activityId === 'preview') {
+          console.log('👁️ Rendering Preview mode - using ActivityPreviewCard');
+          return (
+            <ActivityPreviewCard
+              activity={{
+                id: 'preview',
+                name: singleGameName || 'Sample Activity',
+                description: singleGameDescription || 'Experience an amazing adventure with your group.',
+                duration: 60,
+                difficulty: '3',
+                min_players: 2,
+                max_players: 8,
+                price: singleGamePrice || 30,
+                schedule: {
+                  operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+                  startTime: '10:00',
+                  endTime: '22:00',
+                  slotInterval: 60,
+                },
+              }}
+              primaryColor={primaryColor}
+              theme={widgetTheme}
+              showBookingFlow={true}
+            />
+          );
+        }
         console.log('✅ Rendering Calendar Booking widget with activityId:', activityId, 'venueId:', urlVenueId);
         return (
           <CalendarSingleEventBookingPage

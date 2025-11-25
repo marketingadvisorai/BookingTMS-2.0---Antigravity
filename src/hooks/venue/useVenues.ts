@@ -58,11 +58,17 @@ export function useVenues(options: UseVenuesOptions = {}) {
         setLoading(true);
       }
 
-      // Build query - RLS will filter based on user's role
-      // But we can add explicit org filter for non-system-admins
+      // Build query - optimized to select only needed fields
+      // RLS will filter based on user's role
       let query = supabase
         .from('venues')
-        .select('*')
+        .select(`
+          id, organization_id, organization_name, company_name,
+          name, address, city, state, zip, country,
+          phone, email, capacity, timezone, status,
+          embed_key, slug, primary_color, base_url, settings,
+          created_by, created_at, updated_at
+        `)
         .order('created_at', { ascending: false });
 
       // Apply organization filter if provided (defense in depth)
@@ -204,9 +210,18 @@ export function useVenues(options: UseVenuesOptions = {}) {
     }
   };
 
-  // Real-time subscription
+  // Real-time subscription with debounce to prevent excessive updates
   useEffect(() => {
     fetchVenues();
+
+    // Debounce timer to prevent excessive refreshes
+    let debounceTimer: NodeJS.Timeout | null = null;
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchVenues();
+      }, 500); // 500ms debounce
+    };
 
     // Subscribe to venue changes
     const subscription = supabase
@@ -214,13 +229,14 @@ export function useVenues(options: UseVenuesOptions = {}) {
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'venues' },
         (payload) => {
-          console.log('Venue changed:', payload);
-          fetchVenues(); // Refresh on any change
+          console.log('Venue changed:', payload.eventType);
+          debouncedFetch();
         }
       )
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       subscription.unsubscribe();
     };
   }, []);

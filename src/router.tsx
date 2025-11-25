@@ -4,7 +4,10 @@ import App from './App';
 import VenueProfile from './pages/VenueProfile';
 import OwnerAdminLogin from './pages/OwnerAdminLogin';
 import WaiverForm from './pages/WaiverForm';
+import { Embed } from './pages/Embed';
 import { ThemeProvider } from './components/layout/ThemeContext';
+import { WidgetThemeProvider } from './components/widgets/WidgetThemeContext';
+import { Toaster } from 'sonner';
 
 // Main router configuration
 export const router = createBrowserRouter([
@@ -22,6 +25,17 @@ export const router = createBrowserRouter([
     element: (
       <ThemeProvider>
         <WaiverForm />
+      </ThemeProvider>
+    ),
+  },
+
+  // Embed Widget Route (MUST be before /:slug to avoid being caught)
+  {
+    path: '/embed',
+    element: (
+      <ThemeProvider>
+        <Embed />
+        <Toaster />
       </ThemeProvider>
     ),
   },

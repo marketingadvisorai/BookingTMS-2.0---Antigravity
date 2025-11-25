@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import { StripeIntegrationService } from '../../../services/stripe-integration.service';
+import { SessionService } from '../../../services/session.service';
 import { toast } from 'sonner';
 
 // Define the Schedule Rules interface (formerly ServiceItemSchedule)
@@ -222,6 +223,18 @@ export class ActivityService {
                 }
             }
 
+            // 7. Auto-generate time slots if schedule is configured
+            if (input.schedule && input.schedule.operatingDays?.length > 0) {
+                try {
+                    console.log('Auto-generating time slots for activity:', createdActivity.id);
+                    await SessionService.generateSessions(createdActivity.id, 90); // Generate 90 days ahead
+                    console.log('Time slots generated successfully');
+                } catch (sessionError) {
+                    console.warn('Failed to auto-generate time slots:', sessionError);
+                    // Don't fail the activity creation, just warn
+                }
+            }
+
             return {
                 ...createdActivity,
                 status: createdActivity.is_active ? 'active' : 'inactive'
@@ -291,6 +304,17 @@ export class ActivityService {
 
             if (error) throw error;
 
+            // 5. Regenerate sessions if schedule was updated
+            if (updates.schedule && updates.schedule.operatingDays?.length > 0) {
+                try {
+                    console.log('Regenerating time slots after schedule update:', id);
+                    await SessionService.generateSessions(id, 90);
+                    console.log('Time slots regenerated successfully');
+                } catch (sessionError) {
+                    console.warn('Failed to regenerate time slots:', sessionError);
+                }
+            }
+
             return {
                 ...data,
                 status: data.is_active ? 'active' : 'inactive'
@@ -298,6 +322,25 @@ export class ActivityService {
         } catch (error: any) {
             console.error('Error updating activity:', error);
             throw new Error(error.message || 'Failed to update activity');
+        }
+    }
+
+    /**
+     * Regenerate time slots for an activity
+     * Useful for manual regeneration from UI
+     */
+    static async regenerateSessions(id: string, daysAhead: number = 90): Promise<void> {
+        try {
+            const activity = await this.getActivity(id);
+            if (!activity) throw new Error('Activity not found');
+            if (!activity.schedule) throw new Error('Activity has no schedule configured');
+
+            console.log('Manually regenerating sessions for activity:', id);
+            await SessionService.generateSessions(id, daysAhead);
+            console.log('Sessions regenerated successfully');
+        } catch (error: any) {
+            console.error('Error regenerating sessions:', error);
+            throw new Error(error.message || 'Failed to regenerate sessions');
         }
     }
 

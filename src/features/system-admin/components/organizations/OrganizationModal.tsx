@@ -51,8 +51,16 @@ export const OrganizationModal: React.FC<OrganizationModalProps> = ({
     name: '',
     owner_name: '',
     owner_email: '',
+    website: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    zip: '',
+    country: '',
     plan_id: '',
     status: 'pending',
+    create_default_venue: true,
   });
 
   const [errors, setErrors] = useState<OrganizationValidationErrors>({});
@@ -64,6 +72,13 @@ export const OrganizationModal: React.FC<OrganizationModalProps> = ({
         name: organization.name,
         owner_name: organization.owner_name || '',
         owner_email: organization.owner_email || '',
+        website: organization.website || '',
+        phone: organization.phone || '',
+        address: organization.address || '',
+        city: organization.city || '',
+        state: organization.state || '',
+        zip: organization.zip || '',
+        country: organization.country || '',
         plan_id: organization.plan_id || '',
         status: organization.status === 'active' ? 'active' : 'pending',
       });
@@ -72,8 +87,16 @@ export const OrganizationModal: React.FC<OrganizationModalProps> = ({
         name: '',
         owner_name: '',
         owner_email: '',
+        website: '',
+        phone: '',
+        address: '',
+        city: '',
+        state: '',
+        zip: '',
+        country: '',
         plan_id: '',
         status: 'pending',
+        create_default_venue: true,
       });
     }
     setErrors({});
@@ -176,6 +199,118 @@ export const OrganizationModal: React.FC<OrganizationModalProps> = ({
                 <p className="text-sm text-red-600 dark:text-red-500">{errors.owner_email}</p>
               )}
             </div>
+
+            {/* Website */}
+            <div className="grid gap-2">
+              <Label htmlFor="website" className="text-gray-900 dark:text-white">
+                Website
+              </Label>
+              <Input
+                id="website"
+                value={formData.website}
+                onChange={(e) => handleChange('website', e.target.value)}
+                placeholder="https://example.com"
+                className="bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-[#2a2a2a]"
+              />
+            </div>
+
+            {/* Phone */}
+            <div className="grid gap-2">
+              <Label htmlFor="phone" className="text-gray-900 dark:text-white">
+                Phone
+              </Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => handleChange('phone', e.target.value)}
+                placeholder="+1 (555) 000-0000"
+                className="bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-[#2a2a2a]"
+              />
+            </div>
+
+            {/* Location Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="address" className="text-gray-900 dark:text-white">
+                  Address
+                </Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => handleChange('address', e.target.value)}
+                  placeholder="Street address"
+                  className="bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-[#2a2a2a]"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="city" className="text-gray-900 dark:text-white">
+                  City
+                </Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => handleChange('city', e.target.value)}
+                  placeholder="City"
+                  className="bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-[#2a2a2a]"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="state" className="text-gray-900 dark:text-white">
+                  State
+                </Label>
+                <Input
+                  id="state"
+                  value={formData.state}
+                  onChange={(e) => handleChange('state', e.target.value)}
+                  placeholder="State"
+                  className="bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-[#2a2a2a]"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="zip" className="text-gray-900 dark:text-white">
+                  Zip
+                </Label>
+                <Input
+                  id="zip"
+                  value={formData.zip}
+                  onChange={(e) => handleChange('zip', e.target.value)}
+                  placeholder="Zip"
+                  className="bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-[#2a2a2a]"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="country" className="text-gray-900 dark:text-white">
+                  Country
+                </Label>
+                <Input
+                  id="country"
+                  value={formData.country}
+                  onChange={(e) => handleChange('country', e.target.value)}
+                  placeholder="Country"
+                  className="bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-[#2a2a2a]"
+                />
+              </div>
+            </div>
+
+
+            {/* Create Default Venue (Only for new orgs) */}
+            {!isEdit && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="create_default_venue"
+                  checked={formData.create_default_venue}
+                  onChange={(e) => setFormData(prev => ({ ...prev, create_default_venue: e.target.checked }))}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <Label htmlFor="create_default_venue" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                  Create default venue using organization address
+                </Label>
+              </div>
+            )}
 
             {/* Plan Selection */}
             <div className="grid gap-2">

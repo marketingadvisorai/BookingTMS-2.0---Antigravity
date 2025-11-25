@@ -8,6 +8,17 @@ import { normalizeVenueWidgetConfig } from '../../types/venueWidget';
 import { DEFAULT_VENUE_COLOR } from './venueConstants';
 
 /**
+ * Generate a URL-safe slug from a name
+ */
+function generateVenueSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    + '-' + Date.now().toString(36);
+}
+
+/**
  * Maps database venue object to UI venue format
  * Handles all field transformations and defaults
  */
@@ -37,6 +48,7 @@ export const mapDBVenueToUI = (dbVenue: any): Venue => ({
 export const mapUIVenueToDB = (uiVenue: VenueInput): any => ({
   organization_id: uiVenue.organizationId,
   name: uiVenue.name,
+  slug: generateVenueSlug(uiVenue.name),
   address: uiVenue.address || '',
   city: '', // Extract from address if needed
   state: '',

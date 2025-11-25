@@ -77,6 +77,11 @@ export default function OrganizationSettingsModal({
     owner_email: organization.owner_email || '',
     website: organization.website || '',
     phone: organization.phone || '',
+    address: organization.address || '',
+    city: organization.city || '',
+    state: organization.state || '',
+    zip: organization.zip || '',
+    country: organization.country || '',
     plan_id: organization.plan_id || '',
     status: organization.status || 'pending',
     application_fee_percentage: organization.application_fee_percentage || 0.75,
@@ -90,6 +95,11 @@ export default function OrganizationSettingsModal({
       owner_email: organization.owner_email || '',
       website: organization.website || '',
       phone: organization.phone || '',
+      address: organization.address || '',
+      city: organization.city || '',
+      state: organization.state || '',
+      zip: organization.zip || '',
+      country: organization.country || '',
       plan_id: organization.plan_id || '',
       status: organization.status || 'pending',
       application_fee_percentage: organization.application_fee_percentage || 0.75,
@@ -278,6 +288,64 @@ function GeneralSettingsTab({
                 onChange={(e) => onChange('website', e.target.value)}
                 placeholder="https://example.com"
                 className="pl-10"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Location Details</CardTitle>
+          <CardDescription>Address and location information</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => onChange('address', e.target.value)}
+                placeholder="Street address"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="city">City</Label>
+              <Input
+                id="city"
+                value={formData.city}
+                onChange={(e) => onChange('city', e.target.value)}
+                placeholder="City"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="state">State</Label>
+              <Input
+                id="state"
+                value={formData.state}
+                onChange={(e) => onChange('state', e.target.value)}
+                placeholder="State"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="zip">Zip</Label>
+              <Input
+                id="zip"
+                value={formData.zip}
+                onChange={(e) => onChange('zip', e.target.value)}
+                placeholder="Zip"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="country">Country</Label>
+              <Input
+                id="country"
+                value={formData.country}
+                onChange={(e) => onChange('country', e.target.value)}
+                placeholder="Country"
               />
             </div>
           </div>

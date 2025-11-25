@@ -16,6 +16,17 @@ import type {
   OrganizationMetrics,
 } from '../types';
 
+/**
+ * Generate a URL-safe slug from a name
+ */
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    + '-' + Date.now().toString(36);
+}
+
 export class OrganizationService {
   /**
    * Get all organizations with optional filtering
@@ -30,7 +41,7 @@ export class OrganizationService {
         .from('organizations')
         .select(`
           *,
-          plans:plan_id (
+          plan:plan_id (
             id,
             name,
             slug,
@@ -109,7 +120,7 @@ export class OrganizationService {
         .from('organizations')
         .select(`
           *,
-          plans:plan_id (*)
+          plan:plan_id (*)
         `)
         .eq('id', id)
         .single();
@@ -135,14 +146,21 @@ export class OrganizationService {
   static async create(dto: CreateOrganizationDTO): Promise<Organization> {
     try {
       // Step 1: Create organization in Supabase (UUID auto-generated)
+      const slug = generateSlug(dto.name);
       const { data: org, error: orgError } = await (supabase
         .from('organizations') as any)
         .insert([{
           name: dto.name,
+          slug: slug,
           owner_name: dto.owner_name,
           owner_email: dto.owner_email,
           website: dto.website,
           phone: dto.phone,
+          address: dto.address,
+          city: dto.city,
+          state: dto.state,
+          zip: dto.zip,
+          country: dto.country,
           plan_id: dto.plan_id,
           status: dto.status || 'pending',
           stripe_charges_enabled: false,
@@ -224,28 +242,38 @@ export class OrganizationService {
       }
 
       // Step 5: Create default venue for the organization
-      try {
-        const { data: venue, error: venueError } = await (supabase
-          .from('venues') as any)
-          .insert([{
-            organization_id: org.id,
-            name: `${org.name} - Main Location`,
-            is_default: true,
-            timezone: 'America/New_York',
-            status: 'active',
-            type: 'escape-room', // Default type
-            primary_color: '#2563eb',
-          } as any])
-          .select()
-          .single();
+      if (dto.create_default_venue !== false) {
+        try {
+          const venueName = `${org.name} - Main Location`;
+          const venueSlug = venueName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now().toString(36);
+          const { data: venue, error: venueError } = await (supabase
+            .from('venues') as any)
+            .insert([{
+              organization_id: org.id,
+              name: venueName,
+              slug: venueSlug,
+              is_default: true,
+              timezone: 'America/New_York',
+              status: 'active',
+              primary_color: '#2563eb',
+              address: dto.address || '',
+              city: dto.city || '',
+              state: dto.state || '',
+              zip: dto.zip || '',
+              country: dto.country || 'United States',
+              settings: { type: 'escape-room' },
+            } as any])
+            .select()
+            .single();
 
-        if (venueError) {
-          console.error('Failed to create default venue:', venueError);
-        } else {
-          console.log('Default venue created:', venue?.id);
+          if (venueError) {
+            console.error('Failed to create default venue:', venueError);
+          } else {
+            console.log('Default venue created:', venue?.id);
+          }
+        } catch (venueErr) {
+          console.error('Exception creating default venue:', venueErr);
         }
-      } catch (venueErr) {
-        console.error('Exception creating default venue:', venueErr);
       }
 
       // Return complete organization data
@@ -285,17 +313,21 @@ export class OrganizationService {
       }
 
       // 2. Create Organization
-      const org = await this.create(dto);
+      const org = await this.create({ ...dto, create_default_venue: false });
 
       // 3. Create Default Venue
+      const defaultVenueName = venueName || `${org.name} - Main Venue`;
+      const defaultVenueSlug = defaultVenueName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now().toString(36);
       const { error: venueError } = await (supabase
         .from('venues') as any)
         .insert([{
           organization_id: org.id,
-          name: venueName || `${org.name} - Main Venue`,
+          name: defaultVenueName,
+          slug: defaultVenueSlug,
           is_default: true,
           timezone: 'UTC',
-          status: 'active'
+          status: 'active',
+          settings: { type: 'escape-room' },
         } as any]);
 
       if (venueError) {
@@ -351,7 +383,19 @@ export class OrganizationService {
       const { data, error } = await (supabase
         .from('organizations') as any)
         .update({
-          ...dto,
+          name: dto.name,
+          owner_name: dto.owner_name,
+          owner_email: dto.owner_email,
+          website: dto.website,
+          phone: dto.phone,
+          address: dto.address,
+          city: dto.city,
+          state: dto.state,
+          zip: dto.zip,
+          country: dto.country,
+          plan_id: dto.plan_id,
+          status: dto.status,
+          application_fee_percentage: dto.application_fee_percentage,
           updated_at: new Date().toISOString(),
         } as any)
         .eq('id', id)

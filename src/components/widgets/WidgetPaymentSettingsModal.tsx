@@ -232,7 +232,8 @@ export function WidgetPaymentSettingsModal({
 
       // Update database
       // @ts-ignore - Supabase type inference issue
-      const { error } = await supabase
+      // @ts-ignore - Supabase type inference issue
+      const { error } = await (supabase as any)
         .from('games')
         .update({
           stripe_product_id: productId || null,
@@ -240,7 +241,7 @@ export function WidgetPaymentSettingsModal({
           stripe_checkout_url: checkoutUrl || null,
           stripe_sync_status: 'synced',
           stripe_last_sync: new Date().toISOString(),
-        } as any)
+        })
         .eq('id', selectedGame.id);
 
       if (error) {

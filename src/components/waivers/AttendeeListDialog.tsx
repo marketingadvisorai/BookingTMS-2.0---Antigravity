@@ -363,7 +363,7 @@ export default function AttendeeListDialog({ booking, isOpen, onClose }: Attende
                 className="pl-10 h-11"
               />
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value as any)}>
               <SelectTrigger className="w-[180px] h-11">
                 <Filter className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="Filter status" />

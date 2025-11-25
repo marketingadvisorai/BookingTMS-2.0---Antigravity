@@ -57,7 +57,7 @@ class PaymentService {
   constructor() {
     // Initialize Stripe with secret key
     this.stripe = new Stripe(backendSecrets.stripe.secretKey, {
-      apiVersion: '2023-10-16',
+      apiVersion: '2023-10-16' as any,
       typescript: true,
     });
 
@@ -131,17 +131,17 @@ class PaymentService {
         // Amount charged to customer
         amount: amountInCents,
         currency: params.currency || 'usd',
-        
+
         // Customer information
         receipt_email: params.customerEmail,
         description: params.description,
-        
+
         // Destination charge parameters
         transfer_data: {
           // Connected account to receive funds
           destination: params.connectedAccountId,
         },
-        
+
         // Metadata for tracking
         metadata: {
           bookingId: params.bookingId,
@@ -149,7 +149,7 @@ class PaymentService {
           customerEmail: params.customerEmail,
           ...params.metadata,
         },
-        
+
         // Enable automatic payment methods
         automatic_payment_methods: {
           enabled: true,
@@ -180,12 +180,12 @@ class PaymentService {
       return paymentIntent;
     } catch (error: any) {
       console.error('[PaymentService] Create destination charge error:', error);
-      
+
       // Provide more detailed error messages
       if (error.type === 'StripeInvalidRequestError') {
         throw new Error(`Stripe error: ${error.message}`);
       }
-      
+
       throw new Error(error.message || 'Failed to create destination charge');
     }
   }
@@ -205,7 +205,7 @@ class PaymentService {
       console.log('[PaymentService] Confirming payment:', paymentIntentId);
 
       const confirmParams: Stripe.PaymentIntentConfirmParams = {};
-      
+
       if (paymentMethodId) {
         confirmParams.payment_method = paymentMethodId;
       }

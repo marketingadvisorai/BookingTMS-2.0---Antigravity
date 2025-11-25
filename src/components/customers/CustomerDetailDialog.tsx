@@ -7,12 +7,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { 
-  Mail, 
-  Phone, 
-  Calendar, 
-  DollarSign, 
-  Package, 
+import {
+  Mail,
+  Phone,
+  Calendar,
+  DollarSign,
+  Package,
   Clock,
   MapPin,
   Star,
@@ -31,7 +31,7 @@ export function CustomerDetailDialog({ open, onClose, customer }: CustomerDetail
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { getCustomerInsights, getCustomerGames, getCustomerVenues, getCustomerHistory } = useCustomers();
-  
+
   const [insights, setInsights] = useState<CustomerInsights | null>(null);
   const [games, setGames] = useState<CustomerGame[]>([]);
   const [venues, setVenues] = useState<CustomerVenue[]>([]);
@@ -46,7 +46,7 @@ export function CustomerDetailDialog({ open, onClose, customer }: CustomerDetail
 
   const loadCustomerData = async () => {
     if (!customer?.id) return;
-    
+
     setLoading(true);
     try {
       const [insightsData, gamesData, venuesData, bookingsData] = await Promise.all([
@@ -55,7 +55,7 @@ export function CustomerDetailDialog({ open, onClose, customer }: CustomerDetail
         getCustomerVenues(customer.id),
         getCustomerHistory(customer.id)
       ]);
-      
+
       setInsights(insightsData);
       setGames(gamesData);
       setVenues(venuesData);
@@ -206,7 +206,7 @@ export function CustomerDetailDialog({ open, onClose, customer }: CustomerDetail
           <Tabs defaultValue="bookings" className="w-full">
             <TabsList className={`${isDark ? 'bg-[#161616]' : 'bg-gray-100'}`}>
               <TabsTrigger value="bookings">Booking History</TabsTrigger>
-              <TabsTrigger value="games">Games Played ({games.length})</TabsTrigger>
+              <TabsTrigger value="games">Activities Played ({games.length})</TabsTrigger>
               <TabsTrigger value="venues">Venues Visited ({venues.length})</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
             </TabsList>
@@ -232,10 +232,10 @@ export function CustomerDetailDialog({ open, onClose, customer }: CustomerDetail
                           </Badge>
                         </div>
                         <p className={`text-sm ${subtextClass} mt-1`}>
-                          {booking.venue_name} • {new Date(booking.booking_date).toLocaleDateString('en-US', { 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
+                          {booking.venue_name} • {new Date(booking.booking_date).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
                           })}
                         </p>
                       </div>
@@ -277,8 +277,8 @@ export function CustomerDetailDialog({ open, onClose, customer }: CustomerDetail
                             <div className="flex items-center justify-between text-sm">
                               <span className={subtextClass}>Last Played:</span>
                               <span className={textClass}>
-                                {new Date(game.last_played).toLocaleDateString('en-US', { 
-                                  month: 'short', 
+                                {new Date(game.last_played).toLocaleDateString('en-US', {
+                                  month: 'short',
                                   day: 'numeric',
                                   year: 'numeric'
                                 })}
@@ -323,8 +323,8 @@ export function CustomerDetailDialog({ open, onClose, customer }: CustomerDetail
                           <div className="flex items-center justify-between text-sm">
                             <span className={subtextClass}>Last Visit:</span>
                             <span className={textClass}>
-                              {new Date(venue.last_visit).toLocaleDateString('en-US', { 
-                                month: 'short', 
+                              {new Date(venue.last_visit).toLocaleDateString('en-US', {
+                                month: 'short',
                                 day: 'numeric',
                                 year: 'numeric'
                               })}

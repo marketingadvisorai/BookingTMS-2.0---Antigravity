@@ -59,7 +59,7 @@ export function StripeConfigurationModal({
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   // Edit form state
   const [productId, setProductId] = useState(gameData.stripeProductId || '');
   const [priceId, setPriceId] = useState(gameData.stripePriceId || '');
@@ -76,7 +76,8 @@ export function StripeConfigurationModal({
       console.log('🔌 Disconnecting Stripe configuration...');
 
       // Update database to remove Stripe IDs
-      const { error } = await (supabase
+      // Update database to remove Stripe IDs
+      const { error } = await (supabase as any)
         .from('games')
         .update({
           stripe_product_id: null,
@@ -84,7 +85,7 @@ export function StripeConfigurationModal({
           stripe_checkout_url: null,
           stripe_sync_status: 'not_synced',
           stripe_last_sync: null,
-        }) as any)
+        })
         .eq('id', gameData.id);
 
       if (error) {
@@ -138,7 +139,8 @@ export function StripeConfigurationModal({
       }
 
       // Update database
-      const { error } = await (supabase
+      // Update database
+      const { error } = await (supabase as any)
         .from('games')
         .update({
           stripe_product_id: trimmedProductId || null,
@@ -146,7 +148,7 @@ export function StripeConfigurationModal({
           stripe_checkout_url: trimmedCheckoutUrl || null,
           stripe_sync_status: 'synced',
           stripe_last_sync: new Date().toISOString(),
-        }) as any)
+        })
         .eq('id', gameData.id);
 
       if (error) {

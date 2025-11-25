@@ -45,7 +45,7 @@ export const SEOSettingsTab: React.FC<SEOSettingsTabProps> = ({ config, onConfig
             if (error instanceof z.ZodError) {
                 setErrors(prev => ({
                     ...prev,
-                    [field]: error.errors[0].message
+                    [field]: (error as any).errors[0].message
                 }));
             }
         }

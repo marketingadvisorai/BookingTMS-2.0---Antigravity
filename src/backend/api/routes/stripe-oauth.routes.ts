@@ -19,7 +19,7 @@ import supabase from '../../config/supabase';
 
 const router = Router();
 const stripe = new Stripe(backendSecrets.stripe.secretKey, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2023-10-16' as any,
   typescript: true,
 });
 
@@ -33,9 +33,9 @@ const adminSupabase: any = supabase;
 const validate = (req: Request, res: Response, next: Function) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       success: false,
-      errors: errors.array() 
+      errors: errors.array()
     });
   }
   next();
@@ -149,7 +149,7 @@ router.post(
 
     } catch (error: any) {
       console.error('[stripe-oauth] Token exchange error:', error);
-      
+
       // Handle specific OAuth errors
       if (error.type === 'StripeInvalidGrantError') {
         return res.status(400).json({

@@ -94,7 +94,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
+
     const start = settings.quietHoursStart;
     const end = settings.quietHoursEnd;
 
@@ -102,14 +102,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (start > end) {
       return currentTime >= start || currentTime <= end;
     }
-    
+
     return currentTime >= start && currentTime <= end;
   }, [settings.quietHoursEnabled, settings.quietHoursStart, settings.quietHoursEnd]);
 
   // Request desktop notification permission
   const requestDesktopPermission = useCallback(async () => {
     if (!('Notification' in window)) return;
-    
+
     if (Notification.permission === 'default') {
       await Notification.requestPermission();
     }
@@ -121,7 +121,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
     // Check if desktop notifications are enabled for this type
-    const shouldShow = 
+    const shouldShow =
       (notification.type === 'booking' && settings.desktopForBookings) ||
       (notification.type === 'payment' && settings.desktopForPayments) ||
       (notification.type === 'cancellation' && settings.desktopForCancellations) ||
@@ -157,7 +157,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           action_label: notification.actionLabel,
           metadata: notification.metadata || {},
           created_at: notification.timestamp,
-        });
+        } as any);
 
       if (error) {
         console.error('Error saving notification:', error);
@@ -222,7 +222,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // Set up Supabase Realtime subscription for new bookings
     const bookingsChannel = supabase
       .channel('bookings-notifications')
-      .on('postgres_changes', 
+      .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'bookings' },
         (payload) => {
           const booking = payload.new as any;
@@ -241,19 +241,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
               amount: booking.total_amount,
             },
           };
-          
+
           // Save to database
           saveNotificationToDatabase(newNotification);
-          
+
           // Add to local state
           setNotifications(prev => [newNotification, ...prev]);
-          
+
           if (settings.soundEnabled && settings.soundForBookings && !isQuietHours()) {
             playNotificationSound();
           }
-          
+
           showDesktopNotification(newNotification);
-          
+
           if (settings.showInAppNotifications && !isQuietHours()) {
             toast.success(newNotification.title, {
               description: newNotification.message,
@@ -271,13 +271,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         (payload) => {
           const booking = payload.new as any;
           const oldBooking = payload.old as any;
-          
+
           // Only notify on status changes
           if (booking.status !== oldBooking.status) {
             let title = 'Booking Updated';
             let type: any = 'booking';
             let priority: any = 'medium';
-            
+
             if (booking.status === 'cancelled') {
               title = 'Booking Cancelled';
               type = 'cancellation';
@@ -286,7 +286,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
               title = 'Booking Confirmed';
               priority = 'high';
             }
-            
+
             const newNotification: Notification = {
               id: `notif-update-${Date.now()}`,
               type,
@@ -302,15 +302,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 status: booking.status,
               },
             };
-            
+
             setNotifications(prev => [newNotification, ...prev]);
-            
+
             if (type === 'cancellation' && settings.soundEnabled && settings.soundForCancellations && !isQuietHours()) {
               playNotificationSound();
             }
-            
+
             showDesktopNotification(newNotification);
-            
+
             if (settings.showInAppNotifications && !isQuietHours()) {
               toast.info(newNotification.title, {
                 description: newNotification.message,
@@ -342,9 +342,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
               customerId: customer.id,
             },
           };
-          
+
           setNotifications(prev => [newNotification, ...prev]);
-          
+
           if (settings.showInAppNotifications && !isQuietHours()) {
             toast.success(newNotification.title, {
               description: newNotification.message,
@@ -362,13 +362,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [settings, playNotificationSound, showDesktopNotification, isQuietHours, requestDesktopPermission, currentUser]);
 
   const markAsRead = useCallback((id: string) => {
-    setNotifications(prev => 
+    setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
   }, []);
 
   const markAllAsRead = useCallback(() => {
-    setNotifications(prev => 
+    setNotifications(prev =>
       prev.map(n => ({ ...n, read: true }))
     );
   }, []);

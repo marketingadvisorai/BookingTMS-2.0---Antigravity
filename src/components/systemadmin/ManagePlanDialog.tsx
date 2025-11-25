@@ -69,11 +69,10 @@ const DraggableFeatureItem = ({
 
   return (
     <div
-      ref={(node) => drag(drop(node))}
+      ref={(node) => { drag(drop(node)); }}
       style={{ opacity, transform: `scale(${scale})`, transition: 'transform 0.2s' }}
-      className={`p-3 rounded-lg border ${borderColor} ${secondaryBgClass} flex items-center justify-between cursor-move hover:${
-        isDark ? 'bg-[#1a1a1a]' : 'bg-gray-100'
-      } transition-colors`}
+      className={`p-3 rounded-lg border ${borderColor} ${secondaryBgClass} flex items-center justify-between cursor-move hover:${isDark ? 'bg-[#1a1a1a]' : 'bg-gray-100'
+        } transition-colors`}
     >
       <div className="flex items-center gap-2 flex-1">
         <GripVertical className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
@@ -368,7 +367,7 @@ export const ManagePlanDialog = ({ isOpen, onClose, plan, onSave }: ManagePlanDi
                       <div className="text-right">
                         <div className={`text-sm line-through ${mutedTextClass}`}>${formData.price}/month</div>
                         <div className={`text-lg font-semibold ${isDark ? 'text-green-400' : 'text-green-700'}`}>
-                          ${formData.discountType === 'percentage' 
+                          ${formData.discountType === 'percentage'
                             ? (formData.price * (1 - formData.discountValue / 100)).toFixed(2)
                             : (formData.price - formData.discountValue).toFixed(2)
                           }/month
@@ -392,7 +391,7 @@ export const ManagePlanDialog = ({ isOpen, onClose, plan, onSave }: ManagePlanDi
           {/* Features */}
           <div>
             <h4 className={`text-sm uppercase tracking-wider mb-4 ${mutedTextClass}`}>Plan Features</h4>
-            
+
             {/* Add New Feature */}
             <div className="flex gap-2 mb-4">
               <Input
@@ -467,7 +466,7 @@ export const ManagePlanDialog = ({ isOpen, onClose, plan, onSave }: ManagePlanDi
                         </div>
                         <div className="flex items-baseline gap-2">
                           <span className={`text-3xl ${textClass}`}>
-                            ${formData.discountType === 'percentage' 
+                            ${formData.discountType === 'percentage'
                               ? (formData.price * (1 - formData.discountValue / 100)).toFixed(2)
                               : (formData.price - formData.discountValue).toFixed(2)
                             }
@@ -475,8 +474,8 @@ export const ManagePlanDialog = ({ isOpen, onClose, plan, onSave }: ManagePlanDi
                           <span className={mutedTextClass}>/month</span>
                         </div>
                         <div className={`text-xs mt-1 ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                          Save {formData.discountType === 'percentage' 
-                            ? `${formData.discountValue}%` 
+                          Save {formData.discountType === 'percentage'
+                            ? `${formData.discountValue}%`
                             : `$${formData.discountValue}`
                           }
                         </div>

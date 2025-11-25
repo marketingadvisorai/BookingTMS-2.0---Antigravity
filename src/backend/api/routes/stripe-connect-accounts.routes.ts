@@ -4,7 +4,8 @@ import { backendSecrets } from '../../config/secrets.config';
 
 const router = Router();
 const stripe = new Stripe(backendSecrets.stripe.secretKey, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2023-10-16' as any,
+  typescript: true,
 });
 
 /**
@@ -77,10 +78,10 @@ router.get('/list', async (req: Request, res: Response) => {
             },
             last_payout: lastPayout
               ? {
-                  amount: lastPayout.amount,
-                  arrival_date: lastPayout.arrival_date,
-                  created: lastPayout.created,
-                }
+                amount: lastPayout.amount,
+                arrival_date: lastPayout.arrival_date,
+                created: lastPayout.created,
+              }
               : null,
             created: account.created,
             type: account.type,

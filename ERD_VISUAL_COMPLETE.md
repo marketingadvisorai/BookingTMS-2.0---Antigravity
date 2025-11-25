@@ -94,7 +94,7 @@
              ├───────────────────────────────┬─────────────────┬────────────────┐
              │                               │                 │                │
   ┌──────────▼────────────┐   ┌──────────────▼──────┐  ┌──────▼────────┐  ┌────▼──────────┐
-  │      users            │   │     venues          │  │    games      │  │  customers    │
+  │      users            │   │     venues          │  │  activities   │  │  customers    │
   │───────────────────────│   │─────────────────────│  │───────────────│  │───────────────│
   │ id (PK, UUID)         │   │ id (PK, UUID)       │  │ id (PK, UUID) │  │ id (PK, UUID) │
   │ email (UNIQUE)        │   │ organization_id 🔑  │  │ org_id 🔑     │  │ org_id 🔑     │
@@ -129,7 +129,7 @@
                               │ booking_number (UNIQUE, "BK-12345")                       │
                               │                                                           │
                               │ customer_id (FK → customers) 🔑                          │
-                              │ game_id (FK → games) 🔑                                  │
+                              │ activity_id (FK → activities) 🔑                         │
                               │ venue_id (FK → venues) 🔑                                │
                               │                                                           │
                               │ booking_date (DATE)                                       │
@@ -196,11 +196,11 @@
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
   ┌────────────────────────┐  ┌────────────────────────┐  ┌────────────────────────┐
-  │  venue_calendars       │  │   game_calendars       │  │   pricing_tiers        │
+  │  venue_calendars       │  │   activity_calendars   │  │   pricing_tiers        │
   │────────────────────────│  │────────────────────────│  │────────────────────────│
   │ id, organization_id 🔑 │  │ id, organization_id 🔑 │  │ id, organization_id 🔑 │
-  │ venue_id (FK)          │  │ venue_id (FK)          │  │ game_id (FK)           │
-  │ day_of_week            │  │ game_id (FK)           │  │ name, description      │
+  │ venue_id (FK)          │  │ venue_id (FK)          │  │ activity_id (FK)       │
+  │ day_of_week            │  │ activity_id (FK)       │  │ name, description      │
   │ open_time, close_time  │  │ day_of_week            │  │ day_type               │
   │ is_available           │  │ start_time, end_time   │  │ time_slot_start        │
   │ special_hours (JSONB)  │  │ is_available           │  │ price_modifier         │
@@ -307,27 +307,27 @@ users.organization_id → organizations.id (CASCADE)
 -- All bookings tied to org
 bookings.organization_id → organizations.id (CASCADE)
 bookings.customer_id → customers.id (RESTRICT)
-bookings.game_id → games.id (RESTRICT)
+bookings.activity_id → activities.id (RESTRICT)
 bookings.venue_id → venues.id (RESTRICT)
 
 -- Payments tied to bookings
 payments.booking_id → bookings.id (CASCADE)
 
--- Venues host games
-games.venue_id → venues.id (CASCADE)
+-- Venues host activities
+activities.venue_id → venues.id (CASCADE)
 ```
 
 ### Cascade Rules
 
 **ON DELETE CASCADE:** When parent deleted, children deleted
-- organizations → users, venues, games, bookings (all tenant data)
+- organizations → users, venues, activities, bookings (all tenant data)
 - bookings → payments, waivers
 - users → notifications, audit_logs
 
 **ON DELETE RESTRICT:** Prevent deletion if children exist
 - plans → organizations (can't delete plan with active orgs)
 - customers → bookings (can't delete customer with bookings)
-- games → bookings (can't delete game with future bookings)
+- activities → bookings (can't delete activity with future bookings)
 
 **ON DELETE SET NULL:** Keep child, nullify reference
 - organizations.owner_id (keep org if owner deleted)
@@ -341,7 +341,7 @@ games.venue_id → venues.id (CASCADE)
 ```
 Customer (guest) 
   → creates/finds record in customers table
-  → selects game from games table
+  → selects activity from activities table
   → creates booking in bookings table
   → triggers payment in payments table
   → signs waiver in waivers table
@@ -372,7 +372,7 @@ system-admin (is_platform_team = true)
   → creates Stripe customer
   → creates first admin user (owner_id)
   → admin receives login credentials
-  → admin can now create venues, games, bookings
+  → admin can now create venues, activities, bookings
 ```
 
 ---

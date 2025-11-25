@@ -143,8 +143,8 @@ A **complete enterprise-grade database architecture** for BookingTMS as a multi-
     ┌───────────────┼───────────────┐
     │               │               │
 ┌───▼────┐    ┌────▼─────┐    ┌───▼────┐
-│ users  │    │  venues  │    │ games  │
-│ admin  │    │ (locations)   │ (rooms)│
+│ users  │    │  venues  │    │activities│
+│ admin  │    │ (locations)   │ (activities)│
 │manager │    └──────────┘    └────────┘
 │ staff  │          │               │
 └────────┘          └───────┬───────┘

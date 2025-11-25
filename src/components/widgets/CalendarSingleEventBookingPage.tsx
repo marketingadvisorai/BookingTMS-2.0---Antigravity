@@ -27,6 +27,8 @@ import { toast } from 'sonner';
 
 interface CalendarSingleEventBookingPageProps {
   primaryColor?: string;
+  activityId?: string;  // Activity ID from URL for single-activity embeds
+  venueId?: string;     // Venue ID from URL for single-activity embeds
   gameName?: string;
   gameDescription?: string;
   gamePrice?: number;
@@ -37,6 +39,8 @@ interface CalendarSingleEventBookingPageProps {
 
 export function CalendarSingleEventBookingPage({
   primaryColor: propPrimaryColor,
+  activityId,
+  venueId,
   gameName,
   gameDescription,
   gamePrice,
@@ -75,8 +79,24 @@ export function CalendarSingleEventBookingPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingNumber, setBookingNumber] = useState<string>('');
 
-  // Resolve game data from config if not provided in props
-  const selectedGame = Array.isArray(config?.games) && config.games.length > 0 ? config.games[0] : null;
+  // Resolve game/activity data from config
+  // If activityId is provided, find that specific activity; otherwise use first one
+  const selectedGame = (() => {
+    const games = Array.isArray(config?.games) ? config.games : [];
+    const activities = Array.isArray(config?.activities) ? config.activities : [];
+    const allItems = [...games, ...activities];
+    
+    if (activityId && allItems.length > 0) {
+      // Find the specific activity by ID
+      const found = allItems.find((item: any) => item.id === activityId);
+      if (found) return found;
+    }
+    
+    // Default to first item if no specific activityId or not found
+    return allItems.length > 0 ? allItems[0] : null;
+  })();
+  
+  console.log('📍 CalendarSingleEventBookingPage - activityId:', activityId, 'venueId:', venueId, 'selectedGame:', selectedGame?.name);
 
   const effectiveGameName = gameName || selectedGame?.name || 'Mystery Manor';
   const effectiveDescription = gameDescription || selectedGame?.description || 'Uncover the dark secrets hidden in an abandoned Victorian mansion';

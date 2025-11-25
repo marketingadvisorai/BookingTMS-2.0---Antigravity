@@ -22,6 +22,9 @@ export function Embed() {
   const [embedConfig, setEmbedConfig] = useState<any | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  // Activity and venue IDs from URL (for single activity embeds)
+  const [activityId, setActivityId] = useState<string | undefined>(undefined);
+  const [urlVenueId, setUrlVenueId] = useState<string | undefined>(undefined);
   // Single game overrides from URL (optional)
   const [singleGameName, setSingleGameName] = useState<string | undefined>(undefined);
   const [singleGameDescription, setSingleGameDescription] = useState<string | undefined>(undefined);
@@ -68,6 +71,10 @@ export function Embed() {
     const key = params.get('key') || '';
     const theme = (params.get('theme') as 'light' | 'dark') || 'light';
     const mode = params.get('mode'); // Check for fullpage mode
+    
+    // Activity-specific parameters (for single activity embeds)
+    const actId = params.get('activityId') || undefined;
+    const venId = params.get('venueId') || undefined;
 
     // Optional single game preview params
     const sgName = params.get('gameName') || undefined;
@@ -75,7 +82,7 @@ export function Embed() {
     const sgPriceRaw = params.get('gamePrice');
     const sgPrice = sgPriceRaw ? parseFloat(sgPriceRaw) : undefined;
 
-    console.log('📍 Embed page loaded with params:', { widget, color, key, theme });
+    console.log('📍 Embed page loaded with params:', { widget, color, key, theme, activityId: actId, venueId: venId });
     console.log('📍 Full URL:', window.location.href);
 
     setWidgetId(widget);
@@ -83,6 +90,8 @@ export function Embed() {
     setWidgetKey(key);
     setWidgetTheme(theme);
     setIsFullPage(mode === 'fullpage');
+    setActivityId(actId);
+    setUrlVenueId(venId);
 
     // Apply single-game overrides if provided
     setSingleGameName(sgName);
@@ -393,10 +402,12 @@ export function Embed() {
       case 'singlegame':
       case 'calendar-booking': // New unified booking widget route
       case 'booking':
-        console.log('✅ Rendering Calendar Booking widget');
+        console.log('✅ Rendering Calendar Booking widget with activityId:', activityId, 'venueId:', urlVenueId);
         return (
           <CalendarSingleEventBookingPage
             {...widgetProps}
+            activityId={activityId}
+            venueId={urlVenueId}
             gameName={singleGameName}
             gameDescription={singleGameDescription}
             gamePrice={singleGamePrice}

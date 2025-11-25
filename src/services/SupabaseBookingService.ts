@@ -161,25 +161,50 @@ export class SupabaseBookingService {
 
   /**
    * Get venue configuration by embed key (public access)
+   * Uses direct query with fallback - more reliable than RPC
    */
   static async getVenueByEmbedKey(embedKey: string): Promise<VenueConfig | null> {
     try {
-      const { data, error } = await (supabase as any)
-        .rpc('get_venue_by_embed_key', {
-          p_embed_key: embedKey,
-        });
+      console.log('🔍 Fetching venue by embed key:', embedKey);
+      
+      // Use direct query instead of RPC - more reliable and avoids schema cache issues
+      const { data, error } = await (supabase
+        .from('venues')
+        .select('id, name, slug, embed_key, primary_color, base_url, timezone, settings')
+        .eq('embed_key', embedKey)
+        .eq('status', 'active')
+        .single() as any);
 
       if (error) {
         console.error('Error fetching venue by embed key:', error);
+        
+        // If the error is "no rows returned", it's not a real error
+        if (error.code === 'PGRST116') {
+          console.warn(`No active venue found for embed key: ${embedKey}`);
+          return null;
+        }
+        
         return null;
       }
 
-      if (!data || data.length === 0) {
+      if (!data) {
         console.warn(`No venue found for embed key: ${embedKey}`);
         return null;
       }
 
-      return data[0] as VenueConfig;
+      console.log('✅ Venue found:', data.name, '(ID:', data.id, ')');
+      
+      // Map database fields to VenueConfig interface
+      return {
+        id: data.id,
+        name: data.name,
+        slug: data.slug,
+        embed_key: data.embed_key,
+        primary_color: data.primary_color,
+        base_url: data.base_url,
+        timezone: data.timezone,
+        settings: data.settings,
+      } as VenueConfig;
     } catch (error) {
       console.error('Exception fetching venue:', error);
       return null;

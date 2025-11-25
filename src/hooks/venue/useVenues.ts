@@ -33,7 +33,17 @@ export interface Venue {
   updated_at: string;
 }
 
-export function useVenues() {
+/**
+ * Hook options for venue filtering
+ */
+interface UseVenuesOptions {
+  /** Filter by organization ID (optional - RLS handles this, but good for explicit filtering) */
+  organizationId?: string;
+  /** If true, fetch all venues (for system admins) */
+  fetchAll?: boolean;
+}
+
+export function useVenues(options: UseVenuesOptions = {}) {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,10 +58,19 @@ export function useVenues() {
         setLoading(true);
       }
 
-      const { data, error: fetchError } = await supabase
+      // Build query - RLS will filter based on user's role
+      // But we can add explicit org filter for non-system-admins
+      let query = supabase
         .from('venues')
         .select('*')
         .order('created_at', { ascending: false });
+
+      // Apply organization filter if provided (defense in depth)
+      if (options.organizationId && !options.fetchAll) {
+        query = query.eq('organization_id', options.organizationId);
+      }
+
+      const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
 

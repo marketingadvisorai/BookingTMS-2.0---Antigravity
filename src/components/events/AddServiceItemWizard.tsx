@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Progress } from '../ui/progress';
@@ -13,11 +13,12 @@ import Step3ActivityDetails from './steps/Step3ActivityDetails';
 import Step4MediaUpload from './steps/Step4MediaUpload';
 import Step5Schedule from './steps/Step5Schedule';
 import Step6PaymentSettings from './steps/Step6PaymentSettings';
-import { basicInfoSchema, capacityPricingSchema, activityDetailsSchema, mediaSchema, scheduleSchema, activityDataSchema } from './schema';
-import Step7WidgetEmbed from './steps/Step7WidgetEmbed';
+import { activityDataSchema } from './schema';
+import Step7WidgetEmbedNew from './steps/Step7WidgetEmbedNew';
 import Step8Review from './steps/Step8Review';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { DEFAULT_ACTIVITY_DATA, convertToWizardData, generateSlug } from './config/defaults';
 
 interface AddServiceItemWizardProps {
   onComplete: (activityData: ActivityData) => void;
@@ -33,15 +34,7 @@ interface AddServiceItemWizardProps {
   organizationName?: string;
 }
 
-const generateSlug = (value: string | undefined) => {
-  if (!value) return 'game';
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
-};
+// Using generateSlug from config/defaults.ts
 
 export default function AddServiceItemWizard({ onComplete, onCancel, initialData, mode = 'create', theme, embedContext, venueType, venueId, venueName, organizationId, organizationName }: AddServiceItemWizardProps) {
   const t = useTerminology(venueType || 'escape_room');
@@ -55,134 +48,13 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
   });
   const [createdActivityId, setCreatedActivityId] = useState<string | null>(null);
 
-  // Convert ServiceItem/Activity data to Wizard ActivityData format
-  const convertActivityToWizardData = (activity: any): Partial<ActivityData> => {
-    if (!activity) return {};
-
-    return {
-      name: activity.name,
-      description: activity.description,
-      category: activity.category || 'escape-room',
-      tagline: activity.tagline,
-      eventType: activity.eventType || 'public',
-      activityType: activity.activityType || 'physical',
-      minAdults: activity.minAdults || activity.min_players || 2,
-      maxAdults: activity.maxAdults || activity.max_players || 8,
-      minChildren: activity.minChildren || 0,
-      maxChildren: activity.maxChildren || 4,
-      adultPrice: activity.adultPrice || activity.price || 30,
-      childPrice: activity.childPrice || 25,
-      duration: typeof activity.duration === 'number' ? activity.duration : parseInt(activity.duration, 10) || 60,
-      difficulty: typeof activity.difficulty === 'number' ? activity.difficulty : 3,
-      minAge: parseInt(activity.ageRange || activity.minAge, 10) || 12,
-      language: Array.isArray(activity.language) ? activity.language : ['English'],
-      successRate: activity.successRate || 75,
-      activityDetails: activity.activityDetails || '',
-      additionalInformation: activity.additionalInformation || '',
-      faqs: Array.isArray(activity.faqs) ? activity.faqs : [],
-      cancellationPolicies: Array.isArray(activity.cancellationPolicies) ? activity.cancellationPolicies : [],
-      accessibility: activity.accessibility || { strollerAccessible: false, wheelchairAccessible: false },
-      location: activity.location || '',
-      coverImage: activity.coverImage || activity.imageUrl || activity.image_url || '',
-      galleryImages: Array.isArray(activity.galleryImages) ? activity.galleryImages : [],
-      videos: Array.isArray(activity.videos) ? activity.videos : [],
-      selectedWidget: activity.selectedWidget || 'calendar-single-event',
-      operatingDays: Array.isArray(activity.operatingDays) ? activity.operatingDays : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      startTime: activity.startTime || '10:00',
-      endTime: activity.endTime || '22:00',
-      slotInterval: activity.slotInterval || 60,
-      advanceBooking: activity.advanceBooking || 30,
-      customHoursEnabled: Boolean(activity.customHoursEnabled),
-      customHours: typeof activity.customHours === 'object' && activity.customHours ? activity.customHours : {
-        Monday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-        Tuesday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-        Wednesday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-        Thursday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-        Friday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-        Saturday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-        Sunday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-      },
-      customCapacityFields: Array.isArray(activity.customCapacityFields) ? activity.customCapacityFields : [],
-      groupDiscount: Boolean(activity.groupDiscount),
-      groupTiers: Array.isArray(activity.groupTiers) ? activity.groupTiers : [],
-      dynamicPricing: Boolean(activity.dynamicPricing),
-      peakPricing: activity.peakPricing || { enabled: false, weekdayPeakPrice: 0, weekendPeakPrice: 0, peakStartTime: '', peakEndTime: '' },
-      customDates: Array.isArray(activity.customDates) ? activity.customDates : [],
-      blockedDates: Array.isArray(activity.blockedDates) ? activity.blockedDates : [],
-      requiresWaiver: Boolean(activity.requiresWaiver),
-      selectedWaiver: activity.selectedWaiver || null,
-      cancellationWindow: activity.cancellationWindow || 24,
-      specialInstructions: activity.specialInstructions || '',
-      slug: activity.slug || generateSlug(activity.name),
-      // Preserve Stripe fields
-      stripeProductId: activity.stripeProductId || activity.stripe_product_id,
-      stripePriceId: activity.stripePriceId || activity.stripe_price_id,
-      stripePrices: activity.stripePrices || activity.stripe_prices,
-      stripeCheckoutUrl: activity.stripeCheckoutUrl || activity.stripe_checkout_url,
-      stripeSyncStatus: activity.stripeSyncStatus || activity.stripe_sync_status,
-      stripeLastSync: activity.stripeLastSync || activity.stripe_last_sync,
-    };
-  };
+  // Using convertToWizardData from config/defaults.ts
 
   const methods = useForm<ActivityData>({
     resolver: zodResolver(activityDataSchema) as any,
     defaultValues: {
-      name: '',
-      description: '',
-      category: '',
-      tagline: '',
-      eventType: 'public',
-      activityType: 'physical',
-      timezone: '',
-      minAdults: 2,
-      maxAdults: 8,
-      minChildren: 0,
-      maxChildren: 4,
-      adultPrice: 30,
-      childPrice: 20,
-      duration: 60,
-      difficulty: 3,
-      minAge: 12,
-      language: ['English'],
-      successRate: 75,
-      activityDetails: '',
-      additionalInformation: '',
-      faqs: [],
-      cancellationPolicies: [],
-      accessibility: { strollerAccessible: false, wheelchairAccessible: false },
-      location: '',
-      coverImage: '',
-      galleryImages: [],
-      videos: [],
-      selectedWidget: 'calendar-single-event',
-      operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      startTime: '10:00',
-      endTime: '22:00',
-      slotInterval: 60,
-      advanceBooking: 30,
-      customHoursEnabled: false,
-      customHours: {
-        Monday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-        Tuesday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-        Wednesday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-        Thursday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-        Friday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-        Saturday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-        Sunday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-      },
-      customCapacityFields: [],
-      groupDiscount: false,
-      groupTiers: [],
-      dynamicPricing: false,
-      peakPricing: { enabled: false, weekdayPeakPrice: 0, weekendPeakPrice: 0, peakStartTime: '', peakEndTime: '' },
-      customDates: [],
-      blockedDates: [],
-      requiresWaiver: true,
-      selectedWaiver: null,
-      cancellationWindow: 24,
-      specialInstructions: '',
-      slug: '',
-      ...(initialData ? convertActivityToWizardData(initialData) : {})
+      ...DEFAULT_ACTIVITY_DATA,
+      ...(initialData ? convertToWizardData(initialData) : {}),
     },
     mode: 'onChange'
   });
@@ -192,66 +64,9 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
   // Reset form when initialData changes
   React.useEffect(() => {
     if (initialData) {
-      const wizardData = convertActivityToWizardData(initialData);
-      reset(wizardData);
+      reset({ ...DEFAULT_ACTIVITY_DATA, ...convertToWizardData(initialData) });
     } else {
-      reset({
-        name: '',
-        description: '',
-        category: '',
-        tagline: '',
-        eventType: 'public',
-        activityType: 'physical',
-        timezone: '',
-        minAdults: 2,
-        maxAdults: 8,
-        minChildren: 0,
-        maxChildren: 4,
-        adultPrice: 30,
-        childPrice: 20,
-        duration: 60,
-        difficulty: 3,
-        minAge: 12,
-        language: ['English'],
-        successRate: 75,
-        activityDetails: '',
-        additionalInformation: '',
-        faqs: [],
-        cancellationPolicies: [],
-        accessibility: { strollerAccessible: false, wheelchairAccessible: false },
-        location: '',
-        coverImage: '',
-        galleryImages: [],
-        videos: [],
-        selectedWidget: 'calendar-single-event',
-        operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-        startTime: '10:00',
-        endTime: '22:00',
-        slotInterval: 60,
-        advanceBooking: 30,
-        customHoursEnabled: false,
-        customHours: {
-          Monday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-          Tuesday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-          Wednesday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-          Thursday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-          Friday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-          Saturday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-          Sunday: { enabled: true, startTime: '10:00', endTime: '22:00' },
-        },
-        customCapacityFields: [],
-        groupDiscount: false,
-        groupTiers: [],
-        dynamicPricing: false,
-        peakPricing: { enabled: false, weekdayPeakPrice: 0, weekendPeakPrice: 0, peakStartTime: '', peakEndTime: '' },
-        customDates: [],
-        blockedDates: [],
-        requiresWaiver: true,
-        selectedWaiver: null,
-        cancellationWindow: 24,
-        specialInstructions: '',
-        slug: '',
-      });
+      reset(DEFAULT_ACTIVITY_DATA);
     }
   }, [initialData, reset]);
   const activityData = watch();
@@ -419,7 +234,15 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
           organizationId={organizationId}
         />;
       case 7:
-        return <Step7WidgetEmbed activityData={activityData} updateActivityData={updateActivityData} t={t} />;
+        return (
+          <Step7WidgetEmbedNew 
+            activityData={activityData} 
+            updateActivityData={updateActivityData} 
+            t={t}
+            activityId={createdActivityId || undefined}
+            venueId={venueId}
+          />
+        );
       case 8:
         return <Step8Review activityData={activityData} updateActivityData={updateActivityData} t={t} onEditStep={setCurrentStep} />;
       default:

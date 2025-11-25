@@ -300,11 +300,20 @@ export function Embed() {
     }
   }, [widgetKey, fetchVenueConfig]);
 
-  // Set up real-time subscription for game updates
+  // Set up real-time subscription for activity updates (optimized for high traffic)
   useEffect(() => {
     if (!venueId || !widgetKey) return;
 
     console.log('🔄 Setting up real-time subscription for venue:', venueId);
+
+    // Debounce to prevent excessive updates under high traffic
+    let debounceTimer: NodeJS.Timeout | null = null;
+    const debouncedRefresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchVenueConfig({ showLoading: false });
+      }, 500); // 500ms debounce for better performance
+    };
 
     const channel = supabase
       .channel(`widget-${venueId}`)
@@ -313,12 +322,25 @@ export function Embed() {
         {
           event: '*',
           schema: 'public',
-          table: 'games',
+          table: 'activities', // Updated from 'games' to 'activities'
           filter: `venue_id=eq.${venueId}`,
         },
         (payload) => {
-          console.log('🔔 Game update detected:', payload.eventType);
-          fetchVenueConfig({ showLoading: false });
+          console.log('🔔 Activity update detected:', payload.eventType);
+          debouncedRefresh();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'activity_sessions', // Also listen for session updates
+          filter: `venue_id=eq.${venueId}`,
+        },
+        (payload) => {
+          console.log('🔔 Session update detected:', payload.eventType);
+          debouncedRefresh();
         }
       )
       .on(
@@ -331,7 +353,7 @@ export function Embed() {
         },
         () => {
           console.log('🔔 Venue update detected');
-          fetchVenueConfig({ showLoading: false });
+          debouncedRefresh();
         }
       )
       .subscribe();
@@ -339,6 +361,7 @@ export function Embed() {
     // Cleanup subscriptions on unmount
     return () => {
       console.log('🔌 Cleaning up real-time subscriptions');
+      if (debounceTimer) clearTimeout(debounceTimer);
       channel.unsubscribe();
     };
   }, [venueId, widgetKey, fetchVenueConfig]);
@@ -365,7 +388,9 @@ export function Embed() {
       case 'resolvex':
         return <ResolvexWidget {...widgetProps} />;
       case 'singlegame':
-        console.log('✅ Rendering Calendar Single Event widget');
+      case 'calendar-booking': // New unified booking widget route
+      case 'booking':
+        console.log('✅ Rendering Calendar Booking widget');
         return (
           <CalendarSingleEventBookingPage
             {...widgetProps}

@@ -12,42 +12,29 @@ import {
     LayoutTemplate
 } from 'lucide-react';
 
+/**
+ * Widget Options
+ * Currently focused on Calendar Single Event for optimal booking conversion.
+ * Other widget types can be enabled as needed.
+ */
 export const WIDGET_OPTIONS = [
     {
-        id: 'calendar-single',
-        name: 'Calendar Single Event / Room Booking Page Widget',
-        description: 'Best for single room or escape game booking pages.',
+        id: 'calendar-single-event',
+        name: 'Calendar Booking Widget',
+        description: 'High-conversion booking calendar with real-time availability. Recommended for all activities.',
         icon: Calendar,
-        preview: '/widgets/calendar-single.png'
+        preview: '/widgets/calendar-single.png',
+        recommended: true,
     },
-    {
-        id: 'calendar-multi',
-        name: 'Calendar Multi-Event / Room Booking Page Widget',
-        description: 'Ideal for showing availability across multiple rooms.',
-        icon: CalendarDays,
-        preview: '/widgets/calendar-multi.png'
-    },
-    {
-        id: 'list-view',
-        name: 'List View Widget',
-        description: 'Simple list of available slots.',
-        icon: List,
-        preview: '/widgets/list-view.png'
-    },
-    {
-        id: 'grid-view',
-        name: 'Grid View Widget',
-        description: 'Visual grid layout of games and times.',
-        icon: Grid,
-        preview: '/widgets/grid-view.png'
-    },
-    {
-        id: 'weekly-view',
-        name: 'Weekly Schedule Widget',
-        description: 'Overview of the entire week.',
-        icon: LayoutTemplate,
-        preview: '/widgets/weekly-view.png'
-    }
+    // Future widget types (disabled for now)
+    // {
+    //     id: 'calendar-multi',
+    //     name: 'Multi-Activity Calendar',
+    //     description: 'Show multiple activities on one calendar.',
+    //     icon: CalendarDays,
+    //     preview: '/widgets/calendar-multi.png',
+    //     recommended: false,
+    // },
 ];
 
 export const STEPS = [

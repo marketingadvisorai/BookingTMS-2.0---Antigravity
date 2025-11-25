@@ -31,9 +31,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { StepProps } from '../types';
-import { CalendarSingleEventBookingPage } from '../../widgets/CalendarSingleEventBookingPage';
+import { ActivityPreviewCard, ActivityPreviewData } from '../../widgets/ActivityPreviewCard';
 import { Badge } from '../../ui/badge';
-import { WidgetThemeProvider } from '../../widgets/WidgetThemeContext';
 import { generateEmbedCode, generateReactCode, generateEmbedUrl } from '../../../lib/embed/EmbedManager';
 import { toast } from 'sonner';
 
@@ -283,10 +282,10 @@ export default function Step7WidgetEmbedNew({
                   </div>
                 </div>
                 
-                {/* Preview Content */}
+                {/* Preview Content - Using ActivityPreviewCard (safe, no real bookings) */}
                 <div 
                   className="bg-white overflow-y-auto"
-                  style={{ height: '550px' }}
+                  style={{ height: '650px' }}
                 >
                   <div 
                     style={{ 
@@ -295,31 +294,35 @@ export default function Step7WidgetEmbedNew({
                       width: `${100 / deviceConfig.scale}%`,
                     }}
                   >
-                    <WidgetThemeProvider initialTheme={theme}>
-                      <CalendarSingleEventBookingPage
-                        primaryColor={primaryColor}
-                        gameName={activityData.name}
-                        gameDescription={activityData.description}
-                        gamePrice={activityData.adultPrice}
-                        timezone={activityData.timezone}
-                        config={{
-                          isTemplate: true,
-                          activities: [{
-                            id: 'preview',
-                            name: activityData.name,
-                            description: activityData.description,
-                            price: activityData.adultPrice,
-                            duration: activityData.duration,
-                            schedule: {
-                              operatingDays: activityData.operatingDays,
-                              startTime: activityData.startTime,
-                              endTime: activityData.endTime,
-                              slotInterval: activityData.slotInterval,
-                            },
-                          }],
-                        }}
-                      />
-                    </WidgetThemeProvider>
+                    <ActivityPreviewCard
+                      activity={{
+                        id: activityId || 'preview',
+                        name: activityData.name || 'Your Activity',
+                        description: activityData.description,
+                        duration: activityData.duration || 60,
+                        difficulty: String(activityData.difficulty || 'Medium'),
+                        min_players: activityData.minPlayers || 1,
+                        max_players: activityData.maxPlayers || 8,
+                        price: activityData.adultPrice || 30,
+                        child_price: activityData.childPrice,
+                        image_url: activityData.coverImage,
+                        gallery_images: activityData.galleryImages,
+                        video_url: activityData.videoUrl,
+                        age_guideline: activityData.ageGuideline,
+                        faqs: activityData.faqs,
+                        highlights: activityData.highlights,
+                        schedule: {
+                          operatingDays: activityData.operatingDays,
+                          startTime: activityData.startTime || '10:00',
+                          endTime: activityData.endTime || '22:00',
+                          slotInterval: activityData.slotInterval || 60,
+                        },
+                      }}
+                      venueName={activityData.venueName}
+                      primaryColor={primaryColor}
+                      theme={theme}
+                      showBookingFlow={true}
+                    />
                   </div>
                 </div>
               </div>

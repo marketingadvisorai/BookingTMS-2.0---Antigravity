@@ -34,6 +34,46 @@ export interface PaymentLinkResponse {
 
 export class CheckoutService {
   /**
+   * Update session capacity after booking
+   * Decrements capacity_remaining by partySize
+   */
+  static async updateSessionCapacity(sessionId: string, partySize: number): Promise<void> {
+    try {
+      // Get current session
+      const { data: session, error: fetchError } = await supabase
+        .from('activity_sessions')
+        .select('capacity_remaining')
+        .eq('id', sessionId)
+        .single() as { data: { capacity_remaining: number } | null; error: any };
+
+      if (fetchError || !session) {
+        console.error('Error fetching session for capacity update:', fetchError);
+        return;
+      }
+
+      // Calculate new capacity
+      const newCapacity = Math.max(0, (session.capacity_remaining ?? 0) - partySize);
+
+      // Update session
+      const { error: updateError } = await (supabase
+        .from('activity_sessions') as any)
+        .update({ 
+          capacity_remaining: newCapacity,
+          updated_at: new Date().toISOString()
+        } as any)
+        .eq('id', sessionId);
+
+      if (updateError) {
+        console.error('Error updating session capacity:', updateError);
+      } else {
+        console.log(`[Booking] Session ${sessionId} capacity updated: ${newCapacity}`);
+      }
+    } catch (error) {
+      console.error('Exception updating session capacity:', error);
+    }
+  }
+
+  /**
    * Create a Checkout Session (Stripe-hosted checkout page)
    * Use this for immediate payment flow
    */
@@ -136,6 +176,11 @@ export class CheckoutService {
 
       if (bookingError) throw bookingError;
 
+      // Update session capacity if sessionId is provided
+      if (params.sessionId) {
+        await this.updateSessionCapacity(params.sessionId, params.partySize);
+      }
+
       // Create Checkout Session
       const session = await this.createCheckoutSession({
         priceId: params.priceId,
@@ -216,6 +261,11 @@ export class CheckoutService {
         .single() as any;
 
       if (bookingError) throw bookingError;
+
+      // Update session capacity if sessionId is provided
+      if (params.sessionId) {
+        await this.updateSessionCapacity(params.sessionId, params.partySize);
+      }
 
       // Create or use existing Payment Link
       let paymentLinkUrl = params.paymentLink;

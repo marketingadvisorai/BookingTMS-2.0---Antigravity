@@ -1,16 +1,30 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { VenueService, Venue } from '../services/venue.service';
 import { ActivityService, Activity } from '../modules/inventory/services/activity.service';
 import { SessionService, Session } from '../services/session.service';
+import { supabase } from '../lib/supabase';
 import { startOfDay, endOfDay, addDays } from 'date-fns';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface UseWidgetDataProps {
     venueId?: string;
     activityId?: string;
     date?: Date;
+    enableRealtime?: boolean; // Enable real-time subscriptions
 }
 
-export const useWidgetData = ({ venueId, activityId, date }: UseWidgetDataProps) => {
+/**
+ * useWidgetData Hook
+ * 
+ * Fetches venue, activities, and sessions data for booking widgets.
+ * Supports real-time updates via Supabase subscriptions.
+ * 
+ * Real-time updates when:
+ * - Activity is updated (price, schedule changes)
+ * - Session is updated (capacity changes from bookings)
+ * - New sessions are generated
+ */
+export const useWidgetData = ({ venueId, activityId, date, enableRealtime = true }: UseWidgetDataProps) => {
     const [venue, setVenue] = useState<Venue | null>(null);
     const [activities, setActivities] = useState<Activity[]>([]);
     const [sessions, setSessions] = useState<Session[]>([]);
@@ -20,6 +34,11 @@ export const useWidgetData = ({ venueId, activityId, date }: UseWidgetDataProps)
         sessions: false
     });
     const [error, setError] = useState<string | null>(null);
+    const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+    
+    // Track subscriptions for cleanup
+    const activitiesChannelRef = useRef<RealtimeChannel | null>(null);
+    const sessionsChannelRef = useRef<RealtimeChannel | null>(null);
 
     // Fetch Venue
     useEffect(() => {
@@ -96,12 +115,127 @@ export const useWidgetData = ({ venueId, activityId, date }: UseWidgetDataProps)
         }
     }, [activityId, date, fetchSessions]);
 
+    // Real-time subscription for activities (price/schedule changes)
+    useEffect(() => {
+        if (!venueId || !enableRealtime) return;
+
+        // Subscribe to activities changes for this venue
+        const activitiesChannel = supabase
+            .channel(`activities-venue-${venueId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*', // Listen to INSERT, UPDATE, DELETE
+                    schema: 'public',
+                    table: 'activities',
+                    filter: `venue_id=eq.${venueId}`
+                },
+                (payload) => {
+                    console.log('[Widget Real-time] Activity change:', payload.eventType);
+                    
+                    // Refetch activities to get updated data
+                    const refetchActivities = async () => {
+                        try {
+                            const data = await ActivityService.listActivities(venueId);
+                            const activeActivities = data.filter(a => a.status === 'active');
+                            setActivities(activeActivities);
+                            setLastUpdate(new Date());
+                        } catch (err) {
+                            console.error('Error refetching activities:', err);
+                        }
+                    };
+                    refetchActivities();
+                }
+            )
+            .subscribe();
+
+        activitiesChannelRef.current = activitiesChannel;
+
+        return () => {
+            if (activitiesChannelRef.current) {
+                supabase.removeChannel(activitiesChannelRef.current);
+                activitiesChannelRef.current = null;
+            }
+        };
+    }, [venueId, enableRealtime]);
+
+    // Real-time subscription for sessions (booking capacity changes)
+    useEffect(() => {
+        if (!activityId || !enableRealtime) return;
+
+        // Subscribe to session changes for this activity
+        const sessionsChannel = supabase
+            .channel(`sessions-activity-${activityId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*', // Listen to INSERT, UPDATE, DELETE
+                    schema: 'public',
+                    table: 'activity_sessions',
+                    filter: `activity_id=eq.${activityId}`
+                },
+                (payload) => {
+                    console.log('[Widget Real-time] Session change:', payload.eventType, payload.new);
+                    
+                    // Update sessions in state
+                    if (payload.eventType === 'UPDATE' && payload.new) {
+                        // Update the specific session in the list
+                        setSessions(prevSessions => 
+                            prevSessions.map(session => 
+                                session.id === (payload.new as any).id 
+                                    ? { ...session, ...(payload.new as Session) }
+                                    : session
+                            )
+                        );
+                        setLastUpdate(new Date());
+                    } else if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
+                        // Refetch all sessions for significant changes
+                        if (date) {
+                            fetchSessions(activityId, date);
+                        }
+                    }
+                }
+            )
+            .subscribe();
+
+        sessionsChannelRef.current = sessionsChannel;
+
+        return () => {
+            if (sessionsChannelRef.current) {
+                supabase.removeChannel(sessionsChannelRef.current);
+                sessionsChannelRef.current = null;
+            }
+        };
+    }, [activityId, date, enableRealtime, fetchSessions]);
+
+    // Manual refresh function
+    const refresh = useCallback(async () => {
+        if (venueId) {
+            setLoading(prev => ({ ...prev, activities: true }));
+            try {
+                const data = await ActivityService.listActivities(venueId);
+                const activeActivities = data.filter(a => a.status === 'active');
+                setActivities(activeActivities);
+            } catch (err: any) {
+                console.error('Error refreshing activities:', err);
+            } finally {
+                setLoading(prev => ({ ...prev, activities: false }));
+            }
+        }
+        if (activityId && date) {
+            await fetchSessions(activityId, date);
+        }
+        setLastUpdate(new Date());
+    }, [venueId, activityId, date, fetchSessions]);
+
     return {
         venue,
         activities,
         sessions,
         loading,
         error,
+        lastUpdate,
+        refresh,
         refetchSessions: () => activityId && date && fetchSessions(activityId, date)
     };
 };

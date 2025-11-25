@@ -282,48 +282,59 @@ export default function Step7WidgetEmbedNew({
                   </div>
                 </div>
                 
-                {/* Preview Content - Using ActivityPreviewCard (safe, no real bookings) */}
+                {/* Preview Content - Use real widget iframe if activityId exists, else show preview card */}
                 <div 
-                  className="bg-white overflow-y-auto"
+                  className="bg-white overflow-hidden"
                   style={{ height: '650px' }}
                 >
-                  <div 
-                    style={{ 
-                      transform: `scale(${deviceConfig.scale})`,
-                      transformOrigin: 'top center',
-                      width: `${100 / deviceConfig.scale}%`,
-                    }}
-                  >
-                    <ActivityPreviewCard
-                      activity={{
-                        id: activityId || 'preview',
-                        name: activityData.name || 'Sample Activity',
-                        description: activityData.description || 'Experience an amazing adventure with your group.',
-                        duration: activityData.duration || 60,
-                        difficulty: activityData.difficulty ? String(activityData.difficulty) : '3',
-                        min_players: activityData.minAdults || 2,
-                        max_players: activityData.maxAdults || 8,
-                        price: activityData.adultPrice || 30,
-                        child_price: activityData.childPrice || 20,
-                        image_url: activityData.coverImage || undefined,
-                        gallery_images: activityData.galleryImages || [],
-                        video_url: activityData.videos?.[0],
-                        age_guideline: activityData.minAge ? `Ages ${activityData.minAge}+` : undefined,
-                        faqs: activityData.faqs || [],
-                        highlights: [],
-                        schedule: {
-                          operatingDays: activityData.operatingDays || ['Monday', 'Friday'],
-                          startTime: activityData.startTime || '10:00',
-                          endTime: activityData.endTime || '22:00',
-                          slotInterval: activityData.slotInterval || 60,
-                        },
-                      }}
-                      venueName={undefined}
-                      primaryColor={primaryColor}
-                      theme={theme}
-                      showBookingFlow={true}
+                  {activityId && activityId !== 'preview' ? (
+                    /* Live Widget Preview - Real data from database via iframe (like Stripe) */
+                    <iframe
+                      src={`${baseUrl}/embed?widget=singlegame&activityId=${activityId}&color=${primaryColor.replace('#', '')}&theme=${theme}`}
+                      className="w-full h-full border-0"
+                      title="Widget Preview"
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                     />
-                  </div>
+                  ) : (
+                    /* Static Preview for new activities (no database data yet) */
+                    <div 
+                      style={{ 
+                        transform: `scale(${deviceConfig.scale})`,
+                        transformOrigin: 'top center',
+                        width: `${100 / deviceConfig.scale}%`,
+                      }}
+                    >
+                      <ActivityPreviewCard
+                        activity={{
+                          id: 'preview',
+                          name: activityData.name || 'Sample Activity',
+                          description: activityData.description || 'Experience an amazing adventure with your group.',
+                          duration: activityData.duration || 60,
+                          difficulty: activityData.difficulty ? String(activityData.difficulty) : '3',
+                          min_players: activityData.minAdults || 2,
+                          max_players: activityData.maxAdults || 8,
+                          price: activityData.adultPrice || 30,
+                          child_price: activityData.childPrice || 20,
+                          image_url: activityData.coverImage || undefined,
+                          gallery_images: activityData.galleryImages || [],
+                          video_url: activityData.videos?.[0],
+                          age_guideline: activityData.minAge ? `Ages ${activityData.minAge}+` : undefined,
+                          faqs: activityData.faqs || [],
+                          highlights: [],
+                          schedule: {
+                            operatingDays: activityData.operatingDays || ['Monday', 'Friday'],
+                            startTime: activityData.startTime || '10:00',
+                            endTime: activityData.endTime || '22:00',
+                            slotInterval: activityData.slotInterval || 60,
+                          },
+                        }}
+                        venueName={undefined}
+                        primaryColor={primaryColor}
+                        theme={theme}
+                        showBookingFlow={true}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </TabsContent>

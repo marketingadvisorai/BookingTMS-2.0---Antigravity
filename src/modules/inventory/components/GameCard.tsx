@@ -95,10 +95,6 @@ export function GameCard({
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit {terminology.singular}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onViewBookings(game)}>
-                                <Calendar className="w-4 h-4 mr-2" />
-                                View Bookings
-                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onDuplicate(game)}>
                                 <Copy className="w-4 h-4 mr-2" />
                                 Duplicate
@@ -147,9 +143,10 @@ export function GameCard({
                 <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => onViewBookings(game)}
+                    onClick={() => onEdit(game)}
                 >
-                    Manage Schedule
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit {terminology.singular}
                 </Button>
             </CardFooter>
         </Card>

@@ -33,6 +33,7 @@
     "vite.config.ts"
   ],
   "exclude": [
-    "src/supabase/functions"
+    "src/supabase/functions",
+    "src/verify-env.js"
   ]
 }

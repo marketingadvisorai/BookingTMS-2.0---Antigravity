@@ -49,7 +49,7 @@ export interface EmbedMessage {
  */
 export function generateEmbedUrl(config: EmbedConfig, baseUrl: string): string {
   const params = new URLSearchParams({
-    widget: 'calendar-booking',
+    widget: 'booking', // Uses calendar-booking route in Embed.tsx
     activityId: config.activityId,
     venueId: config.venueId,
     key: config.embedKey,
@@ -58,7 +58,26 @@ export function generateEmbedUrl(config: EmbedConfig, baseUrl: string): string {
     ...(config.locale && { locale: config.locale }),
   });
 
-  return `${baseUrl}/embed/booking?${params.toString()}`;
+  return `${baseUrl}/embed?${params.toString()}`;
+}
+
+/**
+ * Generate full-page booking URL (opens in new tab)
+ * This URL is suitable for "Book Now" buttons that open a full-page experience
+ */
+export function generateFullPageUrl(config: EmbedConfig, baseUrl: string): string {
+  const params = new URLSearchParams({
+    widget: 'booking',
+    activityId: config.activityId,
+    venueId: config.venueId,
+    key: config.embedKey,
+    theme: config.theme || 'light',
+    color: (config.primaryColor || '#2563eb').replace('#', ''),
+    mode: 'fullpage', // Indicates full-page mode for styling
+    ...(config.locale && { locale: config.locale }),
+  });
+
+  return `${baseUrl}/embed?${params.toString()}`;
 }
 
 /**

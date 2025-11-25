@@ -12,6 +12,11 @@ interface GameGridProps {
   onDelete: (game: Game) => void;
   onToggleStatus: (id: string, currentStatus: boolean) => void;
   onAddGame: () => void;
+  /** Terminology object for dynamic labels */
+  terminology?: {
+    singular: string;
+    plural: string;
+  };
 }
 
 export function GameGrid({ 
@@ -22,7 +27,8 @@ export function GameGrid({
   onDuplicate, 
   onDelete, 
   onToggleStatus,
-  onAddGame
+  onAddGame,
+  terminology = { singular: 'Activity', plural: 'Activities' }
 }: GameGridProps) {
   
   if (isLoading && games.length === 0) {
@@ -36,12 +42,12 @@ export function GameGrid({
   if (games.length === 0) {
     return (
       <div className="text-center py-12 border-2 border-dashed border-gray-200 dark:border-[#2a2a2a] rounded-lg">
-        <p className="text-gray-500 dark:text-gray-400 mb-4">No games found. Create your first game!</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-4">No {terminology.plural.toLowerCase()} found. Create your first {terminology.singular.toLowerCase()}!</p>
         <Button 
           variant="outline" 
           onClick={onAddGame}
         >
-          Add Game
+          Add {terminology.singular}
         </Button>
       </div>
     );
@@ -58,6 +64,7 @@ export function GameGrid({
           onDuplicate={onDuplicate}
           onDelete={onDelete}
           onToggleStatus={onToggleStatus}
+          terminology={terminology}
         />
       ))}
     </div>

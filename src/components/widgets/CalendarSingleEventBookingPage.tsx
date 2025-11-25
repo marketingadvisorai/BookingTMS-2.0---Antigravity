@@ -204,14 +204,22 @@ export function CalendarSingleEventBookingPage({
         return;
       }
 
-      // Calculate booking time
-      const bookingDate = `2025-11-${String(selectedDate).padStart(2, '0')}`;
+      // Calculate booking time using current date state
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate).padStart(2, '0');
+      const bookingDate = `${year}-${month}-${day}`;
+      
       const [startHour, startMinute] = selectedTime!.split(':');
       const startTime = `${startHour.padStart(2, '0')}:${startMinute.padStart(2, '0')}:00`;
 
-      // Calculate end time (assume 60 min duration)
-      const endHour = String((parseInt(startHour) + 1) % 24).padStart(2, '0');
-      const endTime = `${endHour}:${startMinute.padStart(2, '0')}:00`;
+      // Calculate end time based on activity duration
+      const duration = gameData.schedule?.duration || 60;
+      const startMinutes = parseInt(startHour) * 60 + parseInt(startMinute);
+      const endMinutes = startMinutes + duration;
+      const endHour = String(Math.floor(endMinutes / 60) % 24).padStart(2, '0');
+      const endMin = String(endMinutes % 60).padStart(2, '0');
+      const endTime = `${endHour}:${endMin}:00`;
 
       // Prepare ticket types
       const ticketTypes = [{

@@ -17,6 +17,7 @@ export function Embed() {
   const [primaryColor, setPrimaryColor] = useState<string>(DEFAULT_PRIMARY_COLOR);
   const [widgetKey, setWidgetKey] = useState<string>('');
   const [widgetTheme, setWidgetTheme] = useState<'light' | 'dark'>('light');
+  const [isFullPage, setIsFullPage] = useState<boolean>(false); // Full page mode flag
   // Config used by embedded widgets (loaded from Supabase by embedKey)
   const [embedConfig, setEmbedConfig] = useState<any | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -66,6 +67,7 @@ export function Embed() {
     const color = params.get('color') || DEFAULT_PRIMARY_COLOR.replace('#', '');
     const key = params.get('key') || '';
     const theme = (params.get('theme') as 'light' | 'dark') || 'light';
+    const mode = params.get('mode'); // Check for fullpage mode
 
     // Optional single game preview params
     const sgName = params.get('gameName') || undefined;
@@ -80,6 +82,7 @@ export function Embed() {
     setPrimaryColor(`#${color.replace('#', '')}`);
     setWidgetKey(key);
     setWidgetTheme(theme);
+    setIsFullPage(mode === 'fullpage');
 
     // Apply single-game overrides if provided
     setSingleGameName(sgName);

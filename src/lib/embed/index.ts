@@ -14,6 +14,7 @@ export {
   generateEmbedCode,
   generateReactCode,
   generateEmbedUrl,
+  generateFullPageUrl,
   generateWordPressInstructions,
 } from './EmbedManager';
 

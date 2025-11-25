@@ -279,6 +279,7 @@ export function Events() {
         onDelete={(game) => setDeletingItem(game)}
         onToggleStatus={handleToggleStatus}
         onAddGame={() => setIsAddWizardOpen(true)}
+        terminology={{ singular: t.singular, plural: t.plural }}
       />
 
       {/* Add/Edit Wizard Dialog */}

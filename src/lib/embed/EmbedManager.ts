@@ -81,15 +81,43 @@ export function generateFullPageUrl(config: EmbedConfig, baseUrl: string): strin
 }
 
 /**
- * Generate embed code snippet for customers
+ * Generate SDK-based embed code (Stripe-style, recommended)
  */
 export function generateEmbedCode(config: EmbedConfig, baseUrl: string): string {
+  const activityIdShort = config.activityId?.slice(0, 8) || 'widget';
+
+  return `<!-- BookingTMS Widget (SDK Method - Recommended) -->
+<div id="booking-widget-${activityIdShort}"></div>
+<script src="${baseUrl}/embed.js"></script>
+<script>
+  BookingTMS.init({
+    key: '${config.embedKey}',
+    theme: '${config.theme || 'light'}',
+    primaryColor: '${(config.primaryColor || '#2563eb').replace('#', '')}'
+  });
+  
+  BookingTMS.booking('#booking-widget-${activityIdShort}', {
+    activityId: '${config.activityId}',
+    venueId: '${config.venueId}'
+  });
+  
+  // Optional: Listen for booking completion
+  document.addEventListener('bookingtms:complete', function(e) {
+    console.log('Booking completed:', e.detail);
+  });
+</script>`;
+}
+
+/**
+ * Generate simple iframe embed code (fallback method)
+ */
+export function generateIframeCode(config: EmbedConfig, baseUrl: string): string {
   const embedUrl = generateEmbedUrl(config, baseUrl);
-  const embedId = `booking-widget-${config.activityId.slice(0, 8)}`;
+  const embedId = `booking-widget-${config.activityId?.slice(0, 8) || 'widget'}`;
   const minHeight = config.minHeight || 600;
   const maxHeight = config.maxHeight || 900;
 
-  return `<!-- BookingTMS Calendar Widget -->
+  return `<!-- BookingTMS Widget (Iframe Method) -->
 <div id="${embedId}" style="width: 100%; min-height: ${minHeight}px; max-height: ${maxHeight}px;">
   <iframe
     src="${embedUrl}"
@@ -97,7 +125,7 @@ export function generateEmbedCode(config: EmbedConfig, baseUrl: string): string 
     loading="lazy"
     allow="payment"
     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-    title="Book ${config.activityId}"
+    title="Booking Widget"
   ></iframe>
 </div>
 <script>
@@ -105,24 +133,13 @@ export function generateEmbedCode(config: EmbedConfig, baseUrl: string): string 
   var container = document.getElementById('${embedId}');
   var iframe = container.querySelector('iframe');
   
-  // Handle resize messages from widget
   window.addEventListener('message', function(e) {
     if (e.origin !== '${baseUrl}') return;
     var data = e.data;
-    if (data.embedId !== '${embedId}') return;
     
-    switch(data.type) {
-      case 'RESIZE':
-        iframe.style.height = Math.min(Math.max(data.payload.height, ${minHeight}), ${maxHeight}) + 'px';
-        break;
-      case 'BOOKING_COMPLETE':
-        if (typeof window.onBookingComplete === 'function') {
-          window.onBookingComplete(data.payload);
-        }
-        break;
-      case 'ERROR':
-        console.error('Booking Widget Error:', data.payload);
-        break;
+    if (data.type === 'BOOKINGTMS_RESIZE' || data.type === 'resize-iframe') {
+      var h = data.height || (data.payload && data.payload.height);
+      if (h) iframe.style.height = Math.min(Math.max(h, ${minHeight}), ${maxHeight}) + 'px';
     }
   });
 })();

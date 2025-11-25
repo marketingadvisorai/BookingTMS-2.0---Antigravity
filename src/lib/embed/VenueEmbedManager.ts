@@ -105,15 +105,42 @@ export function generateIframeEmbedCode(config: VenueEmbedConfig, baseUrl: strin
 }
 
 /**
- * Generate auto-resize script embed code
+ * Generate SDK-based embed code (Stripe-style - Recommended)
+ */
+export function generateSDKEmbedCode(config: VenueEmbedConfig, baseUrl: string, venueName: string): string {
+  const embedId = `bookingtms-${config.embedKey?.slice(0, 8) || 'venue'}`;
+
+  return `<!-- BookingTMS Widget for ${venueName} (SDK Method - Recommended) -->
+<div id="${embedId}"></div>
+<script src="${baseUrl}/embed.js"></script>
+<script>
+  BookingTMS.init({
+    key: '${config.embedKey}',
+    theme: '${config.theme || 'light'}',
+    primaryColor: '${(config.primaryColor || '#2563eb').replace('#', '')}'
+  });
+  
+  // Mount the calendar widget (shows all activities)
+  BookingTMS.calendar('#${embedId}'${config.activityId ? `, { activityId: '${config.activityId}' }` : ''});
+  
+  // Optional: Listen for booking completion
+  document.addEventListener('bookingtms:complete', function(e) {
+    console.log('Booking completed:', e.detail);
+    // Your custom handling code here
+  });
+</script>`;
+}
+
+/**
+ * Generate auto-resize script embed code (Fallback method)
  */
 export function generateScriptEmbedCode(config: VenueEmbedConfig, baseUrl: string, venueName: string): string {
   const embedUrl = generateVenueEmbedUrl(config, baseUrl);
-  const embedId = `bookingtms-${config.embedKey.slice(0, 8)}`;
+  const embedId = `bookingtms-${config.embedKey?.slice(0, 8) || 'venue'}`;
   const minHeight = config.minHeight || 600;
   const maxHeight = config.maxHeight || 1200;
 
-  return `<!-- BookingTMS ${venueName} - Auto-Resize Embed -->
+  return `<!-- BookingTMS ${venueName} - Iframe Embed (Fallback) -->
 <div id="${embedId}" style="width: 100%; min-height: ${minHeight}px; max-height: ${maxHeight}px;"></div>
 <script>
 (function() {
@@ -131,23 +158,16 @@ export function generateScriptEmbedCode(config: VenueEmbedConfig, baseUrl: strin
   iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox';
   iframe.title = '${venueName} Booking Widget';
   
-  // Auto-resize based on content
   window.addEventListener('message', function(e) {
     if (!e.data) return;
     var data = e.data;
     
-    // Handle resize messages
     if (data.type === 'BOOKINGTMS_RESIZE' || data.type === 'resize-iframe') {
       var newHeight = Math.min(Math.max(data.height || ${minHeight}, ${minHeight}), ${maxHeight});
       iframe.style.height = newHeight + 'px';
     }
     
-    // Handle booking complete
     if (data.type === 'BOOKINGTMS_BOOKING_COMPLETE') {
-      if (typeof window.onBookingTMSComplete === 'function') {
-        window.onBookingTMSComplete(data.payload);
-      }
-      // Dispatch custom event for frameworks
       container.dispatchEvent(new CustomEvent('bookingComplete', { detail: data.payload }));
     }
   });

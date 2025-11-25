@@ -41,7 +41,9 @@ export class OrganizationService {
             max_staff,
             max_bookings_per_month,
             max_widgets
-          )
+          ),
+          venues:venues(count),
+          activities:activities(count)
         `, { count: 'exact' });
 
       // Apply filters
@@ -219,6 +221,31 @@ export class OrganizationService {
       } catch (memberErr) {
         // Log but don't fail organization creation
         console.error('Organization member creation failed:', memberErr);
+      }
+
+      // Step 5: Create default venue for the organization
+      try {
+        const { data: venue, error: venueError } = await (supabase
+          .from('venues') as any)
+          .insert([{
+            organization_id: org.id,
+            name: `${org.name} - Main Location`,
+            is_default: true,
+            timezone: 'America/New_York',
+            status: 'active',
+            type: 'escape-room', // Default type
+            primary_color: '#2563eb',
+          } as any])
+          .select()
+          .single();
+
+        if (venueError) {
+          console.error('Failed to create default venue:', venueError);
+        } else {
+          console.log('Default venue created:', venue?.id);
+        }
+      } catch (venueErr) {
+        console.error('Exception creating default venue:', venueErr);
       }
 
       // Return complete organization data

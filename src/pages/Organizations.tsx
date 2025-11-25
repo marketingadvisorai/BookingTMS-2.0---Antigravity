@@ -466,18 +466,24 @@ function OrganizationCard({
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
+        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
           <div className="text-center">
             <p className="text-lg font-semibold text-gray-900 dark:text-white">
-              {formatCurrency(organization.revenue?.total_revenue || 0)}
+              {(organization as any).venues?.[0]?.count || 0}
             </p>
-            <p className="text-xs text-gray-500">Revenue</p>
+            <p className="text-xs text-gray-500">Venues</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">
+              {(organization as any).activities?.[0]?.count || 0}
+            </p>
+            <p className="text-xs text-gray-500">Activities</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-semibold text-gray-900 dark:text-white">
               {organization.application_fee_percentage || 0}%
             </p>
-            <p className="text-xs text-gray-500">Platform Fee</p>
+            <p className="text-xs text-gray-500">Fee</p>
           </div>
         </div>
 

@@ -7,6 +7,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '../../../ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../ui/dialog';
 import { Plus, Trash2, MoreVertical, Edit, Copy, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import AddServiceItemWizard from '../../../events/AddServiceItemWizard';
@@ -323,25 +324,33 @@ export const ServiceItemsSettingsTab: React.FC<ServiceItemsSettingsTabProps> = (
                 </CardContent>
             </Card>
 
-            {showWizard && (
-                <AddServiceItemWizard
-                    onCancel={() => setShowWizard(false)}
-                    onComplete={handleWizardComplete}
-                    initialData={editingItem ? {
-                        ...editingItem,
-                        minAdults: editingItem.min_players,
-                        maxAdults: editingItem.max_players,
-                        adultPrice: editingItem.price,
-                        childPrice: editingItem.child_price,
-                        minAge: editingItem.min_age,
-                        successRate: editingItem.success_rate, // Might not be relevant for all niches
-                        coverImage: editingItem.image_url,
-                        ...editingItem.settings
-                    } : undefined}
-                    mode={editingItem ? 'edit' : 'create'}
-                    venueType={embedContext?.venueType}
-                />
-            )}
+            {/* Activity Wizard Dialog */}
+            <Dialog open={showWizard} onOpenChange={setShowWizard}>
+                <DialogContent className="!w-screen !h-screen !max-w-none !max-h-none sm:!w-[95vw] sm:!h-[95vh] sm:!max-w-[1400px] sm:!max-h-[95vh] !rounded-none sm:!rounded-lg overflow-hidden p-0 flex flex-col">
+                    <AddServiceItemWizard
+                        onCancel={() => {
+                            setShowWizard(false);
+                            setEditingItem(null);
+                        }}
+                        onComplete={handleWizardComplete}
+                        initialData={editingItem ? {
+                            ...editingItem,
+                            minAdults: editingItem.min_players,
+                            maxAdults: editingItem.max_players,
+                            adultPrice: editingItem.price,
+                            childPrice: editingItem.child_price,
+                            minAge: editingItem.min_age,
+                            successRate: editingItem.success_rate,
+                            coverImage: editingItem.image_url,
+                            ...editingItem.settings
+                        } : undefined}
+                        mode={editingItem ? 'edit' : 'create'}
+                        venueType={embedContext?.venueType}
+                        venueId={embedContext?.venueId}
+                        venueName={embedContext?.venueName}
+                    />
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

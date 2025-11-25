@@ -1,34 +1,28 @@
 /**
  * ActivityPreviewCard
  * 
- * A preview-only component that shows how an activity will appear to customers.
- * This is SEPARATE from CalendarSingleEventBookingPage to avoid any risk of
- * accidentally creating real bookings.
+ * A beautiful preview component matching CalendarSingleEventBookingPage design.
+ * This is SEPARATE from live booking widgets - no database calls, no real bookings.
  * 
- * Usage:
- * - Activity Wizard Step 7 (Widget & Embed)
- * - Admin preview before publishing
- * - Marketing material generation
- * 
- * Does NOT:
- * - Connect to booking services
- * - Create real bookings
- * - Process payments
- * - Update session capacity
+ * Design inspired by: CalendarSingleEventBookingPage
+ * - Hero section with gradient overlay
+ * - Info pills (duration, players, difficulty)
+ * - Calendar with month navigation
+ * - Time slots grid
+ * - Booking summary sidebar
+ * - Fully responsive (mobile, tablet, desktop)
  */
 
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Separator } from '../ui/separator';
 import { 
-  Clock, Users, MapPin, Calendar, Star, 
-  ChevronLeft, ChevronRight, Play, Info,
-  CreditCard, CheckCircle2, Shield
+  Clock, Users, Award, MapPin, Star, 
+  ChevronLeft, ChevronRight, Play, Image as ImageIcon,
+  CreditCard, CheckCircle2, Shield, Sparkles, Plus, Minus
 } from 'lucide-react';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isBefore } from 'date-fns';
 import { cn } from '../ui/utils';
 
 // Activity data interface for preview
@@ -36,7 +30,7 @@ export interface ActivityPreviewData {
   id?: string;
   name: string;
   description?: string;
-  duration: number;        // minutes
+  duration: number;
   difficulty?: string;
   min_players?: number;
   max_players?: number;
@@ -48,7 +42,6 @@ export interface ActivityPreviewData {
   age_guideline?: string;
   faqs?: Array<{ question: string; answer: string }>;
   highlights?: string[];
-  // Schedule for preview (optional)
   schedule?: {
     operatingDays?: string[];
     startTime?: string;
@@ -64,9 +57,12 @@ interface ActivityPreviewCardProps {
   venueState?: string;
   primaryColor?: string;
   theme?: 'light' | 'dark';
-  showBookingFlow?: boolean;  // Show the full booking simulation
-  compact?: boolean;          // Compact card view
+  showBookingFlow?: boolean;
+  compact?: boolean;
 }
+
+const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=1200&h=800&fit=crop';
 
 export function ActivityPreviewCard({
   activity,
@@ -76,523 +72,444 @@ export function ActivityPreviewCard({
   primaryColor = '#2563eb',
   theme = 'light',
   showBookingFlow = true,
-  compact = false,
 }: ActivityPreviewCardProps) {
   const isDark = theme === 'dark';
   
-  // Preview state - simulates customer journey
-  const [currentView, setCurrentView] = useState<'info' | 'calendar' | 'time' | 'checkout' | 'success'>('info');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  // State
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [partySize, setPartySize] = useState(2);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // Generate mock time slots based on schedule
-  const mockTimeSlots = useMemo(() => {
-    if (!activity.schedule) {
-      // Default slots
-      return ['10:00 AM', '11:30 AM', '1:00 PM', '2:30 PM', '4:00 PM', '5:30 PM', '7:00 PM'];
-    }
+  // Derived values
+  const heroImage = activity.image_url || DEFAULT_IMAGE;
+  const location = venueCity && venueState ? `${venueCity}, ${venueState}` : 'Downtown Location';
+  const players = `${activity.min_players || 2}-${activity.max_players || 8} players`;
+  const duration = `${activity.duration || 60} min`;
+
+  // Generate mock time slots
+  const timeSlots = useMemo(() => {
+    const { startTime = '10:00', endTime = '22:00', slotInterval = 60 } = activity.schedule || {};
+    const slots: { time: string; display: string; available: boolean; spots: number }[] = [];
     
-    const { startTime = '10:00', endTime = '22:00', slotInterval = 60 } = activity.schedule;
-    const slots: string[] = [];
+    const [startH] = startTime.split(':').map(Number);
+    const [endH] = endTime.split(':').map(Number);
     
-    const [startH, startM] = startTime.split(':').map(Number);
-    const [endH, endM] = endTime.split(':').map(Number);
-    const startMinutes = startH * 60 + startM;
-    const endMinutes = endH * 60 + endM;
-    
-    for (let t = startMinutes; t + slotInterval <= endMinutes; t += slotInterval) {
-      const h = Math.floor(t / 60);
-      const m = t % 60;
+    for (let h = startH; h < endH; h++) {
+      const time = `${h.toString().padStart(2, '0')}:00`;
+      const hour12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
       const ampm = h >= 12 ? 'PM' : 'AM';
-      const h12 = h % 12 || 12;
-      slots.push(`${h12}:${m.toString().padStart(2, '0')} ${ampm}`);
+      slots.push({
+        time,
+        display: `${hour12}:00 ${ampm}`,
+        available: Math.random() > 0.2, // 80% available for demo
+        spots: Math.floor(Math.random() * 8) + 1,
+      });
     }
-    
     return slots;
   }, [activity.schedule]);
 
-  // Calendar days
-  const calendarDays = useMemo(() => {
-    const start = startOfMonth(currentMonth);
-    const end = endOfMonth(currentMonth);
-    return eachDayOfInterval({ start, end });
-  }, [currentMonth]);
+  // Calculate days in month
+  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
 
-  // Check if day is available (mock)
-  const isDayAvailable = (date: Date) => {
-    if (isBefore(date, new Date())) return false;
-    if (!activity.schedule?.operatingDays) return true;
-    const dayName = format(date, 'EEEE');
-    return activity.schedule.operatingDays.includes(dayName);
+  // Price calculation
+  const subtotal = activity.price * partySize;
+  const tax = Math.round(subtotal * 0.08);
+  const total = subtotal + tax;
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
+    setCurrentDate(newDate);
+    setSelectedDate(null);
   };
 
-  // Styles based on primary color
-  const accentStyle = { backgroundColor: primaryColor };
-  const accentTextStyle = { color: primaryColor };
-  const accentBorderStyle = { borderColor: primaryColor };
-
-  // Compact view - just the card
-  if (compact) {
-    return (
-      <Card className={cn(
-        "overflow-hidden transition-all hover:shadow-lg cursor-pointer",
-        isDark ? "bg-gray-800 border-gray-700" : "bg-white"
-      )}>
-        <div className="relative h-48">
+  return (
+    <div className={cn(
+      "w-full min-h-screen transition-colors",
+      isDark ? "bg-[#161616]" : "bg-gray-50"
+    )}>
+      {/* Hero Section */}
+      <div className="relative h-[280px] sm:h-[320px] md:h-[360px] overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0">
           <ImageWithFallback
-            src={activity.image_url}
+            src={heroImage}
             alt={activity.name}
             className="w-full h-full object-cover"
           />
-          <Badge 
-            className="absolute top-3 right-3"
-            style={accentStyle}
-          >
-            ${activity.price}/person
-          </Badge>
-        </div>
-        <CardContent className="p-4">
-          <h3 className={cn(
-            "font-semibold text-lg mb-1",
-            isDark ? "text-white" : "text-gray-900"
-          )}>
-            {activity.name}
-          </h3>
-          <div className={cn(
-            "flex items-center gap-4 text-sm",
-            isDark ? "text-gray-400" : "text-gray-600"
-          )}>
-            <span className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              {activity.duration} min
-            </span>
-            <span className="flex items-center gap-1">
-              <Users className="w-4 h-4" />
-              {activity.min_players || 1}-{activity.max_players || 8}
-            </span>
-          </div>
-          <Button 
-            className="w-full mt-4" 
-            style={accentStyle}
-          >
-            Book Now
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Full preview with booking flow simulation
-  return (
-    <div className={cn(
-      "rounded-xl overflow-hidden shadow-lg",
-      isDark ? "bg-gray-900" : "bg-white"
-    )}>
-      {/* Header Image */}
-      <div className="relative h-64">
-        <ImageWithFallback
-          src={activity.image_url}
-          alt={activity.name}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        <div className="absolute bottom-4 left-4 right-4">
-          <Badge className="mb-2" variant="secondary">
-            {activity.difficulty || 'All Levels'}
-          </Badge>
-          <h2 className="text-2xl font-bold text-white">{activity.name}</h2>
-          <div className="flex items-center gap-2 text-white/80 text-sm mt-1">
-            <MapPin className="w-4 h-4" />
-            {venueName}{venueCity && `, ${venueCity}`}{venueState && `, ${venueState}`}
-          </div>
-        </div>
-        {activity.video_url && (
-          <button className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors">
-            <Play className="w-5 h-5 text-gray-900 ml-0.5" />
-          </button>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="p-6">
-        {/* Quick Info Bar */}
-        <div className={cn(
-          "flex items-center justify-between p-4 rounded-lg mb-6",
-          isDark ? "bg-gray-800" : "bg-gray-50"
-        )}>
-          <div className="text-center">
-            <Clock className={cn("w-5 h-5 mx-auto mb-1", isDark ? "text-gray-400" : "text-gray-500")} />
-            <p className={cn("text-sm font-medium", isDark ? "text-white" : "text-gray-900")}>
-              {activity.duration} min
-            </p>
-            <p className={cn("text-xs", isDark ? "text-gray-500" : "text-gray-500")}>Duration</p>
-          </div>
-          <Separator orientation="vertical" className="h-12" />
-          <div className="text-center">
-            <Users className={cn("w-5 h-5 mx-auto mb-1", isDark ? "text-gray-400" : "text-gray-500")} />
-            <p className={cn("text-sm font-medium", isDark ? "text-white" : "text-gray-900")}>
-              {activity.min_players || 1}-{activity.max_players || 8}
-            </p>
-            <p className={cn("text-xs", isDark ? "text-gray-500" : "text-gray-500")}>Players</p>
-          </div>
-          <Separator orientation="vertical" className="h-12" />
-          <div className="text-center">
-            <Star className={cn("w-5 h-5 mx-auto mb-1", isDark ? "text-gray-400" : "text-gray-500")} />
-            <p className={cn("text-sm font-medium", isDark ? "text-white" : "text-gray-900")}>
-              {activity.difficulty || 'Medium'}
-            </p>
-            <p className={cn("text-xs", isDark ? "text-gray-500" : "text-gray-500")}>Difficulty</p>
-          </div>
-          <Separator orientation="vertical" className="h-12" />
-          <div className="text-center">
-            <span className="text-2xl font-bold" style={accentTextStyle}>
-              ${activity.price}
-            </span>
-            <p className={cn("text-xs", isDark ? "text-gray-500" : "text-gray-500")}>per person</p>
-          </div>
         </div>
 
-        {/* View Tabs */}
-        {showBookingFlow && (
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-            {(['info', 'calendar', 'time', 'checkout', 'success'] as const).map((view, index) => (
-              <button
-                key={view}
-                onClick={() => setCurrentView(view)}
-                className={cn(
-                  "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
-                  currentView === view
-                    ? "text-white"
-                    : isDark 
-                      ? "bg-gray-800 text-gray-300 hover:bg-gray-700" 
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                )}
-                style={currentView === view ? accentStyle : undefined}
-              >
-                {index + 1}. {view.charAt(0).toUpperCase() + view.slice(1)}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/30" />
 
-        {/* View Content */}
-        {currentView === 'info' && (
-          <div className="space-y-6">
-            <div>
-              <h3 className={cn("font-semibold mb-2", isDark ? "text-white" : "text-gray-900")}>
-                About This Experience
-              </h3>
-              <p className={cn("text-sm leading-relaxed", isDark ? "text-gray-300" : "text-gray-600")}>
-                {activity.description || 'Experience an unforgettable adventure with this exciting activity. Perfect for groups looking for a unique challenge.'}
-              </p>
+        {/* Content */}
+        <div className="relative h-full flex flex-col justify-between">
+          {/* Top Bar - Badges */}
+          <div className="flex items-start justify-between p-4 sm:p-6">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-yellow-500 text-black border-0 px-2.5 py-1 text-xs font-medium">
+                <Sparkles className="w-3 h-3 mr-1" />
+                Featured
+              </Badge>
+              <div className="flex items-center gap-1 bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-md">
+                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                <span className="text-white text-xs font-medium">4.9</span>
+                <span className="text-gray-200 text-xs">(234)</span>
+              </div>
             </div>
 
-            {activity.highlights && activity.highlights.length > 0 && (
-              <div>
-                <h3 className={cn("font-semibold mb-2", isDark ? "text-white" : "text-gray-900")}>
-                  Highlights
-                </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {activity.highlights.map((highlight, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4" style={accentTextStyle} />
-                      <span className={cn("text-sm", isDark ? "text-gray-300" : "text-gray-600")}>
-                        {highlight}
-                      </span>
-                    </div>
+            <div className="flex gap-2">
+              <button className="bg-white/20 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/30 hover:bg-white/30 transition-all flex items-center gap-1.5 text-xs">
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Gallery</span>
+              </button>
+              <button className="bg-white/20 backdrop-blur-md text-white px-3 py-1.5 rounded-lg border border-white/30 hover:bg-white/30 transition-all flex items-center gap-1.5 text-xs">
+                <Play className="w-3.5 h-3.5 fill-white" />
+                <span className="hidden sm:inline">Video</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom Content - Title & Info */}
+          <div className="p-4 sm:p-6">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl text-white font-bold mb-2 drop-shadow-lg tracking-tight">
+              {activity.name}
+            </h1>
+
+            <p className="text-sm sm:text-base text-gray-200 mb-4 max-w-2xl line-clamp-2">
+              {activity.description || 'Experience an amazing adventure with your group.'}
+            </p>
+
+            {/* Info Pills */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/20">
+                <Clock className="w-3.5 h-3.5 text-white" />
+                <span className="text-xs text-white font-medium">{duration}</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/20">
+                <Users className="w-3.5 h-3.5 text-white" />
+                <span className="text-xs text-white font-medium">{players}</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/20">
+                <Award className="w-3.5 h-3.5 text-white" />
+                <span className="text-xs text-white font-medium">{activity.difficulty || 'Medium'}</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/20">
+                <MapPin className="w-3.5 h-3.5 text-white" />
+                <span className="text-xs text-white font-medium">{location}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* Calendar and Time Selection - Left Side */}
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+            {/* Calendar */}
+            <Card className={cn(
+              "p-4 sm:p-6 rounded-2xl shadow-sm border",
+              isDark ? "bg-[#1a1a1a] border-[#2a2a2a]" : "bg-white border-gray-200"
+            )}>
+              <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
+                <h2 className={cn(
+                  "text-lg sm:text-xl font-semibold",
+                  isDark ? "text-white" : "text-gray-900"
+                )}>
+                  Select Date
+                </h2>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn(
+                      "h-9 w-9 sm:h-10 sm:w-10 rounded-lg",
+                      isDark ? "border-[#3a3a3a] hover:bg-[#2a2a2a]" : "border-gray-300 hover:bg-gray-50"
+                    )}
+                    onClick={() => navigateMonth('prev')}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <span className={cn(
+                    "text-sm sm:text-base px-2 whitespace-nowrap min-w-[120px] sm:min-w-[140px] text-center font-medium",
+                    isDark ? "text-white" : "text-gray-900"
+                  )}>
+                    {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn(
+                      "h-9 w-9 sm:h-10 sm:w-10 rounded-lg",
+                      isDark ? "border-[#3a3a3a] hover:bg-[#2a2a2a]" : "border-gray-300 hover:bg-gray-50"
+                    )}
+                    onClick={() => navigateMonth('next')}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Calendar Grid */}
+              <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                {/* Day Headers */}
+                {DAYS_OF_WEEK.map((day) => (
+                  <div key={day} className={cn(
+                    "text-center text-xs sm:text-sm py-2 font-medium",
+                    isDark ? "text-gray-400" : "text-gray-600"
+                  )}>
+                    {day}
+                  </div>
+                ))}
+                
+                {/* Empty cells */}
+                {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                  <div key={`empty-${i}`} />
+                ))}
+                
+                {/* Days */}
+                {Array.from({ length: daysInMonth }).map((_, i) => {
+                  const day = i + 1;
+                  const isSelected = selectedDate === day;
+                  const dateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                  const isCurrentDay = new Date().toDateString() === dateObj.toDateString();
+                  const isPast = dateObj < new Date(new Date().setHours(0, 0, 0, 0));
+                  const isAvailable = !isPast;
+
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => isAvailable && setSelectedDate(day)}
+                      disabled={!isAvailable}
+                      className={cn(
+                        "aspect-square rounded-xl text-sm sm:text-base transition-all flex items-center justify-center font-medium",
+                        isCurrentDay && !isSelected && "text-white shadow-md",
+                        isSelected && "text-gray-900 border-2 shadow-sm",
+                        !isSelected && !isCurrentDay && isAvailable && (isDark 
+                          ? "text-gray-300 hover:bg-[#2a2a2a] border border-[#2a2a2a]" 
+                          : "text-gray-700 hover:bg-gray-50 border border-gray-200"),
+                        !isAvailable && (isDark 
+                          ? "text-gray-600 cursor-not-allowed border border-[#1a1a1a]" 
+                          : "text-gray-300 cursor-not-allowed border border-gray-100")
+                      )}
+                      style={{
+                        backgroundColor: isCurrentDay && !isSelected ? primaryColor : isSelected ? 'white' : undefined,
+                        borderColor: isSelected ? primaryColor : undefined,
+                      }}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+
+            {/* Time Slots */}
+            {selectedDate && (
+              <Card className={cn(
+                "p-4 sm:p-6 rounded-2xl shadow-sm border",
+                isDark ? "bg-[#1a1a1a] border-[#2a2a2a]" : "bg-white border-gray-200"
+              )}>
+                <h2 className={cn(
+                  "text-lg sm:text-xl font-semibold mb-4 sm:mb-6",
+                  isDark ? "text-white" : "text-gray-900"
+                )}>
+                  Available Times - {currentDate.toLocaleString('default', { month: 'short' })} {selectedDate}
+                </h2>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+                  {timeSlots.map((slot) => (
+                    <button
+                      key={slot.time}
+                      onClick={() => slot.available && setSelectedTime(slot.time)}
+                      disabled={!slot.available}
+                      className={cn(
+                        "p-3 sm:p-4 rounded-xl border-2 text-center transition-all",
+                        selectedTime === slot.time && "shadow-lg transform scale-105",
+                        slot.available && selectedTime !== slot.time && (isDark
+                          ? "border-[#2a2a2a] hover:border-[#3a3a3a] hover:shadow-md"
+                          : "border-gray-200 hover:border-gray-300 hover:shadow-md"),
+                        !slot.available && "opacity-50 cursor-not-allowed"
+                      )}
+                      style={{
+                        backgroundColor: selectedTime === slot.time ? primaryColor : undefined,
+                        borderColor: selectedTime === slot.time ? primaryColor : undefined,
+                      }}
+                    >
+                      <div className={cn(
+                        "text-sm sm:text-base font-medium mb-1",
+                        selectedTime === slot.time ? "text-white" : (isDark ? "text-gray-200" : "text-gray-900"),
+                        !slot.available && "text-gray-400"
+                      )}>
+                        {slot.display}
+                      </div>
+                      <div className={cn(
+                        "text-xs",
+                        selectedTime === slot.time ? "text-blue-100" : (isDark ? "text-gray-500" : "text-gray-500")
+                      )}>
+                        {slot.available ? `${slot.spots} spots left` : 'Sold Out'}
+                      </div>
+                    </button>
                   ))}
                 </div>
-              </div>
+              </Card>
             )}
-
-            {activity.age_guideline && (
-              <div className={cn(
-                "flex items-center gap-3 p-3 rounded-lg",
-                isDark ? "bg-gray-800" : "bg-blue-50"
-              )}>
-                <Info className="w-5 h-5" style={accentTextStyle} />
-                <span className={cn("text-sm", isDark ? "text-gray-300" : "text-gray-700")}>
-                  Age requirement: {activity.age_guideline}
-                </span>
-              </div>
-            )}
-
-            <Button 
-              className="w-full" 
-              size="lg"
-              style={accentStyle}
-              onClick={() => setCurrentView('calendar')}
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              Select Date & Time
-            </Button>
           </div>
-        )}
 
-        {currentView === 'calendar' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <button 
-                onClick={() => setCurrentMonth(addDays(currentMonth, -30))}
-                className={cn(
-                  "p-2 rounded-lg",
-                  isDark ? "hover:bg-gray-800" : "hover:bg-gray-100"
-                )}
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <h3 className={cn("font-semibold", isDark ? "text-white" : "text-gray-900")}>
-                {format(currentMonth, 'MMMM yyyy')}
-              </h3>
-              <button 
-                onClick={() => setCurrentMonth(addDays(currentMonth, 30))}
-                className={cn(
-                  "p-2 rounded-lg",
-                  isDark ? "hover:bg-gray-800" : "hover:bg-gray-100"
-                )}
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-7 gap-1 text-center mb-2">
-              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                <div key={day} className={cn(
-                  "text-xs font-medium py-2",
-                  isDark ? "text-gray-500" : "text-gray-400"
-                )}>
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7 gap-1">
-              {/* Empty cells for start of month */}
-              {Array.from({ length: calendarDays[0].getDay() }).map((_, i) => (
-                <div key={`empty-${i}`} />
-              ))}
-              
-              {calendarDays.map(date => {
-                const available = isDayAvailable(date);
-                const selected = selectedDate && format(selectedDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
-                
-                return (
-                  <button
-                    key={date.toISOString()}
-                    onClick={() => available && setSelectedDate(date)}
-                    disabled={!available}
-                    className={cn(
-                      "aspect-square rounded-lg text-sm font-medium transition-colors",
-                      available 
-                        ? "hover:bg-opacity-10" 
-                        : "opacity-30 cursor-not-allowed",
-                      selected 
-                        ? "text-white" 
-                        : isDark 
-                          ? "text-gray-300 hover:bg-gray-800" 
-                          : "text-gray-700 hover:bg-gray-100",
-                      isToday(date) && !selected && "ring-1 ring-inset",
-                    )}
-                    style={selected ? accentStyle : isToday(date) ? accentBorderStyle : undefined}
-                  >
-                    {format(date, 'd')}
-                  </button>
-                );
-              })}
-            </div>
-
-            <Button 
-              className="w-full mt-4" 
-              size="lg"
-              style={accentStyle}
-              disabled={!selectedDate}
-              onClick={() => setCurrentView('time')}
-            >
-              {selectedDate ? `Continue - ${format(selectedDate, 'MMM d')}` : 'Select a Date'}
-            </Button>
-          </div>
-        )}
-
-        {currentView === 'time' && (
-          <div className="space-y-4">
-            <h3 className={cn("font-semibold", isDark ? "text-white" : "text-gray-900")}>
-              Available Times for {selectedDate && format(selectedDate, 'MMMM d, yyyy')}
-            </h3>
-            
-            <div className="grid grid-cols-3 gap-2">
-              {mockTimeSlots.map(time => (
-                <button
-                  key={time}
-                  onClick={() => setSelectedTime(time)}
-                  className={cn(
-                    "py-3 px-4 rounded-lg text-sm font-medium transition-colors",
-                    selectedTime === time
-                      ? "text-white"
-                      : isDark
-                        ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  )}
-                  style={selectedTime === time ? accentStyle : undefined}
-                >
-                  {time}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-4">
-              <label className={cn("block text-sm font-medium mb-2", isDark ? "text-gray-300" : "text-gray-700")}>
-                Party Size
-              </label>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setPartySize(Math.max(activity.min_players || 1, partySize - 1))}
-                  className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center",
-                    isDark ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-700"
-                  )}
-                >
-                  -
-                </button>
-                <span className={cn("text-lg font-semibold w-8 text-center", isDark ? "text-white" : "text-gray-900")}>
-                  {partySize}
-                </span>
-                <button
-                  onClick={() => setPartySize(Math.min(activity.max_players || 8, partySize + 1))}
-                  className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center",
-                    isDark ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-700"
-                  )}
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            <Button 
-              className="w-full mt-4" 
-              size="lg"
-              style={accentStyle}
-              disabled={!selectedTime}
-              onClick={() => setCurrentView('checkout')}
-            >
-              Continue to Checkout - ${activity.price * partySize}
-            </Button>
-          </div>
-        )}
-
-        {currentView === 'checkout' && (
-          <div className="space-y-4">
-            <div className={cn(
-              "p-4 rounded-lg",
-              isDark ? "bg-gray-800" : "bg-gray-50"
+          {/* Booking Summary - Right Side */}
+          <div className="lg:col-span-1">
+            <Card className={cn(
+              "p-4 sm:p-6 rounded-2xl shadow-sm border sticky top-4",
+              isDark ? "bg-[#1a1a1a] border-[#2a2a2a]" : "bg-white border-gray-200"
             )}>
-              <h4 className={cn("font-medium mb-3", isDark ? "text-white" : "text-gray-900")}>
-                Booking Summary
-              </h4>
-              <div className="space-y-2 text-sm">
+              <h3 className={cn(
+                "text-lg font-semibold mb-4 flex items-center gap-2",
+                isDark ? "text-white" : "text-gray-900"
+              )}>
+                <CreditCard className="w-5 h-5" style={{ color: primaryColor }} />
+                Your Booking
+              </h3>
+
+              {/* Party Size */}
+              <div className="mb-6">
+                <label className={cn(
+                  "text-sm mb-3 flex items-center gap-2 font-medium",
+                  isDark ? "text-gray-400" : "text-gray-600"
+                )}>
+                  <Users className="w-4 h-4" /> Number of Guests
+                </label>
+                <div className="flex items-center justify-center gap-4">
+                  <button
+                    onClick={() => setPartySize(Math.max(activity.min_players || 1, partySize - 1))}
+                    className={cn(
+                      "w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center border-2 transition-colors",
+                      isDark ? "border-[#3a3a3a] hover:border-[#4a4a4a]" : "border-gray-300 hover:border-gray-400"
+                    )}
+                    style={{ borderColor: primaryColor }}
+                  >
+                    <Minus className="w-4 h-4" style={{ color: primaryColor }} />
+                  </button>
+                  <div className="text-center">
+                    <span className={cn(
+                      "text-2xl sm:text-3xl font-bold",
+                      isDark ? "text-white" : "text-gray-900"
+                    )}>
+                      {partySize}
+                    </span>
+                    <p className={cn("text-xs", isDark ? "text-gray-500" : "text-gray-400")}>
+                      guests
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setPartySize(Math.min(activity.max_players || 12, partySize + 1))}
+                    className={cn(
+                      "w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center border-2 transition-colors",
+                      isDark ? "border-[#3a3a3a] hover:border-[#4a4a4a]" : "border-gray-300 hover:border-gray-400"
+                    )}
+                    style={{ borderColor: primaryColor }}
+                  >
+                    <Plus className="w-4 h-4" style={{ color: primaryColor }} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Booking Details */}
+              <div className={cn(
+                "space-y-3 text-sm mb-6 p-4 rounded-xl",
+                isDark ? "bg-[#0a0a0a]" : "bg-gray-50"
+              )}>
                 <div className="flex justify-between">
                   <span className={isDark ? "text-gray-400" : "text-gray-600"}>Activity</span>
-                  <span className={isDark ? "text-white" : "text-gray-900"}>{activity.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className={isDark ? "text-gray-400" : "text-gray-600"}>Date</span>
-                  <span className={isDark ? "text-white" : "text-gray-900"}>
-                    {selectedDate && format(selectedDate, 'MMM d, yyyy')}
+                  <span className={cn("font-medium", isDark ? "text-white" : "text-gray-900")}>
+                    {activity.name}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className={isDark ? "text-gray-400" : "text-gray-600"}>Time</span>
-                  <span className={isDark ? "text-white" : "text-gray-900"}>{selectedTime}</span>
+                {selectedDate && (
+                  <div className="flex justify-between">
+                    <span className={isDark ? "text-gray-400" : "text-gray-600"}>Date</span>
+                    <span className={cn("font-medium", isDark ? "text-white" : "text-gray-900")}>
+                      {currentDate.toLocaleString('default', { month: 'short' })} {selectedDate}
+                    </span>
+                  </div>
+                )}
+                {selectedTime && (
+                  <div className="flex justify-between">
+                    <span className={isDark ? "text-gray-400" : "text-gray-600"}>Time</span>
+                    <span className={cn("font-medium", isDark ? "text-white" : "text-gray-900")}>
+                      {timeSlots.find(s => s.time === selectedTime)?.display}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Pricing */}
+              <div className={cn(
+                "rounded-xl p-4 mb-6",
+                isDark ? "bg-[#0a0a0a]" : "bg-gray-50"
+              )}>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className={isDark ? "text-gray-400" : "text-gray-600"}>
+                    ${activity.price} × {partySize} guests
+                  </span>
+                  <span className={isDark ? "text-gray-300" : "text-gray-700"}>
+                    ${subtotal}
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className={isDark ? "text-gray-400" : "text-gray-600"}>Party Size</span>
-                  <span className={isDark ? "text-white" : "text-gray-900"}>{partySize} people</span>
+                <div className="flex justify-between text-sm mb-3">
+                  <span className={isDark ? "text-gray-400" : "text-gray-600"}>Tax</span>
+                  <span className={isDark ? "text-gray-300" : "text-gray-700"}>${tax}</span>
                 </div>
-                <Separator className="my-2" />
-                <div className="flex justify-between font-semibold">
-                  <span className={isDark ? "text-white" : "text-gray-900"}>Total</span>
-                  <span style={accentTextStyle}>${activity.price * partySize}</span>
+                <div className={cn(
+                  "flex justify-between items-center pt-3 border-t",
+                  isDark ? "border-[#2a2a2a]" : "border-gray-200"
+                )}>
+                  <span className={cn("font-semibold", isDark ? "text-white" : "text-gray-900")}>
+                    Total
+                  </span>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold" style={{ color: primaryColor }}>
+                      ${total}
+                    </span>
+                    <span className={cn("text-xs ml-1", isDark ? "text-gray-500" : "text-gray-400")}>
+                      USD
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className={cn(
-              "flex items-center gap-2 p-3 rounded-lg",
-              isDark ? "bg-green-900/20" : "bg-green-50"
-            )}>
-              <Shield className="w-4 h-4 text-green-600" />
-              <span className={cn("text-sm", isDark ? "text-green-400" : "text-green-700")}>
+              {/* Book Now Button */}
+              <Button 
+                className="w-full mb-4 h-12 text-base font-semibold rounded-xl text-white"
+                style={{ backgroundColor: primaryColor }}
+                disabled={!selectedDate || !selectedTime}
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                {selectedDate && selectedTime ? `Book Now - $${total}` : 'Select Date & Time'}
+              </Button>
+
+              {/* Security Badge */}
+              <div className={cn(
+                "flex items-center justify-center gap-2 text-xs",
+                isDark ? "text-gray-500" : "text-gray-400"
+              )}>
+                <Shield className="w-3.5 h-3.5" />
                 Secure checkout powered by Stripe
-              </span>
-            </div>
-
-            <Button 
-              className="w-full" 
-              size="lg"
-              style={accentStyle}
-              onClick={() => setCurrentView('success')}
-            >
-              <CreditCard className="w-4 h-4 mr-2" />
-              Pay ${activity.price * partySize}
-            </Button>
-
-            <p className={cn("text-xs text-center", isDark ? "text-gray-500" : "text-gray-400")}>
-              This is a preview. No actual payment will be processed.
-            </p>
+              </div>
+            </Card>
           </div>
-        )}
-
-        {currentView === 'success' && (
-          <div className="text-center py-8">
-            <div 
-              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-              style={accentStyle}
-            >
-              <CheckCircle2 className="w-8 h-8 text-white" />
-            </div>
-            <h3 className={cn("text-xl font-semibold mb-2", isDark ? "text-white" : "text-gray-900")}>
-              Booking Confirmed!
-            </h3>
-            <p className={cn("text-sm mb-6", isDark ? "text-gray-400" : "text-gray-600")}>
-              This is a preview of what customers will see after booking.
-            </p>
-            <div className={cn(
-              "p-4 rounded-lg text-left mb-4",
-              isDark ? "bg-gray-800" : "bg-gray-50"
-            )}>
-              <p className="text-sm">
-                <strong>Confirmation #:</strong> BTM-{Date.now().toString().slice(-6)}
-              </p>
-              <p className="text-sm mt-1">
-                <strong>Activity:</strong> {activity.name}
-              </p>
-              <p className="text-sm mt-1">
-                <strong>Date:</strong> {selectedDate && format(selectedDate, 'MMMM d, yyyy')} at {selectedTime}
-              </p>
-            </div>
-            <Button 
-              variant="outline"
-              onClick={() => {
-                setCurrentView('info');
-                setSelectedDate(null);
-                setSelectedTime(null);
-                setPartySize(2);
-              }}
-            >
-              Start Over
-            </Button>
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* Preview Badge */}
+      {/* Preview Mode Banner */}
       <div className={cn(
-        "text-center py-2 text-xs",
-        isDark ? "bg-gray-800 text-gray-500" : "bg-gray-100 text-gray-500"
+        "text-center py-3 text-xs font-medium border-t",
+        isDark ? "bg-amber-900/20 text-amber-400 border-amber-800/30" : "bg-amber-50 text-amber-600 border-amber-200"
       )}>
-        ⚠️ PREVIEW MODE - No real bookings will be created
+        ⚠️ PREVIEW MODE - This is how your widget will appear to customers
       </div>
     </div>
   );

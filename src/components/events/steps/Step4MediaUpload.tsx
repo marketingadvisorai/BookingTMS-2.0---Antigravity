@@ -8,31 +8,78 @@ import { StepProps } from '../types';
 import { supabase } from '../../../lib/supabase';
 import { toast } from 'sonner';
 
+// Constants
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+
 export default function Step4MediaUpload({ activityData, updateActivityData, t }: StepProps) {
     const [uploading, setUploading] = useState(false);
 
-    const uploadFile = async (file: File): Promise<string | null> => {
-        try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-            const filePath = `temp/${fileName}`;
+    /**
+     * Validate file before upload
+     */
+    const validateFile = (file: File): string | null => {
+        if (!ALLOWED_TYPES.includes(file.type)) {
+            return `Invalid file type: ${file.type}. Allowed: JPG, PNG, GIF, WebP, SVG`;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            return `File too large: ${sizeMB}MB. Maximum: 2MB`;
+        }
+        return null;
+    };
 
-            const { error: uploadError } = await supabase.storage
+    /**
+     * Upload file to Supabase storage
+     */
+    const uploadFile = async (file: File): Promise<string | null> => {
+        // Validate file first
+        const validationError = validateFile(file);
+        if (validationError) {
+            toast.error(validationError);
+            return null;
+        }
+
+        try {
+            const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
+            // Use activities folder with timestamp for organization
+            const filePath = `activities/${fileName}`;
+
+            console.log('📤 Uploading file:', file.name, 'to', filePath);
+
+            const { data, error: uploadError } = await supabase.storage
                 .from('activity-images')
-                .upload(filePath, file);
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
 
             if (uploadError) {
-                throw uploadError;
+                console.error('Upload error details:', uploadError);
+                // Provide more specific error messages
+                if (uploadError.message?.includes('Payload too large')) {
+                    toast.error('File too large. Maximum size is 2MB.');
+                } else if (uploadError.message?.includes('not allowed')) {
+                    toast.error('File type not allowed. Use JPG, PNG, GIF, WebP, or SVG.');
+                } else if (uploadError.message?.includes('row-level security')) {
+                    toast.error('Permission denied. Please ensure you are logged in.');
+                } else {
+                    toast.error(`Upload failed: ${uploadError.message}`);
+                }
+                return null;
             }
 
-            const { data } = supabase.storage
+            // Get public URL
+            const { data: urlData } = supabase.storage
                 .from('activity-images')
                 .getPublicUrl(filePath);
 
-            return data.publicUrl;
-        } catch (error) {
+            console.log('✅ Upload successful:', urlData.publicUrl);
+            return urlData.publicUrl;
+        } catch (error: any) {
             console.error('Error uploading file:', error);
-            toast.error('Failed to upload image');
+            toast.error(error?.message || 'Failed to upload image. Please try again.');
             return null;
         }
     };

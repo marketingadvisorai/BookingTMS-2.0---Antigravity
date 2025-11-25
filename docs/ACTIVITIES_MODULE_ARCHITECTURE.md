@@ -492,8 +492,9 @@ src/
 │   │       └── Step8Review.tsx          # Final review
 │   │
 │   └── widgets/
-│       ├── CalendarWidget.tsx           # Venue booking widget
-│       ├── CalendarSingleEventBookingPage.tsx  # Activity booking
+│       ├── CalendarWidget.tsx           # Venue booking widget (LIVE)
+│       ├── CalendarSingleEventBookingPage.tsx  # Activity booking (LIVE)
+│       ├── ActivityPreviewCard.tsx      # Admin preview (NO BOOKING)
 │       └── booking/
 │           └── hooks/
 │               └── useAvailability.ts
@@ -643,7 +644,40 @@ USING (true);
 
 ---
 
-## 12. Future Improvements
+## 12. Widget Component Separation
+
+**Best Practice**: Separate preview components from live booking components.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    WIDGET COMPONENTS                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────────────┐  ┌─────────────────────────────┐   │
+│  │  ActivityPreviewCard    │  │ CalendarSingleEventBooking  │   │
+│  │  (PREVIEW ONLY)         │  │ (LIVE BOOKING)              │   │
+│  ├─────────────────────────┤  ├─────────────────────────────┤   │
+│  │ • Used in Activity      │  │ • Used in /embed endpoint   │   │
+│  │   Wizard Step 7         │  │ • Creates real bookings     │   │
+│  │ • Shows customer view   │  │ • Processes real payments   │   │
+│  │ • Mock time slots       │  │ • Updates capacity          │   │
+│  │ • NO DB calls           │  │ • Real-time sync            │   │
+│  │ • NO payments           │  │ • Stripe integration        │   │
+│  │ • Safe for testing      │  │ • Production use            │   │
+│  └─────────────────────────┘  └─────────────────────────────┘   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Why separate?**
+1. **Safety**: Preview cannot accidentally create bookings
+2. **Simplicity**: Preview doesn't need booking/payment logic
+3. **Testing**: Admins can preview without real data
+4. **Performance**: Preview doesn't need DB connections
+
+---
+
+## 13. Future Improvements
 
 - [ ] Add recurring session generation cron job
 - [ ] Implement waitlist for fully-booked sessions

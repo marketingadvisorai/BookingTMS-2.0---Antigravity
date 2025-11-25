@@ -21,15 +21,33 @@ import {
 /**
  * Create embed config from venue
  */
-export const createEmbedConfig = (venue: Venue, options?: Partial<VenueEmbedConfig>): VenueEmbedConfig => ({
-  venueId: venue.id,
-  embedKey: venue.embedKey,
-  primaryColor: venue.primaryColor || '#2563eb',
-  theme: 'light',
-  minHeight: 600,
-  maxHeight: 1200,
-  ...options,
-});
+export const createEmbedConfig = (venue: Venue, options?: Partial<VenueEmbedConfig>): VenueEmbedConfig => {
+  // Handle both camelCase and snake_case from database
+  const embedKey = venue.embedKey || (venue as any).embed_key || '';
+  
+  console.log('Creating embed config:', { 
+    venueId: venue.id, 
+    venueName: venue.name,
+    embedKey, 
+    hasEmbedKey: !!embedKey,
+    rawVenue: venue 
+  });
+  
+  if (!embedKey || embedKey === venue.id) {
+    console.error('Invalid embed key detected!', { venue, embedKey });
+    throw new Error('Venue embed key is missing or invalid. Please refresh the page.');
+  }
+  
+  return {
+    venueId: venue.id,
+    embedKey,
+    primaryColor: venue.primaryColor || '#2563eb',
+    theme: 'light',
+    minHeight: 600,
+    maxHeight: 1200,
+    ...options,
+  };
+};
 
 /**
  * Generates responsive iframe-based embed code snippet for a venue

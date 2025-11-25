@@ -19,18 +19,18 @@ import { format, addMonths } from 'date-fns';
 
 interface SingleGameWidgetProps {
   primaryColor?: string;
-  gameName?: string;
-  gameDescription?: string;
-  gamePrice?: number;
+  activityName?: string;
+  activityDescription?: string;
+  activityPrice?: number;
   config?: any;
 }
 
 export function SingleGameWidget({
   primaryColor = '#2563eb',
-  gameName = 'Mystery Manor',
-  gameDescription = 'Uncover the dark secrets hidden in an abandoned Victorian mansion',
+  activityName = 'Mystery Manor',
+  activityDescription = 'Uncover the dark secrets hidden in an abandoned Victorian mansion',
   config,
-  gamePrice = 30
+  activityPrice = 30
 }: SingleGameWidgetProps) {
   const [calendarMonth, setCalendarMonth] = useState<Date>(
     new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -51,10 +51,10 @@ export function SingleGameWidget({
     cardName: '',
   });
 
-  const gameData = {
-    name: gameName,
-    description: gameDescription,
-    price: gamePrice,
+  const activityData = {
+    name: activityName,
+    description: activityDescription,
+    price: activityPrice,
     duration: '60 min',
     difficulty: 'Medium',
     players: '2-8',
@@ -73,7 +73,7 @@ export function SingleGameWidget({
       'Family friendly',
       'Award-winning design',
       'Immersive storyline',
-      'Professional game master',
+      'Professional guide',
       'High-tech puzzles'
     ],
     features: [
@@ -96,7 +96,7 @@ export function SingleGameWidget({
   ];
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const totalPrice = gameData.price * partySize;
+  const totalPrice = activityData.price * partySize;
   const bookingNumber = `BK-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
 
   const canAddToCart = selectedTime !== null;
@@ -125,15 +125,15 @@ export function SingleGameWidget({
       <Dialog open={showGallery} onOpenChange={setShowGallery}>
         <DialogContent className="!w-screen !h-screen !max-w-none !max-h-none sm:!w-[90vw] sm:!h-[90vh] sm:!max-w-[900px] sm:!max-h-[90vh] !rounded-none sm:!rounded-lg overflow-y-auto p-4 sm:p-6">
           <VisuallyHidden>
-            <DialogTitle>{gameData.name} Gallery</DialogTitle>
-            <DialogDescription>View photos of {gameData.name} escape room experience</DialogDescription>
+            <DialogTitle>{activityData.name} Gallery</DialogTitle>
+            <DialogDescription>View photos of {activityData.name} experience</DialogDescription>
           </VisuallyHidden>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            {gameData.gallery.map((image, index) => (
+            {activityData.gallery.map((image, index) => (
               <div key={index} className="aspect-video rounded-lg overflow-hidden">
                 <ImageWithFallback
                   src={image}
-                  alt={`${gameData.name} - Image ${index + 1}`}
+                  alt={`${activityData.name} - Image ${index + 1}`}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -146,8 +146,8 @@ export function SingleGameWidget({
       <Dialog open={showVideo} onOpenChange={setShowVideo}>
         <DialogContent className="!w-screen !h-screen !max-w-none !max-h-none sm:!w-[90vw] sm:!h-auto sm:!max-w-[1200px] !rounded-none sm:!rounded-lg p-0 overflow-hidden bg-black">
           <VisuallyHidden>
-            <DialogTitle>{gameData.name} Video</DialogTitle>
-            <DialogDescription>Watch the video trailer for {gameData.name} escape room experience</DialogDescription>
+            <DialogTitle>{activityData.name} Video</DialogTitle>
+            <DialogDescription>Watch the video trailer for {activityData.name} experience</DialogDescription>
           </VisuallyHidden>
           <div className="relative aspect-video w-full bg-black">
             <video
@@ -169,8 +169,8 @@ export function SingleGameWidget({
             {/* Background Image with Parallax Effect */}
             <div className="absolute inset-0">
               <ImageWithFallback
-                src={gameData.image}
-                alt={gameData.name}
+                src={activityData.image}
+                alt={activityData.name}
                 className="w-full h-full object-cover scale-110 transition-transform duration-700 hover:scale-105"
               />
             </div>
@@ -194,16 +194,16 @@ export function SingleGameWidget({
                   </Badge>
                   <div className="flex items-center gap-1 bg-white/10 backdrop-blur-md px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-white/20 shadow-lg">
                     <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-white text-sm">{gameData.rating}</span>
-                    <span className="text-gray-200 text-xs sm:text-sm hidden sm:inline">({gameData.reviews} reviews)</span>
+                    <span className="text-white text-sm">{activityData.rating}</span>
+                    <span className="text-gray-200 text-xs sm:text-sm hidden sm:inline">({activityData.reviews} reviews)</span>
                   </div>
                 </div>
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-white mb-2 sm:mb-3 drop-shadow-2xl">{gameData.name}</h1>
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-100 mb-4 sm:mb-6 max-w-2xl drop-shadow-lg">{gameData.description}</p>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-white mb-2 sm:mb-3 drop-shadow-2xl">{activityData.name}</h1>
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-100 mb-4 sm:mb-6 max-w-2xl drop-shadow-lg">{activityData.description}</p>
 
                 {/* Quick Info */}
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6">
-                  {gameData.features.map((feature, idx) => {
+                  {activityData.features.map((feature, idx) => {
                     const Icon = feature.icon;
                     return (
                       <div key={idx} className="flex items-center gap-1.5 sm:gap-2 bg-white/10 backdrop-blur-md px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-white/20 shadow-lg">
@@ -350,8 +350,8 @@ export function SingleGameWidget({
                       {/* Summary Details */}
                       <div className="space-y-2 sm:space-y-3 pb-4 sm:pb-6 border-b border-gray-200">
                         <div className="flex justify-between text-xs sm:text-sm">
-                          <span className="text-gray-600">Game:</span>
-                          <span className="text-gray-900 text-right truncate max-w-[60%]">{gameData.name}</span>
+                          <span className="text-gray-600">Activity:</span>
+                          <span className="text-gray-900 text-right truncate max-w-[60%]">{activityData.name}</span>
                         </div>
                         <div className="flex justify-between text-xs sm:text-sm">
                           <span className="text-gray-600">Date:</span>
@@ -375,7 +375,7 @@ export function SingleGameWidget({
                       <div>
                         <div className="flex justify-between mb-2 text-xs sm:text-sm">
                           <span className="text-gray-600">Subtotal:</span>
-                          <span className="text-gray-900">${gameData.price} × {partySize}</span>
+                          <span className="text-gray-900">${activityData.price} × {partySize}</span>
                         </div>
                         <div className="flex justify-between items-center pt-3 border-t">
                           <span className="text-sm sm:text-base text-gray-900">Total:</span>
@@ -437,16 +437,16 @@ export function SingleGameWidget({
               <div className="flex gap-4">
                 <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
                   <ImageWithFallback
-                    src={gameData.image}
-                    alt={gameData.name}
+                    src={activityData.image}
+                    alt={activityData.name}
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg text-gray-900 mb-1">{gameData.name}</h3>
+                  <h3 className="text-lg text-gray-900 mb-1">{activityData.name}</h3>
                   <div className="text-sm text-gray-600 space-y-1">
                     <div>Date: {selectedDate ? format(selectedDate, 'MMM d, yyyy') : 'Not selected'} at {selectedTime || 'Not selected'}</div>
-                    <div>Players: {partySize} × ${gameData.price}</div>
+                    <div>Players: {partySize} × ${activityData.price}</div>
                   </div>
                 </div>
                 <div className="text-xl text-gray-900" style={{ color: primaryColor }}>
@@ -598,7 +598,7 @@ export function SingleGameWidget({
                   <div className="space-y-3 mb-6">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Experience:</span>
-                      <span className="text-gray-900">{gameData.name}</span>
+                      <span className="text-gray-900">{activityData.name}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Date:</span>
@@ -649,7 +649,7 @@ export function SingleGameWidget({
               <CheckCircle2 className="w-16 h-16" style={{ color: primaryColor }} />
             </div>
             <h2 className="text-4xl text-gray-900 mb-3 text-center">Booking Confirmed!</h2>
-            <p className="text-xl text-gray-600 mb-8 text-center">Your escape room adventure is all set</p>
+            <p className="text-xl text-gray-600 mb-8 text-center">Your adventure is all set</p>
 
             <Card className="w-full p-6 md:p-8 mb-6 shadow-xl">
               <div className="space-y-4">
@@ -659,7 +659,7 @@ export function SingleGameWidget({
                 </div>
                 <div className="flex justify-between items-center pb-4 border-b">
                   <span className="text-gray-600">Experience</span>
-                  <span className="text-gray-900">{gameData.name}</span>
+                  <span className="text-gray-900">{activityData.name}</span>
                 </div>
                 <div className="flex justify-between items-center pb-4 border-b">
                   <span className="text-gray-600">Date & Time</span>

@@ -77,19 +77,19 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
   }, []);
 
   // 🔄 Use admin activities when available, fallback to hardcoded activities
-  const activities = adminActivities.length > 0 ? adminActivities.map(g => ({
-    id: g.id.toString(),
-    name: g.name,
-    duration: g.duration,
-    price: g.basePrice,
+  const activities = adminActivities.length > 0 ? adminActivities.map(activity => ({
+    id: activity.id.toString(),
+    name: activity.name,
+    duration: activity.duration,
+    price: activity.basePrice,
     rating: 4.8,
     reviews: 156,
-    image: g.imageUrl,
-    gallery: [g.imageUrl],
-    description: g.description || 'Amazing experience',
-    maxPlayers: g.capacity,
+    image: activity.imageUrl,
+    gallery: [activity.imageUrl],
+    description: activity.description || 'Amazing experience',
+    maxPlayers: activity.capacity,
     minPlayers: 2,
-    tagline: g.description ? g.description.substring(0, 50) + '...' : 'An exciting adventure awaits!',
+    tagline: activity.description ? activity.description.substring(0, 50) + '...' : 'An exciting adventure awaits!',
   })) : [
     {
       id: '1',
@@ -177,7 +177,7 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
     setShowGallery(true);
   };
 
-  const galleryActivity = activities.find(g => g.id === selectedActivityForGallery);
+  const galleryActivity = activities.find(activity => activity.id === selectedActivityForGallery);
 
   const canProceed = () => {
     switch (currentStep) {
@@ -213,7 +213,7 @@ export function MultiStepWidget({ primaryColor = '#2563eb', config }: MultiStepW
     if (canProceed()) {
       try {
         // Find the selected activity details
-        const selectedActivity = activities.find(g => g.id === bookingData.activity);
+        const selectedActivity = activities.find(activity => activity.id === bookingData.activity);
 
         // Get venue and activity IDs from config
         const venueId = config?.venueId || config?.venue?.id;

@@ -21,7 +21,7 @@ interface ResolvexWidgetProps {
   config?: any;
 }
 
-interface Game {
+interface Activity {
   id: string;
   name: string;
   description: string;
@@ -35,7 +35,7 @@ interface Game {
 }
 
 export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWidgetProps) {
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [partySize, setPartySize] = useState(4);
@@ -50,36 +50,36 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
     cardName: '',
   });
 
-  // Load admin games with real-time sync
-  const [adminGames, setAdminGames] = useState<any[]>([]);
+  // Load admin activities with real-time sync
+  const [adminActivities, setAdminActivities] = useState<any[]>([]);
 
   useEffect(() => {
     const loadActivities = async () => {
-      // Load initial admin games
+      // Load initial admin activities
       const activities = await DataSyncServiceWithEvents.getAllActivities();
-      setAdminGames(activities);
-      console.log('🎮 ResolvexWidget: Admin games loaded:', activities.length);
+      setAdminActivities(activities);
+      console.log('🎮 ResolvexWidget: Admin activities loaded:', activities.length);
     };
 
     loadActivities();
 
     // Subscribe to real-time updates
-    const handleGamesUpdate = async () => {
+    const handleActivitiesUpdate = async () => {
       const updatedActivities = await DataSyncServiceWithEvents.getAllActivities();
-      setAdminGames(updatedActivities);
-      console.log('🔄 ResolvexWidget: Admin games updated:', updatedActivities.length);
+      setAdminActivities(updatedActivities);
+      console.log('🔄 ResolvexWidget: Admin activities updated:', updatedActivities.length);
     };
 
-    DataSyncEvents.subscribe('games-updated', handleGamesUpdate);
+    DataSyncEvents.subscribe('activities-updated', handleActivitiesUpdate);
 
     // Cleanup on unmount
     return () => {
-      DataSyncEvents.unsubscribe('games-updated', handleGamesUpdate);
+      DataSyncEvents.unsubscribe('activities-updated', handleActivitiesUpdate);
     };
   }, []);
 
-  // Map admin games to Resolvex format or use fallback
-  const games: Game[] = adminGames.length > 0 ? adminGames.map(g => ({
+  // Map admin activities to Resolvex format or use fallback
+  const activities: Activity[] = adminActivities.length > 0 ? adminActivities.map(g => ({
     id: g.id,
     name: g.name,
     description: g.description || 'Exciting escape room adventure',
@@ -178,7 +178,7 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
     ));
   };
 
-  const totalPrice = selectedGame ? selectedGame.price * partySize : 0;
+  const totalPrice = selectedActivity ? selectedActivity.price * partySize : 0;
   const bookingNumber = `BK-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
 
   const canProceed = () => {
@@ -190,7 +190,7 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
 
   const resetBooking = () => {
     setCurrentStep('browse');
-    setSelectedGame(null);
+    setSelectedActivity(null);
     setSelectedDate(undefined);
     setSelectedTime('');
     setPartySize(4);
@@ -207,29 +207,29 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
 
   return (
     <div className="w-full min-h-screen bg-gray-900">
-      {/* Browse Games */}
+      {/* Browse Activities */}
       {currentStep === 'browse' && (
         <div className="p-4 sm:p-6 lg:p-8 pb-24 sm:pb-8">
           <div className="max-w-7xl mx-auto">
             <div className="mb-4 sm:mb-6 lg:mb-8">
               <h1 className="text-2xl sm:text-3xl lg:text-4xl text-white mb-2">Choose Your Adventure</h1>
-              <p className="text-sm sm:text-base text-gray-400">Select an escape room experience</p>
+              <p className="text-sm sm:text-base text-gray-400">Select an activity</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-              {games.map((game) => (
+              {activities.map((activity) => (
                 <div
-                  key={game.id}
+                  key={activity.id}
                   onClick={() => {
-                    setSelectedGame(game);
+                    setSelectedActivity(activity);
                     setCurrentStep('booking');
                   }}
                   className="group relative rounded-xl overflow-hidden cursor-pointer h-[350px] sm:h-[400px] lg:h-[450px] transform transition-all duration-300 hover:scale-105 hover:shadow-2xl"
                 >
-                  {/* Game Image */}
+                  {/* Activity Image */}
                   <ImageWithFallback
-                    src={game.image}
-                    alt={game.name}
+                    src={activity.image}
+                    alt={activity.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   {/* Dark gradient overlay */}
@@ -237,39 +237,39 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
 
                   {/* Rating Badge */}
                   <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-black/60 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1 sm:py-1.5 flex items-center gap-0.5 sm:gap-1">
-                    {renderStars(game.rating)}
+                    {renderStars(activity.rating)}
                   </div>
 
                   {/* Category Badge */}
                   <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-white/95 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1">
-                    <span className="text-xs text-gray-900">{game.category}</span>
+                    <span className="text-xs text-gray-900">{activity.category}</span>
                   </div>
 
-                  {/* Game Title and Description */}
+                  {/* Activity Title and Description */}
                   <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3">
-                    <h3 className="text-base sm:text-lg text-white mb-1">{game.name}</h3>
-                    <p className="text-xs sm:text-sm text-gray-300 mb-2 sm:mb-3 line-clamp-2">{game.description}</p>
+                    <h3 className="text-base sm:text-lg text-white mb-1">{activity.name}</h3>
+                    <p className="text-xs sm:text-sm text-gray-300 mb-2 sm:mb-3 line-clamp-2">{activity.description}</p>
 
-                    {/* Game Details */}
+                    {/* Activity Details */}
                     <div className="flex flex-wrap gap-2 sm:gap-3 text-xs text-gray-300 mb-2 sm:mb-3">
                       <div className="flex items-center gap-1">
                         <Users className="w-3 h-3" />
-                        <span>{game.players}</span>
+                        <span>{activity.players}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        <span>{game.duration}</span>
+                        <span>{activity.duration}</span>
                       </div>
                       <div className="flex items-center gap-1 hidden sm:flex">
                         <MapPin className="w-3 h-3" />
-                        <span className="truncate max-w-[120px]">{game.location}</span>
+                        <span className="truncate max-w-[120px]">{activity.location}</span>
                       </div>
                     </div>
 
                     {/* Price */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1">
-                        <span className="text-green-400 text-xl sm:text-2xl">${game.price}</span>
+                        <span className="text-green-400 text-xl sm:text-2xl">${activity.price}</span>
                         <span className="text-gray-400 text-xs sm:text-sm">/person</span>
                       </div>
                       <button
@@ -287,7 +287,7 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
       )}
 
       {/* Booking Step */}
-      {currentStep === 'booking' && selectedGame && (
+      {currentStep === 'booking' && selectedActivity && (
         <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen pb-24 sm:pb-8">
           <div className="max-w-6xl mx-auto">
             <Button
@@ -296,7 +296,7 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
               className="mb-4 sm:mb-6 h-9 sm:h-10 text-sm"
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
-              Back to Games
+              Back to Activities
             </Button>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -305,26 +305,26 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
                   <div className="flex gap-3 sm:gap-4 mb-4 sm:mb-6">
                     <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-lg overflow-hidden flex-shrink-0">
                       <ImageWithFallback
-                        src={selectedGame.image}
-                        alt={selectedGame.name}
+                        src={selectedActivity.image}
+                        alt={selectedActivity.name}
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h2 className="text-base sm:text-lg lg:text-xl text-gray-900 mb-1 sm:mb-2 truncate">{selectedGame.name}</h2>
-                      <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2">{selectedGame.description}</p>
+                      <h2 className="text-base sm:text-lg lg:text-xl text-gray-900 mb-1 sm:mb-2 truncate">{selectedActivity.name}</h2>
+                      <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2">{selectedActivity.description}</p>
                       <div className="flex flex-wrap gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-                          {selectedGame.players}
+                          {selectedActivity.players}
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                          {selectedGame.duration}
+                          {selectedActivity.duration}
                         </div>
                         <div className="flex items-center gap-1">
                           <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
-                          <span className="truncate max-w-[120px]">{selectedGame.location}</span>
+                          <span className="truncate max-w-[120px]">{selectedActivity.location}</span>
                         </div>
                       </div>
                     </div>
@@ -380,8 +380,8 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
                             key={time}
                             onClick={() => setSelectedTime(time)}
                             className={`p-3 rounded-lg border-2 transition-all text-center ${selectedTime === time
-                                ? 'shadow-md'
-                                : 'border-gray-200 hover:border-gray-300'
+                              ? 'shadow-md'
+                              : 'border-gray-200 hover:border-gray-300'
                               }`}
                             style={{
                               borderColor: selectedTime === time ? primaryColor : undefined,
@@ -403,8 +403,8 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
                     <h3 className="text-gray-900 mb-4">Booking Summary</h3>
                     <div className="space-y-3 mb-6">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Game:</span>
-                        <span className="text-gray-900">{selectedGame.name}</span>
+                        <span className="text-gray-600">Activity:</span>
+                        <span className="text-gray-900">{selectedActivity.name}</span>
                       </div>
                       {selectedDate && (
                         <div className="flex justify-between text-sm">
@@ -449,7 +449,7 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
       )}
 
       {/* Cart Step */}
-      {currentStep === 'cart' && selectedGame && (
+      {currentStep === 'cart' && selectedActivity && (
         <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
           <div className="max-w-4xl mx-auto">
             <Button
@@ -471,16 +471,16 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
                 <div className="flex gap-4">
                   <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                     <ImageWithFallback
-                      src={selectedGame.image}
-                      alt={selectedGame.name}
+                      src={selectedActivity.image}
+                      alt={selectedActivity.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-gray-900 mb-1">{selectedGame.name}</h3>
+                    <h3 className="text-gray-900 mb-1">{selectedActivity.name}</h3>
                     <div className="text-sm text-gray-600 space-y-1">
                       <div>Date: {selectedDate && format(selectedDate, 'dd/MM/yyyy')} at {selectedTime}</div>
-                      <div>Players: {partySize} × ${selectedGame.price}</div>
+                      <div>Players: {partySize} × ${selectedActivity.price}</div>
                     </div>
                   </div>
                   <div className="text-gray-900" style={{ color: primaryColor }}>
@@ -556,7 +556,7 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
       )}
 
       {/* Checkout Step */}
-      {currentStep === 'checkout' && selectedGame && (
+      {currentStep === 'checkout' && selectedActivity && (
         <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
           <div className="max-w-6xl mx-auto">
             <Button
@@ -633,8 +633,8 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
                     <h3 className="text-gray-900 mb-4">Order Summary</h3>
                     <div className="space-y-3 mb-6">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Game:</span>
-                        <span className="text-gray-900">{selectedGame.name}</span>
+                        <span className="text-gray-600">Activity:</span>
+                        <span className="text-gray-900">{selectedActivity.name}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Date:</span>
@@ -662,8 +662,8 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
                         try {
                           // Prepare booking data for localStorage
                           const bookingDataForStorage = {
-                            activityName: selectedGame?.name || '',
-                            activityId: selectedGame?.id || '',
+                            activityName: selectedActivity?.name || '',
+                            activityId: selectedActivity?.id || '',
                             date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '',
                             time: selectedTime,
                             customerName: customerData.name,
@@ -673,9 +673,9 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
                             ticketTypes: [{
                               id: 'standard',
                               name: 'Standard Ticket',
-                              price: selectedGame?.price || 0,
+                              price: selectedActivity?.price || 0,
                               quantity: partySize,
-                              subtotal: (selectedGame?.price || 0) * partySize
+                              subtotal: (selectedActivity?.price || 0) * partySize
                             }],
                             totalPrice: totalPrice
                           };
@@ -707,7 +707,7 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
       )}
 
       {/* Success Step */}
-      {currentStep === 'success' && selectedGame && (
+      {currentStep === 'success' && selectedActivity && (
         <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
           <div className="max-w-4xl mx-auto">
             <div className="flex flex-col items-center justify-center py-8 md:py-12">
@@ -718,7 +718,7 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
                 <CheckCircle2 className="w-12 h-12" style={{ color: primaryColor }} />
               </div>
               <h2 className="text-3xl text-gray-900 mb-2 text-center">Booking Confirmed!</h2>
-              <p className="text-gray-600 mb-8 text-center">Your escape room adventure is all set</p>
+              <p className="text-gray-600 mb-8 text-center">Your adventure is all set</p>
 
               <Card className="w-full p-4 md:p-6 mb-6">
                 <div className="space-y-4">
@@ -727,8 +727,8 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
                     <span className="text-gray-900">{bookingNumber}</span>
                   </div>
                   <div className="flex justify-between items-center pb-4 border-b">
-                    <span className="text-gray-600">Game</span>
-                    <span className="text-gray-900">{selectedGame.name}</span>
+                    <span className="text-gray-600">Activity</span>
+                    <span className="text-gray-900">{selectedActivity.name}</span>
                   </div>
                   <div className="flex justify-between items-center pb-4 border-b">
                     <span className="text-gray-600">Date & Time</span>

@@ -27,7 +27,7 @@ interface WidgetConfig {
   enableVeteranDiscount?: boolean;
   ticketTypes?: TicketType[];
   categories?: Category[];
-  games?: Game[];
+  activities?: Activity[];
   additionalQuestions?: AdditionalQuestion[];
   cancellationPolicy?: string;
 }
@@ -54,7 +54,7 @@ interface Category {
   image: string;
 }
 
-interface Game {
+interface Activity {
   id: string;
   name: string;
   description?: string;
@@ -92,9 +92,9 @@ interface CartItem {
 
 export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme: initialTheme = 'light' }: FareBookWidgetProps) {
   const [widgetTheme, setWidgetTheme] = useState<'light' | 'dark'>(initialTheme);
-  const [currentStep, setCurrentStep] = useState<'categories' | 'games' | 'calendar' | 'timeslot' | 'plan' | 'cart' | 'checkout' | 'success' | 'failed'>('categories');
+  const [currentStep, setCurrentStep] = useState<'categories' | 'activities' | 'calendar' | 'timeslot' | 'plan' | 'cart' | 'checkout' | 'success' | 'failed'>('categories');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const now = new Date();
@@ -153,50 +153,50 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
   const [showGiftVouchersDialog, setShowGiftVouchersDialog] = useState(false);
   const [showGiftVoucherWidget, setShowGiftVoucherWidget] = useState(false);
 
-  // Admin games state for dynamic data
-  const [adminGames, setAdminGames] = useState<Game[]>([]);
-  const [isLoadingGames, setIsLoadingGames] = useState(true);
+  // Admin activities state for dynamic data
+  const [adminActivities, setAdminActivities] = useState<Activity[]>([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(true);
   const [calendarDays, setCalendarDays] = useState<any[]>([]);
   const [isLoadingCalendar, setIsLoadingCalendar] = useState(false);
 
   // Helper function to get time slots for a specific date
   const getTimeSlotsForDate = (date: Date): TimeSlot[] => {
-    if (!selectedGame) return [];
+    if (!selectedActivity) return [];
 
     const dateKey = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-    return DataSyncServiceWithEvents.getAvailableTimeSlots(selectedGame.id, dateKey);
+    return DataSyncServiceWithEvents.getAvailableTimeSlots(selectedActivity.id, dateKey);
   };
 
-  // Load admin games on component mount
+  // Load admin activities on component mount
   useEffect(() => {
     const loadAdminActivities = async () => {
       try {
-        setIsLoadingGames(true);
+        setIsLoadingActivities(true);
         const activities = await DataSyncServiceWithEvents.getAllActivities();
         if (activities && activities.length > 0) {
-          setAdminGames(activities);
+          setAdminActivities(activities);
         } else {
-          setAdminGames([]);
+          setAdminActivities([]);
         }
       } catch (error) {
         console.error('Error loading admin activities:', error);
       } finally {
-        setIsLoadingGames(false);
+        setIsLoadingActivities(false);
       }
     };
 
     loadAdminActivities();
 
-    // Subscribe to games updates
-    const gamesUpdatedCallback = () => {
+    // Subscribe to activities updates
+    const activitiesUpdatedCallback = () => {
       const updatedActivities = DataSyncServiceWithEvents.getAllActivities();
-      setAdminGames(updatedActivities || []);
+      setAdminActivities(updatedActivities || []);
     };
 
-    DataSyncEvents.subscribe('games-updated', gamesUpdatedCallback);
+    DataSyncEvents.subscribe('activities-updated', activitiesUpdatedCallback);
 
     const unsubscribe = () => {
-      DataSyncEvents.unsubscribe('games-updated', gamesUpdatedCallback);
+      DataSyncEvents.unsubscribe('activities-updated', activitiesUpdatedCallback);
     };
 
     return () => {
@@ -204,10 +204,10 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
     };
   }, []);
 
-  // Load calendar days when game or date changes
+  // Load calendar days when activity or date changes
   useEffect(() => {
     const loadCalendarDays = async () => {
-      if (selectedGame && currentStep === 'calendar') {
+      if (selectedActivity && currentStep === 'calendar') {
         setIsLoadingCalendar(true);
         try {
           const days = await generateCalendarDays();
@@ -221,7 +221,7 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
     };
 
     loadCalendarDays();
-  }, [selectedGame, selectedMonth, selectedYear, currentStep]);
+  }, [selectedActivity, selectedMonth, selectedYear, currentStep]);
 
   // Default configuration
   const defaultConfig: WidgetConfig = {
@@ -244,7 +244,7 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
         image: 'https://images.unsplash.com/photo-1632387958032-3b563a92091f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwcGhvdG9ncmFwaGxzJTIwcG9sYXJvaWR8ZW58MXx8fDE3NjE5MzU4NzJ8MA&ixlib=rb-4.1.0&q=80&w=1080'
       }
     ],
-    games: [
+    activities: [
       {
         id: '1',
         name: 'Zombie Apocalypse',
@@ -327,8 +327,8 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
   const activeConfig = { ...defaultConfig, ...config };
   const categories = activeConfig.categories || [];
 
-  // Use admin games if available, otherwise fall back to hardcoded games
-  const games = adminGames.length > 0 ? adminGames : activeConfig.games || [];
+  // Use admin activities if available, otherwise fall back to hardcoded activities
+  const activities = adminActivities.length > 0 ? adminActivities : activeConfig.activities || [];
   const ticketTypes = activeConfig.ticketTypes || [];
 
   // Generate calendar days with real availability data
@@ -371,18 +371,18 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
         available: boolean;
       }> = [];
 
-      if (selectedGame) {
+      if (selectedActivity) {
         try {
           const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-          const availableSlots = await DataSyncServiceWithEvents.getAvailableTimeSlots(selectedGame.id, dateStr);
+          const availableSlots = await DataSyncServiceWithEvents.getAvailableTimeSlots(selectedActivity.id, dateStr);
 
           // Convert TimeSlot objects to the format expected by the calendar
           availableSlots.forEach(slot => {
             if (slot.available) {
               slots.push({
                 time: slot.time,
-                activityName: selectedGame.name,
-                activityId: selectedGame.id,
+                activityName: selectedActivity.name,
+                activityId: selectedActivity.id,
                 available: true
               });
             }
@@ -456,11 +456,11 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
 
   const handleCategorySelect = (category: Category) => {
     setSelectedCategory(category);
-    setCurrentStep('games');
+    setCurrentStep('activities');
   };
 
-  const handleGameSelect = (game: Game) => {
-    setSelectedGame(game);
+  const handleActivitySelect = (activity: Activity) => {
+    setSelectedActivity(activity);
     setCurrentStep('calendar');
   };
 
@@ -478,13 +478,13 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
   // Navigation handlers
   const handleBack = () => {
     switch (currentStep) {
-      case 'games':
+      case 'activities':
         setCurrentStep('categories');
         setSelectedCategory(null);
         break;
       case 'calendar':
-        setCurrentStep('games');
-        setSelectedGame(null);
+        setCurrentStep('activities');
+        setSelectedActivity(null);
         break;
       case 'timeslot':
         setCurrentStep('calendar');
@@ -508,14 +508,14 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
   const handleBackToCategories = () => {
     setCurrentStep('categories');
     setSelectedCategory(null);
-    setSelectedGame(null);
+    setSelectedActivity(null);
     setSelectedDate(null);
     setSelectedTime('');
   };
 
-  const handleBackToGames = () => {
-    setCurrentStep('games');
-    setSelectedGame(null);
+  const handleBackToActivities = () => {
+    setCurrentStep('activities');
+    setSelectedActivity(null);
     setSelectedDate(null);
     setSelectedTime('');
   };
@@ -753,7 +753,7 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
   const handleStartOver = () => {
     setCurrentStep('categories');
     setSelectedCategory(null);
-    setSelectedGame(null);
+    setSelectedActivity(null);
     setSelectedDate(null);
     setSelectedTime('');
     setCartItems([]);
@@ -912,7 +912,14 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
                       // Reset to categories if no items in cart
                       setCurrentStep('categories');
                       setSelectedCategory(null);
-                      setSelectedGame(null);
+                      // Reset to categories if no items in cart
+                      setCurrentStep('categories');
+                      setSelectedCategory(null);
+                      setSelectedActivity(null);
+                      setSelectedDate(null);
+                      setSelectedTime('');
+                      setCartItems([]);
+                      setTicketCounts({});
                       setSelectedDate(null);
                       setSelectedTime('');
                       setCartItems([]);
@@ -940,8 +947,8 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
                 >
                   <ChevronLeft className="w-5 h-5 flex-shrink-0" />
                   <span className="text-sm sm:text-base hidden sm:inline">
-                    {currentStep === 'games' && 'Categories'}
-                    {currentStep === 'calendar' && (selectedCategory?.name || 'Games')}
+                    {currentStep === 'activities' && 'Categories'}
+                    {currentStep === 'calendar' && (selectedCategory?.name || 'Activities')}
                     {currentStep === 'timeslot' && 'Different date'}
                     {currentStep === 'plan' && 'Different time'}
                     {currentStep === 'cart' && 'Tickets'}
@@ -1009,42 +1016,42 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
                   ))}
                 </div>
               </div>
-            )}{/* Games List View */}
-            {currentStep === 'games' && selectedCategory && (
+            )}{/* Activities List View */}
+            {currentStep === 'activities' && selectedCategory && (
               <div className="p-3 sm:p-4 md:p-10 pb-20 sm:pb-10">
                 <div className="mb-4 sm:mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <h2 className={`text-xl sm:text-2xl md:text-3xl ${textClass} mb-1.5 sm:mb-2`}>{selectedCategory.name}</h2>
                   <p className={`text-sm sm:text-base ${textMutedClass}`}>Choose your escape room experience</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-                  {games
-                    .filter((game) => game.categoryId === selectedCategory.id)
-                    .map((game, idx) => (
+                  {activities
+                    .filter((activity) => activity.categoryId === selectedCategory.id)
+                    .map((activity, idx) => (
                       <div
-                        key={game.id}
+                        key={activity.id}
                         className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg cursor-pointer transform transition-all active:scale-[0.98] hover:scale-[1.02] hover:shadow-xl group animate-in fade-in slide-in-from-bottom-4 duration-500 touch-manipulation"
                         style={{ animationDelay: `${idx * 100}ms` }}
-                        onClick={() => handleGameSelect(game)}
+                        onClick={() => handleActivitySelect(activity)}
                       >
                         <div className="aspect-[4/3] relative">
                           <ImageWithFallback
-                            src={game.image}
-                            alt={game.name}
+                            src={activity.image}
+                            alt={activity.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent group-hover:from-black/85 transition-all duration-300" />
                           <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-6">
-                            <h3 className="text-white text-sm sm:text-base md:text-xl mb-1.5 sm:mb-2 leading-tight">{game.name}</h3>
+                            <h3 className="text-white text-sm sm:text-base md:text-xl mb-1.5 sm:mb-2 leading-tight">{activity.name}</h3>
                             <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 text-white text-xs mb-2 sm:mb-3">
                               <span className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-2 sm:px-2.5 py-0.5">
-                                {game.priceRange}
+                                {activity.priceRange}
                               </span>
-                              <span className="hidden sm:inline text-xs sm:text-sm">{game.ageRange}</span>
+                              <span className="hidden sm:inline text-xs sm:text-sm">{activity.ageRange}</span>
                               <span className="hidden sm:inline">•</span>
-                              <span className="text-xs sm:text-sm">{game.duration}</span>
+                              <span className="text-xs sm:text-sm">{activity.duration}</span>
                               <span className="hidden md:inline">•</span>
                               <span className="hidden md:flex items-center gap-1 text-xs sm:text-sm">
-                                Difficulty: {renderStars(game.difficulty)}
+                                Difficulty: {renderStars(activity.difficulty)}
                               </span>
                             </div>
                             <Button
@@ -1060,33 +1067,33 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
                 </div>
               </div>
             )}{/* Calendar View */}
-            {currentStep === 'calendar' && selectedGame && (
+            {currentStep === 'calendar' && selectedActivity && (
               <div className="p-3 sm:p-4 md:p-10 pb-20 sm:pb-10">
-                {/* Game Hero */}
+                {/* Activity Hero */}
                 <div className="relative rounded-lg sm:rounded-xl overflow-hidden mb-4 sm:mb-6 md:mb-8 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="aspect-[16/9] sm:aspect-[21/9] relative">
                     <ImageWithFallback
-                      src={selectedGame.image}
-                      alt={selectedGame.name}
+                      src={selectedActivity.image}
+                      alt={selectedActivity.name}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-8">
-                      <h2 className="text-white text-lg sm:text-xl md:text-4xl mb-1 sm:mb-2 leading-tight">{selectedGame.name}</h2>
+                      <h2 className="text-white text-lg sm:text-xl md:text-4xl mb-1 sm:mb-2 leading-tight">{selectedActivity.name}</h2>
                       <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 md:gap-2 text-white text-xs">
                         <span className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-2 sm:px-2.5 py-0.5">
-                          {selectedGame.priceRange}
+                          {selectedActivity.priceRange}
                         </span>
-                        <span className="hidden sm:inline text-xs sm:text-sm">{selectedGame.ageRange}</span>
+                        <span className="hidden sm:inline text-xs sm:text-sm">{selectedActivity.ageRange}</span>
                         <span className="hidden sm:inline">•</span>
-                        <span className="text-xs sm:text-sm">{selectedGame.duration}</span>
+                        <span className="text-xs sm:text-sm">{selectedActivity.duration}</span>
                         <span className="hidden md:inline">•</span>
                         <span className="hidden md:flex items-center gap-1 text-xs sm:text-sm">
-                          Difficulty: {renderStars(selectedGame.difficulty)}
+                          Difficulty: {renderStars(selectedActivity.difficulty)}
                         </span>
                       </div>
-                      {selectedGame.description && (
-                        <p className="text-white/90 mt-1 sm:mt-2 max-w-2xl text-xs sm:text-sm hidden sm:block">{selectedGame.description}</p>
+                      {selectedActivity.description && (
+                        <p className="text-white/90 mt-1 sm:mt-2 max-w-2xl text-xs sm:text-sm hidden sm:block">{selectedActivity.description}</p>
                       )}
                     </div>
                   </div>
@@ -1202,19 +1209,19 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
                 </div>
               </div>
             )}{/* Timeslot Selection View */}
-            {currentStep === 'timeslot' && selectedGame && selectedDate && (
+            {currentStep === 'timeslot' && selectedActivity && selectedDate && (
               <div className="p-4 sm:p-6 md:p-10 pb-20 sm:pb-10">
-                {/* Game Hero */}
+                {/* Activity Hero */}
                 <div className="relative rounded-xl sm:rounded-2xl overflow-hidden mb-6 md:mb-8 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="aspect-[16/9] sm:aspect-[21/9] relative">
                     <ImageWithFallback
-                      src={selectedGame.image}
-                      alt={selectedGame.name}
+                      src={selectedActivity.image}
+                      alt={selectedActivity.name}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8">
-                      <h2 className="text-white text-xl sm:text-2xl md:text-4xl mb-1">{selectedGame.name}</h2>
+                      <h2 className="text-white text-xl sm:text-2xl md:text-4xl mb-1">{selectedActivity.name}</h2>
                       <p className="text-white/90 text-sm sm:text-base md:text-lg">Choose a start time</p>
                     </div>
                   </div>
@@ -1428,21 +1435,21 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
                 </div>
               </div>
             )}{/* Plan Your Experience */}
-            {currentStep === 'plan' && selectedGame && (
+            {currentStep === 'plan' && selectedActivity && (
               <div className="p-4 sm:p-6 md:p-10 pb-20 sm:pb-10">
                 <div className="max-w-3xl">
-                  {/* Selected Game & Time */}
+                  {/* Selected Activity & Time */}
                   <div className={`flex gap-3 sm:gap-4 mb-6 md:mb-8 p-3 sm:p-4 rounded-xl border animate-in fade-in slide-in-from-bottom-4 duration-500 ${isDark ? 'bg-[#1e1e1e] border-[#2a2a2a]' : 'bg-gray-50 border-gray-200'
                     }`}>
                     <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 rounded-lg overflow-hidden flex-shrink-0 shadow-md">
                       <ImageWithFallback
-                        src={selectedGame.image}
-                        alt={selectedGame.name}
+                        src={selectedActivity.image}
+                        alt={selectedActivity.name}
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h2 className={`text-base sm:text-xl md:text-2xl mb-1 truncate ${textClass}`}>{selectedGame.name}</h2>
+                      <h2 className={`text-base sm:text-xl md:text-2xl mb-1 truncate ${textClass}`}>{selectedActivity.name}</h2>
                       <p className={`text-xs sm:text-sm md:text-base flex items-center gap-2 ${textMutedClass}`}>
                         <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                         <span className="line-clamp-2">{formatSelectedDateTime()}</span>
@@ -1505,25 +1512,25 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
                 </div>
               </div>
             )}{/* Cart Summary */}
-            {currentStep === 'cart' && selectedGame && (
+            {currentStep === 'cart' && selectedActivity && (
               <div className="p-4 sm:p-6 md:p-10 pb-20 sm:pb-10">
                 <div className="max-w-4xl">
                   <div className="mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <h2 className={`text-2xl sm:text-3xl md:text-3xl mb-2 ${textClass}`}>Review Your Booking</h2>
                     <p className={`text-sm sm:text-base ${textMutedClass}`}>Check your selections before proceeding to checkout</p>
                   </div>
-                  {/* Selected Game & Time */}
+                  {/* Selected Activity & Time */}
                   <div className={`flex gap-3 sm:gap-4 mb-6 md:mb-8 p-3 sm:p-4 rounded-xl border animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 ${isDark ? 'bg-[#1e1e1e] border-[#2a2a2a]' : 'bg-gray-50 border-gray-200'
                     }`}>
                     <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-md">
                       <ImageWithFallback
-                        src={selectedGame.image}
-                        alt={selectedGame.name}
+                        src={selectedActivity.image}
+                        alt={selectedActivity.name}
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className={`text-base sm:text-lg md:text-xl mb-1 truncate ${textClass}`}>{selectedGame.name}</h3>
+                      <h3 className={`text-base sm:text-lg md:text-xl mb-1 truncate ${textClass}`}>{selectedActivity.name}</h3>
                       <p className={`text-xs sm:text-sm flex items-center gap-2 ${textMutedClass}`}>
                         <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                         <span className="line-clamp-2">{formatSelectedDateTime()}</span>
@@ -1803,7 +1810,7 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
                             <Checkbox id="printable" className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600" />
                             <label htmlFor="printable" className={`text-sm flex items-center gap-2 cursor-pointer flex-1 ${isDark ? 'text-[#a3a3a3]' : 'text-gray-700'}`}>
                               <span className={`font-medium ${isDark ? 'text-emerald-400' : 'text-green-600'}`}>$8</span>
-                              Add a printable game
+                              Add a printable activity
                             </label>
                           </div>
                         </div>
@@ -1857,7 +1864,7 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
                 </div>
               </div>
             )}{/* Checkout */}
-            {currentStep === 'checkout' && selectedGame && (
+            {currentStep === 'checkout' && selectedActivity && (
               <div className="min-h-screen flex flex-col">
                 {/* Header */}
                 <div className={`flex items-center justify-between px-4 md:px-6 py-4 border-b ${isDark ? 'border-[#2a2a2a]' : 'border-gray-200'}`}>
@@ -1889,13 +1896,13 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
                     <div className={`flex gap-4 p-4 md:p-6 border rounded-xl mb-6 ${isDark ? 'border-[#2a2a2a] bg-[#1e1e1e]' : 'border-gray-200 bg-white'}`}>
                       <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                         <ImageWithFallback
-                          src={selectedGame.image}
-                          alt={selectedGame.name}
+                          src={selectedActivity.image}
+                          alt={selectedActivity.name}
                           className="w-full h-full object-cover"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className={`text-base md:text-lg mb-1 ${textClass}`}>{selectedGame.name}</h3>
+                        <h3 className={`text-base md:text-lg mb-1 ${textClass}`}>{selectedActivity.name}</h3>
                         <p className={`text-sm mb-2 ${textMutedClass}`}>{formatSelectedDateTime()}</p>
                         <p className={`text-sm ${textMutedClass}`}>
                           {Object.entries(getTotalTicketsByType()).map(([type, count], idx, arr) => (
@@ -2232,7 +2239,7 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
                 </div>
               </div>
             )}{/* Success Page */}
-            {currentStep === 'success' && selectedGame && (
+            {currentStep === 'success' && selectedActivity && (
               <div className="p-4 md:p-10 min-h-[60vh] flex items-center justify-center">
                 <div className="max-w-2xl w-full text-center">
                   <div className="mb-6 md:mb-8 flex justify-center">
@@ -2249,13 +2256,13 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
                     <div className="flex gap-4 mb-4 md:mb-6">
                       <div className="w-16 h-16 md:w-20 md:h-20 rounded overflow-hidden flex-shrink-0">
                         <ImageWithFallback
-                          src={selectedGame.image}
-                          alt={selectedGame.name}
+                          src={selectedActivity.image}
+                          alt={selectedActivity.name}
                           className="w-full h-full object-cover"
                         />
                       </div>
                       <div className="flex-1">
-                        <h3 className={`text-lg md:text-xl mb-1 ${textClass}`}>{selectedGame.name}</h3>
+                        <h3 className={`text-lg md:text-xl mb-1 ${textClass}`}>{selectedActivity.name}</h3>
                         <p className={`text-sm md:text-base ${isDark ? 'text-[#a3a3a3]' : 'text-gray-600'}`}>{formatSelectedDateTime()}</p>
                       </div>
                     </div>
@@ -2309,7 +2316,7 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
                 </div>
               </div>
             )}{/* Failed Payment Page */}
-            {currentStep === 'failed' && selectedGame && (
+            {currentStep === 'failed' && selectedActivity && (
               <div className="p-4 md:p-10 min-h-[60vh] flex items-center justify-center">
                 <div className="max-w-2xl w-full text-center">
                   <div className="mb-6 md:mb-8 flex justify-center">
@@ -2355,13 +2362,13 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
                     <div className="flex gap-4 mb-4">
                       <div className="w-16 h-16 md:w-20 md:h-20 rounded overflow-hidden flex-shrink-0">
                         <ImageWithFallback
-                          src={selectedGame.image}
-                          alt={selectedGame.name}
+                          src={selectedActivity.image}
+                          alt={selectedActivity.name}
                           className="w-full h-full object-cover"
                         />
                       </div>
                       <div className="flex-1">
-                        <h4 className={`text-base md:text-lg mb-1 ${textClass}`}>{selectedGame.name}</h4>
+                        <h4 className={`text-base md:text-lg mb-1 ${textClass}`}>{selectedActivity.name}</h4>
                         <p className={`text-sm ${isDark ? 'text-[#a3a3a3]' : 'text-gray-600'}`}>{formatSelectedDateTime()}</p>
                       </div>
                     </div>

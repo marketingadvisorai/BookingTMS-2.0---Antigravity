@@ -18,7 +18,7 @@ The system uses a **Shared Database with Row-Level Security (RLS)** model for te
 | **Core/Auth** | ✅ Mature | Supabase Auth + Custom `users` table with RBAC and RLS. |
 | **Multi-Tenancy** | ✅ Mature | `organizations` table, plan limits, and isolation logic are defined. |
 | **Booking Engine** | 🚧 In Progress | `bookings` table exists with complex logic for slots/calendars. |
-| **Services/Venues** | 🔄 Transition | `venues` and `games` (being renamed to `service_items`) exist. |
+| **Services/Venues** | 🔄 Transition | `venues` and `activities` (formerly `games`) exist. |
 | **Payments** | ✅ Integrated | Stripe Connect integration with `payments`, `refunds`, and `plans`. |
 | **Admin Dashboard** | 🚧 In Progress | Separate views for System Admin vs. Org Owner. |
 
@@ -32,14 +32,14 @@ We have organized the existing functionality into the requested logical groups:
 - **Code Location**: `src/core`, `src/contexts/AuthContext`, `supabase/migrations/024_...`, `030_...`.
 
 ### 3.2 Booking & Ticketing
-- **Entities**: `bookings`, `venue_calendars`, `game_calendars`, `waivers`.
+- **Entities**: `bookings`, `venue_calendars`, `activity_calendars`, `waivers`.
 - **Functionality**: Availability checking, slot generation, reservation management, check-in/out.
 - **Code Location**: `src/features/bookings`, `src/components/calendar`.
 
 ### 3.3 Services / Experiences Management
-- **Entities**: `venues`, `games` (or `service_items`), `pricing_tiers`.
+- **Entities**: `venues`, `activities` (formerly `games`), `pricing_tiers`.
 - **Functionality**: Venue configuration, room/game setup, dynamic pricing rules.
-- **Code Location**: `src/features/venues`, `src/features/games`.
+- **Code Location**: `src/features/venues`, `src/features/activities`.
 
 ### 3.4 Customers / CRM
 - **Entities**: `customers`.
@@ -113,15 +113,15 @@ erDiagram
     %% Tenant Layer
     ORGANIZATIONS ||--|{ USERS : "employs"
     ORGANIZATIONS ||--|{ VENUES : "owns"
-    ORGANIZATIONS ||--|{ GAMES : "offers"
+    ORGANIZATIONS ||--|{ ACTIVITIES : "offers"
     ORGANIZATIONS ||--|{ CUSTOMERS : "manages"
     ORGANIZATIONS ||--|{ BOOKINGS : "tracks"
     
-    VENUES ||--|{ GAMES : "hosts"
+    VENUES ||--|{ ACTIVITIES : "hosts"
     
     %% Booking Flow
     CUSTOMERS ||--|{ BOOKINGS : "makes"
-    GAMES ||--|{ BOOKINGS : "booked_in"
+    ACTIVITIES ||--|{ BOOKINGS : "booked_in"
     VENUES ||--|{ BOOKINGS : "occurs_at"
     
     %% Payments
@@ -147,7 +147,7 @@ erDiagram
         uuid id PK
         uuid organization_id FK
         uuid customer_id FK
-        uuid game_id FK
+        uuid activity_id FK
         date booking_date
         enum status
     }
@@ -228,15 +228,15 @@ graph LR
 *   **Database Schema**: The schema is normalized and includes necessary constraints for data integrity.
 
 ### ⚠️ What is Missing / Needs Attention
-*   **Terminology Consistency**: The code uses "Games" but migrations suggest a move to "Service Items". This needs to be standardized in the frontend to avoid confusion.
+*   **Terminology Consistency**: The code has been refactored to use "Activities" instead of "Games". This standardization is being applied globally.
 *   **Frontend-Backend Sync**: Ensure the React components in `src/features` are fully updated to use the latest Supabase RPC functions defined in recent migrations (e.g., `027_system_admin_functions.sql`).
 *   **Testing**: While a checklist exists, automated E2E tests for the critical "Booking -> Payment" flow should be prioritized.
 
 ### 🔄 Recommended Reorganization
-*   **Consolidate Features**: Group `games` and `venues` under a broader `services` or `inventory` module if the move to "Service Items" is confirmed.
+*   **Consolidate Features**: Group `activities` and `venues` under a broader `services` or `inventory` module.
 *   **Admin Separation**: Clearly separate `src/pages/admin` (System Admin) from `src/pages/dashboard` (Tenant Admin) to prevent logic leakage.
 
 ## 6. Next Steps
-1.  **Standardize Terminology**: Decide on "Games" vs "Service Items" and apply globally.
+1.  **Standardize Terminology**: "Activities" has been adopted as the standard term.
 2.  **Verify Migrations**: Run a schema diff to ensure the local DB matches the `DATABASE_ARCHITECTURE_COMPLETE.md` spec.
 3.  **Component Audit**: Review `src/features/bookings` to ensure it uses the new RLS-compliant queries.

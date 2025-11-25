@@ -22,6 +22,7 @@ import { isValidEmbedKey, generateEmbedUrl, generateIframeCode } from '../utils/
 import { CalendarWidget } from '../components/widgets/CalendarWidget';
 import CalendarWidgetSettings from '../components/widgets/CalendarWidgetSettings';
 import { EmbedPreview } from '../components/widgets/EmbedPreview';
+import { VenueEmbedPreview } from '../components/widgets/VenueEmbedPreview';
 
 // Organized imports from new modular structure
 import { VENUE_TYPES } from '../utils/venue/venueConstants';
@@ -665,12 +666,9 @@ export default function Venues() {
               {selectedVenue && (
                 selectedVenue.embedKey ? (
                   <div className="w-full max-w-full overflow-x-hidden">
-                    <EmbedPreview
-                      widgetId="calendar"
-                      widgetName={selectedVenue.name}
-                      primaryColor={selectedVenue.primaryColor}
-                      embedKey={selectedVenue.embedKey}
-                      widgetConfig={selectedVenue.widgetConfig}
+                    <VenueEmbedPreview
+                      venue={selectedVenue}
+                      onClose={() => setShowEmbedCode(false)}
                     />
                   </div>
                 ) : (

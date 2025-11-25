@@ -502,6 +502,34 @@ src/
 
 ---
 
+## Router Architecture
+
+### Route Priority
+Routes are defined in `/src/router.tsx`. Order matters!
+
+```
+1. Explicit admin routes (e.g., /dashboard, /organizations)
+2. /:slug - Public venue profile pages
+3. /* - 404 catch-all
+```
+
+### Important Routes
+
+| Route | Component | Purpose |
+|-------|-----------|---------|
+| `/dashboard` | Dashboard | Main admin dashboard |
+| `/organizations` | Organizations | Manage all organizations |
+| `/venues` | Venues | Venue management |
+| `/events` | Events | Activity management |
+| `/system-admin` | SystemAdminDashboard | Platform-level admin |
+| `/:slug` | VenueProfile | Public venue page |
+| `/embed?widget=...` | Embed | Widget rendering |
+
+### Adding New Routes
+**IMPORTANT**: All admin routes must be explicitly defined BEFORE the `/:slug` catch-all route in `router.tsx`.
+
+---
+
 ## Next Steps
 
 1. **Session Auto-Generation**: Trigger session generation when activity is published

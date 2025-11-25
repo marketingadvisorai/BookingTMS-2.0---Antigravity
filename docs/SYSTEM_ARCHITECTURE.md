@@ -502,6 +502,99 @@ src/
 
 ---
 
+## Real-Time Widget System
+
+### Overview
+The booking widgets use Supabase Real-time to provide instant updates across all users.
+
+### Data Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      ADMIN UPDATES FLOW                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   Admin Dashboard                                                │
+│        │                                                         │
+│        ▼                                                         │
+│   ActivityService.updateActivity()                               │
+│        │                                                         │
+│        ├─→ Updates `activities` table                            │
+│        │                                                         │
+│        └─→ SessionService.generateSessions()                     │
+│                   │                                              │
+│                   ▼                                              │
+│            Updates `activity_sessions` table                     │
+│                   │                                              │
+│                   ▼                                              │
+│            Supabase broadcasts UPDATE event                      │
+│                   │                                              │
+│                   ▼                                              │
+│            useWidgetData receives event                          │
+│                   │                                              │
+│                   ▼                                              │
+│            Widget re-renders with new data                       │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                      BOOKING FLOW                                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   Customer selects time slot                                     │
+│        │                                                         │
+│        ▼                                                         │
+│   CheckoutService.createBookingWithCheckout()                    │
+│        │                                                         │
+│        ├─→ Creates booking record                                │
+│        │                                                         │
+│        └─→ updateSessionCapacity()                               │
+│                   │                                              │
+│                   ▼                                              │
+│            capacity_remaining decremented                        │
+│                   │                                              │
+│                   ▼                                              │
+│            Supabase broadcasts UPDATE event                      │
+│                   │                                              │
+│                   ▼                                              │
+│            Other widgets see slot unavailable                    │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Components
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `useWidgetData` | `/src/hooks/useWidgetData.ts` | Fetches + subscribes to real-time updates |
+| `CheckoutService` | `/src/lib/payments/checkoutService.ts` | Handles bookings + capacity updates |
+| `Embed.tsx` | `/src/pages/Embed.tsx` | Widget container with real-time subscriptions |
+| `SupabaseBookingService` | `/src/services/SupabaseBookingService.ts` | Widget data loading |
+
+### Real-Time Subscriptions
+
+```typescript
+// useWidgetData subscribes to:
+supabase.channel(`activities-venue-${venueId}`)
+  .on('postgres_changes', { table: 'activities', filter: `venue_id=eq.${venueId}` })
+
+supabase.channel(`sessions-activity-${activityId}`)  
+  .on('postgres_changes', { table: 'activity_sessions', filter: `activity_id=eq.${activityId}` })
+```
+
+### Embed URL Format
+```
+/embed?widget=calendar&key={venue_embed_key}&color={hex_color}&theme={light|dark}
+```
+
+### What Updates in Real-Time
+- **Price changes**: Immediate reflection in widget
+- **Schedule changes**: Sessions regenerated, widget updates
+- **Blocked dates**: Sessions marked unavailable
+- **Bookings**: Capacity decrements, availability updates
+
+---
+
 ## Router Architecture
 
 ### Route Priority

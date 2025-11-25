@@ -326,12 +326,32 @@ export default function Step7WidgetEmbedNew({
                           image_url: activityData.coverImage || undefined,
                           gallery_images: activityData.galleryImages || [],
                           video_url: activityData.videos?.[0],
-                          // Step 5: Schedule
+                          // Step 5: Schedule (full sync)
                           schedule: {
                             operatingDays: activityData.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
                             startTime: activityData.startTime || '10:00',
                             endTime: activityData.endTime || '22:00',
                             slotInterval: activityData.slotInterval || 60,
+                            advanceBookingDays: activityData.advanceBooking || 30,
+                            // Custom hours per day
+                            customHours: activityData.customHoursEnabled ? Object.fromEntries(
+                              Object.entries(activityData.customHours || {}).map(([day, config]) => [
+                                day,
+                                { start: config.startTime, end: config.endTime, enabled: config.enabled }
+                              ])
+                            ) : undefined,
+                            // Specific dates (holidays/special hours)
+                            specificDates: activityData.customDates?.map(d => ({
+                              date: d.date,
+                              start: d.startTime,
+                              end: d.endTime,
+                            })) || [],
+                            // Blocked dates
+                            blockedDates: activityData.blockedDates?.map(d => 
+                              typeof d === 'string' 
+                                ? { date: d } 
+                                : { date: d.date, reason: d.reason }
+                            ) || [],
                           },
                         }}
                         venueName={activityData.venueName}
@@ -348,11 +368,27 @@ export default function Step7WidgetEmbedNew({
               {/* Dynamic Data Info */}
               <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-700">
                 <p className="font-medium mb-1">📊 Preview reflects your wizard data:</p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">
                   <span>• Name: {activityData.name ? '✓' : '—'}</span>
                   <span>• Price: ${activityData.adultPrice || 30}</span>
                   <span>• Duration: {activityData.duration || 60}min</span>
                   <span>• Image: {activityData.coverImage ? '✓' : '—'}</span>
+                  <span>• Days: {activityData.operatingDays?.length || 5}</span>
+                </div>
+                {/* Schedule Legend */}
+                <div className="flex flex-wrap gap-3 mt-2 pt-2 border-t border-blue-200 text-[10px]">
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-green-100 border border-green-200" /> Available
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-blue-100 border border-blue-200" /> Special hours
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-red-100 border border-red-200" /> Blocked
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-gray-100 border border-gray-200" /> Not operating
+                  </span>
                 </div>
               </div>
             </TabsContent>

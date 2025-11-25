@@ -20,10 +20,16 @@ import { Badge } from '../ui/badge';
 import { 
   Clock, Users, Award, MapPin, Star, 
   ChevronLeft, ChevronRight, Play, Image as ImageIcon,
-  CreditCard, CheckCircle2, Shield, Sparkles, Plus, Minus
+  CreditCard, Shield, Sparkles, Plus, Minus
 } from 'lucide-react';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { cn } from '../ui/utils';
+import { 
+  getDateStatus, 
+  generateTimeSlotsForDate,
+  ScheduleConfig,
+  DayStatus
+} from '../../lib/schedule/scheduleUtils';
 
 // Activity data interface for preview
 export interface ActivityPreviewData {
@@ -47,6 +53,10 @@ export interface ActivityPreviewData {
     startTime?: string;
     endTime?: string;
     slotInterval?: number;
+    customHours?: Record<string, { start: string; end: string; enabled: boolean }>;
+    blockedDates?: Array<{ date: string; reason?: string }>;
+    specificDates?: Array<{ date: string; start: string; end: string }>;
+    advanceBookingDays?: number;
   };
 }
 
@@ -91,33 +101,43 @@ export function ActivityPreviewCard({
   const heroImage = activity.image_url || DEFAULT_IMAGE;
   const location = venueCity && venueState ? `${venueCity}, ${venueState}` : 'Downtown Location';
   const players = `${activity.min_players || 2}-${activity.max_players || 8} players`;
-  const duration = `${activity.duration || 60} min`;
+  const durationText = `${activity.duration || 60} min`;
 
-  // Generate mock time slots
+  // Build schedule config for utilities
+  const scheduleConfig: ScheduleConfig = useMemo(() => ({
+    operatingDays: activity.schedule?.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    startTime: activity.schedule?.startTime || '10:00',
+    endTime: activity.schedule?.endTime || '22:00',
+    slotInterval: activity.schedule?.slotInterval || 60,
+    customHours: activity.schedule?.customHours,
+    blockedDates: activity.schedule?.blockedDates || [],
+    specificDates: activity.schedule?.specificDates || [],
+    advanceBookingDays: activity.schedule?.advanceBookingDays || 30,
+  }), [activity.schedule]);
+
+  // Generate time slots based on selected date
   const timeSlots = useMemo(() => {
-    const { startTime = '10:00', endTime = '22:00', slotInterval = 60 } = activity.schedule || {};
-    const slots: { time: string; display: string; available: boolean; spots: number }[] = [];
-    
-    const [startH] = startTime.split(':').map(Number);
-    const [endH] = endTime.split(':').map(Number);
-    
-    for (let h = startH; h < endH; h++) {
-      const time = `${h.toString().padStart(2, '0')}:00`;
-      const hour12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
-      const ampm = h >= 12 ? 'PM' : 'AM';
-      slots.push({
-        time,
-        display: `${hour12}:00 ${ampm}`,
-        available: Math.random() > 0.2, // 80% available for demo
-        spots: Math.floor(Math.random() * 8) + 1,
-      });
-    }
-    return slots;
-  }, [activity.schedule]);
+    if (!selectedDate) return [];
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDate);
+    const slots = generateTimeSlotsForDate(date, scheduleConfig);
+    // Add mock spots for preview
+    return slots.map(slot => ({
+      ...slot,
+      spots: Math.floor(Math.random() * 8) + 1,
+    }));
+  }, [selectedDate, currentDate, scheduleConfig]);
 
   // Calculate days in month
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+
+  // Helper to get date status with styling
+  const getDayInfo = (day: number): { status: DayStatus; canBook: boolean } => {
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    const status = getDateStatus(date, scheduleConfig);
+    const canBook = status === 'available' || status === 'special';
+    return { status, canBook };
+  };
 
   // Price calculation
   const subtotal = activity.price * partySize;
@@ -196,7 +216,7 @@ export function ActivityPreviewCard({
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <div className={cn("flex items-center gap-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/20", pillSize)}>
                 <Clock className={compact ? "w-3 h-3" : "w-3.5 h-3.5"} />
-                <span className="text-white font-medium">{duration}</span>
+                <span className="text-white font-medium">{durationText}</span>
               </div>
               <div className={cn("flex items-center gap-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/20", pillSize)}>
                 <Users className={compact ? "w-3 h-3" : "w-3.5 h-3.5"} />
@@ -283,37 +303,62 @@ export function ActivityPreviewCard({
                   <div key={`empty-${i}`} />
                 ))}
                 
-                {/* Days */}
+                {/* Days - Color coded by availability */}
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                   const day = i + 1;
                   const isSelected = selectedDate === day;
                   const dateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
                   const isCurrentDay = new Date().toDateString() === dateObj.toDateString();
-                  const isPast = dateObj < new Date(new Date().setHours(0, 0, 0, 0));
-                  const isAvailable = !isPast;
+                  const { status, canBook } = getDayInfo(day);
+
+                  // Status-based styling
+                  const statusStyles = {
+                    available: isDark 
+                      ? 'bg-green-900/30 text-green-300 border-green-800 hover:bg-green-900/50' 
+                      : 'bg-green-50 text-green-800 border-green-200 hover:bg-green-100',
+                    special: isDark 
+                      ? 'bg-blue-900/30 text-blue-300 border-blue-800 hover:bg-blue-900/50' 
+                      : 'bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100',
+                    blocked: isDark 
+                      ? 'bg-red-900/30 text-red-400 border-red-800 cursor-not-allowed' 
+                      : 'bg-red-50 text-red-400 border-red-200 cursor-not-allowed',
+                    unavailable: isDark 
+                      ? 'bg-gray-800/30 text-gray-500 border-gray-700 cursor-not-allowed' 
+                      : 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed',
+                    past: isDark 
+                      ? 'bg-gray-800/50 text-gray-600 border-gray-700 cursor-not-allowed' 
+                      : 'bg-gray-100 text-gray-300 border-gray-100 cursor-not-allowed',
+                  };
 
                   return (
                     <button
                       key={day}
-                      onClick={() => isAvailable && setSelectedDate(day)}
-                      disabled={!isAvailable}
+                      onClick={() => canBook && setSelectedDate(day)}
+                      disabled={!canBook}
                       className={cn(
-                        "aspect-square rounded-xl text-sm sm:text-base transition-all flex items-center justify-center font-medium",
-                        isCurrentDay && !isSelected && "text-white shadow-md",
-                        isSelected && "text-gray-900 border-2 shadow-sm",
-                        !isSelected && !isCurrentDay && isAvailable && (isDark 
-                          ? "text-gray-300 hover:bg-[#2a2a2a] border border-[#2a2a2a]" 
-                          : "text-gray-700 hover:bg-gray-50 border border-gray-200"),
-                        !isAvailable && (isDark 
-                          ? "text-gray-600 cursor-not-allowed border border-[#1a1a1a]" 
-                          : "text-gray-300 cursor-not-allowed border border-gray-100")
+                        "aspect-square rounded-xl text-sm sm:text-base transition-all flex items-center justify-center font-medium border",
+                        isSelected 
+                          ? "ring-2 ring-offset-1 shadow-lg scale-105" 
+                          : statusStyles[status],
+                        isCurrentDay && !isSelected && "ring-1 ring-offset-1"
                       )}
                       style={{
-                        backgroundColor: isCurrentDay && !isSelected ? primaryColor : isSelected ? 'white' : undefined,
+                        backgroundColor: isSelected ? primaryColor : undefined,
+                        color: isSelected ? 'white' : undefined,
                         borderColor: isSelected ? primaryColor : undefined,
-                      }}
+                        // @ts-ignore - Tailwind ring color
+                        '--tw-ring-color': isCurrentDay ? primaryColor : undefined,
+                      } as React.CSSProperties}
+                      title={status === 'blocked' ? 'Blocked' : status === 'unavailable' ? 'Not operating' : status === 'special' ? 'Special hours' : undefined}
                     >
                       {day}
+                      {/* Availability indicator dot */}
+                      {canBook && !isSelected && (
+                        <span 
+                          className="absolute bottom-1 w-1 h-1 rounded-full"
+                          style={{ backgroundColor: status === 'special' ? '#3b82f6' : '#22c55e' }}
+                        />
+                      )}
                     </button>
                   );
                 })}

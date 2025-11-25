@@ -59,7 +59,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
     mode: 'onChange'
   });
 
-  const { watch, setValue, trigger, reset, formState: { errors, isValid } } = methods;
+  const { watch, setValue, trigger, reset, formState: { errors, isValid, isDirty } } = methods;
 
   // Reset form when initialData changes
   React.useEffect(() => {
@@ -496,13 +496,13 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
           ) : (
             <Button
               onClick={handleSubmit}
-              disabled={isPublishing || !isValid}
+              disabled={isPublishing}
               className="bg-green-600 dark:bg-emerald-600 hover:bg-green-700 dark:hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPublishing ? (
                 <>
                   <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Publishing...
+                  {mode === 'edit' ? 'Updating...' : 'Publishing...'}
                 </>
               ) : (
                 <>

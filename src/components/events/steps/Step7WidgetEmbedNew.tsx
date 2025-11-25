@@ -118,9 +118,19 @@ export default function Step7WidgetEmbedNew({
     }
   }, [generatedCode]);
 
+  // Real embed URL for full page view (only for existing activities)
+  const realEmbedUrl = useMemo(() => {
+    if (!activityId || activityId === 'preview') return null;
+    return `${baseUrl}/embed?widget=singlegame&activityId=${activityId}&color=${primaryColor.replace('#', '')}&theme=${theme}`;
+  }, [activityId, baseUrl, primaryColor, theme]);
+
   const openFullPreview = useCallback(() => {
-    window.open(previewUrl, '_blank', 'noopener,noreferrer');
-  }, [previewUrl]);
+    if (realEmbedUrl) {
+      window.open(realEmbedUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      toast.info('Save the activity first to preview the live widget');
+    }
+  }, [realEmbedUrl]);
 
   const deviceConfig = DEVICE_CONFIGS[previewDevice];
 
@@ -258,10 +268,15 @@ export default function Step7WidgetEmbedNew({
                 <Button
                   variant="outline"
                   onClick={openFullPreview}
-                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                  className={realEmbedUrl 
+                    ? "border-blue-200 text-blue-700 hover:bg-blue-50" 
+                    : "border-gray-200 text-gray-400 cursor-not-allowed"
+                  }
+                  disabled={!realEmbedUrl}
+                  title={realEmbedUrl ? "Open live widget in new tab" : "Save activity first to enable"}
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
-                  Open Full Page
+                  {realEmbedUrl ? 'Open Full Page' : 'Save to Preview'}
                 </Button>
               </div>
 

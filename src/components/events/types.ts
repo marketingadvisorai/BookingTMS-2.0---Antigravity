@@ -96,7 +96,7 @@ export interface ActivityData {
         startTime: string;
         endTime: string;
     }>;
-    blockedDates: Array<string | { date: string; startTime: string; endTime: string; reason?: string }>;
+    blockedDates: Array<{ id?: string; date: string; reason?: string }>;
 
     // Step 6: Payment Settings
     stripeProductId?: string;

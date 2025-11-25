@@ -35,6 +35,7 @@ export const mapDBVenueToUI = (dbVenue: any): Venue => ({
  * Prepares data for Supabase insert/update operations
  */
 export const mapUIVenueToDB = (uiVenue: VenueInput): any => ({
+  organization_id: uiVenue.organizationId,
   name: uiVenue.name,
   address: uiVenue.address || '',
   city: '', // Extract from address if needed

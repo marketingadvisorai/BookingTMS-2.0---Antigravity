@@ -32,6 +32,8 @@ export default function Venues() {
   // Use centralized venue management hook
   const {
     venues,
+    organizations,
+    isSystemAdmin,
     loading,
     selectedVenue,
     formData,
@@ -387,6 +389,29 @@ export default function Venues() {
           </DialogHeader>
           <ScrollArea className="flex-1 overflow-auto">
             <div className="space-y-4 p-4 sm:p-6">
+              {/* Organization Selector for System Admin */}
+              {isSystemAdmin && (
+                <div className="space-y-2">
+                  <Label htmlFor="organization" className="text-sm">Organization *</Label>
+                  <Select 
+                    value={formData.organizationId} 
+                    onValueChange={(value) => setFormData({ ...formData, organizationId: value })}
+                    disabled={showEditDialog} // Disable changing org on edit for safety
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Organization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {organizations.map((org) => (
+                        <SelectItem key={org.id} value={org.id}>
+                          {org.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm">Venue Name *</Label>
                 <Input

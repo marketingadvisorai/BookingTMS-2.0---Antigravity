@@ -25,10 +25,11 @@ export interface Venue {
 
 export type VenueInput = Pick<
   Venue,
-  'name' | 'type' | 'description' | 'address' | 'phone' | 'email' | 'website' | 'primaryColor' | 'widgetConfig' | 'isActive'
+  'name' | 'type' | 'description' | 'address' | 'phone' | 'email' | 'website' | 'primaryColor' | 'widgetConfig' | 'isActive' | 'organizationId'
 >;
 
 export interface VenueFormData {
+  organizationId?: string;
   name: string;
   type: string;
   description: string;

@@ -18,6 +18,7 @@ export const VENUE_TYPES: VenueTypeOption[] = [
 export const DEFAULT_VENUE_COLOR = '#2563eb';
 
 export const DEFAULT_FORM_DATA = {
+  organizationId: '',
   name: '',
   type: 'escape-room',
   description: '',

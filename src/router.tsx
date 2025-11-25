@@ -147,6 +147,11 @@ export const router = createBrowserRouter([
     path: '/booking-test',
     element: <App />,
   },
+  // Organizations route (must be before /:slug to avoid being caught)
+  {
+    path: '/organizations',
+    element: <App />,
+  },
 
   // Slug-based Public Venue Profile Routes
   {

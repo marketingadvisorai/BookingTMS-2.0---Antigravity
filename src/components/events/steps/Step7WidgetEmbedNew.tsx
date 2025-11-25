@@ -39,10 +39,10 @@ import { toast } from 'sonner';
 type PreviewDevice = 'desktop' | 'tablet' | 'mobile';
 type CodeFormat = 'html' | 'react' | 'wordpress';
 
-const DEVICE_CONFIGS: Record<PreviewDevice, { width: string; scale: number; label: string }> = {
-  desktop: { width: '100%', scale: 0.85, label: 'Desktop' },
-  tablet: { width: '768px', scale: 0.75, label: 'Tablet' },
-  mobile: { width: '375px', scale: 0.65, label: 'Mobile' },
+const DEVICE_CONFIGS: Record<PreviewDevice, { width: string; scale: number; label: string; height: string }> = {
+  desktop: { width: '100%', scale: 0.55, label: 'Desktop', height: '600px' },
+  tablet: { width: '768px', scale: 0.50, label: 'Tablet', height: '550px' },
+  mobile: { width: '375px', scale: 0.45, label: 'Mobile', height: '500px' },
 };
 
 interface Step7WidgetEmbedNewProps extends StepProps {
@@ -271,21 +271,21 @@ export default function Step7WidgetEmbedNew({
                 style={{ maxWidth: deviceConfig.width }}
               >
                 {/* Browser Chrome */}
-                <div className="bg-gray-200 border-b flex items-center px-4 py-2 gap-2">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-400" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                    <div className="w-3 h-3 rounded-full bg-green-400" />
+                <div className="bg-gray-200 border-b flex items-center px-3 py-1.5 gap-2">
+                  <div className="flex gap-1">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
                   </div>
-                  <div className="flex-1 text-center text-xs text-gray-500 font-mono bg-white rounded px-3 py-1 truncate mx-2">
-                    {previewUrl.substring(0, 60)}...
+                  <div className="flex-1 text-center text-[10px] text-gray-500 font-mono bg-white rounded px-2 py-0.5 truncate mx-2">
+                    {previewUrl.substring(0, 50)}...
                   </div>
                 </div>
                 
-                {/* Preview Content - Use real widget iframe if activityId exists, else show preview card */}
+                {/* Preview Content - Scrollable container */}
                 <div 
-                  className="bg-white overflow-hidden"
-                  style={{ height: '650px' }}
+                  className="bg-white overflow-y-auto overflow-x-hidden"
+                  style={{ height: deviceConfig.height }}
                 >
                   {activityId && activityId !== 'preview' ? (
                     /* Live Widget Preview - Real data from database via iframe (like Stripe) */
@@ -296,45 +296,63 @@ export default function Step7WidgetEmbedNew({
                       sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                     />
                   ) : (
-                    /* Static Preview for new activities (no database data yet) */
+                    /* Static Preview with dynamic data from wizard steps */
                     <div 
                       style={{ 
                         transform: `scale(${deviceConfig.scale})`,
-                        transformOrigin: 'top center',
+                        transformOrigin: 'top left',
                         width: `${100 / deviceConfig.scale}%`,
+                        minHeight: `${100 / deviceConfig.scale}%`,
                       }}
                     >
                       <ActivityPreviewCard
                         activity={{
                           id: 'preview',
-                          name: activityData.name || 'Sample Activity',
-                          description: activityData.description || 'Experience an amazing adventure with your group.',
-                          duration: activityData.duration || 60,
-                          difficulty: activityData.difficulty ? String(activityData.difficulty) : '3',
+                          // Step 1: Basic Info
+                          name: activityData.name || 'Your Activity Name',
+                          description: activityData.description || activityData.tagline || 'Your activity description will appear here.',
+                          // Step 2: Capacity & Pricing
                           min_players: activityData.minAdults || 2,
                           max_players: activityData.maxAdults || 8,
                           price: activityData.adultPrice || 30,
                           child_price: activityData.childPrice || 20,
+                          // Step 3: Activity Details
+                          duration: activityData.duration || 60,
+                          difficulty: activityData.difficulty ? String(activityData.difficulty) : 'Medium',
+                          age_guideline: activityData.minAge ? `Ages ${activityData.minAge}+` : undefined,
+                          faqs: activityData.faqs || [],
+                          highlights: activityData.highlights || [],
+                          // Step 4: Media
                           image_url: activityData.coverImage || undefined,
                           gallery_images: activityData.galleryImages || [],
                           video_url: activityData.videos?.[0],
-                          age_guideline: activityData.minAge ? `Ages ${activityData.minAge}+` : undefined,
-                          faqs: activityData.faqs || [],
-                          highlights: [],
+                          // Step 5: Schedule
                           schedule: {
-                            operatingDays: activityData.operatingDays || ['Monday', 'Friday'],
+                            operatingDays: activityData.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
                             startTime: activityData.startTime || '10:00',
                             endTime: activityData.endTime || '22:00',
                             slotInterval: activityData.slotInterval || 60,
                           },
                         }}
-                        venueName={undefined}
+                        venueName={activityData.venueName}
                         primaryColor={primaryColor}
                         theme={theme}
                         showBookingFlow={true}
+                        compact={previewDevice !== 'desktop'}
                       />
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Dynamic Data Info */}
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-700">
+                <p className="font-medium mb-1">📊 Preview reflects your wizard data:</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                  <span>• Name: {activityData.name ? '✓' : '—'}</span>
+                  <span>• Price: ${activityData.adultPrice || 30}</span>
+                  <span>• Duration: {activityData.duration || 60}min</span>
+                  <span>• Image: {activityData.coverImage ? '✓' : '—'}</span>
                 </div>
               </div>
             </TabsContent>

@@ -72,8 +72,14 @@ export function ActivityPreviewCard({
   primaryColor = '#2563eb',
   theme = 'light',
   showBookingFlow = true,
+  compact = false,
 }: ActivityPreviewCardProps) {
   const isDark = theme === 'dark';
+  
+  // Compact mode adjustments for preview window
+  const heroHeight = compact ? 'h-[180px] sm:h-[200px]' : 'h-[280px] sm:h-[320px] md:h-[360px]';
+  const titleSize = compact ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-3xl md:text-4xl';
+  const pillSize = compact ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs';
   
   // State
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -127,11 +133,12 @@ export function ActivityPreviewCard({
 
   return (
     <div className={cn(
-      "w-full min-h-screen transition-colors",
+      "w-full transition-colors",
+      compact ? "min-h-[800px]" : "min-h-screen",
       isDark ? "bg-[#161616]" : "bg-gray-50"
     )}>
       {/* Hero Section */}
-      <div className="relative h-[280px] sm:h-[320px] md:h-[360px] overflow-hidden">
+      <div className={cn("relative overflow-hidden", heroHeight)}>
         {/* Background Image */}
         <div className="absolute inset-0">
           <ImageWithFallback
@@ -173,33 +180,38 @@ export function ActivityPreviewCard({
           </div>
 
           {/* Bottom Content - Title & Info */}
-          <div className="p-4 sm:p-6">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl text-white font-bold mb-2 drop-shadow-lg tracking-tight">
+          <div className={cn("p-3 sm:p-4", compact ? "p-2 sm:p-3" : "p-4 sm:p-6")}>
+            <h1 className={cn(titleSize, "text-white font-bold mb-1 sm:mb-2 drop-shadow-lg tracking-tight line-clamp-1")}>
               {activity.name}
             </h1>
 
-            <p className="text-sm sm:text-base text-gray-200 mb-4 max-w-2xl line-clamp-2">
+            <p className={cn(
+              "text-gray-200 mb-2 sm:mb-4 max-w-2xl line-clamp-1 sm:line-clamp-2",
+              compact ? "text-xs" : "text-sm sm:text-base"
+            )}>
               {activity.description || 'Experience an amazing adventure with your group.'}
             </p>
 
             {/* Info Pills */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/20">
-                <Clock className="w-3.5 h-3.5 text-white" />
-                <span className="text-xs text-white font-medium">{duration}</span>
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <div className={cn("flex items-center gap-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/20", pillSize)}>
+                <Clock className={compact ? "w-3 h-3" : "w-3.5 h-3.5"} />
+                <span className="text-white font-medium">{duration}</span>
               </div>
-              <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/20">
-                <Users className="w-3.5 h-3.5 text-white" />
-                <span className="text-xs text-white font-medium">{players}</span>
+              <div className={cn("flex items-center gap-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/20", pillSize)}>
+                <Users className={compact ? "w-3 h-3" : "w-3.5 h-3.5"} />
+                <span className="text-white font-medium">{players}</span>
               </div>
-              <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/20">
-                <Award className="w-3.5 h-3.5 text-white" />
-                <span className="text-xs text-white font-medium">{activity.difficulty || 'Medium'}</span>
+              <div className={cn("flex items-center gap-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/20", pillSize)}>
+                <Award className={compact ? "w-3 h-3" : "w-3.5 h-3.5"} />
+                <span className="text-white font-medium">{activity.difficulty || 'Medium'}</span>
               </div>
-              <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/20">
-                <MapPin className="w-3.5 h-3.5 text-white" />
-                <span className="text-xs text-white font-medium">{location}</span>
-              </div>
+              {!compact && (
+                <div className={cn("flex items-center gap-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/20", pillSize)}>
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span className="text-white font-medium">{location}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

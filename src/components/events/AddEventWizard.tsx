@@ -100,11 +100,16 @@ export default function AddEventWizard({ onComplete, onCancel, initialData, mode
     coverImage: '',
     galleryImages: [],
     videos: [],
+    selectedWidget: 'default',
+    requiresWaiver: false,
+    selectedWaiver: null,
+    cancellationWindow: 24,
+    specialInstructions: '',
+    slug: '',
     waivers: [],
-    selectedWidget: 'calendar-single',
   });
 
-  const updateActivityData = (field: string, value: any) => {
+  const updateActivityData = (field: keyof ActivityData, value: any) => {
     setActivityData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -179,10 +184,10 @@ export default function AddEventWizard({ onComplete, onCancel, initialData, mode
                 <div className="flex flex-col items-center relative z-10">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${isCurrent
-                        ? 'bg-blue-600 dark:bg-[#4f46e5] text-white ring-4 ring-blue-100 dark:ring-[#4f46e5]/20'
-                        : isCompleted
-                          ? 'bg-green-600 dark:bg-emerald-600 text-white'
-                          : 'bg-white dark:bg-[#1e1e1e] border-2 border-gray-200 dark:border-[#2a2a2a] text-gray-400 dark:text-[#737373]'
+                      ? 'bg-blue-600 dark:bg-[#4f46e5] text-white ring-4 ring-blue-100 dark:ring-[#4f46e5]/20'
+                      : isCompleted
+                        ? 'bg-green-600 dark:bg-emerald-600 text-white'
+                        : 'bg-white dark:bg-[#1e1e1e] border-2 border-gray-200 dark:border-[#2a2a2a] text-gray-400 dark:text-[#737373]'
                       }`}
                   >
                     {isCompleted ? (

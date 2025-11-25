@@ -59,7 +59,7 @@ export function useDashboard() {
       setLoading(true);
 
       // Fetch dashboard stats
-      const { data: statsData, error: statsError } = await supabase
+      const { data: statsData, error: statsError } = await (supabase as any)
         .rpc('get_dashboard_stats');
 
       if (statsError) throw statsError;
@@ -68,14 +68,14 @@ export function useDashboard() {
       }
 
       // Fetch weekly trend
-      const { data: trendData, error: trendError } = await supabase
+      const { data: trendData, error: trendError } = await (supabase as any)
         .rpc('get_weekly_bookings_trend');
 
       if (trendError) throw trendError;
       setWeeklyTrend(trendData || []);
 
       // Fetch upcoming bookings
-      const { data: upcomingData, error: upcomingError } = await supabase
+      const { data: upcomingData, error: upcomingError } = await (supabase as any)
         .rpc('get_upcoming_bookings', { limit_count: 5 });
 
       if (upcomingError) throw upcomingError;
@@ -88,14 +88,14 @@ export function useDashboard() {
       setUpcomingBookings(mappedUpcoming);
 
       // Fetch today's hourly bookings
-      const { data: hourlyData, error: hourlyError } = await supabase
+      const { data: hourlyData, error: hourlyError } = await (supabase as any)
         .rpc('get_todays_bookings_by_hour');
 
       if (hourlyError) throw hourlyError;
       setTodaysHourly(hourlyData || []);
 
       // Fetch recent booking activity
-      const { data: activityData, error: activityError } = await supabase
+      const { data: activityData, error: activityError } = await (supabase as any)
         .rpc('get_recent_booking_activity', { limit_count: 10 });
 
       if (activityError) throw activityError;

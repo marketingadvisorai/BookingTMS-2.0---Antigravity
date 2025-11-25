@@ -142,7 +142,7 @@ const GiftVouchers = () => {
   const textMutedClass = isDark ? 'text-[#a3a3a3]' : 'text-gray-600';
 
   return (
-    <AdminLayout>
+    <AdminLayout currentPage="gift-vouchers" onNavigate={() => { }}>
       <div className={`min-h-screen ${bgClass} py-8 px-4 sm:px-6 lg:px-8`}>
         <div className="max-w-4xl mx-auto">
           {/* Header with festive decoration */}
@@ -163,17 +163,16 @@ const GiftVouchers = () => {
                 {['amount', 'recipients', 'customize', 'payment'].map((step, index) => {
                   const isActive = currentStep === step;
                   const isCompleted = ['amount', 'recipients', 'customize', 'payment'].indexOf(currentStep) > index;
-                  
+
                   return (
                     <React.Fragment key={step}>
                       <div className="flex flex-col items-center flex-1">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
-                          isCompleted 
-                            ? 'bg-green-500 border-green-500 text-white' 
-                            : isActive 
-                            ? 'bg-indigo-600 border-indigo-600 text-white' 
-                            : isDark ? 'bg-[#1e1e1e] border-[#3a3a3a] text-[#737373]' : 'bg-gray-100 border-gray-300 text-gray-400'
-                        }`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isCompleted
+                            ? 'bg-green-500 border-green-500 text-white'
+                            : isActive
+                              ? 'bg-indigo-600 border-indigo-600 text-white'
+                              : isDark ? 'bg-[#1e1e1e] border-[#3a3a3a] text-[#737373]' : 'bg-gray-100 border-gray-300 text-gray-400'
+                          }`}>
                           {isCompleted ? <Check className="w-5 h-5" /> : index + 1}
                         </div>
                         <span className={`text-xs mt-2 capitalize ${isActive ? 'text-indigo-600 dark:text-indigo-400' : textMutedClass}`}>
@@ -211,11 +210,10 @@ const GiftVouchers = () => {
                       setSelectedAmount(amount);
                       setCustomAmount('');
                     }}
-                    className={`p-6 rounded-xl border-2 transition-all hover:scale-105 ${
-                      selectedAmount === amount
+                    className={`p-6 rounded-xl border-2 transition-all hover:scale-105 ${selectedAmount === amount
                         ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20'
                         : isDark ? 'border-[#2a2a2a] hover:border-[#3a3a3a]' : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <div className={`text-3xl mb-1 ${selectedAmount === amount ? 'text-indigo-600 dark:text-indigo-400' : textClass}`}>
                       ${amount}
@@ -241,11 +239,10 @@ const GiftVouchers = () => {
                       setCustomAmount(e.target.value);
                       setSelectedAmount(null);
                     }}
-                    className={`pl-8 text-xl h-14 ${
-                      isDark 
-                        ? 'bg-[#1e1e1e] border-[#3a3a3a] text-white placeholder:text-[#737373]' 
+                    className={`pl-8 text-xl h-14 ${isDark
+                        ? 'bg-[#1e1e1e] border-[#3a3a3a] text-white placeholder:text-[#737373]'
                         : 'bg-gray-100 border-gray-300 placeholder:text-gray-500'
-                    }`}
+                      }`}
                   />
                 </div>
                 <p className={`text-sm ${textMutedClass}`}>Minimum $10, Maximum $1000</p>
@@ -395,11 +392,10 @@ const GiftVouchers = () => {
                       <button
                         key={themeOption.id}
                         onClick={() => setSelectedTheme(themeOption.id as any)}
-                        className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
-                          selectedTheme === themeOption.id
+                        className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${selectedTheme === themeOption.id
                             ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20'
                             : isDark ? 'border-[#2a2a2a]' : 'border-gray-200'
-                        }`}
+                          }`}
                       >
                         <div className="text-3xl mb-2">{themeOption.emoji}</div>
                         <div className={`text-sm ${textClass}`}>{themeOption.name}</div>
@@ -475,7 +471,7 @@ const GiftVouchers = () => {
                       <Input
                         placeholder="1234 5678 9012 3456"
                         value={paymentDetails.cardNumber}
-                        onChange={(e) => setPaymentDetails({...paymentDetails, cardNumber: e.target.value})}
+                        onChange={(e) => setPaymentDetails({ ...paymentDetails, cardNumber: e.target.value })}
                         className={isDark ? 'bg-[#1e1e1e] border-[#3a3a3a] text-white placeholder:text-[#737373]' : 'h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500'}
                       />
                     </div>
@@ -486,7 +482,7 @@ const GiftVouchers = () => {
                         <Input
                           placeholder="MM/YY"
                           value={paymentDetails.expiryDate}
-                          onChange={(e) => setPaymentDetails({...paymentDetails, expiryDate: e.target.value})}
+                          onChange={(e) => setPaymentDetails({ ...paymentDetails, expiryDate: e.target.value })}
                           className={isDark ? 'bg-[#1e1e1e] border-[#3a3a3a] text-white placeholder:text-[#737373]' : 'h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500'}
                         />
                       </div>
@@ -495,7 +491,7 @@ const GiftVouchers = () => {
                         <Input
                           placeholder="123"
                           value={paymentDetails.cvv}
-                          onChange={(e) => setPaymentDetails({...paymentDetails, cvv: e.target.value})}
+                          onChange={(e) => setPaymentDetails({ ...paymentDetails, cvv: e.target.value })}
                           className={isDark ? 'bg-[#1e1e1e] border-[#3a3a3a] text-white placeholder:text-[#737373]' : 'h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500'}
                         />
                       </div>
@@ -507,7 +503,7 @@ const GiftVouchers = () => {
                         type="email"
                         placeholder="your@email.com"
                         value={paymentDetails.billingEmail}
-                        onChange={(e) => setPaymentDetails({...paymentDetails, billingEmail: e.target.value})}
+                        onChange={(e) => setPaymentDetails({ ...paymentDetails, billingEmail: e.target.value })}
                         className={isDark ? 'bg-[#1e1e1e] border-[#3a3a3a] text-white placeholder:text-[#737373]' : 'h-12 bg-gray-100 border-gray-300 placeholder:text-gray-500'}
                       />
                     </div>
@@ -538,7 +534,7 @@ const GiftVouchers = () => {
               <div>
                 <Card className={`${cardBgClass} border ${borderClass} p-6 shadow-xl sticky top-4`}>
                   <h3 className={`text-xl mb-4 ${textClass}`}>Order Summary</h3>
-                  
+
                   <div className="space-y-3 mb-4">
                     <div className="flex justify-between">
                       <span className={textMutedClass}>Voucher Amount</span>

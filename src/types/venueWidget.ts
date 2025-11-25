@@ -17,7 +17,7 @@ export interface VenueWidgetConfig {
   showSecuredBadge: boolean;
   showHealthSafety: boolean;
   enableVeteranDiscount: boolean;
-  games: Array<Record<string, unknown>>;
+  activities: Array<Record<string, unknown>>;
   ticketTypes: VenueWidgetTicketType[];
   additionalQuestions: VenueWidgetQuestion[];
   cancellationPolicy: string;
@@ -27,7 +27,7 @@ export const createDefaultVenueWidgetConfig = (): VenueWidgetConfig => ({
   showSecuredBadge: true,
   showHealthSafety: true,
   enableVeteranDiscount: false,
-  games: [],
+  activities: [],
   ticketTypes: [
     { id: 'player', name: 'Players', description: 'Ages 6 & Up', price: 30 },
   ],
@@ -48,8 +48,8 @@ export const normalizeVenueWidgetConfig = (
       config?.showHealthSafety ?? defaults.showHealthSafety,
     enableVeteranDiscount:
       config?.enableVeteranDiscount ?? defaults.enableVeteranDiscount,
-    games:
-      config && Array.isArray(config.games) ? config.games : [],
+    activities:
+      config && Array.isArray(config.activities) ? config.activities : [],
     ticketTypes:
       config && Array.isArray(config.ticketTypes)
         ? config.ticketTypes.map((ticket) => ({ ...ticket }))

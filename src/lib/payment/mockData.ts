@@ -190,7 +190,7 @@ export const mockTransactions: Transaction[] = [
     customerId: 'cust_007',
     customerName: 'Amanda Lee',
     customerEmail: 'amanda.lee@email.com',
-    type: 'gift_card',
+    type: 'gift_card_purchase',
     amount: 100.00,
     currency: 'USD',
     status: 'completed',
@@ -297,7 +297,7 @@ export const mockRevenueMetrics: RevenueMetrics = {
   transactionCount: 10,
   averageTransactionValue: 161.00,
   successRate: 70.0,
-  
+
   byPaymentMethod: [
     { method: 'credit_card', amount: 1000.00, count: 6, percentage: 62.1 },
     { method: 'gift_card', amount: 220.00, count: 1, percentage: 13.7 },
@@ -305,7 +305,7 @@ export const mockRevenueMetrics: RevenueMetrics = {
     { method: 'bank_transfer', amount: 180.00, count: 1, percentage: 11.2 },
     { method: 'paypal', amount: 100.00, count: 1, percentage: 6.2 }
   ],
-  
+
   byStatus: [
     { status: 'completed', amount: 1160.00, count: 6, percentage: 72.0 },
     { status: 'refunded', amount: 120.00, count: 1, percentage: 7.5 },
@@ -314,7 +314,7 @@ export const mockRevenueMetrics: RevenueMetrics = {
     { status: 'processing', amount: 140.00, count: 1, percentage: 8.7 },
     { status: 'failed', amount: 90.00, count: 1, percentage: 5.6 }
   ],
-  
+
   dailyRevenue: [
     { date: '2024-11-01', revenue: 250.00, refunds: 50.00, net: 200.00 },
     { date: '2024-11-02', revenue: 220.00, refunds: 120.00, net: 100.00 },

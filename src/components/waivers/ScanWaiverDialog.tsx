@@ -7,7 +7,7 @@ import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { 
+import {
   QrCode,
   Scan,
   CheckCircle2,
@@ -83,8 +83,8 @@ export default function ScanWaiverDialog({ isOpen, onClose }: ScanWaiverDialogPr
     setIsScanning(false);
     try {
       scannerControlsRef.current?.stop();
-      codeReaderRef.current?.reset();
-    } catch {}
+      // codeReaderRef.current?.reset();
+    } catch { }
   };
 
   const startCameraScan = async () => {
@@ -111,8 +111,8 @@ export default function ScanWaiverDialog({ isOpen, onClose }: ScanWaiverDialogPr
   const stopCameraScan = () => {
     try {
       scannerControlsRef.current?.stop();
-      codeReaderRef.current?.reset();
-    } catch {}
+      // codeReaderRef.current?.reset();
+    } catch { }
     setIsScanning(false);
   };
 
@@ -243,22 +243,20 @@ export default function ScanWaiverDialog({ isOpen, onClose }: ScanWaiverDialogPr
               <div className="grid grid-cols-4 gap-3">
                 <button
                   onClick={() => setScanMode('qr')}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    scanMode === 'qr'
+                  className={`p-4 rounded-lg border-2 transition-all ${scanMode === 'qr'
                       ? (isDark ? 'border-[#4f46e5] bg-[#4f46e5]/10' : 'border-blue-600 bg-blue-50')
                       : (isDark ? 'border-[#2a2a2a] hover:border-[#3a3a3a]' : 'border-gray-200 hover:border-gray-300')
-                  }`}
+                    }`}
                 >
                   <QrCode className={`w-6 h-6 mx-auto mb-2 ${scanMode === 'qr' ? (isDark ? 'text-[#6366f1]' : 'text-blue-600') : textMutedClass}`} />
                   <p className={`text-sm ${textClass}`}>Show QR</p>
                 </button>
                 <button
                   onClick={() => setScanMode('camera')}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    scanMode === 'camera'
+                  className={`p-4 rounded-lg border-2 transition-all ${scanMode === 'camera'
                       ? (isDark ? 'border-[#4f46e5] bg-[#4f46e5]/10' : 'border-blue-600 bg-blue-50')
                       : (isDark ? 'border-[#2a2a2a] hover:border-[#3a3a3a]' : 'border-gray-200 hover:border-gray-300')
-                  }`}
+                    }`}
                 >
                   <Camera className={`w-6 h-6 mx-auto mb-2 ${scanMode === 'camera' ? (isDark ? 'text-[#6366f1]' : 'text-blue-600') : textMutedClass}`} />
                   <p className={`text-sm ${textClass}`}>Camera</p>
@@ -266,11 +264,10 @@ export default function ScanWaiverDialog({ isOpen, onClose }: ScanWaiverDialogPr
 
                 <button
                   onClick={() => setScanMode('upload')}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    scanMode === 'upload'
+                  className={`p-4 rounded-lg border-2 transition-all ${scanMode === 'upload'
                       ? (isDark ? 'border-[#4f46e5] bg-[#4f46e5]/10' : 'border-blue-600 bg-blue-50')
                       : (isDark ? 'border-[#2a2a2a] hover:border-[#3a3a3a]' : 'border-gray-200 hover:border-gray-300')
-                  }`}
+                    }`}
                 >
                   <Upload className={`w-6 h-6 mx-auto mb-2 ${scanMode === 'upload' ? (isDark ? 'text-[#6366f1]' : 'text-blue-600') : textMutedClass}`} />
                   <p className={`text-sm ${textClass}`}>Upload</p>
@@ -278,11 +275,10 @@ export default function ScanWaiverDialog({ isOpen, onClose }: ScanWaiverDialogPr
 
                 <button
                   onClick={() => setScanMode('manual')}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    scanMode === 'manual'
+                  className={`p-4 rounded-lg border-2 transition-all ${scanMode === 'manual'
                       ? (isDark ? 'border-[#4f46e5] bg-[#4f46e5]/10' : 'border-blue-600 bg-blue-50')
                       : (isDark ? 'border-[#2a2a2a] hover:border-[#3a3a3a]' : 'border-gray-200 hover:border-gray-300')
-                  }`}
+                    }`}
                 >
                   <QrCode className={`w-6 h-6 mx-auto mb-2 ${scanMode === 'manual' ? (isDark ? 'text-[#6366f1]' : 'text-blue-600') : textMutedClass}`} />
                   <p className={`text-sm ${textClass}`}>Manual</p>
@@ -359,7 +355,7 @@ export default function ScanWaiverDialog({ isOpen, onClose }: ScanWaiverDialogPr
                     )}
                   </div>
 
-                  <Button 
+                  <Button
                     style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
                     className={`w-full h-11 ${isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}`}
                     onClick={handleScanCamera}
@@ -374,7 +370,7 @@ export default function ScanWaiverDialog({ isOpen, onClose }: ScanWaiverDialogPr
               {/* Upload Mode */}
               {scanMode === 'upload' && (
                 <div className="space-y-4">
-                  <div 
+                  <div
                     className={`aspect-video rounded-lg border-2 border-dashed ${borderClass} ${bgElevatedClass} flex items-center justify-center cursor-pointer hover:border-current transition-colors`}
                     onClick={handleUploadClick}
                   >
@@ -403,7 +399,7 @@ export default function ScanWaiverDialog({ isOpen, onClose }: ScanWaiverDialogPr
                     />
                   </div>
 
-                  <Button 
+                  <Button
                     style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
                     className={`w-full h-11 ${isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}`}
                     onClick={handleManualSubmit}
@@ -482,7 +478,7 @@ export default function ScanWaiverDialog({ isOpen, onClose }: ScanWaiverDialogPr
                 </div>
               </div>
 
-              <Button 
+              <Button
                 variant="outline"
                 onClick={handleReset}
                 className="w-full h-11"
@@ -495,7 +491,7 @@ export default function ScanWaiverDialog({ isOpen, onClose }: ScanWaiverDialogPr
         </div>
 
         <DialogFooter>
-          <Button 
+          <Button
             variant={scanResult ? "default" : "outline"}
             onClick={scanResult ? handleReset : onClose}
             style={{ backgroundColor: isDark && scanResult ? '#4f46e5' : undefined }}

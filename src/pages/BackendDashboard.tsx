@@ -7,12 +7,12 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { 
-  Database, 
-  Server, 
-  Activity, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  Database,
+  Server,
+  Activity,
+  CheckCircle2,
+  XCircle,
   AlertCircle,
   RefreshCw,
   Play,
@@ -35,9 +35,9 @@ import {
   Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { 
-  LLM_PROVIDERS, 
-  testLLMProvider, 
+import {
+  LLM_PROVIDERS,
+  testLLMProvider,
   validateApiKeyFormat,
   formatLLMLatency,
   getLLMPerformanceRating,
@@ -77,7 +77,7 @@ export default function BackendDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [apiTests, setApiTests] = useState<any[]>([]);
-  
+
   // LLM State
   const [llmApiKeys, setLlmApiKeys] = useState<Record<string, string>>({});
   const [llmResults, setLlmResults] = useState<Record<string, LLMConnectionResult>>({});
@@ -97,7 +97,7 @@ export default function BackendDashboard() {
     checkAllConnections();
     loadSavedApiKeys();
   }, []);
-  
+
   // Load saved API keys from localStorage
   const loadSavedApiKeys = () => {
     try {
@@ -109,7 +109,7 @@ export default function BackendDashboard() {
       console.error('Error loading saved API keys:', error);
     }
   };
-  
+
   // Save API keys to localStorage
   const saveApiKeys = (keys: Record<string, string>) => {
     try {
@@ -122,20 +122,20 @@ export default function BackendDashboard() {
   // Check all backend connections
   const checkAllConnections = async () => {
     setIsRefreshing(true);
-    
+
     try {
       // Check Supabase connection
       await checkSupabaseConnection();
-      
+
       // Check environment variables
       checkEnvironmentVariables();
-      
+
       // Check API endpoints
       await checkApiEndpoints();
-      
+
       // Run health checks
       await runHealthChecks();
-      
+
       setLastCheck(new Date());
       toast.success('All checks completed');
     } catch (error) {
@@ -149,16 +149,16 @@ export default function BackendDashboard() {
   // Check Supabase connection
   const checkSupabaseConnection = async () => {
     const startTime = Date.now();
-    
+
     try {
       // Try to import Supabase client
       const { supabase } = await import('../lib/supabase/client');
-      
+
       // Test connection with a simple query
       const { data, error } = await supabase.from('kv_store_84a71643').select('count', { count: 'exact', head: true });
-      
+
       const latency = Date.now() - startTime;
-      
+
       if (error) {
         setConnections(prev => [...prev.filter(c => c.name !== 'Supabase'), {
           name: 'Supabase',
@@ -214,7 +214,7 @@ export default function BackendDashboard() {
       { name: 'Customers API', url: '/api/customers', method: 'GET' },
     ];
 
-    const results = [];
+    const results: any[] = [];
 
     for (const endpoint of endpoints) {
       const startTime = Date.now();
@@ -222,7 +222,7 @@ export default function BackendDashboard() {
         // Simulate API call (replace with actual calls when backend is ready)
         await new Promise(resolve => setTimeout(resolve, 100));
         const latency = Date.now() - startTime;
-        
+
         results.push({
           name: endpoint.name,
           url: endpoint.url,
@@ -327,52 +327,52 @@ export default function BackendDashboard() {
 
     return variants[status] || variants['unknown'];
   };
-  
+
   // LLM Functions
   const handleLlmApiKeyChange = (providerId: string, value: string) => {
     const newKeys = { ...llmApiKeys, [providerId]: value };
     setLlmApiKeys(newKeys);
     saveApiKeys(newKeys);
   };
-  
+
   const toggleShowApiKey = (providerId: string) => {
     setShowApiKeys(prev => ({ ...prev, [providerId]: !prev[providerId] }));
   };
-  
+
   const clearApiKey = (providerId: string) => {
     const newKeys = { ...llmApiKeys };
     delete newKeys[providerId];
     setLlmApiKeys(newKeys);
     saveApiKeys(newKeys);
-    
+
     const newResults = { ...llmResults };
     delete newResults[providerId];
     setLlmResults(newResults);
-    
+
     toast.success(`${LLM_PROVIDERS.find(p => p.id === providerId)?.name} API key cleared`);
   };
-  
+
   const testLlmConnection = async (provider: LLMProvider) => {
     const apiKey = llmApiKeys[provider.id];
-    
+
     if (!apiKey) {
       toast.error('Please enter an API key first');
       return;
     }
-    
+
     // Validate API key format
     const validation = validateApiKeyFormat(provider.id, apiKey);
     if (!validation.valid) {
       toast.error(validation.message);
       return;
     }
-    
+
     setLlmTesting(prev => ({ ...prev, [provider.id]: true }));
-    
+
     try {
       const result = await testLLMProvider(provider.id, apiKey);
       setLlmResults(prev => ({ ...prev, [provider.id]: result }));
-      
+
       if (result.success) {
         toast.success(`Successfully connected to ${provider.name}`);
       } else {
@@ -384,21 +384,21 @@ export default function BackendDashboard() {
       setLlmTesting(prev => ({ ...prev, [provider.id]: false }));
     }
   };
-  
+
   const testAllLlmConnections = async () => {
     const providersWithKeys = LLM_PROVIDERS.filter(p => llmApiKeys[p.id]);
-    
+
     if (providersWithKeys.length === 0) {
       toast.error('No API keys configured. Please add at least one API key.');
       return;
     }
-    
+
     toast.info(`Testing ${providersWithKeys.length} LLM provider(s)...`);
-    
+
     for (const provider of providersWithKeys) {
       await testLlmConnection(provider);
     }
-    
+
     toast.success('All LLM connection tests completed');
   };
 
@@ -737,7 +737,7 @@ export default function BackendDashboard() {
                   )}
                 </div>
               ))}
-              
+
               <Alert className="mt-4">
                 <AlertCircle className="w-4 h-4" />
                 <AlertDescription>
@@ -776,7 +776,7 @@ export default function BackendDashboard() {
             </div>
           </Card>
         </TabsContent>
-        
+
         {/* LLM Connections Tab */}
         <TabsContent value="llm" className="space-y-4">
           <Card className={`${bgCard} border ${borderColor}`}>
@@ -806,13 +806,13 @@ export default function BackendDashboard() {
                   They are used only for direct API calls to the respective LLM providers.
                 </AlertDescription>
               </Alert>
-              
+
               {LLM_PROVIDERS.map((provider) => {
                 const result = llmResults[provider.id];
                 const isTesting = llmTesting[provider.id];
                 const hasApiKey = !!llmApiKeys[provider.id];
                 const showKey = showApiKeys[provider.id];
-                
+
                 return (
                   <div
                     key={provider.id}
@@ -832,7 +832,7 @@ export default function BackendDashboard() {
                         </Badge>
                       )}
                     </div>
-                    
+
                     <div className="space-y-3">
                       <div>
                         <Label className={`text-sm ${textSecondary} mb-2 block`}>
@@ -895,7 +895,7 @@ export default function BackendDashboard() {
                           </Button>
                         </div>
                       </div>
-                      
+
                       {result && (
                         <div className={`p-3 rounded border ${borderColor} ${isDark ? 'bg-[#161616]' : 'bg-white'}`}>
                           <div className="space-y-2">
@@ -931,7 +931,7 @@ export default function BackendDashboard() {
                                 </div>
                               )}
                             </div>
-                            
+
                             {result.details && (
                               <div className={`mt-2 p-2 rounded text-xs ${isDark ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
                                 <div className={`${textSecondary} mb-1`}>
@@ -949,7 +949,7 @@ export default function BackendDashboard() {
                                 )}
                               </div>
                             )}
-                            
+
                             {result.error && (
                               <div className="mt-2 p-2 rounded text-xs bg-red-500/10 border border-red-500/20">
                                 <div className="text-red-500">
@@ -966,7 +966,7 @@ export default function BackendDashboard() {
               })}
             </div>
           </Card>
-          
+
           {/* LLM Setup Guide */}
           <Card className={`${bgCard} border ${borderColor}`}>
             <div className={`p-6 border-b ${borderColor}`}>
@@ -982,35 +982,35 @@ export default function BackendDashboard() {
                   Sign up at <a href="https://platform.openai.com/signup" target="_blank" rel="noopener noreferrer" className="text-[#4f46e5] hover:underline">platform.openai.com</a> and generate an API key from your account settings.
                 </p>
               </div>
-              
+
               <div className={`p-3 rounded border ${borderColor} ${isDark ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
                 <h4 className={`${textPrimary} mb-2`}>🧠 Anthropic Claude</h4>
                 <p className={`text-sm ${textSecondary} mb-2`}>
                   Visit <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" className="text-[#4f46e5] hover:underline">console.anthropic.com</a> to create an account and get your API key.
                 </p>
               </div>
-              
+
               <div className={`p-3 rounded border ${borderColor} ${isDark ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
                 <h4 className={`${textPrimary} mb-2`}>✨ Google AI (Gemini)</h4>
                 <p className={`text-sm ${textSecondary} mb-2`}>
                   Get your API key from <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-[#4f46e5] hover:underline">Google AI Studio</a>.
                 </p>
               </div>
-              
+
               <div className={`p-3 rounded border ${borderColor} ${isDark ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
                 <h4 className={`${textPrimary} mb-2`}>💬 Cohere</h4>
                 <p className={`text-sm ${textSecondary} mb-2`}>
                   Sign up at <a href="https://dashboard.cohere.com/" target="_blank" rel="noopener noreferrer" className="text-[#4f46e5] hover:underline">dashboard.cohere.com</a> to get your API key.
                 </p>
               </div>
-              
+
               <div className={`p-3 rounded border ${borderColor} ${isDark ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
                 <h4 className={`${textPrimary} mb-2`}>🤗 Hugging Face</h4>
                 <p className={`text-sm ${textSecondary} mb-2`}>
                   Create an account at <a href="https://huggingface.co/" target="_blank" rel="noopener noreferrer" className="text-[#4f46e5] hover:underline">huggingface.co</a> and generate a token in your settings.
                 </p>
               </div>
-              
+
               <div className={`p-3 rounded border ${borderColor} ${isDark ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
                 <h4 className={`${textPrimary} mb-2`}>🦙 Together AI</h4>
                 <p className={`text-sm ${textSecondary} mb-2`}>
@@ -1037,7 +1037,7 @@ export default function BackendDashboard() {
               Create a Supabase project and add credentials to .env.local:
             </p>
             <pre className={`text-xs ${textSecondary} p-3 rounded ${isDark ? 'bg-[#161616]' : 'bg-white'} border ${borderColor} overflow-x-auto`}>
-{`NEXT_PUBLIC_SUPABASE_URL=your-project-url
+              {`NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-key`}
             </pre>

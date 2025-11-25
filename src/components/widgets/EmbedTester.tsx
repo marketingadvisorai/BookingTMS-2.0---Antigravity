@@ -81,7 +81,7 @@ export function EmbedTester({ embedUrl, widgetName, widgetConfig }: EmbedTesterP
                     }}
                     className="bg-white dark:bg-[#0a0a0a] rounded-lg shadow-2xl border border-gray-200 dark:border-[#2a2a2a] overflow-hidden"
                   >
-                    {widgetConfig && widgetConfig.games && widgetConfig.games.length > 0 ? (
+                    {widgetConfig && widgetConfig.activities && widgetConfig.activities.length > 0 ? (
                       <div key={`${view}-${key}`} className="w-full h-full overflow-auto">
                         <CalendarWidget
                           config={widgetConfig}

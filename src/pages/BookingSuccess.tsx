@@ -27,11 +27,11 @@ export default function BookingSuccess() {
           .from('bookings')
           .select(`
             *,
-            games (
+            activities (
               name,
               description,
               image_url,
-              duration
+              duration_minutes
             ),
             venues (
               name,
@@ -45,16 +45,16 @@ export default function BookingSuccess() {
 
         if (data) {
           setBooking(data);
-          
+
           // Update booking status to confirmed
-          await supabase
+          await (supabase as any)
             .from('bookings')
             .update({
               status: 'confirmed',
               payment_status: 'paid',
               confirmed_at: new Date().toISOString(),
             })
-            .eq('id', data.id);
+            .eq('id', (data as any).id);
         }
       } catch (error: any) {
         console.error('Error fetching booking:', error);
@@ -76,8 +76,8 @@ export default function BookingSuccess() {
     if (!booking) return;
 
     const event = {
-      title: `${booking.games?.name} - Booking`,
-      description: booking.games?.description || '',
+      title: `${booking.activities?.name} - Booking`,
+      description: booking.activities?.description || '',
       start: new Date(`${booking.booking_date}T${booking.start_time}`),
       end: new Date(`${booking.booking_date}T${booking.end_time}`),
       location: booking.venues?.address || '',
@@ -102,7 +102,7 @@ END:VCALENDAR`;
     link.download = 'booking.ics';
     link.click();
     URL.revokeObjectURL(url);
-    
+
     toast.success('Event added to calendar');
   };
 
@@ -155,21 +155,21 @@ END:VCALENDAR`;
           {/* Booking Details */}
           <div className="bg-white rounded-lg p-6 border border-green-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking Details</h3>
-            
+
             <div className="space-y-4">
               <div className="flex items-start gap-4">
-                {booking.games?.image_url && (
+                {booking.activities?.image_url && (
                   <img
-                    src={booking.games.image_url}
-                    alt={booking.games.name}
+                    src={booking.activities.image_url}
+                    alt={booking.activities.name}
                     className="w-24 h-24 rounded-lg object-cover"
                   />
                 )}
                 <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900">{booking.games?.name}</h4>
+                  <h4 className="font-semibold text-gray-900">{booking.activities?.name}</h4>
                   <p className="text-sm text-gray-600">{booking.venues?.name}</p>
                   <p className="text-sm text-gray-500 mt-1">
-                    Duration: {booking.games?.duration} minutes
+                    Duration: {booking.activities?.duration_minutes} minutes
                   </p>
                 </div>
               </div>

@@ -63,10 +63,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
     // Derive selected activity data
     const selectedActivityData = React.useMemo(() => {
-        const availableActivities = (activities && activities.length > 0) ? activities : (config?.activities || config?.games || []);
+        const availableActivities = (activities && activities.length > 0) ? activities : (config?.activities || []);
         if (!availableActivities || availableActivities.length === 0) return null;
         return availableActivities.find((a: any) => a.id === selectedActivityId) || availableActivities[0];
-    }, [activities, selectedActivityId, config?.activities, config?.games]);
+    }, [activities, selectedActivityId, config?.activities]);
 
     // 3. Availability Hook
     const { timeSlots, loading: slotsLoading } = useAvailability({

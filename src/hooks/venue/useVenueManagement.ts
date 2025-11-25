@@ -157,7 +157,8 @@ export function useVenueManagement() {
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 2000);
 
-      console.log('Widget config updated for venue:', updatedVenue.name, 'Games:', config.games?.length || 0);
+      const activityCount = config.activities?.length || 0;
+      console.log('Widget config updated for venue:', updatedVenue.name, 'Activities:', activityCount);
     } catch (error) {
       console.error('Error updating widget config:', error);
       setSaveStatus('error');

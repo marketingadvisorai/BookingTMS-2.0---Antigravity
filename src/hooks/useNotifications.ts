@@ -32,7 +32,7 @@ export function useNotifications() {
       setError(null);
 
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         setNotifications([]);
         setUnreadCount(0);
@@ -50,7 +50,7 @@ export function useNotifications() {
       if (fetchError) throw fetchError;
 
       setNotifications(data || []);
-      setUnreadCount((data || []).filter(n => !n.read).length);
+      setUnreadCount((data || []).filter(n => !(n as any).read).length);
     } catch (err: any) {
       console.error('Error fetching notifications:', err);
       setError(err.message);
@@ -62,7 +62,7 @@ export function useNotifications() {
   // Mark notification as read
   const markAsRead = async (id: string) => {
     try {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('notifications')
         .update({ read: true })
         .eq('id', id);
@@ -79,10 +79,10 @@ export function useNotifications() {
   const markAllAsRead = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) return;
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('notifications')
         .update({ read: true })
         .eq('user_id', user.id)
@@ -119,7 +119,7 @@ export function useNotifications() {
   const clearAll = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) return;
 
       const { error: deleteError } = await supabase
@@ -144,21 +144,21 @@ export function useNotifications() {
     // Subscribe to notification changes for current user
     const setupSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) return;
 
       const subscription = supabase
         .channel('notifications-changes')
-        .on('postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
+        .on('postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
             table: 'notifications',
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
             console.log('Notification changed:', payload);
-            
+
             // Show toast for new notifications
             if (payload.eventType === 'INSERT') {
               const newNotification = payload.new as Notification;
@@ -166,7 +166,7 @@ export function useNotifications() {
                 description: newNotification.message,
               });
             }
-            
+
             fetchNotifications(); // Refresh on any change
           }
         )

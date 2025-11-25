@@ -190,7 +190,7 @@ function AppContent() {
   // Show protected content
   return (
     <NotificationProvider>
-      <AdminLayout currentPage={effectivePage} onNavigate={setCurrentPage}>
+      <AdminLayout currentPage={currentPage} onNavigate={handleNavigate}>
         {renderPage()}
       </AdminLayout>
     </NotificationProvider>

@@ -34,7 +34,7 @@ export default function OwnerAdminLogin() {
 
   const fetchVenueName = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('organizations')
         .select('name')
         .eq('slug', slug)
@@ -77,7 +77,7 @@ export default function OwnerAdminLogin() {
       }
 
       // Verify user is owner of this organization
-      const { data: orgData, error: orgError } = await supabase
+      const { data: orgData, error: orgError } = await (supabase as any)
         .from('organization_members')
         .select('organization_id, role, organizations!inner(slug)')
         .eq('user_id', authData.user.id)
@@ -139,7 +139,7 @@ export default function OwnerAdminLogin() {
               Professional venue management platform
             </p>
           </div>
-          
+
           <div className="space-y-6">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">

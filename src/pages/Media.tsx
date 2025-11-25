@@ -3,18 +3,18 @@ import { useTheme } from '../components/layout/ThemeContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { 
-  Upload, 
-  MoreVertical, 
-  Image as ImageIcon, 
-  Trash2, 
-  Download, 
-  Eye, 
-  Cloud, 
-  CheckCircle2, 
-  FolderOpen, 
-  FileImage, 
-  ChevronRight, 
+import {
+  Upload,
+  MoreVertical,
+  Image as ImageIcon,
+  Trash2,
+  Download,
+  Eye,
+  Cloud,
+  CheckCircle2,
+  FolderOpen,
+  FileImage,
+  ChevronRight,
   FileText,
   HardDrive,
   TrendingUp,
@@ -154,7 +154,7 @@ export function Media() {
   const bgElevatedClass = isDark ? 'bg-[#1e1e1e]' : 'bg-gray-50';
   const hoverBgClass = isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50';
   const hoverShadowClass = isDark ? 'hover:shadow-[0_0_15px_rgba(79,70,229,0.1)]' : 'hover:shadow-lg';
-  
+
   const [selectedImage, setSelectedImage] = useState<MediaItem | null>(null);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [isGoogleDriveConnected, setIsGoogleDriveConnected] = useState(false);
@@ -202,7 +202,7 @@ export function Media() {
   useEffect(() => {
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(mediaItems));
-    } catch {}
+    } catch { }
   }, [mediaItems]);
 
   // Mock Google Drive folders and files
@@ -265,7 +265,7 @@ export function Media() {
 
   const filteredMedia = mediaItems.filter(media => {
     const matchesSearch = media.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         media.game.toLowerCase().includes(searchQuery.toLowerCase());
+      media.game.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterGame === 'all' || media.game === filterGame;
     return matchesSearch && matchesFilter;
   });
@@ -275,7 +275,7 @@ export function Media() {
     setMediaItems(prev => prev.filter(m => Number(m.id) !== Number(id)));
     // Revoke blob URLs for locally uploaded items
     if (item && typeof item.url === 'string' && item.url.startsWith('blob:')) {
-      try { URL.revokeObjectURL(item.url); } catch {}
+      try { URL.revokeObjectURL(item.url); } catch { }
     }
     toast.success('Media deleted');
   };
@@ -325,8 +325,8 @@ export function Media() {
   };
 
   const handleToggleFileSelection = (fileId: string) => {
-    setSelectedFiles(prev => 
-      prev.includes(fileId) 
+    setSelectedFiles(prev =>
+      prev.includes(fileId)
         ? prev.filter(id => id !== fileId)
         : [...prev, fileId]
     );
@@ -352,10 +352,10 @@ export function Media() {
 
   const handleFileInputChange = (e: any) => {
     const files = Array.from(e.target?.files || []);
-    const filtered = files.filter((file) =>
+    const filtered = files.filter((file: any) =>
       uploadFileType === 'image' ? file.type?.startsWith('image/') : file.type?.startsWith('video/')
     );
-    setSelectedUploadFiles(filtered);
+    setSelectedUploadFiles(filtered as File[]);
   };
 
   const handleUpload = () => {
@@ -407,8 +407,8 @@ export function Media() {
         action={
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {isGoogleDriveConnected ? (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className={`h-11 flex-1 sm:flex-initial ${isDark ? 'border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400' : 'border-green-200 bg-green-50 hover:bg-green-100'}`}
                 onClick={() => setShowImportDialog(true)}
               >
@@ -416,7 +416,7 @@ export function Media() {
                 <span className="hidden sm:inline">Import from Drive</span>
               </Button>
             ) : (
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => setShowConnectDialog(true)}
                 className="h-11 flex-1 sm:flex-initial"
@@ -425,7 +425,7 @@ export function Media() {
                 <span className="hidden sm:inline">Connect Google Drive</span>
               </Button>
             )}
-            <Button 
+            <Button
               style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
               className={isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}
               onClick={handleUploadClick}
@@ -440,16 +440,16 @@ export function Media() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className={`${cardBgClass} border ${borderClass} shadow-sm ${hoverShadowClass} transition-all`}>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className={`text-sm ${textMutedClass}`}>Total Photos</p>
-              <p className={`text-2xl mt-2 ${textClass}`}>{mediaItems.length}</p>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className={`text-sm ${textMutedClass}`}>Total Photos</p>
+                <p className={`text-2xl mt-2 ${textClass}`}>{mediaItems.length}</p>
+              </div>
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-[#4f46e5]/20' : 'bg-blue-100'}`}>
+                <ImageIcon className={`w-6 h-6 ${isDark ? 'text-[#6366f1]' : 'text-blue-600'}`} />
+              </div>
             </div>
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-[#4f46e5]/20' : 'bg-blue-100'}`}>
-              <ImageIcon className={`w-6 h-6 ${isDark ? 'text-[#6366f1]' : 'text-blue-600'}`} />
-            </div>
-          </div>
           </CardContent>
         </Card>
 
@@ -500,16 +500,16 @@ export function Media() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => setShowImportDialog(true)}
                 >
                   <FolderOpen className="w-4 h-4 mr-2" />
                   Browse Drive
                 </Button>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={handleDisconnectGoogleDrive}
                   className={isDark ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10' : 'text-red-600 hover:text-red-700 hover:bg-red-50'}
@@ -541,16 +541,16 @@ export function Media() {
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="All Games" />
                 </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Games</SelectItem>
-                <SelectItem value="Mystery Manor">Mystery Manor</SelectItem>
-                <SelectItem value="Space Odyssey">Space Odyssey</SelectItem>
-                <SelectItem value="Zombie Outbreak">Zombie Outbreak</SelectItem>
-                <SelectItem value="Treasure Hunt">Treasure Hunt</SelectItem>
-                <SelectItem value="Prison Break">Prison Break</SelectItem>
-                <SelectItem value="Wizards Quest">Wizards Quest</SelectItem>
-                <SelectItem value="Uncategorized">Uncategorized</SelectItem>
-              </SelectContent>
+                <SelectContent>
+                  <SelectItem value="all">All Games</SelectItem>
+                  <SelectItem value="Mystery Manor">Mystery Manor</SelectItem>
+                  <SelectItem value="Space Odyssey">Space Odyssey</SelectItem>
+                  <SelectItem value="Zombie Outbreak">Zombie Outbreak</SelectItem>
+                  <SelectItem value="Treasure Hunt">Treasure Hunt</SelectItem>
+                  <SelectItem value="Prison Break">Prison Break</SelectItem>
+                  <SelectItem value="Wizards Quest">Wizards Quest</SelectItem>
+                  <SelectItem value="Uncategorized">Uncategorized</SelectItem>
+                </SelectContent>
               </Select>
               <div className="flex gap-1 border rounded-lg p-1">
                 <Button
@@ -631,8 +631,8 @@ export function Media() {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
                         <h3 className={`text-sm truncate ${textClass}`}>{media.title}</h3>
-                        <Badge 
-                          variant="secondary" 
+                        <Badge
+                          variant="secondary"
                           className={`mt-1 text-xs ${isDark ? 'bg-[#4f46e5]/20 text-[#6366f1]' : 'bg-blue-50 text-blue-700'}`}
                         >
                           {media.game}
@@ -689,8 +689,8 @@ export function Media() {
                   <div className="flex-1 min-w-0">
                     <h3 className={`text-sm ${textClass}`}>{media.title}</h3>
                     <div className="flex items-center gap-3 mt-1">
-                      <Badge 
-                        variant="secondary" 
+                      <Badge
+                        variant="secondary"
                         className={`text-xs ${isDark ? 'bg-[#4f46e5]/20 text-[#6366f1]' : 'bg-blue-50 text-blue-700'}`}
                       >
                         {media.game}
@@ -754,7 +754,7 @@ export function Media() {
             <Button variant="outline" onClick={() => setSelectedImage(null)}>
               Close
             </Button>
-            <Button 
+            <Button
               style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
               className={!isDark ? 'bg-blue-600 hover:bg-blue-700' : ''}
               onClick={() => selectedImage && handleDownload(selectedImage)}
@@ -829,7 +829,7 @@ export function Media() {
             <Button variant="outline" onClick={() => setShowConnectDialog(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
               className={!isDark ? 'bg-blue-600 hover:bg-blue-700' : ''}
               onClick={handleConnectGoogleDrive}
@@ -862,11 +862,10 @@ export function Media() {
                 {googleDriveFolders.map((folder) => (
                   <button
                     key={folder.id}
-                    className={`p-3 border rounded-lg transition-all text-left ${
-                      isDark 
-                        ? 'border-[#2a2a2a] hover:border-[#4f46e5] hover:bg-[#4f46e5]/10'
-                        : 'border-gray-200 hover:border-blue-600 hover:bg-blue-50'
-                    }`}
+                    className={`p-3 border rounded-lg transition-all text-left ${isDark
+                      ? 'border-[#2a2a2a] hover:border-[#4f46e5] hover:bg-[#4f46e5]/10'
+                      : 'border-gray-200 hover:border-blue-600 hover:bg-blue-50'
+                      }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <FolderOpen className={`w-5 h-5 ${textMutedClass}`} />
@@ -890,11 +889,10 @@ export function Media() {
                 {googleDriveFiles.map((file) => (
                   <div
                     key={file.id}
-                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
-                      selectedFiles.includes(file.id)
-                        ? (isDark ? 'border-[#4f46e5] bg-[#4f46e5]/10' : 'border-blue-600 bg-blue-50')
-                        : (isDark ? `border-[#2a2a2a] ${hoverBgClass}` : 'border-gray-200 hover:bg-gray-50')
-                    }`}
+                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${selectedFiles.includes(file.id)
+                      ? (isDark ? 'border-[#4f46e5] bg-[#4f46e5]/10' : 'border-blue-600 bg-blue-50')
+                      : (isDark ? `border-[#2a2a2a] ${hoverBgClass}` : 'border-gray-200 hover:bg-gray-50')
+                      }`}
                     onClick={() => handleToggleFileSelection(file.id)}
                   >
                     <Checkbox
@@ -931,8 +929,8 @@ export function Media() {
           </div>
 
           <DialogFooter className="gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => {
                 setShowImportDialog(false);
                 setSelectedFiles([]);
@@ -940,7 +938,7 @@ export function Media() {
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
               className={!isDark ? 'bg-blue-600 hover:bg-blue-700' : ''}
               onClick={handleImportFromDrive}
@@ -967,11 +965,10 @@ export function Media() {
             {!isUploading ? (
               <>
                 {/* Upload Area */}
-                <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
-                  isDark 
-                    ? 'border-[#2a2a2a] hover:border-[#4f46e5] bg-[#0a0a0a]'
-                    : 'border-gray-300 hover:border-blue-500 bg-gray-50'
-                }`} onClick={handleChooseFiles}>
+                <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${isDark
+                  ? 'border-[#2a2a2a] hover:border-[#4f46e5] bg-[#0a0a0a]'
+                  : 'border-gray-300 hover:border-blue-500 bg-gray-50'
+                  }`} onClick={handleChooseFiles}>
                   <Upload className={`w-12 h-12 mx-auto mb-3 ${textMutedClass}`} />
                   <p className={`text-sm mb-1 ${textClass}`}>
                     Drag and drop files here or click to browse
@@ -979,7 +976,7 @@ export function Media() {
                   <p className={`text-xs ${textMutedClass}`}>
                     Supports: JPG, PNG, GIF, MP4, MOV (Max 50MB per file)
                   </p>
-                  <Button 
+                  <Button
                     className="mt-4"
                     style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
                     onClick={handleChooseFiles}
@@ -1020,11 +1017,10 @@ export function Media() {
                   <Label className={`text-sm mb-2 ${textClass}`}>File Type</Label>
                   <div className="grid grid-cols-2 gap-3 mt-2">
                     <button
-                      className={`p-3 border-2 rounded-lg text-left ${
-                        uploadFileType === 'image'
-                          ? (isDark ? 'border-[#4f46e5] bg-[#4f46e5]/10' : 'border-blue-600 bg-blue-50')
-                          : (isDark ? `border-[#2a2a2a] ${hoverBgClass}` : 'border-gray-200 hover:border-gray-300')
-                      }`}
+                      className={`p-3 border-2 rounded-lg text-left ${uploadFileType === 'image'
+                        ? (isDark ? 'border-[#4f46e5] bg-[#4f46e5]/10' : 'border-blue-600 bg-blue-50')
+                        : (isDark ? `border-[#2a2a2a] ${hoverBgClass}` : 'border-gray-200 hover:border-gray-300')
+                        }`}
                       onClick={() => setUploadFileType('image')}
                       aria-pressed={uploadFileType === 'image'}
                     >
@@ -1035,11 +1031,10 @@ export function Media() {
                       <p className={`text-xs ${textMutedClass}`}>JPG, PNG, GIF</p>
                     </button>
                     <button
-                      className={`p-3 border-2 rounded-lg text-left ${
-                        uploadFileType === 'video'
-                          ? (isDark ? 'border-[#4f46e5] bg-[#4f46e5]/10' : 'border-blue-600 bg-blue-50')
-                          : (isDark ? `border-[#2a2a2a] ${hoverBgClass}` : 'border-gray-200 hover:border-gray-300')
-                      }`}
+                      className={`p-3 border-2 rounded-lg text-left ${uploadFileType === 'video'
+                        ? (isDark ? 'border-[#4f46e5] bg-[#4f46e5]/10' : 'border-blue-600 bg-blue-50')
+                        : (isDark ? `border-[#2a2a2a] ${hoverBgClass}` : 'border-gray-200 hover:border-gray-300')
+                        }`}
                       onClick={() => setUploadFileType('video')}
                       aria-pressed={uploadFileType === 'video'}
                     >
@@ -1054,11 +1049,10 @@ export function Media() {
 
                 {/* Connected to Google Drive Notice */}
                 {isGoogleDriveConnected && (
-                  <div className={`p-3 rounded-lg border ${
-                    isDark 
-                      ? 'bg-emerald-500/10 border-emerald-500/30'
-                      : 'bg-green-50 border-green-200'
-                  }`}>
+                  <div className={`p-3 rounded-lg border ${isDark
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : 'bg-green-50 border-green-200'
+                    }`}>
                     <div className="flex items-start gap-2">
                       <CheckCircle2 className={`w-4 h-4 mt-0.5 ${isDark ? 'text-emerald-400' : 'text-green-600'}`} />
                       <div>
@@ -1086,14 +1080,14 @@ export function Media() {
           </div>
 
           <DialogFooter className="gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setShowUploadDialog(false)}
               disabled={isUploading}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
               className={!isDark ? 'bg-blue-600 hover:bg-blue-700' : ''}
               onClick={handleUpload}

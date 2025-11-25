@@ -98,7 +98,7 @@ export const ServiceItemsSettingsTab: React.FC<ServiceItemsSettingsTabProps> = (
 
     // Sync with parent config
     useEffect(() => {
-        const currentItems = Array.isArray(config?.games) ? config.games : [];
+        const currentItems = Array.isArray(config?.activities) ? config.activities : [];
 
         const hasDifference =
             currentItems.length !== widgetItems.length ||
@@ -111,7 +111,7 @@ export const ServiceItemsSettingsTab: React.FC<ServiceItemsSettingsTabProps> = (
         if (hasDifference) {
             onConfigChange({
                 ...config,
-                games: widgetItems, // Keeping 'games' key in config for now to avoid breaking other widgets
+                activities: widgetItems,
             });
         }
     }, [widgetItems, config, onConfigChange]);

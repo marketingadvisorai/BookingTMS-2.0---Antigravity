@@ -781,6 +781,143 @@ export interface Database {
           updated_at?: string
         }
       }
+      promo_codes: {
+        Row: {
+          id: string
+          code: string
+          description: string | null
+          discount_type: 'percentage' | 'fixed'
+          discount_value: number
+          min_purchase_amount: number | null
+          max_uses: number | null
+          uses_count: number
+          starts_at: string | null
+          expires_at: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          description?: string | null
+          discount_type: 'percentage' | 'fixed'
+          discount_value: number
+          min_purchase_amount?: number | null
+          max_uses?: number | null
+          uses_count?: number
+          starts_at?: string | null
+          expires_at?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          description?: string | null
+          discount_type?: 'percentage' | 'fixed'
+          discount_value?: number
+          min_purchase_amount?: number | null
+          max_uses?: number | null
+          uses_count?: number
+          starts_at?: string | null
+          expires_at?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      gift_cards: {
+        Row: {
+          id: string
+          code: string
+          initial_balance: number
+          balance: number
+          currency: string
+          status: 'active' | 'used' | 'expired' | 'void'
+          expires_at: string | null
+          purchased_by: string | null
+          recipient_email: string | null
+          message: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          initial_balance: number
+          balance: number
+          currency?: string
+          status?: 'active' | 'used' | 'expired' | 'void'
+          expires_at?: string | null
+          purchased_by?: string | null
+          recipient_email?: string | null
+          message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          initial_balance?: number
+          balance?: number
+          currency?: string
+          status?: 'active' | 'used' | 'expired' | 'void'
+          expires_at?: string | null
+          purchased_by?: string | null
+          recipient_email?: string | null
+          message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      promo_code_usage: {
+        Row: {
+          id: string
+          promo_code_id: string
+          booking_id: string
+          user_id: string | null
+          used_at: string
+        }
+        Insert: {
+          id?: string
+          promo_code_id: string
+          booking_id: string
+          user_id?: string | null
+          used_at?: string
+        }
+        Update: {
+          id?: string
+          promo_code_id?: string
+          booking_id?: string
+          user_id?: string | null
+          used_at?: string
+        }
+      }
+      gift_card_usage: {
+        Row: {
+          id: string
+          gift_card_id: string
+          booking_id: string
+          amount_used: number
+          used_at: string
+        }
+        Insert: {
+          id?: string
+          gift_card_id: string
+          booking_id: string
+          amount_used: number
+          used_at?: string
+        }
+        Update: {
+          id?: string
+          gift_card_id?: string
+          booking_id?: string
+          amount_used?: number
+          used_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -959,6 +1096,12 @@ export interface Database {
           created_at: string
           is_future_booking: boolean
         }[]
+      }
+      increment_promo_usage: {
+        Args: {
+          code_id: string
+        }
+        Returns: void
       }
     }
     Enums: {

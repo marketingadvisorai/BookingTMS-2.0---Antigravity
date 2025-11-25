@@ -7,14 +7,14 @@ export default function BookingEngineTest() {
         showSecuredBadge: true,
         showHealthSafety: true,
         widgetTitle: 'Test Calendar Widget',
-        games: [
+        activities: [
             {
                 id: '1',
-                name: 'Test Game',
+                name: 'Test Activity',
                 image: 'https://via.placeholder.com/150',
                 price: 25,
                 duration: 60,
-                description: 'A test game',
+                description: 'A test activity',
                 stripe_price_id: 'price_test_123',
                 gallery: ['https://via.placeholder.com/150', 'https://via.placeholder.com/150'],
                 whatToExpect: ['Fun', 'Puzzles'],
@@ -24,7 +24,7 @@ export default function BookingEngineTest() {
                 rating: 4.8,
                 reviewCount: 120,
                 ageRecommendation: '10+',
-                longDescription: 'This is a detailed description of the test game.',
+                longDescription: 'This is a detailed description of the test activity.',
                 schedule: {
                     operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
                     startTime: '09:00',

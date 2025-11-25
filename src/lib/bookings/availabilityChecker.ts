@@ -48,7 +48,7 @@ export class AvailabilityChecker {
   ): Promise<TimeSlot[]> {
     try {
       // Get game details
-      const { data: game, error: gameError } = await supabase
+      const { data: game, error: gameError } = await (supabase as any)
         .from('activities') // Refactored from games
         .select('duration, min_players, max_players')
         .eq('id', gameId)

@@ -5,6 +5,10 @@
  */
 
 import { supabase } from '../supabase';
+import { Database } from '../../types/supabase';
+import { SupabaseClient } from '@supabase/supabase-js';
+
+const typedSupabase = supabase as SupabaseClient<Database>;
 
 export interface PromoCodeValidationResult {
   isValid: boolean;
@@ -38,7 +42,7 @@ export async function validatePromoCode(
     const cleanCode = code.trim().toUpperCase();
 
     // Query promo codes table
-    const { data: promoCode, error } = await supabase
+    const { data: promoCode, error } = await (typedSupabase as any)
       .from('promo_codes')
       .select('*')
       .eq('code', cleanCode)
@@ -97,7 +101,7 @@ export async function validateGiftCard(code: string): Promise<GiftCardValidation
     const cleanCode = code.trim().toUpperCase();
 
     // Query gift cards table
-    const { data: giftCard, error } = await supabase
+    const { data: giftCard, error } = await (typedSupabase as any)
       .from('gift_cards')
       .select('*')
       .eq('code', cleanCode)
@@ -205,7 +209,7 @@ export async function recordPromoCodeUsage(
 ): Promise<void> {
   try {
     // Get promo code ID
-    const { data: promoCode } = await supabase
+    const { data: promoCode } = await (typedSupabase as any)
       .from('promo_codes')
       .select('id')
       .eq('code', code)
@@ -214,7 +218,7 @@ export async function recordPromoCodeUsage(
     if (!promoCode) return;
 
     // Record usage
-    await supabase.from('promo_code_usage').insert({
+    await (typedSupabase as any).from('promo_code_usage').insert({
       promo_code_id: promoCode.id,
       booking_id: bookingId,
       user_id: userId,
@@ -222,7 +226,7 @@ export async function recordPromoCodeUsage(
     });
 
     // Increment usage count
-    await supabase.rpc('increment_promo_usage', { code_id: promoCode.id });
+    await (typedSupabase as any).rpc('increment_promo_usage', { code_id: promoCode.id });
   } catch (error) {
     console.error('Error recording promo code usage:', error);
   }
@@ -238,7 +242,7 @@ export async function recordGiftCardUsage(
 ): Promise<void> {
   try {
     // Get gift card
-    const { data: giftCard } = await supabase
+    const { data: giftCard } = await (typedSupabase as any)
       .from('gift_cards')
       .select('id, balance')
       .eq('code', code)
@@ -249,7 +253,7 @@ export async function recordGiftCardUsage(
     // Update balance
     const newBalance = giftCard.balance - amountUsed;
 
-    await supabase
+    await (typedSupabase as any)
       .from('gift_cards')
       .update({
         balance: newBalance,
@@ -258,7 +262,7 @@ export async function recordGiftCardUsage(
       .eq('id', giftCard.id);
 
     // Record usage
-    await supabase.from('gift_card_usage').insert({
+    await (typedSupabase as any).from('gift_card_usage').insert({
       gift_card_id: giftCard.id,
       booking_id: bookingId,
       amount_used: amountUsed,
@@ -274,7 +278,7 @@ export async function recordGiftCardUsage(
  */
 export function formatCodeDisplay(code: string): string {
   const cleaned = code.trim().toUpperCase();
-  
+
   // If 12+ characters, add dashes every 4 characters for readability
   if (cleaned.length >= 12 && !cleaned.includes('-')) {
     return cleaned.match(/.{1,4}/g)?.join('-') || cleaned;

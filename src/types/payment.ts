@@ -3,37 +3,38 @@
  * Comprehensive type system for payment management
  */
 
-export type PaymentStatus = 
-  | 'completed' 
-  | 'pending' 
-  | 'failed' 
-  | 'refunded' 
+export type PaymentStatus =
+  | 'completed'
+  | 'pending'
+  | 'failed'
+  | 'refunded'
   | 'partially_refunded'
   | 'processing'
   | 'cancelled';
 
-export type PaymentMethod = 
-  | 'credit_card' 
-  | 'debit_card' 
-  | 'cash' 
-  | 'gift_card' 
+export type PaymentMethod =
+  | 'credit_card'
+  | 'debit_card'
+  | 'cash'
+  | 'gift_card'
   | 'bank_transfer'
   | 'paypal'
   | 'stripe'
   | 'square';
 
-export type TransactionType = 
-  | 'booking_payment' 
-  | 'refund' 
-  | 'partial_refund' 
+export type TransactionType =
+  | 'booking_payment'
+  | 'refund'
+  | 'partial_refund'
   | 'cancellation_fee'
   | 'adjustment'
-  | 'chargeback';
+  | 'chargeback'
+  | 'gift_card_purchase';
 
-export type RefundReason = 
-  | 'customer_request' 
-  | 'booking_cancelled' 
-  | 'duplicate_charge' 
+export type RefundReason =
+  | 'customer_request'
+  | 'booking_cancelled'
+  | 'duplicate_charge'
   | 'service_issue'
   | 'overcharge'
   | 'other';
@@ -53,43 +54,43 @@ export interface Transaction {
   customerId: string;
   customerName: string;
   customerEmail: string;
-  
+
   // Transaction details
   type: TransactionType;
   amount: number;
   currency: string;
   status: PaymentStatus;
-  
+
   // Payment method
   paymentMethod: PaymentMethodDetails;
-  
+
   // Timestamps
   createdAt: string;
   processedAt?: string;
   refundedAt?: string;
-  
+
   // References
   transactionRef: string; // External payment processor reference
   invoiceNumber?: string;
   receiptUrl?: string;
-  
+
   // Refund information
   refundAmount?: number;
   refundReason?: RefundReason;
   refundNotes?: string;
   refundedBy?: string;
   originalTransactionId?: string; // For refunds
-  
+
   // Additional metadata
   description?: string;
   notes?: string;
   tags?: string[];
-  
+
   // Reconciliation
   reconciled: boolean;
   reconciledAt?: string;
   reconciledBy?: string;
-  
+
   // Audit trail
   createdBy: string;
   ipAddress?: string;
@@ -124,7 +125,7 @@ export interface RevenueMetrics {
   transactionCount: number;
   averageTransactionValue: number;
   successRate: number;
-  
+
   // Breakdown by payment method
   byPaymentMethod: {
     method: PaymentMethod;
@@ -132,7 +133,7 @@ export interface RevenueMetrics {
     count: number;
     percentage: number;
   }[];
-  
+
   // Breakdown by status
   byStatus: {
     status: PaymentStatus;
@@ -140,7 +141,7 @@ export interface RevenueMetrics {
     count: number;
     percentage: number;
   }[];
-  
+
   // Time-based metrics
   dailyRevenue: {
     date: string;

@@ -64,14 +64,14 @@ export function useTerminology(venueType: string = 'escape_room'): Terminology {
             };
         }
 
-        // Default to "Service Item" for Escape Rooms and general use
+        // Default to "Activity" for Escape Rooms and general use
         return {
-            singular: 'Service Item',
-            plural: 'Service Items',
-            actionAdd: 'Add Service Item',
-            actionEdit: 'Edit Service Item',
-            actionDelete: 'Delete Service Item',
-            labelName: 'Service Item Name',
+            singular: 'Activity',
+            plural: 'Activities',
+            actionAdd: 'Add Activity',
+            actionEdit: 'Edit Activity',
+            actionDelete: 'Delete Activity',
+            labelName: 'Activity Name',
             labelDescription: 'Description',
             labelDuration: 'Duration',
             labelPrice: 'Price',

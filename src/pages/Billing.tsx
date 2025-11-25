@@ -230,7 +230,7 @@ export function Billing() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showBuyCreditsDialog, setShowBuyCreditsDialog] = useState(false);
   const [creditPurchaseStep, setCreditPurchaseStep] = useState(1);
-  const [selectedCreditPackage, setSelectedCreditPackage] = useState<{amount: number, price: number} | null>(null);
+  const [selectedCreditPackage, setSelectedCreditPackage] = useState<{ amount: number, price: number } | null>(null);
   const [showAddPaymentDialog, setShowAddPaymentDialog] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentResult, setPaymentResult] = useState<'success' | 'failed' | null>(null);
@@ -302,11 +302,11 @@ export function Billing() {
     if (selectedCreditPackage) {
       setIsProcessingPayment(true);
       setPaymentResult(null);
-      
+
       const success = await simulatePaymentProcessing();
-      
+
       setIsProcessingPayment(false);
-      
+
       if (success) {
         setPaymentResult('success');
       } else {
@@ -326,11 +326,11 @@ export function Billing() {
   const handleAddPaymentMethod = async () => {
     setIsProcessingPayment(true);
     setPaymentResult(null);
-    
+
     const success = await simulatePaymentProcessing();
-    
+
     setIsProcessingPayment(false);
-    
+
     if (success) {
       const newMethod = {
         id: String(paymentMethods.length + 1),
@@ -407,7 +407,7 @@ export function Billing() {
     const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
     const matches = v.match(/\d{4,16}/g);
     const match = (matches && matches[0]) || '';
-    const parts = [];
+    const parts: string[] = [];
     for (let i = 0, len = match.length; i < len; i += 4) {
       parts.push(match.substring(i, i + 4));
     }
@@ -503,17 +503,16 @@ export function Billing() {
           const Icon = plan.icon;
           const isCurrentPlan = plan.id === currentPlan;
           const monthlyPrice = calculatePrice(plan.price);
-          
+
           return (
-            <Card 
-              key={plan.id} 
-              className={`border-2 shadow-lg transition-all ${
-                plan.popular 
+            <Card
+              key={plan.id}
+              className={`border-2 shadow-lg transition-all ${plan.popular
                   ? (isDark ? 'border-purple-500/50 bg-gradient-to-br from-purple-900/20 to-[#161616]' : 'border-purple-300 bg-gradient-to-br from-purple-50 to-white')
                   : isCurrentPlan
-                  ? (isDark ? 'border-[#4f46e5]/50 bg-gradient-to-br from-[#4f46e5]/10 to-[#161616]' : 'border-blue-300 bg-gradient-to-br from-blue-50 to-white')
-                  : (isDark ? `border-[#2a2a2a] ${cardBgClass} hover:border-[#3a3a3a]` : 'border-gray-200 hover:border-gray-300')
-              }`}
+                    ? (isDark ? 'border-[#4f46e5]/50 bg-gradient-to-br from-[#4f46e5]/10 to-[#161616]' : 'border-blue-300 bg-gradient-to-br from-blue-50 to-white')
+                    : (isDark ? `border-[#2a2a2a] ${cardBgClass} hover:border-[#3a3a3a]` : 'border-gray-200 hover:border-gray-300')
+                }`}
             >
               <CardHeader className="p-6">
                 {plan.popular && (
@@ -529,7 +528,7 @@ export function Billing() {
                 </div>
                 <CardTitle className={textClass}>{plan.name}</CardTitle>
                 <CardDescription className={`text-sm min-h-[40px] ${textMutedClass}`}>{plan.description}</CardDescription>
-                
+
                 <div className="mt-4">
                   <div className="flex items-baseline gap-2">
                     <span className={`text-lg font-semibold ${textClass}`}>
@@ -541,10 +540,10 @@ export function Billing() {
                   </Badge>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="space-y-4 p-6 pt-0">
                 <Separator className={borderClass} />
-                
+
                 <div className="space-y-2">
                   {plan.features.map((feature, index) => (
                     <div key={index} className="flex items-start gap-2">
@@ -562,13 +561,12 @@ export function Billing() {
                     Current Plan
                   </Button>
                 ) : (
-                  <Button 
+                  <Button
                     style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
-                    className={`w-full h-11 ${
-                      plan.popular 
+                    className={`w-full h-11 ${plan.popular
                         ? (isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-purple-600 hover:bg-purple-700')
                         : (isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700')
-                    }`}
+                      }`}
                     onClick={() => {
                       toast.info('Please contact our sales team for pricing and plan details');
                     }}
@@ -740,7 +738,7 @@ export function Billing() {
                 <CardTitle className={textClass}>Credits Balance</CardTitle>
                 <CardDescription className={textMutedClass}>Additional usage credits</CardDescription>
               </div>
-              <Button 
+              <Button
                 onClick={() => setShowBuyCreditsDialog(true)}
                 style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
                 className={isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}
@@ -805,7 +803,7 @@ export function Billing() {
                 <CardTitle className={textClass}>Payment Methods</CardTitle>
                 <CardDescription className={textMutedClass}>Manage your payment information</CardDescription>
               </div>
-              <Button 
+              <Button
                 onClick={() => setShowAddPaymentDialog(true)}
                 style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
                 className={isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}
@@ -835,8 +833,8 @@ export function Billing() {
                   </div>
                   <div className="flex items-center gap-2">
                     {!method.isDefault && (
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={() => handleSetDefaultPayment(method.id)}
                       >
@@ -844,8 +842,8 @@ export function Billing() {
                       </Button>
                     )}
                     {!method.isDefault && (
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         className={isDark ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-700'}
                         onClick={() => handleDeletePaymentMethod(method.id)}
@@ -939,7 +937,7 @@ export function Billing() {
         <CardContent className="p-6 pt-0">
           <div className="space-y-2">
             {invoiceHistory.map((invoice) => (
-              <div 
+              <div
                 key={invoice.id}
                 className={`flex items-center justify-between p-4 rounded-lg ${bgElevatedClass} ${hoverBgClass} transition-colors`}
               >
@@ -978,7 +976,7 @@ export function Billing() {
               You're about to change your plan to {plans.find(p => p.id === selectedPlan)?.name}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className={`p-4 rounded-lg border ${isDark ? 'bg-[#4f46e5]/10 border-[#4f46e5]/30' : 'bg-blue-50 border-blue-200'}`}>
               <div className="flex items-start gap-2">
@@ -1012,7 +1010,7 @@ export function Billing() {
             <Button variant="outline" onClick={() => setShowChangePlanDialog(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
               className={isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}
               onClick={confirmPlanChange}
@@ -1038,11 +1036,10 @@ export function Billing() {
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => handleSelectCreditPackage(100, 10)}
-                className={`p-4 border-2 rounded-lg transition-colors text-left ${
-                  isDark 
-                    ? 'border-[#2a2a2a] hover:border-[#4f46e5]' 
+                className={`p-4 border-2 rounded-lg transition-colors text-left ${isDark
+                    ? 'border-[#2a2a2a] hover:border-[#4f46e5]'
                     : 'border-gray-200 hover:border-blue-600'
-                }`}
+                  }`}
               >
                 <p className={`text-2xl ${textClass}`}>100</p>
                 <p className={`text-sm ${textMutedClass}`}>Credits</p>
@@ -1051,11 +1048,10 @@ export function Billing() {
               </button>
               <button
                 onClick={() => handleSelectCreditPackage(500, 45)}
-                className={`p-4 border-2 rounded-lg transition-colors text-left ${
-                  isDark 
-                    ? 'border-[#2a2a2a] hover:border-[#4f46e5]' 
+                className={`p-4 border-2 rounded-lg transition-colors text-left ${isDark
+                    ? 'border-[#2a2a2a] hover:border-[#4f46e5]'
                     : 'border-gray-200 hover:border-blue-600'
-                }`}
+                  }`}
               >
                 <p className={`text-2xl ${textClass}`}>500</p>
                 <p className={`text-sm ${textMutedClass}`}>Credits</p>
@@ -1067,11 +1063,10 @@ export function Billing() {
               </button>
               <button
                 onClick={() => handleSelectCreditPackage(1000, 80)}
-                className={`p-4 border-2 rounded-lg transition-colors text-left ${
-                  isDark 
-                    ? 'border-[#2a2a2a] hover:border-[#4f46e5]' 
+                className={`p-4 border-2 rounded-lg transition-colors text-left ${isDark
+                    ? 'border-[#2a2a2a] hover:border-[#4f46e5]'
                     : 'border-gray-200 hover:border-blue-600'
-                }`}
+                  }`}
               >
                 <p className={`text-2xl ${textClass}`}>1,000</p>
                 <p className={`text-sm ${textMutedClass}`}>Credits</p>
@@ -1083,11 +1078,10 @@ export function Billing() {
               </button>
               <button
                 onClick={() => handleSelectCreditPackage(2500, 175)}
-                className={`p-4 border-2 rounded-lg transition-colors text-left ${
-                  isDark 
-                    ? 'border-purple-500/50 bg-purple-500/10 hover:border-purple-500' 
+                className={`p-4 border-2 rounded-lg transition-colors text-left ${isDark
+                    ? 'border-purple-500/50 bg-purple-500/10 hover:border-purple-500'
                     : 'border-purple-300 bg-purple-50 hover:border-purple-600'
-                }`}
+                  }`}
               >
                 <p className={`text-2xl ${textClass}`}>2,500</p>
                 <p className={`text-sm ${textMutedClass}`}>Credits</p>
@@ -1122,17 +1116,17 @@ export function Billing() {
         <DialogContent className={isDark ? 'bg-[#161616] border-[#2a2a2a]' : ''}>
           <DialogHeader>
             <DialogTitle className={textClass}>
-              {!paymentResult ? 'Add Payment Method' : 
+              {!paymentResult ? 'Add Payment Method' :
                 paymentResult === 'success' ? 'Card Added Successfully' :
-                'Card Verification Failed'}
+                  'Card Verification Failed'}
             </DialogTitle>
             <DialogDescription className={textMutedClass}>
               {!paymentResult ? 'Add a new credit or debit card to your account' :
                 paymentResult === 'success' ? 'Your payment method is ready to use' :
-                'Unable to add this payment method'}
+                  'Unable to add this payment method'}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {!isProcessingPayment && !paymentResult && (
               <>
@@ -1239,7 +1233,7 @@ export function Billing() {
                 <Button variant="outline" onClick={handleCloseAddPaymentDialog}>
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
                   className={isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}
                   onClick={handleAddPaymentMethod}
@@ -1250,7 +1244,7 @@ export function Billing() {
             )}
 
             {paymentResult === 'success' && (
-              <Button 
+              <Button
                 className={isDark ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-green-600 hover:bg-green-700'}
                 onClick={handleSuccessComplete}
               >
@@ -1264,7 +1258,7 @@ export function Billing() {
                 <Button variant="outline" onClick={handleCloseAddPaymentDialog}>
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
                   className={isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}
                   onClick={handleRetryPayment}

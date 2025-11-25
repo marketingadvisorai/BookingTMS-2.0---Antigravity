@@ -51,13 +51,13 @@ export function useBookings(venueId?: string) {
     try {
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await (supabase as any)
         .rpc('get_bookings_with_details', {
           p_venue_id: venueId || null,
           p_status: null,
           p_from_date: null,
           p_to_date: null,
-        } as any);
+        });
 
       if (fetchError) throw fetchError;
 
@@ -83,7 +83,7 @@ export function useBookings(venueId?: string) {
     notes?: string;
   }) => {
     try {
-      const { data, error: createError } = await supabase
+      const { data, error: createError } = await (supabase as any)
         .rpc('create_booking', {
           p_venue_id: bookingData.venue_id,
           p_activity_id: bookingData.activity_id,
@@ -93,7 +93,7 @@ export function useBookings(venueId?: string) {
           p_players: bookingData.players,
           p_total_amount: bookingData.total_amount,
           p_notes: bookingData.notes || null,
-        } as any);
+        });
 
       if (createError) throw createError;
 
@@ -156,12 +156,12 @@ export function useBookings(venueId?: string) {
   // Cancel booking
   const cancelBooking = async (id: string, reason?: string, issueRefund: boolean = false) => {
     try {
-      const { data, error: cancelError } = await supabase
+      const { data, error: cancelError } = await (supabase as any)
         .rpc('cancel_booking', {
           p_booking_id: id,
           p_reason: reason || null,
           p_issue_refund: issueRefund,
-        } as any);
+        });
 
       if (cancelError) throw cancelError;
 
@@ -197,11 +197,11 @@ export function useBookings(venueId?: string) {
   // Get available time slots for an activity
   const getAvailableSlots = async (activityId: string, date: string) => {
     try {
-      const { data, error: slotsError } = await supabase
+      const { data, error: slotsError } = await (supabase as any)
         .rpc('get_available_slots', {
           p_activity_id: activityId,
           p_date: date,
-        } as any);
+        });
 
       if (slotsError) throw slotsError;
 

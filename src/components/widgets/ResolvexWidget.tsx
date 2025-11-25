@@ -54,16 +54,20 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
   const [adminGames, setAdminGames] = useState<any[]>([]);
 
   useEffect(() => {
-    // Load initial admin games
-    const games = DataSyncServiceWithEvents.getAllGames();
-    setAdminGames(games);
-    console.log('🎮 ResolvexWidget: Admin games loaded:', games.length);
+    const loadActivities = async () => {
+      // Load initial admin games
+      const activities = await DataSyncServiceWithEvents.getAllActivities();
+      setAdminGames(activities);
+      console.log('🎮 ResolvexWidget: Admin games loaded:', activities.length);
+    };
+
+    loadActivities();
 
     // Subscribe to real-time updates
-    const handleGamesUpdate = () => {
-      const updatedGames = DataSyncServiceWithEvents.getAllGames();
-      setAdminGames(updatedGames);
-      console.log('🔄 ResolvexWidget: Admin games updated:', updatedGames.length);
+    const handleGamesUpdate = async () => {
+      const updatedActivities = await DataSyncServiceWithEvents.getAllActivities();
+      setAdminGames(updatedActivities);
+      console.log('🔄 ResolvexWidget: Admin games updated:', updatedActivities.length);
     };
 
     DataSyncEvents.subscribe('games-updated', handleGamesUpdate);
@@ -230,7 +234,7 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
                   />
                   {/* Dark gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
-                  
+
                   {/* Rating Badge */}
                   <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-black/60 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1 sm:py-1.5 flex items-center gap-0.5 sm:gap-1">
                     {renderStars(game.rating)}
@@ -245,7 +249,7 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
                   <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3">
                     <h3 className="text-base sm:text-lg text-white mb-1">{game.name}</h3>
                     <p className="text-xs sm:text-sm text-gray-300 mb-2 sm:mb-3 line-clamp-2">{game.description}</p>
-                    
+
                     {/* Game Details */}
                     <div className="flex flex-wrap gap-2 sm:gap-3 text-xs text-gray-300 mb-2 sm:mb-3">
                       <div className="flex items-center gap-1">
@@ -375,11 +379,10 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
                           <button
                             key={time}
                             onClick={() => setSelectedTime(time)}
-                            className={`p-3 rounded-lg border-2 transition-all text-center ${
-                              selectedTime === time
+                            className={`p-3 rounded-lg border-2 transition-all text-center ${selectedTime === time
                                 ? 'shadow-md'
                                 : 'border-gray-200 hover:border-gray-300'
-                            }`}
+                              }`}
                             style={{
                               borderColor: selectedTime === time ? primaryColor : undefined,
                               backgroundColor: selectedTime === time ? `${primaryColor}10` : undefined,
@@ -398,45 +401,45 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
                 <div className="lg:sticky lg:top-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
                   <Card className="p-4 md:p-6">
                     <h3 className="text-gray-900 mb-4">Booking Summary</h3>
-                  <div className="space-y-3 mb-6">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Game:</span>
-                      <span className="text-gray-900">{selectedGame.name}</span>
-                    </div>
-                    {selectedDate && (
+                    <div className="space-y-3 mb-6">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Date:</span>
-                        <span className="text-gray-900">{format(selectedDate, 'dd/MM/yyyy')}</span>
+                        <span className="text-gray-600">Game:</span>
+                        <span className="text-gray-900">{selectedGame.name}</span>
                       </div>
-                    )}
-                    {selectedTime && (
+                      {selectedDate && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Date:</span>
+                          <span className="text-gray-900">{format(selectedDate, 'dd/MM/yyyy')}</span>
+                        </div>
+                      )}
+                      {selectedTime && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Time:</span>
+                          <span className="text-gray-900">{selectedTime}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Time:</span>
-                        <span className="text-gray-900">{selectedTime}</span>
+                        <span className="text-gray-600">Players:</span>
+                        <span className="text-gray-900">{partySize}</span>
                       </div>
-                    )}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Players:</span>
-                      <span className="text-gray-900">{partySize}</span>
+                      <Separator />
+                      <div className="flex justify-between items-center pt-2">
+                        <span className="text-gray-900">Total:</span>
+                        <span className="text-2xl text-gray-900" style={{ color: primaryColor }}>
+                          ${totalPrice}
+                        </span>
+                      </div>
                     </div>
-                    <Separator />
-                    <div className="flex justify-between items-center pt-2">
-                      <span className="text-gray-900">Total:</span>
-                      <span className="text-2xl text-gray-900" style={{ color: primaryColor }}>
-                        ${totalPrice}
-                      </span>
-                    </div>
-                  </div>
 
-                  <Button
-                    onClick={() => setCurrentStep('cart')}
-                    disabled={!canProceed()}
-                    className="w-full text-white"
-                    style={{ backgroundColor: canProceed() ? primaryColor : undefined }}
-                  >
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                    Add to Cart
-                  </Button>
+                    <Button
+                      onClick={() => setCurrentStep('cart')}
+                      disabled={!canProceed()}
+                      className="w-full text-white"
+                      style={{ backgroundColor: canProceed() ? primaryColor : undefined }}
+                    >
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Add to Cart
+                    </Button>
                   </Card>
                 </div>
               </div>
@@ -628,73 +631,73 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
                 <div className="lg:sticky lg:top-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
                   <Card className="p-4 md:p-6">
                     <h3 className="text-gray-900 mb-4">Order Summary</h3>
-                  <div className="space-y-3 mb-6">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Game:</span>
-                      <span className="text-gray-900">{selectedGame.name}</span>
+                    <div className="space-y-3 mb-6">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Game:</span>
+                        <span className="text-gray-900">{selectedGame.name}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Date:</span>
+                        <span className="text-gray-900">{selectedDate && format(selectedDate, 'dd/MM/yyyy')}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Time:</span>
+                        <span className="text-gray-900">{selectedTime}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Players:</span>
+                        <span className="text-gray-900">{partySize}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between items-center pt-2">
+                        <span className="text-gray-900">Total</span>
+                        <span className="text-2xl text-gray-900" style={{ color: primaryColor }}>
+                          ${totalPrice}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Date:</span>
-                      <span className="text-gray-900">{selectedDate && format(selectedDate, 'dd/MM/yyyy')}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Time:</span>
-                      <span className="text-gray-900">{selectedTime}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Players:</span>
-                      <span className="text-gray-900">{partySize}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between items-center pt-2">
-                      <span className="text-gray-900">Total</span>
-                      <span className="text-2xl text-gray-900" style={{ color: primaryColor }}>
-                        ${totalPrice}
-                      </span>
-                    </div>
-                  </div>
 
-                  <Button
-                    onClick={() => {
-                      try {
-                        // Prepare booking data for localStorage
-                        const bookingDataForStorage = {
-                          gameName: selectedGame?.name || '',
-                          gameId: selectedGame?.id || '',
-                          date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '',
-                          time: selectedTime,
-                          customerName: customerData.name,
-                          customerEmail: customerData.email,
-                          customerPhone: customerData.phone,
-                          participants: partySize,
-                          ticketTypes: [{
-                            id: 'standard',
-                            name: 'Standard Ticket',
-                            price: selectedGame?.price || 0,
-                            quantity: partySize,
-                            subtotal: (selectedGame?.price || 0) * partySize
-                          }],
-                          totalPrice: totalPrice
-                        };
+                    <Button
+                      onClick={() => {
+                        try {
+                          // Prepare booking data for localStorage
+                          const bookingDataForStorage = {
+                            activityName: selectedGame?.name || '',
+                            activityId: selectedGame?.id || '',
+                            date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '',
+                            time: selectedTime,
+                            customerName: customerData.name,
+                            customerEmail: customerData.email,
+                            customerPhone: customerData.phone,
+                            participants: partySize,
+                            ticketTypes: [{
+                              id: 'standard',
+                              name: 'Standard Ticket',
+                              price: selectedGame?.price || 0,
+                              quantity: partySize,
+                              subtotal: (selectedGame?.price || 0) * partySize
+                            }],
+                            totalPrice: totalPrice
+                          };
 
-                        // Save booking to localStorage using DataSyncService
-                        const savedBooking = DataSyncServiceWithEvents.saveBooking(bookingDataForStorage);
-                        console.log('✅ Resolvex booking saved:', savedBooking.id);
+                          // Save booking to localStorage using DataSyncService
+                          const savedBooking = DataSyncServiceWithEvents.saveBooking(bookingDataForStorage);
+                          console.log('✅ Resolvex booking saved:', savedBooking.id);
 
-                        // Show success step
-                        setCurrentStep('success');
-                      } catch (error) {
-                        console.error('❌ Error saving Resolvex booking:', error);
-                        alert('Error saving booking. Please try again.');
-                      }
-                    }}
-                    disabled={!canProceed()}
-                    className="w-full text-white h-12"
-                    style={{ backgroundColor: canProceed() ? primaryColor : undefined }}
-                  >
-                    <CreditCard className="w-4 h-4 mr-2" />
-                    Complete Payment ${totalPrice}
-                  </Button>
+                          // Show success step
+                          setCurrentStep('success');
+                        } catch (error) {
+                          console.error('❌ Error saving Resolvex booking:', error);
+                          alert('Error saving booking. Please try again.');
+                        }
+                      }}
+                      disabled={!canProceed()}
+                      className="w-full text-white h-12"
+                      style={{ backgroundColor: canProceed() ? primaryColor : undefined }}
+                    >
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Complete Payment ${totalPrice}
+                    </Button>
                   </Card>
                 </div>
               </div>
@@ -708,7 +711,7 @@ export function ResolvexWidget({ primaryColor = '#2563eb', config }: ResolvexWid
         <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
           <div className="max-w-4xl mx-auto">
             <div className="flex flex-col items-center justify-center py-8 md:py-12">
-              <div 
+              <div
                 className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
                 style={{ backgroundColor: `${primaryColor}15` }}
               >

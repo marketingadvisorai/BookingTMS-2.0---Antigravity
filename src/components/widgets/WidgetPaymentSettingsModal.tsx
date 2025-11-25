@@ -138,7 +138,7 @@ export function WidgetPaymentSettingsModal({
         setSelectedGame(updatedGame);
 
         // Update games list
-        const updatedGames = games.map(g => 
+        const updatedGames = games.map(g =>
           g.id === gameId ? updatedGame : g
         );
         onUpdate(updatedGames);
@@ -188,7 +188,7 @@ export function WidgetPaymentSettingsModal({
       setAvailablePrices(result.prices);
 
       // Update games list
-      const updatedGames = games.map(g => 
+      const updatedGames = games.map(g =>
         g.id === gameId ? updatedGame : g
       );
       onUpdate(updatedGames);
@@ -240,7 +240,7 @@ export function WidgetPaymentSettingsModal({
           stripe_checkout_url: checkoutUrl || null,
           stripe_sync_status: 'synced',
           stripe_last_sync: new Date().toISOString(),
-        })
+        } as any)
         .eq('id', selectedGame.id);
 
       if (error) {
@@ -261,7 +261,7 @@ export function WidgetPaymentSettingsModal({
       setSelectedGame(updatedGame);
 
       // Update games list
-      const updatedGames = games.map(g => 
+      const updatedGames = games.map(g =>
         g.id === selectedGame.id ? updatedGame : g
       );
       onUpdate(updatedGames);
@@ -356,7 +356,7 @@ export function WidgetPaymentSettingsModal({
         <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-200 dark:border-[#2a2a2a] flex-shrink-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm text-gray-600 dark:text-gray-400 mr-2">Provider:</span>
-            
+
             {/* Stripe - Active */}
             <Button
               variant="default"
@@ -366,13 +366,13 @@ export function WidgetPaymentSettingsModal({
               <span>Stripe</span>
               <Badge variant="secondary" className="bg-green-600 text-white text-xs">Active</Badge>
             </Button>
-            
+
             {/* PayPal - Coming Soon */}
             <Button variant="outline" size="sm" className="gap-2" disabled>
               <span>PayPal</span>
               <Badge variant="outline" className="text-xs">Coming Soon</Badge>
             </Button>
-            
+
             {/* 2Checkout - Coming Soon */}
             <Button variant="outline" size="sm" className="gap-2" disabled>
               <span>2Checkout</span>
@@ -453,10 +453,10 @@ export function WidgetPaymentSettingsModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 pb-6">
             {games.map((game) => {
               const isConfigured = !!(game.stripe_product_id || game.stripe_checkout_url);
-              
+
               return (
-                <Card 
-                  key={game.id} 
+                <Card
+                  key={game.id}
                   className="border-gray-200 dark:border-[#2a2a2a] hover:border-blue-300 dark:hover:border-blue-700 transition-colors cursor-pointer"
                   onClick={() => {
                     setSelectedGame(game);

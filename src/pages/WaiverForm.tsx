@@ -29,7 +29,7 @@ type WaiverTemplate = {
   content: string;
   status: 'active' | 'inactive' | 'draft';
   requiredFields: string[];
-  assignedGames: string[];
+  assignedActivities: string[];
   createdDate: string;
   lastModified: string;
   usageCount: number;
@@ -103,7 +103,7 @@ export default function WaiverForm() {
             content: data.content,
             status: data.status as 'active' | 'inactive' | 'draft',
             requiredFields: Array.isArray(data.required_fields) ? data.required_fields : [],
-            assignedGames: Array.isArray(data.assigned_games) ? data.assigned_games : [],
+            assignedActivities: Array.isArray(data.assigned_activities) ? data.assigned_activities : [],
             createdDate: data.created_at ? formatDisplayDate(new Date(data.created_at)) : '',
             lastModified: data.updated_at ? formatDisplayDate(new Date(data.updated_at)) : '',
             usageCount: data.usage_count || 0
@@ -126,7 +126,7 @@ export default function WaiverForm() {
       });
       // Optional extras for record display
       initial['Booking ID'] = '';
-      initial['Game'] = '';
+      initial['Activity'] = '';
       setFormData(initial);
     };
 
@@ -207,7 +207,7 @@ export default function WaiverForm() {
           participant_email: getEmail(),
           participant_phone: formData['Phone'] || formData['Parent Phone'] || '',
           booking_id: formData['Booking ID'] || null,
-          game_name: formData['Game'] || (template.assignedGames?.[0] || 'Unknown'),
+          activity: formData['Activity'] || (template.assignedActivities?.[0] || 'Unknown'),
           status: 'signed',
           signed_at: now.toISOString(),
           waiver_content: filledContent,
@@ -246,7 +246,7 @@ export default function WaiverForm() {
           customer: getCustomerName(),
           email: getEmail(),
           booking: formData['Booking ID'] || '-',
-          game: formData['Game'] || (template.assignedGames?.[0] || 'Unknown'),
+          activity: formData['Activity'] || (template.assignedActivities?.[0] || 'Unknown'),
           signedDate: formatDisplayDate(now),
           status: 'signed' as const,
           templateName: template.name,
@@ -320,8 +320,8 @@ export default function WaiverForm() {
                 <div className={`flex items-center gap-2 text-sm ${textMutedClass}`}>
                   <Building2 className="w-4 h-4" />
                   <div>
-                    <p className={`text-xs ${textMutedClass}`}>Assigned Games</p>
-                    <p className={textClass}>{template.assignedGames?.length ? template.assignedGames.join(', ') : 'None'}</p>
+                    <p className={`text-xs ${textMutedClass}`}>Assigned Activities</p>
+                    <p className={textClass}>{template.assignedActivities?.length ? template.assignedActivities.join(', ') : 'None'}</p>
                   </div>
                 </div>
                 <div className={`flex items-center gap-2 text-sm ${textMutedClass}`}>
@@ -380,10 +380,10 @@ export default function WaiverForm() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Game (optional)</Label>
+                  <Label>Activity (optional)</Label>
                   <Input
-                    value={formData['Game'] || ''}
-                    onChange={(e) => updateField('Game', e.target.value)}
+                    value={formData['Activity'] || ''}
+                    onChange={(e) => updateField('Activity', e.target.value)}
                   />
                 </div>
               </div>

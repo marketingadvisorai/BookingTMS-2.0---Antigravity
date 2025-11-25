@@ -80,11 +80,11 @@ export function useStaff() {
       // But we need to pass it to the Edge Function.
 
       // Fetch org id
-      const { data: orgMember } = await supabase
+      const { data: orgMember } = await (supabase as any)
         .from('organization_members')
         .select('organization_id')
         .eq('user_id', user.id)
-        .single();
+        .single() as any;
 
       if (!orgMember) throw new Error('Organization not found for current user');
 
@@ -98,7 +98,7 @@ export function useStaff() {
           role: staffData.role,
           organization_id: orgMember.organization_id
         }
-      });
+      } as any);
 
       if (edgeError) throw edgeError;
 
@@ -130,7 +130,7 @@ export function useStaff() {
       // Check if metadata column exists? No, we can't check schema at runtime easily.
       // We'll assume 'users' table has the columns we need or we update what we can.
 
-      const { data, error: updateError } = await supabase
+      const { data, error: updateError } = await (supabase as any)
         .from('users')
         .update(updateData)
         .eq('id', id)
@@ -152,7 +152,7 @@ export function useStaff() {
   // Delete staff member (soft delete by setting status to inactive)
   const deleteStaff = async (id: string) => {
     try {
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await (supabase as any)
         .from('users')
         .update({ is_active: false }) // 'users' table uses is_active boolean usually
         .eq('id', id);
@@ -174,7 +174,7 @@ export function useStaff() {
       const isActive = currentStatus === 'active';
       const newStatus = !isActive;
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('users')
         .update({ is_active: newStatus })
         .eq('id', id);
@@ -193,7 +193,7 @@ export function useStaff() {
   // Update last login time
   const updateLastLogin = async (id: string) => {
     try {
-      await supabase
+      await (supabase as any)
         .from('users')
         .update({ last_login_at: new Date().toISOString() }) // Assuming last_login_at column
         .eq('id', id);

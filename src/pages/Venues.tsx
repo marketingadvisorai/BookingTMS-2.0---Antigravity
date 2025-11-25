@@ -169,7 +169,7 @@ export default function Venues() {
               <div>
                 <p className="text-sm text-gray-600 dark:text-[#737373]">Total Events</p>
                 <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  {venues.reduce((sum, v) => sum + (v.widgetConfig?.games?.length || 0), 0)}
+                  {venues.reduce((sum, v) => sum + (v.widgetConfig?.activities?.length || 0), 0)}
                 </p>
               </div>
             </div>
@@ -276,7 +276,7 @@ export default function Venues() {
                   <div className="flex items-center justify-between text-xs sm:text-sm mb-3">
                     <span className="text-gray-600 dark:text-[#737373]">Events/Rooms:</span>
                     <span className="font-semibold text-gray-900 dark:text-white">
-                      {venue.widgetConfig?.games?.length || 0}
+                      {venue.widgetConfig?.activities?.length || 0}
                     </span>
                   </div>
 
@@ -286,7 +286,7 @@ export default function Venues() {
                       variant="outline"
                       onClick={() => {
                         const freshVenue = getFreshVenueData(venue.id) || venue;
-                        console.log('Opening widget settings for:', freshVenue.name, 'Games:', freshVenue.widgetConfig?.games?.length || 0);
+                        console.log('Opening widget settings for:', freshVenue.name, 'Activities:', freshVenue.widgetConfig?.activities?.length || 0);
                         setSelectedVenue(freshVenue);
                         setShowWidgetSettings(true);
                       }}
@@ -299,7 +299,7 @@ export default function Venues() {
                       variant="outline"
                       onClick={() => {
                         const freshVenue = getFreshVenueData(venue.id) || venue;
-                        console.log('Opening preview for:', freshVenue.name, 'Games:', freshVenue.widgetConfig?.games?.length || 0);
+                        console.log('Opening preview for:', freshVenue.name, 'Activities:', freshVenue.widgetConfig?.activities?.length || 0);
                         setSelectedVenue(freshVenue);
                         setShowWidgetPreview(true);
                       }}

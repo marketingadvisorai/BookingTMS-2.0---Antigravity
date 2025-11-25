@@ -10,12 +10,12 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { 
-  Mail, 
-  Calendar, 
-  Gift, 
-  MessageSquare, 
-  Star, 
+import {
+  Mail,
+  Calendar,
+  Gift,
+  MessageSquare,
+  Star,
   UserPlus,
   XCircle,
   TrendingUp,
@@ -87,7 +87,7 @@ Get ready to test your wits, work as a team, and create memories that will last 
 
 💳 PAYMENT CONFIRMED
 ━━━━━━━━━━━━━━━━━━━━━━
-Amount Paid: ${{totalAmount}} ✓
+Amount Paid: \${{totalAmount}} ✓
 Method: {{paymentMethod}}
 Status: PAID IN FULL
 
@@ -336,9 +336,9 @@ Just copy and share - that's it!
 
 💰 YOUR REFERRAL DASHBOARD
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Total Friends Referred: {{referralCount}} 🎯
-Total Credits Earned: ${{creditsEarned}} 💵
-Current Balance: ${{availableBalance}} ✨
+Total Friends Referred: {{referralCount}}🎯
+Total Credits Earned: \${{creditsEarned}}💵
+Current Balance: \${{availableBalance}}✨
 Pending Referrals: {{pendingReferrals}}
 
 🎁 WHAT YOU CAN DO WITH CREDITS
@@ -374,7 +374,7 @@ Could you be next month's champion? 🏅
 📊 TRACK YOUR IMPACT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Friends who booked: {{friendsBooked}}
-Total savings given: ${{totalSavingsGiven}}
+Total savings given: \${{totalSavingsGiven}}
 Adventures created: {{adventuresCreated}}
 
 You're not just earning rewards - you're creating unforgettable memories for others! ❤️
@@ -756,7 +756,7 @@ Cancelled On: {{cancellationDate}}
 
 💰 REFUND INFORMATION
 ━━━━━━━━━━━━━━━━
-Refund Amount: ${{refundAmount}}
+Refund Amount: \${{refundAmount}}
 Processing Time: {{refundProcessingTime}}
 Method: {{refundMethod}}
 Expected By: {{expectedRefundDate}}
@@ -928,7 +928,7 @@ export default function EmailTemplates() {
 
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         template.description.toLowerCase().includes(searchQuery.toLowerCase());
+      template.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });

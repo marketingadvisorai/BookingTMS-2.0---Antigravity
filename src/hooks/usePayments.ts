@@ -63,12 +63,12 @@ export function usePayments(bookingId?: string) {
   const createPayment = async (paymentData: Omit<Payment, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'refund_amount'>) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      const { data, error: insertError } = await supabase
+      const { data, error: insertError } = await (supabase as any)
         .from('payments')
         .insert([{
           ...paymentData,
@@ -92,7 +92,7 @@ export function usePayments(bookingId?: string) {
   // Update payment
   const updatePayment = async (id: string, updates: Partial<Payment>) => {
     try {
-      const { data, error: updateError } = await supabase
+      const { data, error: updateError } = await (supabase as any)
         .from('payments')
         .update(updates)
         .eq('id', id)
@@ -114,7 +114,7 @@ export function usePayments(bookingId?: string) {
   // Process refund
   const processRefund = async (id: string, refundAmount: number, reason?: string) => {
     try {
-      const { data, error: refundError } = await supabase
+      const { data, error: refundError } = await (supabase as any)
         .from('payments')
         .update({
           status: 'refunded',
@@ -182,7 +182,7 @@ export function usePayments(bookingId?: string) {
     // Subscribe to payment changes
     const subscription = supabase
       .channel('payments-changes')
-      .on('postgres_changes', 
+      .on('postgres_changes',
         { event: '*', schema: 'public', table: 'payments' },
         (payload) => {
           console.log('Payment changed:', payload);

@@ -82,19 +82,22 @@ export function Sidebar({ currentPage, onNavigate = () => { }, isMobileOpen = fa
     ];
   }
 
-  // Add Account Settings for super-admin only
-  if (isRole('super-admin')) {
-    navItems.push({
-      id: 'account-settings',
-      label: 'Account Settings',
-      icon: Shield,
-      permission: 'accounts.view' as Permission
-    });
-    // Add Backend Dashboard for super-admin (includes Database management)
+  // Add Backend Dashboard for system-admin and super-admin (includes Database management)
+  if (isSystemAdmin || isSuperAdmin) {
     navItems.push({
       id: 'backend-dashboard',
       label: 'Backend Dashboard',
       icon: Server,
+      permission: 'accounts.view' as Permission
+    });
+  }
+
+  // Add Account Settings for super-admin only (org-level settings)
+  if (isSuperAdmin) {
+    navItems.push({
+      id: 'account-settings',
+      label: 'Account Settings',
+      icon: Shield,
       permission: 'accounts.view' as Permission
     });
   }

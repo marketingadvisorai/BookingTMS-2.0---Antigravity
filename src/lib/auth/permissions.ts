@@ -89,6 +89,7 @@ const SYSTEM_ADMIN_PERMISSIONS: Permission[] = [
  * Super Admin - Full system access (organization owner)
  */
 const SUPER_ADMIN_PERMISSIONS: Permission[] = [
+  'system.view', // Access to Organizations tab
   'dashboard.view',
   'dashboard.stats',
   'bookings.view',

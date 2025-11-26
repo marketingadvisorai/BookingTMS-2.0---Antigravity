@@ -23,6 +23,7 @@ import { PromoCodeInput } from './PromoCodeInput';
 import { GiftCardInput } from './GiftCardInput';
 import { useWidgetTheme } from './WidgetThemeContext';
 import SupabaseBookingService from '../../services/SupabaseBookingService';
+import { CheckoutService } from '../../lib/payments/checkoutService';
 import { toast } from 'sonner';
 
 interface CalendarSingleEventBookingPageProps {
@@ -206,77 +207,74 @@ export function CalendarSingleEventBookingPage({
 
   const canAddToCart = selectedTime !== null;
   const canCheckout = customerData.name && customerData.email && customerData.phone;
-  const canCompletePay = customerData.cardNumber && customerData.cardExpiry && customerData.cardCVV && customerData.cardName;
 
-  const handleCompletePayment = async () => {
-    if (!canCompletePay || isSubmitting) return;
+  // Redirect to Stripe Checkout for secure payment
+  const handleStripeCheckout = async () => {
+    if (!canCheckout || isSubmitting) return;
 
     try {
       setIsSubmitting(true);
 
       // Get venue and game IDs from config
-      const venueId = config?.venueId || config?.venue?.id;
-      const gameId = selectedGame?.id || config?.gameId;
+      const gameId = selectedGame?.id || activityId || config?.gameId;
 
-      if (!venueId || !gameId) {
-        toast.error('Missing venue or game information');
-        console.error('Missing IDs:', { venueId, gameId, config });
+      if (!gameId) {
+        toast.error('Missing activity information');
         return;
       }
 
-      // Calculate booking time using current date state
+      // Calculate booking date
       const year = currentDate.getFullYear();
       const month = String(currentDate.getMonth() + 1).padStart(2, '0');
       const day = String(selectedDate).padStart(2, '0');
       const bookingDate = `${year}-${month}-${day}`;
       
-      const [startHour, startMinute] = selectedTime!.split(':');
-      const startTime = `${startHour.padStart(2, '0')}:${startMinute.padStart(2, '0')}:00`;
+      // Get Stripe price ID from activity
+      const stripePriceId = (gameData as any).stripe_price_id || (gameData as any).stripePriceId || (selectedGame as any)?.stripe_price_id;
+      
+      if (!stripePriceId) {
+        toast.error('Payment not configured for this activity. Please contact support.');
+        console.error('No Stripe price ID found:', gameData);
+        return;
+      }
 
-      // Calculate end time based on activity duration
-      const duration = gameData.schedule?.duration || 60;
-      const startMinutes = parseInt(startHour) * 60 + parseInt(startMinute);
-      const endMinutes = startMinutes + duration;
-      const endHour = String(Math.floor(endMinutes / 60) % 24).padStart(2, '0');
-      const endMin = String(endMinutes % 60).padStart(2, '0');
-      const endTime = `${endHour}:${endMin}:00`;
+      // Build success/cancel URLs
+      const baseUrl = window.location.origin;
+      const successUrl = `${baseUrl}/booking/success?session_id={CHECKOUT_SESSION_ID}&activity_id=${gameId}`;
+      const cancelUrl = `${baseUrl}/embed?widget=singlegame&activityId=${gameId}`;
 
-      // Prepare ticket types
-      const ticketTypes = [{
-        id: 'standard',
-        name: 'Standard Ticket',
-        price: gameData.price,
-        quantity: partySize,
-        subtotal: subtotal
-      }];
-
-      // Create booking via Supabase
-      const result = await SupabaseBookingService.createWidgetBooking({
-        venue_id: venueId,
+      // Create metadata for the booking
+      const metadata = {
         activity_id: gameId,
-        customer_name: customerData.name,
-        customer_email: customerData.email,
-        customer_phone: customerData.phone,
+        activity_name: gameData.name,
+        venue_name: config?.venueName || 'Venue',
         booking_date: bookingDate,
-        start_time: startTime,
-        end_time: endTime,
-        party_size: partySize,
-        ticket_types: ticketTypes,
-        total_amount: subtotal,
-        final_amount: totalPrice,
-        promo_code: appliedPromoCode?.code,
-        notes: `Payment: ${customerData.cardNumber.slice(-4)}`
+        booking_time: selectedTime || '',
+        party_size: String(partySize),
+        customer_phone: customerData.phone,
+        promo_code: appliedPromoCode?.code || '',
+      };
+
+      // Create Stripe Checkout Session
+      const response = await CheckoutService.createCheckoutSession({
+        priceId: stripePriceId,
+        quantity: partySize,
+        customerEmail: customerData.email,
+        customerName: customerData.name,
+        successUrl,
+        cancelUrl,
+        metadata,
       });
 
-      if (result) {
-        setBookingNumber(result.confirmation_code);
-        setCurrentStep('success');
-        toast.success('Booking confirmed!');
-        console.log('✅ Booking created:', result);
+      // Redirect to Stripe Checkout
+      if (response.url) {
+        window.location.href = response.url;
+      } else {
+        throw new Error('No checkout URL returned');
       }
     } catch (error: any) {
-      console.error('❌ Error creating booking:', error);
-      toast.error(error.message || 'Failed to create booking. Please try again.');
+      console.error('❌ Error initiating checkout:', error);
+      toast.error(error.message || 'Failed to initiate payment. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -1292,57 +1290,58 @@ export function CalendarSingleEventBookingPage({
             <div className="lg:col-span-2">
               <Card className="p-4 md:p-6">
                 <h2 className="text-2xl text-gray-900 mb-6 flex items-center gap-2">
-                  <Lock className="w-6 h-6" />
-                  Secure Payment
+                  <Lock className="w-6 h-6" style={{ color: primaryColor }} />
+                  Secure Payment with Stripe
                 </h2>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Cardholder Name</Label>
-                    <Input
-                      value={customerData.cardName}
-                      onChange={(e) => setCustomerData({ ...customerData, cardName: e.target.value })}
-                      placeholder="John Doe"
-                      className="h-12"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Card Number</Label>
-                    <Input
-                      value={customerData.cardNumber}
-                      onChange={(e) => setCustomerData({ ...customerData, cardNumber: e.target.value })}
-                      placeholder="1234 5678 9012 3456"
-                      maxLength={19}
-                      className="h-12"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Expiry Date</Label>
-                      <Input
-                        value={customerData.cardExpiry}
-                        onChange={(e) => setCustomerData({ ...customerData, cardExpiry: e.target.value })}
-                        placeholder="MM/YY"
-                        maxLength={5}
-                        className="h-12"
-                      />
+                {/* Stripe Checkout Info */}
+                <div className="space-y-6">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Shield className="w-8 h-8 text-blue-600" />
+                      <div>
+                        <h3 className="font-semibold text-gray-900">Secure Stripe Checkout</h3>
+                        <p className="text-sm text-gray-600">Your payment is processed securely by Stripe</p>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>CVV</Label>
-                      <Input
-                        value={customerData.cardCVV}
-                        onChange={(e) => setCustomerData({ ...customerData, cardCVV: e.target.value })}
-                        placeholder="123"
-                        maxLength={4}
-                        className="h-12"
-                      />
-                    </div>
+                    <ul className="space-y-2 text-sm text-gray-700">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        256-bit SSL encryption
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        PCI DSS Level 1 certified
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        All major credit cards accepted
+                      </li>
+                    </ul>
                   </div>
-                </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700 flex items-start gap-2 mt-6">
-                  <Lock className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <p>Your payment information is encrypted and secure</p>
+                  {/* Customer Info Recap */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="font-medium text-gray-900 mb-3">Your Information</h4>
+                    <div className="grid grid-cols-1 gap-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-400" />
+                        <span>{customerData.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-gray-400" />
+                        <span>{customerData.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-gray-400" />
+                        <span>{customerData.phone}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-gray-500 text-center">
+                    Click the button below to proceed to Stripe's secure checkout page
+                  </p>
                 </div>
               </Card>
             </div>
@@ -1390,13 +1389,22 @@ export function CalendarSingleEventBookingPage({
                   </div>
 
                   <Button
-                    onClick={handleCompletePayment}
-                    disabled={!canCompletePay || isSubmitting}
-                    className="w-full text-white h-14 text-lg shadow-lg hover:shadow-xl"
-                    style={{ backgroundColor: (canCompletePay && !isSubmitting) ? primaryColor : undefined }}
+                    onClick={handleStripeCheckout}
+                    disabled={isSubmitting}
+                    className="w-full text-white h-14 text-lg shadow-lg hover:shadow-xl transition-all"
+                    style={{ backgroundColor: !isSubmitting ? primaryColor : undefined }}
                   >
-                    <CreditCard className="w-5 h-5 mr-2" />
-                    {isSubmitting ? 'Processing...' : `Complete Payment $${totalPrice}`}
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Redirecting to Stripe...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="w-5 h-5 mr-2" />
+                        Pay ${totalPrice} with Stripe
+                      </>
+                    )}
                   </Button>
                 </Card>
               </div>

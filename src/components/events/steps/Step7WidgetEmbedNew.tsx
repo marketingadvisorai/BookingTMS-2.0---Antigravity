@@ -28,7 +28,10 @@ import {
   Palette,
   Zap,
   Shield,
-  RefreshCw
+  RefreshCw,
+  Download,
+  FileCode,
+  Play
 } from 'lucide-react';
 import { StepProps } from '../types';
 import { ActivityPreviewCard, ActivityPreviewData } from '../../widgets/ActivityPreviewCard';
@@ -131,6 +134,100 @@ export default function Step7WidgetEmbedNew({
       toast.info('Save the activity first to preview the live widget');
     }
   }, [realEmbedUrl]);
+
+  // Generate downloadable HTML landing page
+  const generateLandingPageHTML = useCallback(() => {
+    const activityName = activityData.name || 'Book Your Experience';
+    const activityDesc = activityData.description || 'Experience something amazing. Book your session today!';
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${activityName} - Book Now</title>
+  <meta name="description" content="${activityDesc}">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: #f8fafc; color: #1e293b; }
+    .header { background: linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%); color: white; padding: 60px 20px; text-align: center; }
+    .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+    .header p { font-size: 1.1rem; opacity: 0.9; max-width: 600px; margin: 0 auto; }
+    .widget-container { max-width: 1200px; margin: -40px auto 40px; padding: 0 20px; }
+    .widget-wrapper { background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden; }
+    .footer { text-align: center; padding: 40px 20px; color: #64748b; font-size: 0.875rem; }
+    .footer a { color: ${primaryColor}; text-decoration: none; }
+    @media (max-width: 768px) { .header h1 { font-size: 1.8rem; } .header { padding: 40px 20px; } }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>${activityName}</h1>
+    <p>${activityDesc}</p>
+  </header>
+  
+  <main class="widget-container">
+    <div class="widget-wrapper">
+      <!-- BookingTMS Widget -->
+      <div id="booking-widget"></div>
+      <script src="${baseUrl}/embed.js"></script>
+      <script>
+        BookingTMS.init({
+          key: '${embedKey || 'YOUR_EMBED_KEY'}',
+          theme: '${theme}',
+          primaryColor: '${primaryColor.replace('#', '')}'
+        });
+        BookingTMS.booking('#booking-widget', {
+          activityId: '${activityId || 'YOUR_ACTIVITY_ID'}',
+          venueId: '${venueId || 'YOUR_VENUE_ID'}'
+        });
+      </script>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>Powered by <a href="https://bookingtms.com" target="_blank">BookingTMS</a></p>
+  </footer>
+</body>
+</html>`;
+  }, [activityData.name, activityData.description, primaryColor, baseUrl, embedKey, activityId, venueId, theme]);
+
+  // Download file helper
+  const downloadFile = useCallback((content: string, filename: string, type: string) => {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Downloaded ${filename}`);
+  }, []);
+
+  // Download landing page HTML
+  const downloadLandingPage = useCallback(() => {
+    const html = generateLandingPageHTML();
+    const activitySlug = (activityData.name || 'booking').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    downloadFile(html, `${activitySlug}-booking-page.html`, 'text/html');
+  }, [generateLandingPageHTML, downloadFile, activityData.name]);
+
+  // Open demo in new tab
+  const openDemoPage = useCallback(() => {
+    const html = generateLandingPageHTML();
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    // Cleanup after a delay
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }, [generateLandingPageHTML]);
+
+  // Download embed code as file
+  const downloadEmbedCode = useCallback(() => {
+    const activitySlug = (activityData.name || 'booking').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const ext = codeFormat === 'react' ? 'tsx' : codeFormat === 'wordpress' ? 'php' : 'html';
+    downloadFile(generatedCode, `${activitySlug}-embed.${ext}`, 'text/plain');
+  }, [generatedCode, codeFormat, downloadFile, activityData.name]);
 
   const deviceConfig = DEVICE_CONFIGS[previewDevice];
 
@@ -410,6 +507,49 @@ export default function Step7WidgetEmbedNew({
 
             {/* Code Tab */}
             <TabsContent value="code" className="space-y-6">
+              {/* Download Section */}
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <Download className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-green-900">Download & Preview</h4>
+                      <p className="text-sm text-green-700">Get a ready-to-use landing page with real data</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    onClick={openDemoPage}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    View Demo in Browser
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={downloadLandingPage}
+                    className="border-green-300 text-green-700 hover:bg-green-50"
+                  >
+                    <FileCode className="w-4 h-4 mr-2" />
+                    Download Landing Page
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={downloadEmbedCode}
+                    className="border-green-300 text-green-700 hover:bg-green-50"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Embed Code
+                  </Button>
+                </div>
+                <p className="text-xs text-green-600 mt-3">
+                  📌 The landing page includes your activity data and connects to our booking system automatically.
+                </p>
+              </div>
+
               {/* Platform Info */}
               <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3">
                 <Globe className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -440,25 +580,52 @@ export default function Step7WidgetEmbedNew({
 
               {/* Code Block */}
               <div className="relative group">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="absolute top-3 right-3 z-10 h-8 text-xs bg-gray-800 hover:bg-gray-700 text-white"
-                  onClick={copyToClipboard}
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-3 h-3 mr-1" /> Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3 h-3 mr-1" /> Copy
-                    </>
-                  )}
-                </Button>
-                <pre className="font-mono text-xs bg-gray-900 text-gray-300 p-4 pt-12 rounded-lg overflow-x-auto max-h-80">
+                <div className="absolute top-3 right-3 z-10 flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-8 text-xs bg-gray-800 hover:bg-gray-700 text-white"
+                    onClick={downloadEmbedCode}
+                  >
+                    <Download className="w-3 h-3 mr-1" /> Download
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-8 text-xs bg-gray-800 hover:bg-gray-700 text-white"
+                    onClick={copyToClipboard}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3 h-3 mr-1" /> Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3 mr-1" /> Copy
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <pre className="font-mono text-xs bg-gray-900 text-gray-300 p-4 pt-14 rounded-lg overflow-x-auto max-h-80">
                   <code>{generatedCode}</code>
                 </pre>
+              </div>
+
+              {/* Data Flow Info */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <h5 className="font-medium text-amber-900 mb-2 flex items-center gap-2">
+                  <Zap className="w-4 h-4" /> Real-Time Data Connection
+                </h5>
+                <p className="text-sm text-amber-800 mb-2">
+                  The embedded widget connects directly to our Supabase database for:
+                </p>
+                <ul className="text-xs text-amber-700 space-y-1 ml-4">
+                  <li>• Live availability and time slots</li>
+                  <li>• Real-time booking updates</li>
+                  <li>• Dynamic pricing from your activity settings</li>
+                  <li>• Automatic schedule synchronization</li>
+                  <li>• Secure payment processing via Stripe</li>
+                </ul>
               </div>
 
               {/* Integration Tips */}

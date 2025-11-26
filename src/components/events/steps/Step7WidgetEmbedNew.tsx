@@ -135,10 +135,15 @@ export default function Step7WidgetEmbedNew({
     }
   }, [realEmbedUrl]);
 
-  // Generate downloadable HTML landing page
+  // Check if we have a valid activity ID (saved activity)
+  const hasValidActivityId = activityId && activityId !== 'preview' && activityId.length > 10;
+
+  // Generate downloadable HTML landing page (uses iframe for reliability)
   const generateLandingPageHTML = useCallback(() => {
     const activityName = activityData.name || 'Book Your Experience';
     const activityDesc = activityData.description || 'Experience something amazing. Book your session today!';
+    const embedUrl = `${baseUrl}/embed?widget=singlegame&activityId=${activityId}&color=${primaryColor.replace('#', '')}&theme=${theme}`;
+    
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -146,17 +151,25 @@ export default function Step7WidgetEmbedNew({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${activityName} - Book Now</title>
   <meta name="description" content="${activityDesc}">
+  <meta property="og:title" content="${activityName}">
+  <meta property="og:description" content="${activityDesc}">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: #f8fafc; color: #1e293b; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
     .header { background: linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%); color: white; padding: 60px 20px; text-align: center; }
-    .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+    .header h1 { font-size: 2.5rem; margin-bottom: 10px; font-weight: 700; }
     .header p { font-size: 1.1rem; opacity: 0.9; max-width: 600px; margin: 0 auto; }
     .widget-container { max-width: 1200px; margin: -40px auto 40px; padding: 0 20px; }
-    .widget-wrapper { background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden; }
+    .widget-wrapper { background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden; min-height: 700px; }
+    .widget-iframe { width: 100%; min-height: 700px; border: none; }
     .footer { text-align: center; padding: 40px 20px; color: #64748b; font-size: 0.875rem; }
-    .footer a { color: ${primaryColor}; text-decoration: none; }
-    @media (max-width: 768px) { .header h1 { font-size: 1.8rem; } .header { padding: 40px 20px; } }
+    .footer a { color: ${primaryColor}; text-decoration: none; font-weight: 500; }
+    .footer a:hover { text-decoration: underline; }
+    @media (max-width: 768px) { 
+      .header h1 { font-size: 1.8rem; } 
+      .header { padding: 40px 20px; }
+      .widget-wrapper { border-radius: 0; margin: 0 -20px; }
+    }
   </style>
 </head>
 <body>
@@ -167,29 +180,35 @@ export default function Step7WidgetEmbedNew({
   
   <main class="widget-container">
     <div class="widget-wrapper">
-      <!-- BookingTMS Widget -->
-      <div id="booking-widget"></div>
-      <script src="${baseUrl}/embed.js"></script>
-      <script>
-        BookingTMS.init({
-          key: '${embedKey || 'YOUR_EMBED_KEY'}',
-          theme: '${theme}',
-          primaryColor: '${primaryColor.replace('#', '')}'
-        });
-        BookingTMS.booking('#booking-widget', {
-          activityId: '${activityId || 'YOUR_ACTIVITY_ID'}',
-          venueId: '${venueId || 'YOUR_VENUE_ID'}'
-        });
-      </script>
+      <!-- BookingTMS Booking Widget (iframe method - cross-domain compatible) -->
+      <iframe 
+        src="${embedUrl}"
+        class="widget-iframe"
+        title="Book ${activityName}"
+        allow="payment"
+        loading="lazy"
+      ></iframe>
     </div>
   </main>
 
   <footer class="footer">
-    <p>Powered by <a href="https://bookingtms.com" target="_blank">BookingTMS</a></p>
+    <p>Powered by <a href="https://bookingtms.com" target="_blank" rel="noopener">BookingTMS</a></p>
   </footer>
+
+  <script>
+    // Auto-resize iframe based on content
+    window.addEventListener('message', function(e) {
+      if (e.data && e.data.type === 'BOOKINGTMS_RESIZE') {
+        const iframe = document.querySelector('.widget-iframe');
+        if (iframe && e.data.height) {
+          iframe.style.height = Math.max(700, e.data.height) + 'px';
+        }
+      }
+    });
+  </script>
 </body>
 </html>`;
-  }, [activityData.name, activityData.description, primaryColor, baseUrl, embedKey, activityId, venueId, theme]);
+  }, [activityData.name, activityData.description, primaryColor, baseUrl, activityId, theme]);
 
   // Download file helper
   const downloadFile = useCallback((content: string, filename: string, type: string) => {
@@ -207,20 +226,25 @@ export default function Step7WidgetEmbedNew({
 
   // Download landing page HTML
   const downloadLandingPage = useCallback(() => {
+    if (!hasValidActivityId) {
+      toast.error('Please save the activity first to download a working landing page');
+      return;
+    }
     const html = generateLandingPageHTML();
     const activitySlug = (activityData.name || 'booking').toLowerCase().replace(/[^a-z0-9]+/g, '-');
     downloadFile(html, `${activitySlug}-booking-page.html`, 'text/html');
-  }, [generateLandingPageHTML, downloadFile, activityData.name]);
+  }, [generateLandingPageHTML, downloadFile, activityData.name, hasValidActivityId]);
 
-  // Open demo in new tab
+  // Open demo in new tab - use real embed URL for saved activities
   const openDemoPage = useCallback(() => {
-    const html = generateLandingPageHTML();
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
-    // Cleanup after a delay
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-  }, [generateLandingPageHTML]);
+    if (!hasValidActivityId) {
+      toast.error('Please save the activity first to preview the live booking page');
+      return;
+    }
+    // Open the real embed URL directly (more reliable)
+    const embedUrl = `${baseUrl}/embed?widget=singlegame&activityId=${activityId}&color=${primaryColor.replace('#', '')}&theme=${theme}`;
+    window.open(embedUrl, '_blank', 'noopener,noreferrer');
+  }, [hasValidActivityId, baseUrl, activityId, primaryColor, theme]);
 
   // Download embed code as file
   const downloadEmbedCode = useCallback(() => {
@@ -508,30 +532,49 @@ export default function Step7WidgetEmbedNew({
             {/* Code Tab */}
             <TabsContent value="code" className="space-y-6">
               {/* Download Section */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
+              <div className={`rounded-xl p-5 border ${hasValidActivityId 
+                ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' 
+                : 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200'}`}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <Download className="w-5 h-5 text-green-600" />
+                    <div className={`p-2 rounded-lg ${hasValidActivityId ? 'bg-green-100' : 'bg-amber-100'}`}>
+                      <Download className={`w-5 h-5 ${hasValidActivityId ? 'text-green-600' : 'text-amber-600'}`} />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-green-900">Download & Preview</h4>
-                      <p className="text-sm text-green-700">Get a ready-to-use landing page with real data</p>
+                      <h4 className={`font-semibold ${hasValidActivityId ? 'text-green-900' : 'text-amber-900'}`}>
+                        Download & Preview
+                      </h4>
+                      <p className={`text-sm ${hasValidActivityId ? 'text-green-700' : 'text-amber-700'}`}>
+                        {hasValidActivityId 
+                          ? 'Get a ready-to-use landing page with real data' 
+                          : '⚠️ Save the activity first to enable downloads'}
+                      </p>
                     </div>
                   </div>
+                  {hasValidActivityId && (
+                    <Badge className="bg-green-100 text-green-700 border-green-300">
+                      <Check className="w-3 h-3 mr-1" /> Ready
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <Button
                     onClick={openDemoPage}
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    disabled={!hasValidActivityId}
+                    className={hasValidActivityId 
+                      ? "bg-green-600 hover:bg-green-700 text-white" 
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"}
                   >
                     <Play className="w-4 h-4 mr-2" />
-                    View Demo in Browser
+                    View Live Demo
                   </Button>
                   <Button
                     variant="outline"
                     onClick={downloadLandingPage}
-                    className="border-green-300 text-green-700 hover:bg-green-50"
+                    disabled={!hasValidActivityId}
+                    className={hasValidActivityId 
+                      ? "border-green-300 text-green-700 hover:bg-green-50" 
+                      : "border-gray-200 text-gray-400 cursor-not-allowed"}
                   >
                     <FileCode className="w-4 h-4 mr-2" />
                     Download Landing Page
@@ -539,14 +582,16 @@ export default function Step7WidgetEmbedNew({
                   <Button
                     variant="outline"
                     onClick={downloadEmbedCode}
-                    className="border-green-300 text-green-700 hover:bg-green-50"
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Download Embed Code
                   </Button>
                 </div>
-                <p className="text-xs text-green-600 mt-3">
-                  📌 The landing page includes your activity data and connects to our booking system automatically.
+                <p className={`text-xs mt-3 ${hasValidActivityId ? 'text-green-600' : 'text-amber-600'}`}>
+                  {hasValidActivityId 
+                    ? '📌 The landing page connects to our booking system with real-time availability and Stripe checkout.' 
+                    : '💡 Complete Step 8 (Review & Publish) to save the activity and enable live previews.'}
                 </p>
               </div>
 

@@ -4,10 +4,14 @@ import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { Textarea } from '../../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
+import { Badge } from '../../ui/badge';
 import { StepProps } from '../types';
 import { CATEGORIES, TIMEZONES } from '../constants';
 import { useAuth } from '../../../lib/auth/AuthContext';
 import { supabase } from '../../../lib/supabase';
+import { Copy, Check, Building2, MapPin } from 'lucide-react';
+import { Button } from '../../ui/button';
+import { toast } from 'sonner';
 
 interface ExtendedStepProps extends StepProps {
     organizationId?: string;
@@ -18,16 +22,27 @@ interface ExtendedStepProps extends StepProps {
 
 export default function Step1BasicInfo({ activityData, updateActivityData, t, organizationId, venueId, organizationName, venueName }: ExtendedStepProps) {
     const { currentUser } = useAuth();
-    const isSystemAdmin = currentUser?.role === 'system-admin';
+    
+    // Check for system-admin or super-admin roles
+    const isPrivilegedAdmin = currentUser?.role === 'system-admin' || currentUser?.role === 'super-admin';
 
     const [organizations, setOrganizations] = useState<any[]>([]);
     const [venues, setVenues] = useState<any[]>([]);
     const [loadingOrgs, setLoadingOrgs] = useState(false);
     const [loadingVenues, setLoadingVenues] = useState(false);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+
+    // Copy ID to clipboard helper
+    const copyToClipboard = async (id: string, label: string) => {
+        await navigator.clipboard.writeText(id);
+        setCopiedId(id);
+        toast.success(`${label} ID copied!`);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
 
     // Fetch organizations for System Admin
     useEffect(() => {
-        if (isSystemAdmin) {
+        if (isPrivilegedAdmin) {
             const fetchOrgs = async () => {
                 setLoadingOrgs(true);
                 const { data } = await supabase.from('organizations').select('id, name').order('name');
@@ -36,11 +51,11 @@ export default function Step1BasicInfo({ activityData, updateActivityData, t, or
             };
             fetchOrgs();
         }
-    }, [isSystemAdmin]);
+    }, [isPrivilegedAdmin]);
 
     // Fetch venues when organization changes (for System Admin)
     useEffect(() => {
-        if (isSystemAdmin && activityData.organizationId) {
+        if (isPrivilegedAdmin && activityData.organizationId) {
             const fetchVenues = async () => {
                 setLoadingVenues(true);
                 const { data } = await supabase
@@ -52,14 +67,14 @@ export default function Step1BasicInfo({ activityData, updateActivityData, t, or
                 setLoadingVenues(false);
             };
             fetchVenues();
-        } else if (isSystemAdmin) {
+        } else if (isPrivilegedAdmin) {
             setVenues([]);
         }
-    }, [isSystemAdmin, activityData.organizationId]);
+    }, [isPrivilegedAdmin, activityData.organizationId]);
 
     // Initialize default values for Org Admin
     useEffect(() => {
-        if (!isSystemAdmin) {
+        if (!isPrivilegedAdmin) {
             if (organizationId && !activityData.organizationId) {
                 updateActivityData('organizationId', organizationId);
             }
@@ -67,7 +82,7 @@ export default function Step1BasicInfo({ activityData, updateActivityData, t, or
                 updateActivityData('venueId', venueId);
             }
         }
-    }, [isSystemAdmin, organizationId, venueId, activityData.organizationId, activityData.venueId, updateActivityData]);
+    }, [isPrivilegedAdmin, organizationId, venueId, activityData.organizationId, activityData.venueId, updateActivityData]);
 
     return (
         <div className="space-y-6">
@@ -83,7 +98,7 @@ export default function Step1BasicInfo({ activityData, updateActivityData, t, or
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <Label htmlFor="organization">Organization</Label>
-                            {isSystemAdmin ? (
+                            {isPrivilegedAdmin ? (
                                 <Select
                                     value={activityData.organizationId || ''}
                                     onValueChange={(value) => {
@@ -101,16 +116,38 @@ export default function Step1BasicInfo({ activityData, updateActivityData, t, or
                                     </SelectContent>
                                 </Select>
                             ) : (
-                                <Input
-                                    value={organizationName || 'Current Organization'}
-                                    disabled
-                                    className="mt-1 bg-gray-100 dark:bg-gray-800"
-                                />
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 flex items-center gap-2 p-2.5 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                                            <Building2 className="w-4 h-4 text-gray-500" />
+                                            <span className="text-sm font-medium">{organizationName || 'Current Organization'}</span>
+                                        </div>
+                                    </div>
+                                    {organizationId && (
+                                        <div className="flex items-center gap-2 text-xs">
+                                            <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0.5">
+                                                ID: {organizationId.slice(0, 8)}...
+                                            </Badge>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-5 w-5 p-0"
+                                                onClick={() => copyToClipboard(organizationId, 'Organization')}
+                                            >
+                                                {copiedId === organizationId ? (
+                                                    <Check className="w-3 h-3 text-green-500" />
+                                                ) : (
+                                                    <Copy className="w-3 h-3 text-gray-400" />
+                                                )}
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
                         <div>
                             <Label htmlFor="venue">Venue</Label>
-                            {isSystemAdmin ? (
+                            {isPrivilegedAdmin ? (
                                 <Select
                                     value={activityData.venueId || ''}
                                     onValueChange={(value) => updateActivityData('venueId', value)}
@@ -126,11 +163,33 @@ export default function Step1BasicInfo({ activityData, updateActivityData, t, or
                                     </SelectContent>
                                 </Select>
                             ) : (
-                                <Input
-                                    value={venueName || 'Current Venue'}
-                                    disabled
-                                    className="mt-1 bg-gray-100 dark:bg-gray-800"
-                                />
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 flex items-center gap-2 p-2.5 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                                            <MapPin className="w-4 h-4 text-gray-500" />
+                                            <span className="text-sm font-medium">{venueName || 'Current Venue'}</span>
+                                        </div>
+                                    </div>
+                                    {venueId && (
+                                        <div className="flex items-center gap-2 text-xs">
+                                            <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0.5">
+                                                ID: {venueId.slice(0, 8)}...
+                                            </Badge>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-5 w-5 p-0"
+                                                onClick={() => copyToClipboard(venueId, 'Venue')}
+                                            >
+                                                {copiedId === venueId ? (
+                                                    <Check className="w-3 h-3 text-green-500" />
+                                                ) : (
+                                                    <Copy className="w-3 h-3 text-gray-400" />
+                                                )}
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </div>

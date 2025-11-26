@@ -138,11 +138,21 @@ export default function Step7WidgetEmbedNew({
   // Check if we have a valid activity ID (saved activity)
   const hasValidActivityId = activityId && activityId !== 'preview' && activityId.length > 10;
 
-  // Generate downloadable HTML landing page (uses iframe for reliability)
+  // Production URL for embed assets
+  const productionUrl = 'https://qftjyjpitnoapqxlrvfs.supabase.co';
+  const widgetBaseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+    ? baseUrl 
+    : productionUrl;
+
+  // Generate downloadable HTML landing page (uses SDK method - Stripe-style)
   const generateLandingPageHTML = useCallback(() => {
     const activityName = activityData.name || 'Book Your Experience';
     const activityDesc = activityData.description || 'Experience something amazing. Book your session today!';
-    const embedUrl = `${baseUrl}/embed?widget=singlegame&activityId=${activityId}&color=${primaryColor.replace('#', '')}&theme=${theme}`;
+    const colorHex = primaryColor.replace('#', '');
+    
+    // Use production URL for downloaded files so they work anywhere
+    const embedScriptUrl = `${widgetBaseUrl}/embed/bookingtms.js`;
+    const embedIframeUrl = `${widgetBaseUrl}/embed?widget=singlegame&activityId=${activityId}&color=${colorHex}&theme=${theme}&embed=true`;
     
     return `<!DOCTYPE html>
 <html lang="en">
@@ -153,22 +163,42 @@ export default function Step7WidgetEmbedNew({
   <meta name="description" content="${activityDesc}">
   <meta property="og:title" content="${activityName}">
   <meta property="og:description" content="${activityDesc}">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="${widgetBaseUrl}">
   <style>
+    :root { --primary: ${primaryColor}; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
-    .header { background: linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%); color: white; padding: 60px 20px; text-align: center; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+      background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%); 
+      color: #1e293b; 
+      min-height: 100vh; 
+    }
+    .header { 
+      background: linear-gradient(135deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 85%, black) 100%); 
+      color: white; 
+      padding: 60px 20px; 
+      text-align: center; 
+    }
     .header h1 { font-size: 2.5rem; margin-bottom: 10px; font-weight: 700; }
-    .header p { font-size: 1.1rem; opacity: 0.9; max-width: 600px; margin: 0 auto; }
+    .header p { font-size: 1.1rem; opacity: 0.9; max-width: 600px; margin: 0 auto; line-height: 1.6; }
     .widget-container { max-width: 1200px; margin: -40px auto 40px; padding: 0 20px; }
-    .widget-wrapper { background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden; min-height: 700px; }
-    .widget-iframe { width: 100%; min-height: 700px; border: none; }
+    .widget-wrapper { 
+      background: white; 
+      border-radius: 16px; 
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1); 
+      overflow: hidden; 
+      min-height: 700px; 
+    }
+    #bookingtms-widget { width: 100%; min-height: 700px; }
+    .widget-iframe { width: 100%; min-height: 700px; border: none; border-radius: 12px; }
     .footer { text-align: center; padding: 40px 20px; color: #64748b; font-size: 0.875rem; }
-    .footer a { color: ${primaryColor}; text-decoration: none; font-weight: 500; }
+    .footer a { color: var(--primary); text-decoration: none; font-weight: 500; }
     .footer a:hover { text-decoration: underline; }
     @media (max-width: 768px) { 
       .header h1 { font-size: 1.8rem; } 
       .header { padding: 40px 20px; }
-      .widget-wrapper { border-radius: 0; margin: 0 -20px; }
+      .widget-wrapper { border-radius: 0; margin: 0 -20px; box-shadow: none; }
     }
   </style>
 </head>
@@ -180,14 +210,23 @@ export default function Step7WidgetEmbedNew({
   
   <main class="widget-container">
     <div class="widget-wrapper">
-      <!-- BookingTMS Booking Widget (iframe method - cross-domain compatible) -->
-      <iframe 
-        src="${embedUrl}"
-        class="widget-iframe"
-        title="Book ${activityName}"
-        allow="payment"
-        loading="lazy"
-      ></iframe>
+      <!-- BookingTMS Widget Container -->
+      <div 
+        id="bookingtms-widget"
+        data-activity-id="${activityId}"
+        data-color="${colorHex}"
+        data-theme="${theme}"
+      ></div>
+      
+      <!-- Fallback: Direct iframe (loads immediately while SDK initializes) -->
+      <noscript>
+        <iframe 
+          src="${embedIframeUrl}"
+          class="widget-iframe"
+          title="Book ${activityName}"
+          allow="payment"
+        ></iframe>
+      </noscript>
     </div>
   </main>
 
@@ -195,20 +234,31 @@ export default function Step7WidgetEmbedNew({
     <p>Powered by <a href="https://bookingtms.com" target="_blank" rel="noopener">BookingTMS</a></p>
   </footer>
 
+  <!-- BookingTMS SDK (Stripe-style async loading) -->
   <script>
-    // Auto-resize iframe based on content
+    // Configure SDK base URL before loading
+    window.BOOKINGTMS_WIDGET_URL = '${widgetBaseUrl}';
+  </script>
+  <script async src="${embedScriptUrl}" 
+    onerror="document.getElementById('bookingtms-widget').innerHTML='<iframe src=\\'${embedIframeUrl}\\' class=\\'widget-iframe\\' allow=\\'payment\\'></iframe>'">
+  </script>
+  <script>
+    // Handle booking completion events
     window.addEventListener('message', function(e) {
-      if (e.data && e.data.type === 'BOOKINGTMS_RESIZE') {
-        const iframe = document.querySelector('.widget-iframe');
-        if (iframe && e.data.height) {
-          iframe.style.height = Math.max(700, e.data.height) + 'px';
-        }
+      if (e.data && e.data.type === 'BOOKINGTMS_BOOKING_COMPLETE') {
+        console.log('Booking completed:', e.data.booking);
+        // You can add custom handling here (analytics, redirects, etc.)
+      }
+      // Auto-resize iframe
+      if (e.data && e.data.type === 'BOOKINGTMS_RESIZE' && e.data.height) {
+        var iframe = document.querySelector('.widget-iframe, #bookingtms-widget iframe');
+        if (iframe) iframe.style.height = Math.max(700, e.data.height) + 'px';
       }
     });
   </script>
 </body>
 </html>`;
-  }, [activityData.name, activityData.description, primaryColor, baseUrl, activityId, theme]);
+  }, [activityData.name, activityData.description, primaryColor, widgetBaseUrl, activityId, theme]);
 
   // Download file helper
   const downloadFile = useCallback((content: string, filename: string, type: string) => {

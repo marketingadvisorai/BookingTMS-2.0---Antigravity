@@ -82,28 +82,41 @@ export function generateFullPageUrl(config: EmbedConfig, baseUrl: string): strin
 
 /**
  * Generate SDK-based embed code (Stripe-style, recommended)
+ * Fast, lightweight, and API-driven like Stripe.js
  */
 export function generateEmbedCode(config: EmbedConfig, baseUrl: string): string {
-  const activityIdShort = config.activityId?.slice(0, 8) || 'widget';
+  const color = (config.primaryColor || '#2563eb').replace('#', '');
+  
+  return `<!-- BookingTMS Widget (Stripe-Style SDK) -->
+<!-- Step 1: Add container where widget will render -->
+<div 
+  id="bookingtms-widget" 
+  data-activity-id="${config.activityId}"
+  data-color="${color}"
+  data-theme="${config.theme || 'light'}"
+></div>
 
-  return `<!-- BookingTMS Widget (SDK Method - Recommended) -->
-<div id="booking-widget-${activityIdShort}"></div>
-<script src="${baseUrl}/embed.js"></script>
+<!-- Step 2: Load SDK (async, non-blocking) -->
+<script async src="${baseUrl}/embed/bookingtms.js"></script>
+
+<!-- Step 3: Initialize when ready (optional - auto-mounts by default) -->
 <script>
-  BookingTMS.init({
-    key: '${config.embedKey}',
-    theme: '${config.theme || 'light'}',
-    primaryColor: '${(config.primaryColor || '#2563eb').replace('#', '')}'
-  });
-  
-  BookingTMS.booking('#booking-widget-${activityIdShort}', {
-    activityId: '${config.activityId}',
-    venueId: '${config.venueId}'
-  });
-  
-  // Optional: Listen for booking completion
-  document.addEventListener('bookingtms:complete', function(e) {
-    console.log('Booking completed:', e.detail);
+  // Widget auto-mounts, but you can manually control it:
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.BookingTMS) {
+      var widget = BookingTMS.mount('#bookingtms-widget', {
+        onReady: function(data) {
+          console.log('Widget ready:', data.instanceId);
+        },
+        onBooking: function(booking) {
+          console.log('Booking completed:', booking);
+          // Handle successful booking (redirect, show message, etc.)
+        },
+        onError: function(error) {
+          console.error('Widget error:', error);
+        }
+      });
+    }
   });
 </script>`;
 }

@@ -52,12 +52,14 @@ interface Step7WidgetEmbedNewProps extends StepProps {
   activityId?: string;
   venueId?: string;
   embedKey?: string;
+  isEditMode?: boolean; // True when editing an existing activity
 }
 
 export default function Step7WidgetEmbedNew({ 
   activityData, 
   updateActivityData, 
   t,
+  isEditMode = false,
   activityId,
   venueId,
   embedKey 
@@ -130,7 +132,19 @@ export default function Step7WidgetEmbedNew({
   }, [realEmbedUrl]);
 
   // Check if we have a valid activity ID (saved activity)
-  const hasValidActivityId = activityId && activityId !== 'preview' && activityId.length > 10;
+  // In edit mode with an activity ID, downloads should work immediately
+  const hasValidActivityId = Boolean(
+    activityId && 
+    activityId !== 'preview' && 
+    activityId.length > 10
+  );
+  
+  // Downloads are enabled for:
+  // 1. Edit mode with existing activity (has ID from database)
+  // 2. Create mode after the activity has been saved (createdActivityId set)
+  const canDownload = isEditMode ? hasValidActivityId : hasValidActivityId;
+  
+  console.log('[Step7] Activity ID:', activityId, 'Edit mode:', isEditMode, 'Can download:', canDownload);
 
   // Production URL for embed assets - ALWAYS use production for downloads
   // When deployed, this should be updated to the actual production domain

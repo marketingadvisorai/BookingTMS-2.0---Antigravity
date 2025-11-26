@@ -254,13 +254,16 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
           organizationId={organizationId}
         />;
       case 7:
+        // For editing: use existing ID from initialData; For creating: use createdActivityId after save
+        const existingActivityId = initialData?.id || activityData.id || createdActivityId;
         return (
           <Step7WidgetEmbedNew
             activityData={activityData}
             updateActivityData={updateActivityData}
             t={t}
-            activityId={createdActivityId || undefined}
-            venueId={venueId}
+            activityId={existingActivityId || undefined}
+            venueId={venueId || activityData.venueId}
+            isEditMode={mode === 'edit'}
           />
         );
       case 8:

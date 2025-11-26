@@ -6,6 +6,9 @@ export interface EmbedContext {
 }
 
 export interface ActivityData {
+    // Database ID (exists when editing)
+    id?: string;
+    
     // Step 1: Basic Info
     name: string;
     description: string;

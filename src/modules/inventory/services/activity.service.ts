@@ -73,17 +73,33 @@ export class ActivityService {
 
             if (error) throw error;
 
-            return (data || []).map((item: any) => ({
-                ...item,
-                // Map legacy fields if necessary, or just pass through
-                capacity: item.max_players || item.capacity || 1, // Fallback
-                min_players: item.min_players || 1,
-                max_players: item.max_players || item.capacity || 10,
+            return (data || []).map((item: any) => {
+                // Reconstruct schedule from settings if it exists there
+                const schedule: ActivityScheduleRules | undefined = item.settings ? {
+                    operatingDays: item.settings.operatingDays || [],
+                    startTime: item.settings.startTime || '09:00',
+                    endTime: item.settings.endTime || '17:00',
+                    slotInterval: item.settings.slotInterval || 60,
+                    advanceBooking: item.settings.advanceBooking || 0,
+                    customHoursEnabled: item.settings.customHoursEnabled || false,
+                    customHours: item.settings.customHours || {},
+                    customDates: item.settings.customDates || [],
+                    blockedDates: item.settings.blockedDates || []
+                } : undefined;
 
-                child_price: item.settings?.child_price || 0,
-                min_age: item.settings?.min_age || 0,
-                status: item.is_active ? 'active' : 'inactive', // Map is_active to status
-            }));
+                return {
+                    ...item,
+                    // Map legacy fields if necessary, or just pass through
+                    capacity: item.max_players || item.capacity || 1, // Fallback
+                    min_players: item.min_players || 1,
+                    max_players: item.max_players || item.capacity || 10,
+
+                    child_price: item.settings?.child_price || 0,
+                    min_age: item.settings?.min_age || 0,
+                    status: item.is_active ? 'active' : 'inactive', // Map is_active to status
+                    schedule // Attach reconstructed schedule
+                };
+            });
         } catch (error: any) {
             console.error('Error fetching activities:', error);
             throw new Error(error.message || 'Failed to fetch activities');
@@ -104,6 +120,19 @@ export class ActivityService {
             if (error) throw error;
             if (!data) return null;
 
+            // Reconstruct schedule from settings
+            const schedule: ActivityScheduleRules | undefined = data.settings ? {
+                operatingDays: data.settings.operatingDays || [],
+                startTime: data.settings.startTime || '09:00',
+                endTime: data.settings.endTime || '17:00',
+                slotInterval: data.settings.slotInterval || 60,
+                advanceBooking: data.settings.advanceBooking || 0,
+                customHoursEnabled: data.settings.customHoursEnabled || false,
+                customHours: data.settings.customHours || {},
+                customDates: data.settings.customDates || [],
+                blockedDates: data.settings.blockedDates || []
+            } : undefined;
+
             return {
                 ...data,
                 capacity: data.max_players || data.capacity || 1,
@@ -113,6 +142,7 @@ export class ActivityService {
                 child_price: data.settings?.child_price || 0,
                 min_age: data.settings?.min_age || 0,
                 status: data.is_active ? 'active' : 'inactive', // Map is_active to status
+                schedule // Attach reconstructed schedule
             };
         } catch (error: any) {
             console.error('Error fetching activity:', error);

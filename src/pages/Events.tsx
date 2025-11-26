@@ -20,7 +20,7 @@ import { Input } from '../components/ui/input';
 export function Events() {
   const t = useTerminology();
   const { currentUser, isRole } = useAuth();
-  
+
   // System admin can see all venues, org users see only their org's venues
   const isSystemAdmin = isRole('system-admin');
   const { venues, loading: venuesLoading } = useVenues({
@@ -38,7 +38,7 @@ export function Events() {
     if (selectedVenueId) return selectedVenueId;
     return venues.length > 0 ? venues[0].id : undefined;
   }, [venues, selectedVenueId]);
-  
+
   const activeVenue = useMemo(() => venues.find(v => v.id === activeVenueId), [venues, activeVenueId]);
 
   // Use the new hook with the active venue ID
@@ -131,6 +131,16 @@ export function Events() {
         stripe_price_id: data.stripePriceId || null,
         stripe_sync_status: data.stripeSyncStatus || null,
         stripe_last_sync: data.stripeLastSync || null,
+        // Pass schedule fields at top level for useServiceItems adapter
+        operatingDays: data.operatingDays,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        slotInterval: data.slotInterval,
+        advanceBooking: data.advanceBooking,
+        customDates: data.customDates || [],
+        blockedDates: data.blockedDates || [],
+        customHours: data.customHours || {},
+        customHoursEnabled: data.customHoursEnabled || false,
         settings: {
           category: data.category,
           eventType: data.eventType,

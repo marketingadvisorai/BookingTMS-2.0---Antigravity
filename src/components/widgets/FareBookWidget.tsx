@@ -327,8 +327,10 @@ export default function FareBookWidget({ primaryColor = '#0ea5e9', config, theme
   const activeConfig = { ...defaultConfig, ...config };
   const categories = activeConfig.categories || [];
 
-  // Use admin activities if available, otherwise fall back to hardcoded activities
-  const activities = adminActivities.length > 0 ? adminActivities : activeConfig.activities || [];
+  // Use config activities if provided (e.g. from Embed page), otherwise fall back to admin/local activities, then defaults
+  const activities = config?.activities && config.activities.length > 0
+    ? config.activities
+    : (adminActivities.length > 0 ? adminActivities : activeConfig.activities || []);
   const ticketTypes = activeConfig.ticketTypes || [];
 
   // Generate calendar days with real availability data

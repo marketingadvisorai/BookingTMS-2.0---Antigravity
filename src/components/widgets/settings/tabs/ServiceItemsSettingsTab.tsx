@@ -158,6 +158,16 @@ export const ServiceItemsSettingsTab: React.FC<ServiceItemsSettingsTabProps> = (
                 stripe_price_id: data.stripePriceId || null,
                 stripe_sync_status: data.stripeSyncStatus || null,
                 stripe_last_sync: data.stripeLastSync || null,
+                // Pass schedule fields at top level for useServiceItems adapter
+                operatingDays: data.operatingDays,
+                startTime: data.startTime,
+                endTime: data.endTime,
+                slotInterval: data.slotInterval,
+                advanceBooking: data.advanceBooking,
+                customDates: data.customDates || [],
+                blockedDates: data.blockedDates || [],
+                customHours: data.customHours || {},
+                customHoursEnabled: data.customHoursEnabled || false,
                 settings: {
                     category: data.category,
                     eventType: data.eventType,

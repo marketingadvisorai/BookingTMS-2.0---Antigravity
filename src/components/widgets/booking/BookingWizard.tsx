@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { useBookingState } from './hooks/useBookingState';
@@ -54,11 +54,19 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         setShowHealthSafetyDialog
     } = useBookingState(config?.activityId || config?.gameId);
 
-    // 2. Fetch Data
+    // 2. Memoize date to prevent infinite loops
+    const selectedDateObj = useMemo(() => {
+        if (selectedDate && currentYear && currentMonth !== undefined) {
+            return new Date(currentYear, currentMonth, selectedDate);
+        }
+        return new Date();
+    }, [selectedDate, currentMonth, currentYear]);
+
+    // 3. Fetch Data
     const { venue: venueData, activities, loading, error } = useWidgetData({
         venueId: config?.venueId,
         activityId: config?.activityId || config?.gameId,
-        date: selectedDate ? new Date(currentYear, currentMonth, selectedDate) : new Date()
+        date: selectedDateObj
     });
 
     // Derive selected activity data

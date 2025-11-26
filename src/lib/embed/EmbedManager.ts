@@ -6,7 +6,23 @@
  * - ResizeObserver for dynamic height adjustment
  * - Lazy loading for performance
  * - CDN-ready static assets
+ * 
+ * Production URL: https://bookingtms.com (update when deployed)
  */
+
+// Production base URL - UPDATE THIS WHEN DEPLOYED TO PRODUCTION
+const PRODUCTION_URL = 'https://bookingtms.com';
+const SUPABASE_URL = 'https://qftjyjpitnoapqxlrvfs.supabase.co';
+
+// Get the appropriate base URL for embeds
+export const getEmbedBaseUrl = (): string => {
+  if (typeof window === 'undefined') return PRODUCTION_URL;
+  // In development, use localhost; in production, use the production URL
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return window.location.origin;
+  }
+  return window.location.origin; // Use current domain in production
+};
 
 export interface EmbedConfig {
   activityId: string;
@@ -163,92 +179,227 @@ export function generateIframeCode(config: EmbedConfig, baseUrl: string): string
  * Generate React/Next.js component code
  */
 export function generateReactCode(config: EmbedConfig, baseUrl: string): string {
-  const embedUrl = generateEmbedUrl(config, baseUrl);
+  const color = (config.primaryColor || '#2563eb').replace('#', '');
+  
+  return `'use client'; // For Next.js App Router
 
-  return `import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+
+// Configuration - Update BASE_URL when deploying to production
+const BASE_URL = '${baseUrl}';
 
 interface BookingResult {
   bookingId: string;
   activityId: string;
+  sessionId: string;
+  customerEmail: string;
+  totalPrice: number;
   status: 'confirmed' | 'pending';
 }
 
 interface BookingWidgetProps {
+  activityId?: string;
+  primaryColor?: string;
+  theme?: 'light' | 'dark';
   onBookingComplete?: (booking: BookingResult) => void;
+  onError?: (error: { message: string }) => void;
   className?: string;
 }
 
-export function BookingWidget({ onBookingComplete, className }: BookingWidgetProps) {
+export function BookingWidget({
+  activityId = '${config.activityId}',
+  primaryColor = '${color}',
+  theme = '${config.theme || 'light'}',
+  onBookingComplete,
+  onError,
+  className = ''
+}: BookingWidgetProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(700);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Build embed URL
+  const embedUrl = \`\${BASE_URL}/embed?widget=singlegame&activityId=\${activityId}&color=\${primaryColor}&theme=\${theme}&embed=true\`;
+
+  // Handle messages from iframe
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
-      if (e.origin !== '${baseUrl}') return;
+      // Validate origin
+      if (!e.origin.includes(new URL(BASE_URL).hostname)) return;
       
-      const { type, payload } = e.data;
+      const { type, height: newHeight, booking, error } = e.data || {};
       
       switch (type) {
-        case 'RESIZE':
-          setHeight(Math.min(Math.max(payload.height, 600), 900));
+        case 'BOOKINGTMS_READY':
+          setIsLoading(false);
           break;
-        case 'BOOKING_COMPLETE':
-          onBookingComplete?.(payload);
+        case 'BOOKINGTMS_RESIZE':
+          if (newHeight) setHeight(Math.min(Math.max(newHeight, 600), 1200));
+          break;
+        case 'BOOKINGTMS_BOOKING_COMPLETE':
+          onBookingComplete?.(booking);
+          break;
+        case 'BOOKINGTMS_ERROR':
+          onError?.(error);
           break;
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [onBookingComplete]);
+  }, [onBookingComplete, onError]);
 
   return (
-    <iframe
-      ref={iframeRef}
-      src="${embedUrl}"
-      style={{ width: '100%', height, border: 'none', borderRadius: '12px' }}
-      loading="lazy"
-      allow="payment"
-      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-      className={className}
-    />
+    <div className={\`relative \${className}\`}>
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 rounded-xl">
+          <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full" />
+        </div>
+      )}
+      <iframe
+        ref={iframeRef}
+        src={embedUrl}
+        style={{ 
+          width: '100%', 
+          height: \`\${height}px\`, 
+          border: 'none', 
+          borderRadius: '12px',
+          opacity: isLoading ? 0 : 1,
+          transition: 'opacity 0.3s ease'
+        }}
+        loading="lazy"
+        allow="payment"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+        title="Booking Widget"
+        onLoad={() => setIsLoading(false)}
+      />
+    </div>
   );
-}`;
+}
+
+// Usage Example:
+// <BookingWidget 
+//   activityId="${config.activityId}"
+//   primaryColor="${color}"
+//   theme="${config.theme || 'light'}"
+//   onBookingComplete={(booking) => console.log('Booked!', booking)}
+// />`;
 }
 
 /**
- * Generate WordPress shortcode instructions
+ * Generate WordPress PHP plugin code
  */
-export function generateWordPressInstructions(config: EmbedConfig, baseUrl: string): string {
-  const embedUrl = generateEmbedUrl(config, baseUrl);
+export function generateWordPressCode(config: EmbedConfig, baseUrl: string): string {
+  const color = (config.primaryColor || '#2563eb').replace('#', '');
+  
+  return `<?php
+/**
+ * BookingTMS Widget for WordPress
+ * 
+ * Installation:
+ * 1. Create file: wp-content/plugins/bookingtms-widget/bookingtms-widget.php
+ * 2. Paste this code and activate the plugin
+ * 3. Use shortcode: [bookingtms_widget]
+ */
 
-  return `## WordPress Integration
+/*
+Plugin Name: BookingTMS Booking Widget
+Description: Embed BookingTMS booking calendar on your WordPress site
+Version: 1.0.0
+Author: BookingTMS
+*/
 
-### Option 1: Custom HTML Block
-1. In your WordPress editor, add a "Custom HTML" block
-2. Paste the embed code provided above
+if (!defined('ABSPATH')) exit;
 
-### Option 2: WordPress Plugin (Recommended)
-\`\`\`php
-// Add to your theme's functions.php or create a plugin
-
+// Register shortcode
 function bookingtms_widget_shortcode($atts) {
     $atts = shortcode_atts(array(
-        'activity' => '${config.activityId}',
+        'activity_id' => '${config.activityId}',
+        'color' => '${color}',
+        'theme' => '${config.theme || 'light'}',
         'height' => '700',
-    ), $atts);
+    ), $atts, 'bookingtms_widget');
     
-    return '<iframe 
-        src="${embedUrl}" 
-        style="width:100%;height:' . esc_attr($atts['height']) . 'px;border:none;border-radius:12px;" 
-        loading="lazy"
-        allow="payment"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>';
+    $base_url = '${baseUrl}';
+    $embed_url = esc_url(add_query_arg(array(
+        'widget' => 'singlegame',
+        'activityId' => $atts['activity_id'],
+        'color' => $atts['color'],
+        'theme' => $atts['theme'],
+        'embed' => 'true'
+    ), $base_url . '/embed'));
+    
+    $height = intval($atts['height']);
+    $unique_id = 'bookingtms-' . uniqid();
+    
+    ob_start();
+    ?>
+    <div id="<?php echo esc_attr($unique_id); ?>" class="bookingtms-widget-container" style="width:100%;min-height:<?php echo $height; ?>px;">
+        <iframe 
+            src="<?php echo $embed_url; ?>"
+            style="width:100%;height:<?php echo $height; ?>px;border:none;border-radius:12px;"
+            loading="lazy"
+            allow="payment"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+            title="BookingTMS Booking Widget"
+        ></iframe>
+    </div>
+    <script>
+    (function() {
+        window.addEventListener('message', function(e) {
+            if (e.data && e.data.type === 'BOOKINGTMS_RESIZE') {
+                var container = document.getElementById('<?php echo esc_js($unique_id); ?>');
+                var iframe = container ? container.querySelector('iframe') : null;
+                if (iframe && e.data.height) {
+                    iframe.style.height = Math.max(<?php echo $height; ?>, e.data.height) + 'px';
+                }
+            }
+        });
+    })();
+    </script>
+    <?php
+    return ob_get_clean();
 }
-add_shortcode('booking_widget', 'bookingtms_widget_shortcode');
-\`\`\`
+add_shortcode('bookingtms_widget', 'bookingtms_widget_shortcode');
 
-Then use: \`[booking_widget activity="${config.activityId}" height="700"]\``;
+// Add Gutenberg block (optional)
+function bookingtms_register_block() {
+    if (!function_exists('register_block_type')) return;
+    
+    wp_register_script(
+        'bookingtms-block',
+        plugins_url('block.js', __FILE__),
+        array('wp-blocks', 'wp-element', 'wp-editor'),
+        '1.0.0'
+    );
+    
+    register_block_type('bookingtms/widget', array(
+        'editor_script' => 'bookingtms-block',
+        'render_callback' => 'bookingtms_widget_shortcode'
+    ));
+}
+add_action('init', 'bookingtms_register_block');
+?>
+
+<!-- 
+USAGE:
+
+1. Shortcode (in posts/pages):
+   [bookingtms_widget]
+   
+2. With custom options:
+   [bookingtms_widget activity_id="${config.activityId}" color="${color}" theme="light" height="800"]
+
+3. In PHP templates:
+   <?php echo do_shortcode('[bookingtms_widget]'); ?>
+-->`;
+}
+
+/**
+ * Generate WordPress shortcode instructions (legacy)
+ */
+export function generateWordPressInstructions(config: EmbedConfig, baseUrl: string): string {
+  return generateWordPressCode(config, baseUrl);
 }
 
 /**

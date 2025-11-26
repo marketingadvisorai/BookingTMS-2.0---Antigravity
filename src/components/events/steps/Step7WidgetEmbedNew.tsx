@@ -36,7 +36,7 @@ import {
 import { StepProps } from '../types';
 import { ActivityPreviewCard, ActivityPreviewData } from '../../widgets/ActivityPreviewCard';
 import { Badge } from '../../ui/badge';
-import { generateEmbedCode, generateReactCode, generateEmbedUrl } from '../../../lib/embed/EmbedManager';
+import { generateEmbedCode, generateReactCode, generateEmbedUrl, generateWordPressCode, getEmbedBaseUrl } from '../../../lib/embed/EmbedManager';
 import { toast } from 'sonner';
 
 type PreviewDevice = 'desktop' | 'tablet' | 'mobile';
@@ -82,28 +82,22 @@ export default function Step7WidgetEmbedNew({
     maxHeight: 900,
   }), [activityId, venueId, embedKey, primaryColor, theme]);
 
-  // Generate code based on format
+  // Generate code based on format - use production URL for all code types
   const generatedCode = useMemo(() => {
+    // For downloaded code, use the current origin (will be production when deployed)
+    const codeBaseUrl = baseUrl;
+    
     switch (codeFormat) {
       case 'html':
-        return generateEmbedCode(embedConfig, baseUrl);
+        return generateEmbedCode(embedConfig, codeBaseUrl);
       case 'react':
-        return generateReactCode(embedConfig, baseUrl);
+        return generateReactCode(embedConfig, codeBaseUrl);
       case 'wordpress':
-        return `<!-- WordPress Shortcode -->
-[booking_widget 
-  activity="${embedConfig.activityId}" 
-  venue="${embedConfig.venueId}"
-  color="${primaryColor.replace('#', '')}"
-  theme="${theme}"
-  height="700"
-]
-
-<!-- Or use HTML block with the HTML embed code above -->`;
+        return generateWordPressCode(embedConfig, codeBaseUrl);
       default:
-        return generateEmbedCode(embedConfig, baseUrl);
+        return generateEmbedCode(embedConfig, codeBaseUrl);
     }
-  }, [codeFormat, embedConfig, baseUrl, primaryColor, theme]);
+  }, [codeFormat, embedConfig, baseUrl]);
 
   const previewUrl = useMemo(() => {
     return generateEmbedUrl(embedConfig, baseUrl);
@@ -299,8 +293,19 @@ export default function Step7WidgetEmbedNew({
   // Download embed code as file
   const downloadEmbedCode = useCallback(() => {
     const activitySlug = (activityData.name || 'booking').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const ext = codeFormat === 'react' ? 'tsx' : codeFormat === 'wordpress' ? 'php' : 'html';
-    downloadFile(generatedCode, `${activitySlug}-embed.${ext}`, 'text/plain');
+    let ext = 'html';
+    let mimeType = 'text/html';
+    
+    if (codeFormat === 'react') {
+      ext = 'tsx';
+      mimeType = 'text/typescript';
+    } else if (codeFormat === 'wordpress') {
+      ext = 'php';
+      mimeType = 'application/x-php';
+    }
+    
+    downloadFile(generatedCode, `${activitySlug}-widget.${ext}`, mimeType);
+    toast.success(`Downloaded ${codeFormat.toUpperCase()} embed code`);
   }, [generatedCode, codeFormat, downloadFile, activityData.name]);
 
   const deviceConfig = DEVICE_CONFIGS[previewDevice];

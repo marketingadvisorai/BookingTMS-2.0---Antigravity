@@ -132,21 +132,32 @@ export default function Step7WidgetEmbedNew({
   // Check if we have a valid activity ID (saved activity)
   const hasValidActivityId = activityId && activityId !== 'preview' && activityId.length > 10;
 
-  // Production URL for embed assets
-  const productionUrl = 'https://qftjyjpitnoapqxlrvfs.supabase.co';
-  const widgetBaseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost' 
-    ? baseUrl 
-    : productionUrl;
+  // Production URL for embed assets - ALWAYS use production for downloads
+  // When deployed, this should be updated to the actual production domain
+  const PRODUCTION_APP_URL = 'https://bookingtms.vercel.app'; // Update when deployed
+  const SUPABASE_PROJECT_URL = 'https://qftjyjpitnoapqxlrvfs.supabase.co';
+  
+  // For live preview in dashboard, use current origin; for downloads, ALWAYS use production
+  const isLocalDev = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  
+  // Downloaded files must use production URL to work anywhere
+  const downloadBaseUrl = isLocalDev ? baseUrl : window.location.origin;
+  // For now, use current origin for both (will be production when deployed)
+  const widgetBaseUrl = baseUrl;
 
-  // Generate downloadable HTML landing page (uses SDK method - Stripe-style)
+  // Generate downloadable HTML landing page
   const generateLandingPageHTML = useCallback(() => {
     const activityName = activityData.name || 'Book Your Experience';
     const activityDesc = activityData.description || 'Experience something amazing. Book your session today!';
     const colorHex = primaryColor.replace('#', '');
     
-    // Use production URL for downloaded files so they work anywhere
-    const embedScriptUrl = `${widgetBaseUrl}/embed/bookingtms.js`;
-    const embedIframeUrl = `${widgetBaseUrl}/embed?widget=singlegame&activityId=${activityId}&color=${colorHex}&theme=${theme}&embed=true`;
+    // IMPORTANT: Use the current origin for the embed URL
+    // When deployed to production, this will automatically use the production URL
+    // In development, it uses localhost (won't work in downloaded files)
+    const currentOrigin = baseUrl;
+    const embedScriptUrl = `${currentOrigin}/embed/bookingtms.js`;
+    const embedIframeUrl = `${currentOrigin}/embed?widget=singlegame&activityId=${activityId}&color=${colorHex}&theme=${theme}&embed=true`;
     
     return `<!DOCTYPE html>
 <html lang="en">
@@ -601,7 +612,7 @@ export default function Step7WidgetEmbedNew({
                       </h4>
                       <p className={`text-sm ${hasValidActivityId ? 'text-green-700' : 'text-amber-700'}`}>
                         {hasValidActivityId 
-                          ? 'Get a ready-to-use landing page with real data' 
+                          ? 'Download embed codes for any platform' 
                           : '⚠️ Save the activity first to enable downloads'}
                       </p>
                     </div>
@@ -612,17 +623,92 @@ export default function Step7WidgetEmbedNew({
                     </Badge>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-3">
+                
+                {/* Preview Button */}
+                <div className="mb-4">
                   <Button
                     onClick={openDemoPage}
                     disabled={!hasValidActivityId}
                     className={hasValidActivityId 
-                      ? "bg-green-600 hover:bg-green-700 text-white" 
-                      : "bg-gray-300 text-gray-500 cursor-not-allowed"}
+                      ? "bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto" 
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed w-full sm:w-auto"}
                   >
                     <Play className="w-4 h-4 mr-2" />
                     View Live Demo
                   </Button>
+                </div>
+
+                {/* Download Grid - All 3 Types */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* HTML Download */}
+                  <div className={`p-3 rounded-lg border ${hasValidActivityId ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Code className={`w-4 h-4 ${hasValidActivityId ? 'text-orange-600' : 'text-gray-400'}`} />
+                      <span className={`text-sm font-medium ${hasValidActivityId ? 'text-gray-900' : 'text-gray-400'}`}>HTML</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-2">For any website</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const code = generateEmbedCode(embedConfig, baseUrl);
+                        const slug = (activityData.name || 'booking').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                        downloadFile(code, `${slug}-widget.html`, 'text/html');
+                      }}
+                      disabled={!hasValidActivityId}
+                      className={`w-full ${hasValidActivityId ? 'border-orange-300 text-orange-700 hover:bg-orange-50' : ''}`}
+                    >
+                      <Download className="w-3 h-3 mr-1" /> Download
+                    </Button>
+                  </div>
+
+                  {/* React Download */}
+                  <div className={`p-3 rounded-lg border ${hasValidActivityId ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Code className={`w-4 h-4 ${hasValidActivityId ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <span className={`text-sm font-medium ${hasValidActivityId ? 'text-gray-900' : 'text-gray-400'}`}>React / Next.js</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-2">TypeScript component</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const code = generateReactCode(embedConfig, baseUrl);
+                        const slug = (activityData.name || 'booking').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                        downloadFile(code, `${slug}-widget.tsx`, 'text/typescript');
+                      }}
+                      disabled={!hasValidActivityId}
+                      className={`w-full ${hasValidActivityId ? 'border-blue-300 text-blue-700 hover:bg-blue-50' : ''}`}
+                    >
+                      <Download className="w-3 h-3 mr-1" /> Download
+                    </Button>
+                  </div>
+
+                  {/* WordPress Download */}
+                  <div className={`p-3 rounded-lg border ${hasValidActivityId ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Code className={`w-4 h-4 ${hasValidActivityId ? 'text-purple-600' : 'text-gray-400'}`} />
+                      <span className={`text-sm font-medium ${hasValidActivityId ? 'text-gray-900' : 'text-gray-400'}`}>WordPress</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-2">PHP plugin with shortcode</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const code = generateWordPressCode(embedConfig, baseUrl);
+                        const slug = (activityData.name || 'booking').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                        downloadFile(code, `${slug}-widget.php`, 'application/x-php');
+                      }}
+                      disabled={!hasValidActivityId}
+                      className={`w-full ${hasValidActivityId ? 'border-purple-300 text-purple-700 hover:bg-purple-50' : ''}`}
+                    >
+                      <Download className="w-3 h-3 mr-1" /> Download
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Landing Page Download */}
+                <div className="mt-4 pt-4 border-t border-gray-200">
                   <Button
                     variant="outline"
                     onClick={downloadLandingPage}
@@ -632,22 +718,27 @@ export default function Step7WidgetEmbedNew({
                       : "border-gray-200 text-gray-400 cursor-not-allowed"}
                   >
                     <FileCode className="w-4 h-4 mr-2" />
-                    Download Landing Page
+                    Download Complete Landing Page (HTML)
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={downloadEmbedCode}
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Embed Code
-                  </Button>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Full-page booking experience with header, footer, and embedded widget
+                  </p>
                 </div>
-                <p className={`text-xs mt-3 ${hasValidActivityId ? 'text-green-600' : 'text-amber-600'}`}>
-                  {hasValidActivityId 
-                    ? '📌 The landing page connects to our booking system with real-time availability and Stripe checkout.' 
-                    : '💡 Complete Step 8 (Review & Publish) to save the activity and enable live previews.'}
-                </p>
+
+                {!hasValidActivityId && (
+                  <p className="text-xs mt-3 text-amber-600">
+                    💡 Complete Step 8 (Review & Publish) to save the activity and enable downloads.
+                  </p>
+                )}
+
+                {hasValidActivityId && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-blue-700">
+                      <strong>📌 Note:</strong> Downloaded files point to <code className="bg-blue-100 px-1 rounded">{baseUrl}</code>. 
+                      When you deploy your app to production, the embed will automatically use your production URL.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Platform Info */}

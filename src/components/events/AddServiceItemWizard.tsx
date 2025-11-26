@@ -126,15 +126,34 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
   };
 
   const validateActivityData = async () => {
-    const isValid = await trigger();
-    return { errors: [], isValid };
+    // Only validate essential fields for publishing
+    const essentialFields = [
+      'name', 'description', 'category', 
+      'minAdults', 'maxAdults', 'adultPrice',
+      'duration', 'operatingDays', 'startTime', 'endTime'
+    ];
+    const isValid = await trigger(essentialFields as any);
+    
+    // Log validation status
+    console.log('Validation result:', { isValid, errors, activityData });
+    
+    return { errors: Object.keys(errors), isValid };
   };
 
   const handleSubmit = async () => {
     // Validate before publishing
     const validation = await validateActivityData();
+    
     if (!validation.isValid) {
-      toast.error('Please fix validation errors before publishing');
+      // Show specific field errors
+      const errorFields = validation.errors;
+      if (errorFields.length > 0) {
+        const firstError = errors[errorFields[0] as keyof typeof errors];
+        toast.error(`Validation error in "${errorFields[0]}": ${firstError?.message || 'Invalid value'}`);
+        console.error('Validation failed for fields:', errorFields, errors);
+      } else {
+        toast.error('Please fix validation errors before publishing');
+      }
       return;
     }
 

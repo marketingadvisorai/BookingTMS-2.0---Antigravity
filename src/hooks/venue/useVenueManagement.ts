@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useVenues as useVenuesDB } from './useVenues';
+import { useOrganizations } from '../../features/system-admin/hooks/useOrganizations';
 import { useAuth } from '../../lib/auth/AuthContext';
 import { Venue, VenueInput, VenueFormData } from '../../types/venue';
 import { VenueWidgetConfig, createDefaultVenueWidgetConfig } from '../../types/venueWidget';
@@ -14,6 +15,12 @@ import { DEFAULT_FORM_DATA } from '../../utils/venue/venueConstants';
 
 export function useVenueManagement() {
   const { currentUser } = useAuth();
+  const isSystemAdmin = currentUser?.role === 'system-admin';
+
+  // Fetch organizations for system admin
+  const { organizations: organizationsData } = useOrganizations({}, 1, 100);
+  const organizations = isSystemAdmin ? organizationsData : [];
+
   const {
     venues: dbVenues,
     loading: dbLoading,
@@ -21,7 +28,9 @@ export function useVenueManagement() {
     updateVenue: updateVenueDB,
     deleteVenue: deleteVenueDB,
     refreshVenues
-  } = useVenuesDB();
+  } = useVenuesDB({ 
+    fetchAll: isSystemAdmin // Fetch all venues for system admin
+  });
 
   // State
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -44,9 +53,9 @@ export function useVenueManagement() {
   const loading = dbLoading;
 
   // Permission checks
-  const canCreateVenue = ['super-admin', 'beta-owner', 'admin', 'manager', 'staff'].includes(currentUser?.role || '');
-  const canEditVenue = ['super-admin', 'beta-owner', 'admin', 'manager'].includes(currentUser?.role || '');
-  const canDeleteVenue = ['super-admin', 'beta-owner', 'admin'].includes(currentUser?.role || '');
+  const canCreateVenue = ['system-admin', 'super-admin', 'beta-owner', 'admin', 'manager', 'staff'].includes(currentUser?.role || '');
+  const canEditVenue = ['system-admin', 'super-admin', 'beta-owner', 'admin', 'manager'].includes(currentUser?.role || '');
+  const canDeleteVenue = ['system-admin', 'super-admin', 'beta-owner', 'admin'].includes(currentUser?.role || '');
 
   // Handlers
   const handleRefresh = async () => {
@@ -66,18 +75,22 @@ export function useVenueManagement() {
       toast.error('You do not have permission to create venues');
       return;
     }
+    
+    if (isSystemAdmin && !formData.organizationId) {
+      toast.error('Please select an organization');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const newVenue: VenueInput = {
         ...formData,
         widgetConfig: createDefaultVenueWidgetConfig(),
         isActive: true,
+        organizationId: isSystemAdmin ? formData.organizationId : currentUser?.organizationId,
       };
 
-      const venuePayload = {
-        ...mapUIVenueToDB(newVenue),
-        organization_id: currentUser?.organizationId
-      };
+      const venuePayload = mapUIVenueToDB(newVenue);
 
       await createVenueDB(venuePayload);
       setShowCreateDialog(false);
@@ -174,6 +187,7 @@ export function useVenueManagement() {
   const openEditDialog = (venue: Venue) => {
     setSelectedVenue(venue);
     setFormData({
+      organizationId: venue.organizationId,
       name: venue.name,
       type: venue.type,
       description: venue.description,
@@ -189,6 +203,8 @@ export function useVenueManagement() {
   return {
     // Data
     venues,
+    organizations, // Export organizations
+    isSystemAdmin, // Export admin status
     loading,
     selectedVenue,
     formData,

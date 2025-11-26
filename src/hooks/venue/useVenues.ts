@@ -33,7 +33,17 @@ export interface Venue {
   updated_at: string;
 }
 
-export function useVenues() {
+/**
+ * Hook options for venue filtering
+ */
+interface UseVenuesOptions {
+  /** Filter by organization ID (optional - RLS handles this, but good for explicit filtering) */
+  organizationId?: string;
+  /** If true, fetch all venues (for system admins) */
+  fetchAll?: boolean;
+}
+
+export function useVenues(options: UseVenuesOptions = {}) {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,10 +58,25 @@ export function useVenues() {
         setLoading(true);
       }
 
-      const { data, error: fetchError } = await supabase
+      // Build query - optimized to select only needed fields
+      // RLS will filter based on user's role
+      let query = supabase
         .from('venues')
-        .select('*')
+        .select(`
+          id, organization_id, organization_name, company_name,
+          name, address, city, state, zip, country,
+          phone, email, capacity, timezone, status,
+          embed_key, slug, primary_color, base_url, settings,
+          created_by, created_at, updated_at
+        `)
         .order('created_at', { ascending: false });
+
+      // Apply organization filter if provided (defense in depth)
+      if (options.organizationId && !options.fetchAll) {
+        query = query.eq('organization_id', options.organizationId);
+      }
+
+      const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
 
@@ -185,9 +210,18 @@ export function useVenues() {
     }
   };
 
-  // Real-time subscription
+  // Real-time subscription with debounce to prevent excessive updates
   useEffect(() => {
     fetchVenues();
+
+    // Debounce timer to prevent excessive refreshes
+    let debounceTimer: NodeJS.Timeout | null = null;
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchVenues();
+      }, 500); // 500ms debounce
+    };
 
     // Subscribe to venue changes
     const subscription = supabase
@@ -195,13 +229,14 @@ export function useVenues() {
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'venues' },
         (payload) => {
-          console.log('Venue changed:', payload);
-          fetchVenues(); // Refresh on any change
+          console.log('Venue changed:', payload.eventType);
+          debouncedFetch();
         }
       )
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       subscription.unsubscribe();
     };
   }, []);

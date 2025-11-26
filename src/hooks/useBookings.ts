@@ -51,20 +51,66 @@ export function useBookings(venueId?: string) {
     try {
       setError(null);
 
-      const { data, error: fetchError } = await (supabase as any)
-        .rpc('get_bookings_with_details', {
-          p_venue_id: venueId || null,
-          p_status: null,
-          p_from_date: null,
-          p_to_date: null,
-        });
+      // Try RPC first, fallback to direct query
+      let bookingsData: BookingWithDetails[] = [];
 
-      if (fetchError) throw fetchError;
+      try {
+        const { data, error: rpcError } = await (supabase as any)
+          .rpc('get_bookings_with_details', {
+            p_venue_id: venueId || null,
+            p_status: null,
+            p_from_date: null,
+            p_to_date: null,
+          });
 
-      setBookings(data || []);
+        if (!rpcError && data) {
+          bookingsData = data;
+        } else {
+          throw rpcError;
+        }
+      } catch (rpcErr) {
+        // Fallback: Direct query with joins
+        console.log('RPC not available, using direct query');
+        
+        let query = supabase
+          .from('bookings')
+          .select(`
+            *,
+            venues:venue_id (name, city),
+            activities:activity_id (name, difficulty),
+            customers:customer_id (first_name, last_name, email, phone)
+          `)
+          .order('booking_date', { ascending: false })
+          .limit(100);
+
+        if (venueId) {
+          query = query.eq('venue_id', venueId);
+        }
+
+        const { data: directData, error: directError } = await query;
+
+        if (directError) throw directError;
+
+        // Transform to BookingWithDetails format
+        bookingsData = (directData || []).map((b: any) => ({
+          ...b,
+          venue_name: b.venues?.name || 'Unknown Venue',
+          venue_city: b.venues?.city || '',
+          activity_name: b.activities?.name || 'Unknown Activity',
+          activity_difficulty: b.activities?.difficulty || '',
+          customer_name: b.customers 
+            ? `${b.customers.first_name || ''} ${b.customers.last_name || ''}`.trim() 
+            : b.customer_name || 'Unknown',
+          customer_email: b.customers?.email || b.customer_email || '',
+          customer_phone: b.customers?.phone || b.customer_phone || '',
+        }));
+      }
+
+      setBookings(bookingsData);
     } catch (err: any) {
       console.error('Error fetching bookings:', err);
       setError(err.message);
+      // Don't show toast for initial load, only on refresh
       if (showToast) {
         toast.error('Failed to load bookings');
       }

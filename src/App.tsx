@@ -19,6 +19,7 @@ import { Media } from './pages/Media';
 import { Waivers } from './pages/Waivers';
 import { BookingWidgets } from './pages/BookingWidgets';
 import Venues from './pages/Venues';
+import { Organizations } from './pages/Organizations';
 import { Settings } from './pages/Settings';
 import { MyAccount } from './pages/MyAccount';
 import { ProfileSettings } from './pages/ProfileSettings';
@@ -122,6 +123,8 @@ function AppContent() {
         return <Waivers />;
       case 'venues':
         return <Venues />;
+      case 'organizations':
+        return <Organizations />;
       case 'widgets':
         return <BookingWidgets />;
       case 'notifications':

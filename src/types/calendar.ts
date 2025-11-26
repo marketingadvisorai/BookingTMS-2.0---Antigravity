@@ -47,8 +47,10 @@ export interface GameCalendar {
   venue_id: string;
   venue_name?: string;
   venue_calendar_id?: string;
-  game_id: string;
-  game_name?: string;
+  activity_id: string; // Renamed from game_id
+  game_id?: string; // Deprecated - use activity_id
+  activity_name?: string;
+  game_name?: string; // Deprecated - use activity_name
   name: string;
   slug: string;
   description?: string;
@@ -175,7 +177,7 @@ export interface CreateGameCalendarDTO {
   organization_id: string;
   venue_id: string;
   venue_calendar_id?: string;
-  game_id: string;
+  activity_id: string; // Renamed from game_id
   name: string;
   slug?: string;
   description?: string;
@@ -204,7 +206,7 @@ export interface UpdateCalendarDTO {
 export interface CalendarFilter {
   organization_id: string;
   venue_id?: string;
-  game_id?: string;
+  activity_id?: string; // Renamed from game_id
   is_active?: boolean;
   is_default?: boolean;
 }
@@ -213,10 +215,10 @@ export interface CalendarFilter {
  * Type guards
  */
 export function isVenueCalendar(calendar: any): calendar is VenueCalendar {
-  return calendar && typeof calendar.venue_id === 'string' && !calendar.game_id;
+  return calendar && typeof calendar.venue_id === 'string' && !calendar.activity_id && !calendar.game_id;
 }
 
 export function isGameCalendar(calendar: any): calendar is GameCalendar {
-  return calendar && typeof calendar.game_id === 'string';
+  return calendar && (typeof calendar.activity_id === 'string' || typeof calendar.game_id === 'string');
 }
 

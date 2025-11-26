@@ -85,7 +85,7 @@ export class PaymentService {
         *,
         booking:bookings(
           *,
-          game:games(name, description)
+          activity:activities(name, description)
         )
       `)
       .eq('customer_id', customerId)

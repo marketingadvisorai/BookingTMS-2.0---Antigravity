@@ -19,9 +19,10 @@ import { ScrollArea } from '../components/ui/scroll-area';
 import { Separator } from '../components/ui/separator';
 import { toast } from 'sonner';
 import { isValidEmbedKey, generateEmbedUrl, generateIframeCode } from '../utils/embedKeyUtils';
-import { CalendarWidget } from '../components/widgets/CalendarWidget';
 import CalendarWidgetSettings from '../components/widgets/CalendarWidgetSettings';
 import { EmbedPreview } from '../components/widgets/EmbedPreview';
+import { VenueEmbedPreview } from '../components/widgets/VenueEmbedPreview';
+import { VenuePreviewCard } from '../components/widgets/VenuePreviewCard';
 
 // Organized imports from new modular structure
 import { VENUE_TYPES } from '../utils/venue/venueConstants';
@@ -32,6 +33,8 @@ export default function Venues() {
   // Use centralized venue management hook
   const {
     venues,
+    organizations,
+    isSystemAdmin,
     loading,
     selectedVenue,
     formData,
@@ -387,6 +390,29 @@ export default function Venues() {
           </DialogHeader>
           <ScrollArea className="flex-1 overflow-auto">
             <div className="space-y-4 p-4 sm:p-6">
+              {/* Organization Selector for System Admin */}
+              {isSystemAdmin && (
+                <div className="space-y-2">
+                  <Label htmlFor="organization" className="text-sm">Organization *</Label>
+                  <Select 
+                    value={formData.organizationId} 
+                    onValueChange={(value) => setFormData({ ...formData, organizationId: value })}
+                    disabled={showEditDialog} // Disable changing org on edit for safety
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Organization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {organizations.map((org) => (
+                        <SelectItem key={org.id} value={org.id}>
+                          {org.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm">Venue Name *</Label>
                 <Input
@@ -581,7 +607,7 @@ export default function Venues() {
         </DialogContent>
       </Dialog>
 
-      {/* Widget Preview Dialog */}
+      {/* Widget Preview Dialog - Uses VenuePreviewCard (no live booking) */}
       <Dialog open={showWidgetPreview} onOpenChange={setShowWidgetPreview}>
         <DialogContent className="!w-screen !h-screen !max-w-none !max-h-none sm:!w-[90vw] sm:!h-[90vh] sm:!max-w-[1400px] sm:!max-h-[90vh] !rounded-none sm:!rounded-lg overflow-hidden p-0 flex flex-col">
           <DialogHeader className="bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-[#2a2a2a] p-4 sm:p-6 shrink-0">
@@ -591,27 +617,33 @@ export default function Venues() {
                   Widget Preview - {selectedVenue?.name}
                 </DialogTitle>
                 <DialogDescription className="text-xs sm:text-sm text-gray-600 dark:text-[#a3a3a3] mt-0.5 hidden sm:block">
-                  Live Preview - See how your booking widget will look to customers
+                  BookFlow Widget Preview - See how your booking widget will look to customers
                 </DialogDescription>
               </div>
               <Badge variant="secondary" className="bg-gray-100 dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#2a2a2a] text-xs flex-shrink-0 hidden sm:inline-flex">
-                Widget Preview
+                BookFlow Widget
               </Badge>
             </div>
           </DialogHeader>
           <ScrollArea className="flex-1 h-full">
             <div className="p-4 sm:p-8 pb-24 sm:pb-28 bg-gray-50 dark:bg-[#0a0a0a] min-h-full">
               {selectedVenue && (
-                <CalendarWidget
+                <VenuePreviewCard
                   key={`widget-preview-${selectedVenue.id}`}
+                  venueName={selectedVenue.name}
+                  venueCity={selectedVenue.city}
+                  venueState={selectedVenue.state}
                   primaryColor={selectedVenue.primaryColor}
-                  config={{
-                    // Debug: Expose createVenue to window
-                    embedKey: selectedVenue.embedKey,
-                    ...selectedVenue.widgetConfig, // Ensure existing config is spread
-                    venueId: selectedVenue.id,
-                    venueName: selectedVenue.name,
-                  } as any}
+                  activities={selectedVenue.widgetConfig?.activities?.map((a: any) => ({
+                    id: a.id,
+                    name: a.name,
+                    description: a.description,
+                    duration: a.duration,
+                    price: a.price,
+                    min_players: a.min_players,
+                    max_players: a.max_players,
+                    image_url: a.image_url,
+                  })) || []}
                 />
               )}
               <div className="h-12 sm:h-20" />
@@ -640,12 +672,9 @@ export default function Venues() {
               {selectedVenue && (
                 selectedVenue.embedKey ? (
                   <div className="w-full max-w-full overflow-x-hidden">
-                    <EmbedPreview
-                      widgetId="calendar"
-                      widgetName={selectedVenue.name}
-                      primaryColor={selectedVenue.primaryColor}
-                      embedKey={selectedVenue.embedKey}
-                      widgetConfig={selectedVenue.widgetConfig}
+                    <VenueEmbedPreview
+                      venue={selectedVenue}
+                      onClose={() => setShowEmbedCode(false)}
                     />
                   </div>
                 ) : (

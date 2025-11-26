@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Switch } from '../../ui/switch';
 import { Button } from '../../ui/button';
 import { Checkbox } from '../../ui/checkbox';
-import { Trash2, Plus, Clock } from 'lucide-react';
+import { Trash2, Plus, Clock, Calendar } from 'lucide-react';
 import { StepProps } from '../types';
 import { DAYS_OF_WEEK } from '../constants';
 
@@ -34,6 +34,28 @@ export default function Step5Schedule({ activityData, updateActivityData, t }: S
     const removeCustomDate = (index: number) => {
         const newDates = activityData.customDates.filter((_, i) => i !== index);
         updateActivityData('customDates', newDates);
+    };
+
+    // Blocked Dates Management
+    const addBlockedDate = () => {
+        const newBlockedDates = [
+            ...(activityData.blockedDates || []),
+            { id: Date.now().toString(), date: '', blockType: 'full-day' as const, reason: '' },
+        ];
+        updateActivityData('blockedDates', newBlockedDates);
+    };
+
+    const removeBlockedDate = (index: number) => {
+        const newBlockedDates = (activityData.blockedDates || []).filter((_: any, i: number) => i !== index);
+        updateActivityData('blockedDates', newBlockedDates);
+    };
+
+    const updateBlockedDate = (index: number, field: string, value: string) => {
+        const currentBlockedDates = activityData.blockedDates || [];
+        const newBlockedDates = currentBlockedDates.map((item: any, i: number) => 
+            i === index ? { ...item, [field]: value } : item
+        );
+        updateActivityData('blockedDates', newBlockedDates);
     };
 
     const updateCustomDate = (index: number, field: string, value: string) => {
@@ -239,6 +261,59 @@ export default function Step5Schedule({ activityData, updateActivityData, t }: S
                                 <div className="text-center py-4 text-gray-400 text-sm italic bg-gray-50 rounded-lg border border-dashed">
                                     <Clock className="w-8 h-8 mx-auto mb-2 opacity-20" />
                                     No specific dates configured
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Blocked Dates */}
+                    <div className="space-y-4 border-t pt-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label className="text-base">Blocked Dates</Label>
+                                <p className="text-xs text-gray-500 mt-0.5">Block specific dates when the activity is unavailable</p>
+                            </div>
+                            <Button variant="outline" size="sm" onClick={addBlockedDate}>
+                                <Plus className="w-4 h-4 mr-2" /> Block Date
+                            </Button>
+                        </div>
+
+                        <div className="space-y-3">
+                            {(activityData.blockedDates || []).map((blocked: any, index: number) => (
+                                <div key={blocked.id || index} className="flex items-center gap-3 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
+                                    <div className="flex-1">
+                                        <Label className="text-xs">Date</Label>
+                                        <Input
+                                            type="date"
+                                            value={blocked.date || ''}
+                                            onChange={(e) => updateBlockedDate(index, 'date', e.target.value)}
+                                            className="h-8 text-sm"
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <Label className="text-xs">Reason (optional)</Label>
+                                        <Input
+                                            type="text"
+                                            value={blocked.reason || ''}
+                                            onChange={(e) => updateBlockedDate(index, 'reason', e.target.value)}
+                                            placeholder="e.g., Maintenance"
+                                            className="h-8 text-sm"
+                                        />
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => removeBlockedDate(index)}
+                                        className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-100 mt-4"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                            {(!activityData.blockedDates || activityData.blockedDates.length === 0) && (
+                                <div className="text-center py-4 text-gray-400 text-sm italic bg-gray-50 dark:bg-gray-800 rounded-lg border border-dashed">
+                                    <Calendar className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                                    No blocked dates configured
                                 </div>
                             )}
                         </div>

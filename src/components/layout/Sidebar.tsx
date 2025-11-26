@@ -20,7 +20,8 @@ import {
   Server,
   Inbox,
   Building2,
-  Crown
+  Crown,
+  Layers,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useAuth } from '../../lib/auth/AuthContext';
@@ -36,12 +37,24 @@ interface SidebarProps {
 export function Sidebar({ currentPage, onNavigate = () => { }, isMobileOpen = false, onMobileClose }: SidebarProps) {
   const { hasPermission, isRole, logout } = useAuth();
 
+  // Check admin roles
+  const isSystemAdmin = isRole('system-admin');
+  const isSuperAdmin = isRole('super-admin');
+  const canManageOrgs = isSystemAdmin || isSuperAdmin;
+
   // Navigation items with permission requirements
   let navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard.view' as Permission },
     { id: 'bookings', label: 'Bookings', icon: Calendar, permission: 'bookings.view' as Permission },
     { id: 'events', label: 'Activities', icon: Gamepad2, permission: 'games.view' as Permission },
     { id: 'venues', label: 'Venues', icon: Building2, permission: 'venues.view' as Permission },
+    // Organizations - Only for System Admin & Super Admin
+    ...(canManageOrgs ? [{
+      id: 'organizations',
+      label: 'Organizations',
+      icon: Layers,
+      permission: 'system.view' as Permission,
+    }] : []),
     { id: 'widgets', label: 'Booking Widgets', icon: Code, permission: 'widgets.view' as Permission },
     { id: 'customers', label: 'Customers / Guests', icon: UserCircle, permission: 'customers.view' as Permission },
     { id: 'inbox', label: 'Inbox', icon: Inbox, permission: 'dashboard.view' as Permission },
@@ -57,7 +70,7 @@ export function Sidebar({ currentPage, onNavigate = () => { }, isMobileOpen = fa
   ];
 
   // Add System Admin Dashboard for system-admin only (Platform-level management)
-  if (isRole('system-admin')) {
+  if (isSystemAdmin) {
     navItems = [
       {
         id: 'system-admin',
@@ -69,19 +82,22 @@ export function Sidebar({ currentPage, onNavigate = () => { }, isMobileOpen = fa
     ];
   }
 
-  // Add Account Settings for super-admin only
-  if (isRole('super-admin')) {
-    navItems.push({
-      id: 'account-settings',
-      label: 'Account Settings',
-      icon: Shield,
-      permission: 'accounts.view' as Permission
-    });
-    // Add Backend Dashboard for super-admin (includes Database management)
+  // Add Backend Dashboard for system-admin and super-admin (includes Database management)
+  if (isSystemAdmin || isSuperAdmin) {
     navItems.push({
       id: 'backend-dashboard',
       label: 'Backend Dashboard',
       icon: Server,
+      permission: 'accounts.view' as Permission
+    });
+  }
+
+  // Add Account Settings for super-admin only (org-level settings)
+  if (isSuperAdmin) {
+    navItems.push({
+      id: 'account-settings',
+      label: 'Account Settings',
+      icon: Shield,
       permission: 'accounts.view' as Permission
     });
   }

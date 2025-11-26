@@ -31,6 +31,11 @@ interface GameCardProps {
     onDuplicate: (game: Game) => void;
     onDelete: (game: Game) => void;
     onToggleStatus: (id: string, currentStatus: boolean) => void;
+    /** Terminology object for dynamic labels */
+    terminology?: {
+        singular: string;
+        plural: string;
+    };
 }
 
 export function GameCard({
@@ -39,7 +44,8 @@ export function GameCard({
     onViewBookings,
     onDuplicate,
     onDelete,
-    onToggleStatus
+    onToggleStatus,
+    terminology = { singular: 'Activity', plural: 'Activities' }
 }: GameCardProps) {
     return (
         <Card className="overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-200" data-testid={`game-card-${game.name}`}>
@@ -87,11 +93,7 @@ export function GameCard({
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => onEdit(game)} data-testid="edit-game-action">
                                 <Edit className="w-4 h-4 mr-2" />
-                                Edit Game
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onViewBookings(game)}>
-                                <Calendar className="w-4 h-4 mr-2" />
-                                View Bookings
+                                Edit {terminology.singular}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onDuplicate(game)}>
                                 <Copy className="w-4 h-4 mr-2" />
@@ -109,7 +111,7 @@ export function GameCard({
                                 data-testid={`delete-game-${game.name}`}
                             >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete Game
+                                Delete {terminology.singular}
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -141,9 +143,10 @@ export function GameCard({
                 <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => onViewBookings(game)}
+                    onClick={() => onEdit(game)}
                 >
-                    Manage Schedule
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit {terminology.singular}
                 </Button>
             </CardFooter>
         </Card>

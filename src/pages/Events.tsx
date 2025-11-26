@@ -19,14 +19,26 @@ import { Input } from '../components/ui/input';
 
 export function Events() {
   const t = useTerminology();
-  const { currentUser } = useAuth();
-  const { venues, loading: venuesLoading } = useVenues();
+  const { currentUser, isRole } = useAuth();
+  
+  // System admin can see all venues, org users see only their org's venues
+  const isSystemAdmin = isRole('system-admin');
+  const { venues, loading: venuesLoading } = useVenues({
+    organizationId: currentUser?.organizationId,
+    fetchAll: isSystemAdmin, // System admins fetch all venues
+  });
   const { organization } = useOrganization(currentUser?.organizationId || undefined);
 
-  // Determine the active venue ID. 
-  // For single-venue tenants, this will automatically be the only venue.
-  // For multi-venue, we default to the first one for now, or could add a selector later.
-  const activeVenueId = useMemo(() => venues.length > 0 ? venues[0].id : undefined, [venues]);
+  // State for venue selector (for system admins with multiple venues)
+  const [selectedVenueId, setSelectedVenueId] = useState<string | undefined>(undefined);
+
+  // Determine the active venue ID
+  // System admins can select any venue, org users get their default venue
+  const activeVenueId = useMemo(() => {
+    if (selectedVenueId) return selectedVenueId;
+    return venues.length > 0 ? venues[0].id : undefined;
+  }, [venues, selectedVenueId]);
+  
   const activeVenue = useMemo(() => venues.find(v => v.id === activeVenueId), [venues, activeVenueId]);
 
   // Use the new hook with the active venue ID
@@ -279,6 +291,7 @@ export function Events() {
         onDelete={(game) => setDeletingItem(game)}
         onToggleStatus={handleToggleStatus}
         onAddGame={() => setIsAddWizardOpen(true)}
+        terminology={{ singular: t.singular, plural: t.plural }}
       />
 
       {/* Add/Edit Wizard Dialog */}

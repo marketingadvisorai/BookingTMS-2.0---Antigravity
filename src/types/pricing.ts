@@ -9,7 +9,8 @@ export type PricingTierType = 'adult' | 'child' | 'veteran' | 'senior' | 'studen
 export interface PricingTier {
   id: string;
   organization_id: string;
-  game_id: string;
+  activity_id: string; // Renamed from game_id
+  game_id?: string; // Deprecated - use activity_id
   
   // Tier details
   tier_type: PricingTierType;
@@ -43,7 +44,7 @@ export interface PricingTier {
 
 export interface CreatePricingTierDTO {
   organization_id: string;
-  game_id: string;
+  activity_id: string; // Renamed from game_id
   tier_type: PricingTierType;
   tier_name: string;
   tier_description?: string;

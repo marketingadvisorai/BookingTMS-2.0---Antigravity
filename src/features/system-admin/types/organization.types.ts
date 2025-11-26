@@ -17,6 +17,11 @@ export interface Organization {
   // Business Details
   website?: string;
   phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
   
   // Subscription & Billing
   plan_id?: string;
@@ -109,8 +114,14 @@ export interface CreateOrganizationDTO {
   owner_email: string;
   website?: string;
   phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
   plan_id: string;
   status?: 'active' | 'pending';
+  create_default_venue?: boolean;
 }
 
 export interface UpdateOrganizationDTO {
@@ -119,6 +130,11 @@ export interface UpdateOrganizationDTO {
   owner_email?: string;
   website?: string;
   phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
   plan_id?: string;
   status?: 'active' | 'inactive' | 'suspended';
   application_fee_percentage?: number;

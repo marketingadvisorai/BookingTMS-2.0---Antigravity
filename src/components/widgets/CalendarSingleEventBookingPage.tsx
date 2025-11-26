@@ -27,6 +27,8 @@ import { toast } from 'sonner';
 
 interface CalendarSingleEventBookingPageProps {
   primaryColor?: string;
+  activityId?: string;  // Activity ID from URL for single-activity embeds
+  venueId?: string;     // Venue ID from URL for single-activity embeds
   gameName?: string;
   gameDescription?: string;
   gamePrice?: number;
@@ -37,6 +39,8 @@ interface CalendarSingleEventBookingPageProps {
 
 export function CalendarSingleEventBookingPage({
   primaryColor: propPrimaryColor,
+  activityId,
+  venueId,
   gameName,
   gameDescription,
   gamePrice,
@@ -75,8 +79,24 @@ export function CalendarSingleEventBookingPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingNumber, setBookingNumber] = useState<string>('');
 
-  // Resolve game data from config if not provided in props
-  const selectedGame = Array.isArray(config?.games) && config.games.length > 0 ? config.games[0] : null;
+  // Resolve game/activity data from config
+  // If activityId is provided, find that specific activity; otherwise use first one
+  const selectedGame = (() => {
+    const games = Array.isArray(config?.games) ? config.games : [];
+    const activities = Array.isArray(config?.activities) ? config.activities : [];
+    const allItems = [...games, ...activities];
+    
+    if (activityId && allItems.length > 0) {
+      // Find the specific activity by ID
+      const found = allItems.find((item: any) => item.id === activityId);
+      if (found) return found;
+    }
+    
+    // Default to first item if no specific activityId or not found
+    return allItems.length > 0 ? allItems[0] : null;
+  })();
+  
+  console.log('📍 CalendarSingleEventBookingPage - activityId:', activityId, 'venueId:', venueId, 'selectedGame:', selectedGame?.name);
 
   const effectiveGameName = gameName || selectedGame?.name || 'Mystery Manor';
   const effectiveDescription = gameDescription || selectedGame?.description || 'Uncover the dark secrets hidden in an abandoned Victorian mansion';
@@ -204,14 +224,22 @@ export function CalendarSingleEventBookingPage({
         return;
       }
 
-      // Calculate booking time
-      const bookingDate = `2025-11-${String(selectedDate).padStart(2, '0')}`;
+      // Calculate booking time using current date state
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate).padStart(2, '0');
+      const bookingDate = `${year}-${month}-${day}`;
+      
       const [startHour, startMinute] = selectedTime!.split(':');
       const startTime = `${startHour.padStart(2, '0')}:${startMinute.padStart(2, '0')}:00`;
 
-      // Calculate end time (assume 60 min duration)
-      const endHour = String((parseInt(startHour) + 1) % 24).padStart(2, '0');
-      const endTime = `${endHour}:${startMinute.padStart(2, '0')}:00`;
+      // Calculate end time based on activity duration
+      const duration = gameData.schedule?.duration || 60;
+      const startMinutes = parseInt(startHour) * 60 + parseInt(startMinute);
+      const endMinutes = startMinutes + duration;
+      const endHour = String(Math.floor(endMinutes / 60) % 24).padStart(2, '0');
+      const endMin = String(endMinutes % 60).padStart(2, '0');
+      const endTime = `${endHour}:${endMin}:00`;
 
       // Prepare ticket types
       const ticketTypes = [{

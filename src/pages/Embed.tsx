@@ -7,6 +7,7 @@ import { ResolvexWidget } from '../components/widgets/ResolvexWidget';
 import { CalendarSingleEventBookingPage } from '../components/widgets/CalendarSingleEventBookingPage';
 import FareBookWidget from '../components/widgets/FareBookWidget';
 import { WidgetThemeProvider } from '../components/widgets/WidgetThemeContext';
+import { ActivityPreviewCard } from '../components/widgets/ActivityPreviewCard';
 import { supabase } from '../lib/supabase';
 import SupabaseBookingService from '../services/SupabaseBookingService';
 
@@ -17,10 +18,14 @@ export function Embed() {
   const [primaryColor, setPrimaryColor] = useState<string>(DEFAULT_PRIMARY_COLOR);
   const [widgetKey, setWidgetKey] = useState<string>('');
   const [widgetTheme, setWidgetTheme] = useState<'light' | 'dark'>('light');
+  const [isFullPage, setIsFullPage] = useState<boolean>(false); // Full page mode flag
   // Config used by embedded widgets (loaded from Supabase by embedKey)
   const [embedConfig, setEmbedConfig] = useState<any | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  // Activity and venue IDs from URL (for single activity embeds)
+  const [activityId, setActivityId] = useState<string | undefined>(undefined);
+  const [urlVenueId, setUrlVenueId] = useState<string | undefined>(undefined);
   // Single game overrides from URL (optional)
   const [singleGameName, setSingleGameName] = useState<string | undefined>(undefined);
   const [singleGameDescription, setSingleGameDescription] = useState<string | undefined>(undefined);
@@ -66,6 +71,12 @@ export function Embed() {
     const color = params.get('color') || DEFAULT_PRIMARY_COLOR.replace('#', '');
     const key = params.get('key') || '';
     const theme = (params.get('theme') as 'light' | 'dark') || 'light';
+    const mode = params.get('mode'); // Check for fullpage mode
+    
+    // Activity-specific parameters (for single activity embeds)
+    // Handle preview mode - when activityId is 'preview', show safe preview
+    const actId = params.get('activityId') || undefined;
+    const venId = params.get('venueId') || undefined;
 
     // Optional single game preview params
     const sgName = params.get('gameName') || undefined;
@@ -73,13 +84,16 @@ export function Embed() {
     const sgPriceRaw = params.get('gamePrice');
     const sgPrice = sgPriceRaw ? parseFloat(sgPriceRaw) : undefined;
 
-    console.log('📍 Embed page loaded with params:', { widget, color, key, theme });
+    console.log('📍 Embed page loaded with params:', { widget, color, key, theme, activityId: actId, venueId: venId });
     console.log('📍 Full URL:', window.location.href);
 
     setWidgetId(widget);
     setPrimaryColor(`#${color.replace('#', '')}`);
     setWidgetKey(key);
     setWidgetTheme(theme);
+    setIsFullPage(mode === 'fullpage');
+    setActivityId(actId);
+    setUrlVenueId(venId);
 
     // Apply single-game overrides if provided
     setSingleGameName(sgName);
@@ -229,8 +243,66 @@ export function Embed() {
   // Store venue ID for real-time updates
   const [venueId, setVenueId] = useState<string | null>(null);
 
-  const fetchVenueConfig = useCallback(
+  /**
+   * Fetch widget config - handles both venue-level and activity-level embeds
+   * - Venue embed: uses embedKey to fetch all activities for a venue
+   * - Activity embed: uses activityId to fetch single activity
+   */
+  const fetchWidgetConfig = useCallback(
     async ({ showLoading = true }: { showLoading?: boolean } = {}) => {
+      // Handle preview mode - skip database fetch, use default config
+      if (activityId === 'preview') {
+        console.log('👁️ Preview mode detected - using safe preview');
+        setIsLoading(false);
+        setError(null);
+        return;
+      }
+
+      // Handle single activity embed (activityId takes priority)
+      if (activityId) {
+        try {
+          if (showLoading) setIsLoading(true);
+          setError(null);
+
+          console.log('🔍 Fetching activity config for activityId:', activityId);
+          const result = await SupabaseBookingService.getActivityWidgetConfig(activityId);
+
+          if (!result) {
+            console.error('❌ No activity found for activityId:', activityId);
+            setError('Activity not found. Please check your embed code.');
+            return;
+          }
+
+          const { activity, venue, widgetConfig } = result;
+          console.log('✅ Activity found:', activity.name, '(Venue:', venue?.name || 'N/A', ')');
+
+          if (venue) {
+            setVenueId(venue.id);
+          }
+
+          const mergedConfig = {
+            ...defaultConfig,
+            ...widgetConfig,
+            activities: [activity],
+            games: [activity], // Backward compatibility
+          };
+
+          setEmbedConfig(mergedConfig);
+
+          const resolvedColor = widgetConfig?.primaryColor || DEFAULT_PRIMARY_COLOR;
+          setPrimaryColor(resolvedColor.startsWith('#') ? resolvedColor : `#${resolvedColor}`);
+
+          console.log('✅ Activity widget config loaded');
+        } catch (e: any) {
+          console.error('❌ Exception fetching activity data:', e);
+          setError(e?.message || 'An error occurred loading the activity.');
+        } finally {
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // Handle venue embed (uses embedKey)
       if (!widgetKey) {
         console.log('⚠️ No embedKey provided, using default config');
         setEmbedConfig(undefined);
@@ -246,7 +318,7 @@ export function Embed() {
         }
         setError(null);
 
-        console.log('🔍 Fetching widget config for embedKey:', widgetKey);
+        console.log('🔍 Fetching venue config for embedKey:', widgetKey);
         const result = await SupabaseBookingService.getVenueWidgetConfig(widgetKey);
 
         if (!result) {
@@ -275,11 +347,11 @@ export function Embed() {
         setPrimaryColor(resolvedColor.startsWith('#') ? resolvedColor : `#${resolvedColor}`);
 
         if (!mergedConfig.games.length) {
-          console.warn('⚠️ No active games found for this venue');
+          console.warn('⚠️ No active activities found for this venue');
           setError('No experiences available at this time. Please check back later.');
         }
 
-        console.log('✅ Widget config loaded with', mergedConfig.games.length, 'games');
+        console.log('✅ Venue widget config loaded with', mergedConfig.games.length, 'activities');
       } catch (e: any) {
         console.error('❌ Exception fetching venue data:', e);
         setEmbedConfig(undefined);
@@ -288,23 +360,32 @@ export function Embed() {
         setIsLoading(false);
       }
     },
-    [widgetKey]
+    [widgetKey, activityId]
   );
 
-  // Fetch venue data from Supabase by embedKey using SupabaseBookingService
+  // Fetch widget data from Supabase (venue or single activity)
   useEffect(() => {
-    if (widgetKey) {
-      fetchVenueConfig({ showLoading: true });
+    if (widgetKey || activityId) {
+      fetchWidgetConfig({ showLoading: true });
     } else {
       setIsLoading(false);
     }
-  }, [widgetKey, fetchVenueConfig]);
+  }, [widgetKey, activityId, fetchWidgetConfig]);
 
-  // Set up real-time subscription for game updates
+  // Set up real-time subscription for activity updates (optimized for high traffic)
   useEffect(() => {
-    if (!venueId || !widgetKey) return;
+    if (!venueId) return;
 
     console.log('🔄 Setting up real-time subscription for venue:', venueId);
+
+    // Debounce to prevent excessive updates under high traffic
+    let debounceTimer: NodeJS.Timeout | null = null;
+    const debouncedRefresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchWidgetConfig({ showLoading: false });
+      }, 500); // 500ms debounce for better performance
+    };
 
     const channel = supabase
       .channel(`widget-${venueId}`)
@@ -313,12 +394,25 @@ export function Embed() {
         {
           event: '*',
           schema: 'public',
-          table: 'games',
+          table: 'activities',
           filter: `venue_id=eq.${venueId}`,
         },
         (payload) => {
-          console.log('🔔 Game update detected:', payload.eventType);
-          fetchVenueConfig({ showLoading: false });
+          console.log('🔔 Activity update detected:', payload.eventType);
+          debouncedRefresh();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'activity_sessions',
+          filter: `venue_id=eq.${venueId}`,
+        },
+        (payload) => {
+          console.log('🔔 Session update detected:', payload.eventType);
+          debouncedRefresh();
         }
       )
       .on(
@@ -331,7 +425,7 @@ export function Embed() {
         },
         () => {
           console.log('🔔 Venue update detected');
-          fetchVenueConfig({ showLoading: false });
+          debouncedRefresh();
         }
       )
       .subscribe();
@@ -339,9 +433,10 @@ export function Embed() {
     // Cleanup subscriptions on unmount
     return () => {
       console.log('🔌 Cleaning up real-time subscriptions');
+      if (debounceTimer) clearTimeout(debounceTimer);
       channel.unsubscribe();
     };
-  }, [venueId, widgetKey, fetchVenueConfig]);
+  }, [venueId, fetchWidgetConfig]);
 
   const renderWidget = () => {
     const widgetProps = {
@@ -365,10 +460,41 @@ export function Embed() {
       case 'resolvex':
         return <ResolvexWidget {...widgetProps} />;
       case 'singlegame':
-        console.log('✅ Rendering Calendar Single Event widget');
+      case 'calendar-booking': // New unified booking widget route
+      case 'booking':
+        // Handle preview mode with safe preview component
+        if (activityId === 'preview') {
+          console.log('👁️ Rendering Preview mode - using ActivityPreviewCard');
+          return (
+            <ActivityPreviewCard
+              activity={{
+                id: 'preview',
+                name: singleGameName || 'Sample Activity',
+                description: singleGameDescription || 'Experience an amazing adventure with your group.',
+                duration: 60,
+                difficulty: '3',
+                min_players: 2,
+                max_players: 8,
+                price: singleGamePrice || 30,
+                schedule: {
+                  operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+                  startTime: '10:00',
+                  endTime: '22:00',
+                  slotInterval: 60,
+                },
+              }}
+              primaryColor={primaryColor}
+              theme={widgetTheme}
+              showBookingFlow={true}
+            />
+          );
+        }
+        console.log('✅ Rendering Calendar Booking widget with activityId:', activityId, 'venueId:', urlVenueId);
         return (
           <CalendarSingleEventBookingPage
             {...widgetProps}
+            activityId={activityId}
+            venueId={urlVenueId}
             gameName={singleGameName}
             gameDescription={singleGameDescription}
             gamePrice={singleGamePrice}

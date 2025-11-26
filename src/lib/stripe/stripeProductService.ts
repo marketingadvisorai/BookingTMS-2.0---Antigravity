@@ -60,23 +60,59 @@ interface ProductAndPrice {
 }
 
 export class StripeProductService {
-  // Helper to invoke Edge Function
+  // Helper to invoke Edge Function with improved error handling
   private static async invokeStripeFunction(action: string, params: any) {
-    const { data, error } = await supabase.functions.invoke('stripe-manage-product', {
-      body: { action, ...params }
-    });
+    console.log(`[Stripe] Invoking edge function: ${action}`, params);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('stripe-manage-product', {
+        body: { action, ...params }
+      });
 
-    if (error) {
-      console.error(`Edge Function error (${action}):`, error);
-      throw new Error(error.message || 'Failed to invoke Stripe function');
+      // Handle Supabase function errors
+      if (error) {
+        console.error(`[Stripe] Edge Function error (${action}):`, {
+          name: error.name,
+          message: error.message,
+          context: (error as any).context,
+          status: (error as any).status,
+        });
+        
+        // Try to extract more details from the error
+        let errorMessage = error.message || 'Failed to invoke Stripe function';
+        
+        // FunctionsHttpError often has the actual error in context
+        if ((error as any).context) {
+          try {
+            const contextData = (error as any).context;
+            if (typeof contextData === 'object' && contextData.error) {
+              errorMessage = contextData.error;
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      // Handle errors returned in the data
+      if (data?.error) {
+        console.error(`[Stripe] API error (${action}):`, data.error);
+        throw new Error(data.error);
+      }
+
+      console.log(`[Stripe] Success (${action}):`, data);
+      return data;
+    } catch (err: any) {
+      console.error(`[Stripe] Exception in ${action}:`, err);
+      
+      // Re-throw with better message
+      if (err.message) {
+        throw err;
+      }
+      throw new Error(`Stripe operation ${action} failed`);
     }
-
-    if (data?.error) {
-      console.error(`Stripe API error (${action}):`, data.error);
-      throw new Error(data.error);
-    }
-
-    return data;
   }
 
   /**

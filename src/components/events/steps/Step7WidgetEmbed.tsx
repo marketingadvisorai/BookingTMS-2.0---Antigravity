@@ -168,11 +168,31 @@ export default function Step7WidgetEmbed({ activityData, updateActivityData, t }
                                                 gameName={activityData.name}
                                                 gameDescription={activityData.description}
                                                 gamePrice={activityData.adultPrice}
-                                                gameSchedule={activityData.schedule}
+                                                gameSchedule={{
+                                                    operatingDays: activityData.operatingDays,
+                                                    startTime: activityData.startTime,
+                                                    endTime: activityData.endTime,
+                                                    slotInterval: activityData.slotInterval,
+                                                    duration: activityData.duration,
+                                                    advanceBooking: activityData.advanceBooking,
+                                                    customHours: activityData.customHours,
+                                                    customHoursEnabled: activityData.customHoursEnabled
+                                                }}
                                                 timezone={activityData.timezone}
                                                 config={{
                                                     // Pass minimal config for preview
                                                     businessName: embedContext.venueName,
+                                                    games: [{
+                                                        name: activityData.name,
+                                                        description: activityData.description,
+                                                        price: activityData.adultPrice,
+                                                        image: activityData.coverImage,
+                                                        galleryImages: activityData.galleryImages,
+                                                        duration: `${activityData.duration} min`,
+                                                        difficulty: ['Very Easy', 'Easy', 'Moderate', 'Hard', 'Very Hard'][activityData.difficulty - 1] || 'Moderate',
+                                                        players: `${activityData.minAdults}-${activityData.maxAdults} players`,
+                                                        minAge: activityData.minAge
+                                                    }]
                                                 }}
                                             />
                                         </WidgetThemeProvider>

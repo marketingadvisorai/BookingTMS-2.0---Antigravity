@@ -194,6 +194,8 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
     if (initialData) {
       const wizardData = convertActivityToWizardData(initialData);
       reset(wizardData);
+      // Trigger validation to ensure isValid is updated based on the loaded data
+      trigger();
     } else {
       reset({
         name: '',
@@ -253,7 +255,7 @@ export default function AddServiceItemWizard({ onComplete, onCancel, initialData
         slug: '',
       });
     }
-  }, [initialData, reset]);
+  }, [initialData, reset, trigger]);
   const activityData = watch();
 
   const progress = (currentStep / STEPS.length) * 100;

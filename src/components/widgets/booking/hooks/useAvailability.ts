@@ -100,7 +100,9 @@ export const useAvailability = ({
             endTime: selectedActivityData.endTime || '22:00',
             slotInterval: selectedActivityData.slotInterval || 60,
             duration: typeof selectedActivityData.duration === 'string' ? parseInt(selectedActivityData.duration) : (selectedActivityData.duration || 90),
-            advanceBooking: selectedActivityData.advanceBooking || 30
+            advanceBooking: selectedActivityData.advanceBooking || 30,
+            customHours: selectedActivityData.customHours,
+            customHoursEnabled: selectedActivityData.customHoursEnabled
         };
 
         const generatedSlots = generateTimeSlots(

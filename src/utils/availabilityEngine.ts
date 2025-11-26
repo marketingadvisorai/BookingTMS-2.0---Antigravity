@@ -10,6 +10,14 @@ export interface GameSchedule {
   slotInterval?: number; // minutes between slots
   duration?: number; // game duration in minutes
   advanceBooking?: number; // days in advance bookings allowed
+  customHoursEnabled?: boolean;
+  customHours?: {
+    [key: string]: {
+      enabled: boolean;
+      startTime: string;
+      endTime: string;
+    };
+  };
 }
 
 export interface BlockedDate {
@@ -168,13 +176,29 @@ export function generateTimeSlots(
     }
   }
 
-  // Use custom date times if available, otherwise use schedule times
+  // Determine start and end times
+  let scheduleStartTime = gameSchedule.startTime || '10:00';
+  let scheduleEndTime = gameSchedule.endTime || '22:00';
+
+  // Check for custom hours per day
+  if (gameSchedule.customHoursEnabled && gameSchedule.customHours) {
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = dayNames[date.getDay()];
+    const customDay = gameSchedule.customHours[dayName];
+
+    if (customDay && customDay.enabled) {
+      scheduleStartTime = customDay.startTime;
+      scheduleEndTime = customDay.endTime;
+    }
+  }
+
+  // Use custom date times if available, otherwise use schedule/custom hours times
   const startTime = customDate
     ? convertTo24Hour(customDate.startTime)
-    : convertTo24Hour(gameSchedule.startTime || '10:00');
+    : convertTo24Hour(scheduleStartTime);
   const endTime = customDate
     ? convertTo24Hour(customDate.endTime)
-    : convertTo24Hour(gameSchedule.endTime || '22:00');
+    : convertTo24Hour(scheduleEndTime);
 
   // CRITICAL FIX: Use game duration as interval to prevent overlaps
   // For a 90-min game, slots must be 90 minutes apart, not 60!

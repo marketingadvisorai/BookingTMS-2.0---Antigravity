@@ -12,6 +12,9 @@ node_modules/
 # Env files
 .env
 .env.*
+secrets.env
+*.secrets
+*.local
 
 # Logs and reports
 *.log

@@ -1,10 +1,12 @@
 /**
- * SimpleActivityPreview - Lightweight static preview for Step 7
+ * SimpleActivityPreview - Ultra-lightweight static preview for Step 7
  * 
+ * Optimized with React.memo to prevent unnecessary re-renders.
  * No complex calculations, no heavy state management.
  * Just a visual representation of how the widget will look.
  */
-import { Calendar, Clock, Users, CreditCard, Shield } from 'lucide-react';
+import React from 'react';
+import { Calendar, Clock, Users, Shield } from 'lucide-react';
 import { cn } from '../ui/utils';
 
 interface SimpleActivityPreviewProps {
@@ -20,7 +22,8 @@ interface SimpleActivityPreviewProps {
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=600&h=400&fit=crop';
 
-export function SimpleActivityPreview({
+// Memoized to prevent re-renders when parent updates
+export const SimpleActivityPreview = React.memo(function SimpleActivityPreview({
   activityName = 'Your Activity',
   activityDescription = 'An exciting experience awaits!',
   price = 30,
@@ -192,6 +195,6 @@ export function SimpleActivityPreview({
       </div>
     </div>
   );
-}
+});
 
 export default SimpleActivityPreview;

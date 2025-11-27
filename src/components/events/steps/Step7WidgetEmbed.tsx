@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
@@ -7,11 +7,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { Textarea } from '../../ui/textarea';
 import { Copy, Check, ExternalLink, Code, Calendar, Eye, Globe } from 'lucide-react';
 import { StepProps, EmbedContext } from '../types';
-import { SimpleActivityPreview } from '../../widgets/SimpleActivityPreview';
+// Lazy load preview to avoid blocking main thread
+const SimpleActivityPreview = lazy(() => import('../../widgets/SimpleActivityPreview'));
 import { Badge } from '../../ui/badge';
 
 export default function Step7WidgetEmbed({ activityData, updateActivityData, t }: StepProps) {
     const [copied, setCopied] = useState(false);
+    const [activeTab, setActiveTab] = useState<'preview' | 'code'>('code'); // Default to code tab to avoid loading preview immediately
     const [embedContext, setEmbedContext] = useState<EmbedContext>({
         embedKey: 'YOUR_EMBED_KEY', // Placeholder until saved
         primaryColor: '#2563eb',
@@ -101,77 +103,90 @@ export default function Step7WidgetEmbed({ activityData, updateActivityData, t }
                         </div>
                     </div>
 
-                    <Tabs defaultValue="preview" className="w-full">
+                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'preview' | 'code')} className="w-full">
                         <TabsList className="grid w-full grid-cols-2 mb-6 p-1 bg-gray-100 rounded-lg">
-                            <TabsTrigger value="preview" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md py-2">
-                                <Eye className="w-4 h-4 mr-2" />
-                                Live Preview
-                            </TabsTrigger>
                             <TabsTrigger value="code" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md py-2">
                                 <Code className="w-4 h-4 mr-2" />
                                 Get Embed Code
                             </TabsTrigger>
+                            <TabsTrigger value="preview" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md py-2">
+                                <Eye className="w-4 h-4 mr-2" />
+                                Live Preview
+                            </TabsTrigger>
                         </TabsList>
 
-                        {/* Live Preview Tab */}
+                        {/* Live Preview Tab - Only render when active */}
                         <TabsContent value="preview" className="space-y-4 animate-in fade-in-50 duration-300">
-                            <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center justify-between mb-4">
-                                <div className="space-y-1">
-                                    <Label className="text-sm font-medium text-gray-700">Primary Brand Color</Label>
-                                    <div className="flex items-center gap-2">
-                                        <div className="relative">
-                                            <Input
-                                                type="color"
-                                                value={embedContext.primaryColor}
-                                                onChange={(e) =>
-                                                    setEmbedContext({ ...embedContext, primaryColor: e.target.value })
-                                                }
-                                                className="w-10 h-10 p-1 cursor-pointer rounded-lg border-gray-300"
-                                            />
+                            {activeTab === 'preview' && (
+                                <>
+                                    <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center justify-between mb-4">
+                                        <div className="space-y-1">
+                                            <Label className="text-sm font-medium text-gray-700">Primary Brand Color</Label>
+                                            <div className="flex items-center gap-2">
+                                                <div className="relative">
+                                                    <Input
+                                                        type="color"
+                                                        value={embedContext.primaryColor}
+                                                        onChange={(e) =>
+                                                            setEmbedContext({ ...embedContext, primaryColor: e.target.value })
+                                                        }
+                                                        className="w-10 h-10 p-1 cursor-pointer rounded-lg border-gray-300"
+                                                    />
+                                                </div>
+                                                <Input
+                                                    value={embedContext.primaryColor}
+                                                    onChange={(e) =>
+                                                        setEmbedContext({ ...embedContext, primaryColor: e.target.value })
+                                                    }
+                                                    className="w-28 font-mono text-sm uppercase"
+                                                />
+                                            </div>
                                         </div>
-                                        <Input
-                                            value={embedContext.primaryColor}
-                                            onChange={(e) =>
-                                                setEmbedContext({ ...embedContext, primaryColor: e.target.value })
-                                            }
-                                            className="w-28 font-mono text-sm uppercase"
-                                        />
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => window.open(generatePreviewUrl(), '_blank')}
+                                            className="w-full sm:w-auto border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+                                        >
+                                            <ExternalLink className="w-4 h-4 mr-2" />
+                                            Open Full Page Preview
+                                        </Button>
                                     </div>
-                                </div>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => window.open(generatePreviewUrl(), '_blank')}
-                                    className="w-full sm:w-auto border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
-                                >
-                                    <ExternalLink className="w-4 h-4 mr-2" />
-                                    Open Full Page Preview
-                                </Button>
-                            </div>
 
-                            <div className="border rounded-xl overflow-hidden shadow-lg bg-gray-50 relative">
-                                <div className="absolute top-0 left-0 right-0 h-8 bg-gray-100 border-b flex items-center px-4 gap-2 z-10">
-                                    <div className="flex gap-1.5">
-                                        <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                                        <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                                        <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                                    <div className="border rounded-xl overflow-hidden shadow-lg bg-gray-50 relative">
+                                        <div className="absolute top-0 left-0 right-0 h-8 bg-gray-100 border-b flex items-center px-4 gap-2 z-10">
+                                            <div className="flex gap-1.5">
+                                                <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                                                <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                                <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                                            </div>
+                                            <div className="flex-1 text-center text-xs text-gray-500 font-mono bg-white mx-4 rounded px-2 py-0.5 truncate">
+                                                {generatePreviewUrl()}
+                                            </div>
+                                        </div>
+                                        <div className="h-[600px] overflow-y-auto pt-10 bg-gray-50 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                                            <Suspense fallback={
+                                                <div className="flex items-center justify-center h-full">
+                                                    <div className="text-center">
+                                                        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                                                        <p className="text-sm text-gray-600">Loading preview...</p>
+                                                    </div>
+                                                </div>
+                                            }>
+                                                <SimpleActivityPreview
+                                                    activityName={activityData.name || 'Your Activity'}
+                                                    activityDescription={activityData.description}
+                                                    price={activityData.adultPrice || 30}
+                                                    duration={activityData.duration || 60}
+                                                    minPlayers={activityData.minAdults || 2}
+                                                    maxPlayers={activityData.maxAdults || 8}
+                                                    primaryColor={embedContext.primaryColor}
+                                                    coverImage={activityData.coverImage}
+                                                />
+                                            </Suspense>
+                                        </div>
                                     </div>
-                                    <div className="flex-1 text-center text-xs text-gray-500 font-mono bg-white mx-4 rounded px-2 py-0.5 truncate">
-                                        {generatePreviewUrl()}
-                                    </div>
-                                </div>
-                                <div className="h-[600px] overflow-y-auto pt-10 bg-gray-50 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                                    <SimpleActivityPreview
-                                        activityName={activityData.name || 'Your Activity'}
-                                        activityDescription={activityData.description}
-                                        price={activityData.adultPrice || 30}
-                                        duration={activityData.duration || 60}
-                                        minPlayers={activityData.minAdults || 2}
-                                        maxPlayers={activityData.maxAdults || 8}
-                                        primaryColor={embedContext.primaryColor}
-                                        coverImage={activityData.coverImage}
-                                    />
-                                </div>
-                            </div>
+                                </>
+                            )}
                         </TabsContent>
 
                         {/* Embed Code Tab */}

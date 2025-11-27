@@ -14,3 +14,4 @@ export * from './waitlist.types';
 export * from './giftcard.types';
 export * from './groupbooking.types';
 export * from './calendar-sync.types';
+export * from './sms-reminder.types';

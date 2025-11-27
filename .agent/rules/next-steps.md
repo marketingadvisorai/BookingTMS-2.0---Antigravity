@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
-> Last Updated: 2025-11-27
-> Version: v2.1.0-embed-pro-liquid-glass
+> Last Updated: 2025-11-28
+> Version: v0.1.44-customer-portal
 
 ---
 
@@ -237,10 +237,26 @@
 
 ### Phase 3
 - [x] Calendar sync (Google, iCal) ✅ v0.1.42
-- [ ] SMS reminders
-- [ ] Customer portal for managing bookings
+- [x] SMS reminders ✅ v0.1.43
+- [x] Customer portal for managing bookings ✅ v0.1.44
 - [ ] Recurring bookings
 - [ ] Membership / subscription bookings
+
+#### Customer Portal System (v0.1.44)
+- **Routes**: `/my-bookings`, `/customer-portal` (public, no admin auth)
+- **Types**: CustomerProfile, CustomerBooking, BookingStatus, PaymentStatus
+- **Services**: customerAuthService (lookup, session), customerBookingService (CRUD)
+- **Hooks**: useCustomerAuth, useCustomerBookings
+- **Components**: CustomerLookup, CustomerDashboard, BookingCard, BookingDetailsModal
+- **Features**: Email/phone/booking-ref lookup, view/cancel/reschedule, 24h cancellation window
+- **Session**: 2-hour localStorage sessions with auto-extend
+
+#### SMS Reminder System (v0.1.43)
+- **Types**: SMSReminder, SMSReminderType, SMSReminderSettings
+- **Service**: smsReminderService - send, schedule, templates
+- **Component**: WidgetSMSOptIn - checkbox with reminder options
+- **Templates**: Confirmation, 24h, 1h, cancellation, reschedule
+- **Ready for**: Twilio, Supabase Edge Function integration
 
 #### Calendar Sync System (v0.1.42)
 - **Types**: CalendarEvent, CalendarProvider, CalendarLinks

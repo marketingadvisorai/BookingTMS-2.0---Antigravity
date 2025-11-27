@@ -29,6 +29,7 @@ import { Team } from './pages/Team';
 import { Embed } from './pages/Embed';
 import EmbedProPage from './pages/EmbedPro';
 import { EmbedProPage as EmbedProWidgetPage } from './modules/embed-pro';
+import { CustomerPortalPage } from './modules/customer-portal';
 import { AccountSettings } from './pages/AccountSettings';
 import { PaymentHistory } from './pages/PaymentHistory';
 import Notifications from './pages/Notifications';
@@ -227,15 +228,18 @@ export default function App() {
   // /embed-pro?key=xxx bypasses auth and shows the booking widget
   const isEmbedProWidgetMode = path.startsWith('/embed-pro') && params.has('key');
 
+  // Check if we're in customer portal mode (customer-facing, no admin auth)
+  const isCustomerPortalMode = path === '/my-bookings' || path === '/my-bookings/' || path === '/customer-portal' || path === '/customer-portal/';
+
   // Combined embed mode check
   const isEmbedMode = isLegacyEmbedMode || isEmbedProWidgetMode;
 
   // Skip loading screen for special modes
   useEffect(() => {
-    if (isEmbedMode || isBetaLogin || isOrgLogin) {
+    if (isEmbedMode || isBetaLogin || isOrgLogin || isCustomerPortalMode) {
       setShowLoadingScreen(false);
     }
-  }, [isEmbedMode, isBetaLogin, isOrgLogin]);
+  }, [isEmbedMode, isBetaLogin, isOrgLogin, isCustomerPortalMode]);
 
   // Show loading screen on initial load
   if (showLoadingScreen && !isEmbedMode && !isBetaLogin) {
@@ -273,6 +277,16 @@ export default function App() {
     return (
       <ThemeProvider>
         <EmbedProWidgetPage />
+        <Toaster />
+      </ThemeProvider>
+    );
+  }
+
+  // Render Customer Portal (customer-facing booking management)
+  if (isCustomerPortalMode) {
+    return (
+      <ThemeProvider>
+        <CustomerPortalPage />
         <Toaster />
       </ThemeProvider>
     );

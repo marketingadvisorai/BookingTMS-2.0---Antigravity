@@ -13,6 +13,7 @@ export { analyticsService } from './analytics.service';
 // Customer Widget Services (Embed Pro 2.0)
 export { embedProDataService, availabilityService, widgetDataNormalizer } from './embedProData.service';
 export { checkoutProService } from './checkoutPro.service';
+export { bookingVerificationService } from './bookingVerification.service';
 
 // Type exports for external use (renamed to avoid conflicts with types module)
 export type { 

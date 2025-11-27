@@ -29,36 +29,40 @@
 
 ---
 
-## Priority 2: Real Availability Check (In Progress)
+## Priority 2: Real Availability Check ✅ COMPLETED (Nov 27, 2025)
 
 ### Tasks
 - [x] Query `activity_sessions` for actual available slots (`getAvailableSlots` method)
 - [x] Check `capacity_remaining` vs `partySize` for each session
-- [ ] Update `WidgetTimeSlots` to show real availability (integrate with hook)
+- [x] Update `WidgetTimeSlots` to show real availability with fallback
 - [x] Add `checkSessionAvailability` method for pre-booking validation
-- [ ] Block booking if slot becomes unavailable (frontend validation)
+- [x] Low availability badges ("X left" when <= 3 spots)
+- [x] Cross-browser safe date formatting
+- [x] Modular service architecture (availability.service.ts, widgetData.normalizer.ts)
 
 ### Completed Files
-- `src/modules/embed-pro/services/embedProData.service.ts` - Added `getAvailableSlots()` and `checkSessionAvailability()` methods
-
-### Files to Update Next
-- `src/modules/embed-pro/widget-components/WidgetTimeSlots.tsx` - Use real availability data
-- `src/modules/embed-pro/hooks/useBookingFlow.ts` - Add availability check before checkout
+- `src/modules/embed-pro/services/availability.service.ts` - Standalone availability service
+- `src/modules/embed-pro/services/widgetData.normalizer.ts` - Data transformation
+- `src/modules/embed-pro/services/embedProData.service.ts` - Refactored to orchestrator
+- `src/modules/embed-pro/widget-components/WidgetTimeSlots.tsx` - Real availability with fallback
 
 ---
 
-## Priority 3: Booking Confirmation Flow
+## Priority 3: Booking Confirmation Flow ✅ COMPLETED (Nov 27, 2025)
 
 ### Tasks
-- [ ] Create booking record in database after payment
-- [ ] Send confirmation email via Resend
-- [ ] Show booking confirmation with details
-- [ ] Generate booking reference number
-- [ ] Add to customer's booking history
+- [x] Create booking record in database after payment (via verify-checkout-session)
+- [x] Booking verification service for post-checkout validation
+- [x] Show booking confirmation with enhanced details (animations, copy-to-clipboard)
+- [x] Generate booking reference number (BK-XXXXXX-XXXX format)
+- [x] Pre-checkout availability validation in useBookingFlow
+- [x] Cross-browser safe date/time formatting
+- [ ] Send confirmation email via Resend (future enhancement)
 
-### Files to Create/Modify
-- `supabase/functions/send-booking-confirmation/index.ts`
-- `src/modules/embed-pro/widget-components/WidgetSuccess.tsx`
+### Completed Files
+- `src/modules/embed-pro/services/bookingVerification.service.ts` - Verify checkout sessions
+- `src/modules/embed-pro/widget-components/WidgetSuccess.tsx` - Enhanced confirmation UI
+- `src/modules/embed-pro/hooks/useBookingFlow.ts` - Added validateAvailability()
 
 ---
 

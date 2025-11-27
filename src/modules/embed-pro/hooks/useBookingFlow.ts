@@ -4,6 +4,7 @@
  * 
  * State machine for managing the booking flow steps.
  * Handles activity selection, date/time selection, and checkout.
+ * Includes session ID tracking for availability validation.
  */
 
 import { useState, useCallback, useMemo } from 'react';
@@ -14,6 +15,7 @@ import type {
   CustomerInfo,
   INITIAL_BOOKING_STATE,
 } from '../types/widget.types';
+import { availabilityService } from '../services';
 
 // =====================================================
 // HOOK INTERFACE
@@ -28,7 +30,7 @@ interface UseBookingFlowOptions {
 
 interface UseBookingFlowReturn {
   /** Current booking state */
-  state: BookingState;
+  state: BookingState & { sessionId?: string };
   /** Current step name */
   currentStep: BookingStep;
   /** Whether user can go back */
@@ -37,19 +39,22 @@ interface UseBookingFlowReturn {
   canProceed: boolean;
   /** Progress percentage (0-100) */
   progress: number;
+  /** Whether availability is being validated */
+  isValidating: boolean;
   
   // Actions
   selectActivity: (activity: WidgetActivity) => void;
   selectDate: (date: Date) => void;
-  selectTime: (time: string) => void;
+  selectTime: (time: string, sessionId?: string) => void;
   setPartySize: (size: number) => void;
   setChildCount: (count: number) => void;
   setCustomerInfo: (info: CustomerInfo) => void;
   goToStep: (step: BookingStep) => void;
   goBack: () => void;
   goNext: () => void;
-  setBookingId: (id: string) => void;
+  setBookingId: (id: string, bookingNumber?: string) => void;
   setError: (error: string | null) => void;
+  validateAvailability: () => Promise<boolean>;
   reset: () => void;
 }
 
@@ -79,7 +84,7 @@ export function useBookingFlow(options: UseBookingFlowOptions = {}): UseBookingF
     return 'select-date';
   };
 
-  const [state, setState] = useState<BookingState>({
+  const [state, setState] = useState<BookingState & { sessionId?: string; bookingNumber?: string }>({
     step: getInitialStep(),
     selectedActivity: initialActivity,
     selectedDate: null,
@@ -88,8 +93,12 @@ export function useBookingFlow(options: UseBookingFlowOptions = {}): UseBookingF
     childCount: 0,
     customerInfo: null,
     bookingId: null,
+    bookingNumber: undefined,
+    sessionId: undefined,
     error: null,
   });
+
+  const [isValidating, setIsValidating] = useState(false);
 
   // =====================================================
   // COMPUTED VALUES
@@ -151,10 +160,11 @@ export function useBookingFlow(options: UseBookingFlowOptions = {}): UseBookingF
     }));
   }, []);
 
-  const selectTime = useCallback((time: string) => {
+  const selectTime = useCallback((time: string, sessionId?: string) => {
     setState((prev) => ({
       ...prev,
       selectedTime: time,
+      sessionId,
       error: null,
     }));
   }, []);
@@ -211,10 +221,11 @@ export function useBookingFlow(options: UseBookingFlowOptions = {}): UseBookingF
     }));
   }, [canProceed, currentStepIndex]);
 
-  const setBookingId = useCallback((id: string) => {
+  const setBookingId = useCallback((id: string, bookingNumber?: string) => {
     setState((prev) => ({
       ...prev,
       bookingId: id,
+      bookingNumber,
       step: 'success',
       error: null,
     }));
@@ -227,6 +238,42 @@ export function useBookingFlow(options: UseBookingFlowOptions = {}): UseBookingF
     }));
   }, []);
 
+  /**
+   * Validate session availability before checkout
+   * Returns true if available, false otherwise (sets error message)
+   */
+  const validateAvailability = useCallback(async (): Promise<boolean> => {
+    const { sessionId, partySize, childCount } = state;
+    
+    // No sessionId means we're using schedule-based slots (no DB validation needed)
+    if (!sessionId) return true;
+
+    setIsValidating(true);
+    try {
+      const result = await availabilityService.checkSessionAvailability(
+        sessionId,
+        partySize + (childCount || 0)
+      );
+
+      if (!result.available) {
+        setState((prev) => ({
+          ...prev,
+          error: result.message || 'This time slot is no longer available. Please select another time.',
+        }));
+        setIsValidating(false);
+        return false;
+      }
+
+      setIsValidating(false);
+      return true;
+    } catch (error) {
+      console.error('[useBookingFlow] Availability check failed:', error);
+      // On error, allow proceeding (fail-open for better UX)
+      setIsValidating(false);
+      return true;
+    }
+  }, [state.sessionId, state.partySize, state.childCount]);
+
   const reset = useCallback(() => {
     setState({
       step: getInitialStep(),
@@ -237,6 +284,8 @@ export function useBookingFlow(options: UseBookingFlowOptions = {}): UseBookingF
       childCount: 0,
       customerInfo: null,
       bookingId: null,
+      bookingNumber: undefined,
+      sessionId: undefined,
       error: null,
     });
   }, [initialActivity, hasMultipleActivities]);
@@ -247,6 +296,7 @@ export function useBookingFlow(options: UseBookingFlowOptions = {}): UseBookingF
     canGoBack,
     canProceed,
     progress,
+    isValidating,
     selectActivity,
     selectDate,
     selectTime,
@@ -258,6 +308,7 @@ export function useBookingFlow(options: UseBookingFlowOptions = {}): UseBookingF
     goNext,
     setBookingId,
     setError,
+    validateAvailability,
     reset,
   };
 }

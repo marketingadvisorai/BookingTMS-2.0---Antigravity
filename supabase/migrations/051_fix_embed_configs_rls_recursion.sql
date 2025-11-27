@@ -1,18 +1,24 @@
 -- =====================================================
 -- Migration: 051_fix_embed_configs_rls_recursion.sql
--- Description: Fix infinite recursion in embed_configs RLS
+-- Description: Fix RLS policies for embed_configs table
 -- Created: 2025-11-27
+-- Updated: 2025-11-27 - Handle mock system admin users
 -- 
--- Problem: The embed_configs RLS policies referenced the users
--- table which has its own RLS policies, causing infinite recursion.
+-- Problems Fixed:
+-- 1. Infinite recursion when querying users table from embed_configs policy
+-- 2. Mock system admin users (ID: 00000000-...) not in users table
 -- 
--- Solution: Use SECURITY DEFINER functions to bypass RLS when
--- checking user organization and role.
+-- Solution: Use SECURITY DEFINER functions + handle users not in users table
 -- =====================================================
 
--- Drop existing problematic policies
+-- Drop ALL existing policies
 DROP POLICY IF EXISTS "embed_configs_org_access" ON embed_configs;
 DROP POLICY IF EXISTS "embed_configs_public_read" ON embed_configs;
+DROP POLICY IF EXISTS "embed_configs_read_update_delete" ON embed_configs;
+DROP POLICY IF EXISTS "embed_configs_select" ON embed_configs;
+DROP POLICY IF EXISTS "embed_configs_insert" ON embed_configs;
+DROP POLICY IF EXISTS "embed_configs_update" ON embed_configs;
+DROP POLICY IF EXISTS "embed_configs_delete" ON embed_configs;
 
 -- Create a security definer function to get user's org (bypasses RLS)
 CREATE OR REPLACE FUNCTION get_user_organization_id()
@@ -38,14 +44,44 @@ AS $$
   );
 $$;
 
--- New policy: Organization members can manage their embeds
-CREATE POLICY "embed_configs_org_access" ON embed_configs
-  FOR ALL USING (
-    organization_id = get_user_organization_id()
-    OR is_system_or_super_admin()
+-- Policy 1: Authenticated users can SELECT embeds 
+CREATE POLICY "embed_configs_select" ON embed_configs
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL AND (
+      organization_id = get_user_organization_id()
+      OR is_system_or_super_admin()
+      -- Allow users not in users table (mock system admin)
+      OR NOT EXISTS (SELECT 1 FROM users WHERE id = auth.uid())
+    )
   );
 
--- New policy: Public read for active widgets (for embed scripts)
+-- Policy 2: Authenticated users can INSERT embeds
+CREATE POLICY "embed_configs_insert" ON embed_configs
+  FOR INSERT WITH CHECK (
+    auth.uid() IS NOT NULL
+  );
+
+-- Policy 3: Authenticated users can UPDATE their org's embeds
+CREATE POLICY "embed_configs_update" ON embed_configs
+  FOR UPDATE USING (
+    auth.uid() IS NOT NULL AND (
+      organization_id = get_user_organization_id()
+      OR is_system_or_super_admin()
+      OR NOT EXISTS (SELECT 1 FROM users WHERE id = auth.uid())
+    )
+  );
+
+-- Policy 4: Authenticated users can DELETE their org's embeds
+CREATE POLICY "embed_configs_delete" ON embed_configs
+  FOR DELETE USING (
+    auth.uid() IS NOT NULL AND (
+      organization_id = get_user_organization_id()
+      OR is_system_or_super_admin()
+      OR NOT EXISTS (SELECT 1 FROM users WHERE id = auth.uid())
+    )
+  );
+
+-- Policy 5: Public read for active widgets (for embed scripts)
 CREATE POLICY "embed_configs_public_read" ON embed_configs
   FOR SELECT 
   TO anon
@@ -53,6 +89,7 @@ CREATE POLICY "embed_configs_public_read" ON embed_configs
 
 -- Also fix embed_analytics if it has similar issues
 DROP POLICY IF EXISTS "embed_analytics_org_read" ON embed_analytics;
+DROP POLICY IF EXISTS "embed_analytics_public_insert" ON embed_analytics;
 
 CREATE POLICY "embed_analytics_org_read" ON embed_analytics
   FOR SELECT USING (
@@ -61,7 +98,12 @@ CREATE POLICY "embed_analytics_org_read" ON embed_analytics
       WHERE organization_id = get_user_organization_id()
     )
     OR is_system_or_super_admin()
+    OR NOT EXISTS (SELECT 1 FROM users WHERE id = auth.uid())
   );
+
+-- Allow public insert for analytics (tracking from external sites)
+CREATE POLICY "embed_analytics_public_insert" ON embed_analytics
+  FOR INSERT WITH CHECK (true);
 
 -- =====================================================
 -- COMMENTS

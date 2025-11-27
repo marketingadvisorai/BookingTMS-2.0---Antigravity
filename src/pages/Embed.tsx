@@ -5,6 +5,7 @@ import { QuickBookWidget } from '../components/widgets/QuickBookWidget';
 import { MultiStepWidget } from '../components/widgets/MultiStepWidget';
 import { ResolvexWidget } from '../components/widgets/ResolvexWidget';
 import { CalendarSingleEventBookingPage } from '../components/widgets/CalendarSingleEventBookingPage';
+import { CalendarSingleEventBookingPageNew } from '../components/widgets/CalendarSingleEventBookingPageNew';
 import { VenueBookingWidget } from '../components/widgets/VenueBookingWidget';
 import FareBookWidget from '../components/widgets/FareBookWidget';
 import { WidgetThemeProvider } from '../components/widgets/WidgetThemeContext';
@@ -525,8 +526,9 @@ export function Embed() {
           );
         }
         console.log('✅ Rendering Calendar Booking widget with activityId:', activityId, 'venueId:', urlVenueId);
+        // Use new refactored modular component with Step 5 Schedule sync
         return (
-          <CalendarSingleEventBookingPage
+          <CalendarSingleEventBookingPageNew
             {...widgetProps}
             activityId={activityId}
             venueId={urlVenueId}

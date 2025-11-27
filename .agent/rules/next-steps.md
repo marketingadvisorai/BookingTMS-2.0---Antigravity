@@ -95,18 +95,25 @@
 
 ---
 
-## Priority 6: Embed Code Generator
+## Priority 6: Embed Code Generator ✅ COMPLETED (Nov 27, 2025)
 
 ### Tasks
-- [ ] Generate iframe embed code
-- [ ] Generate JavaScript snippet embed code
-- [ ] Add copy-to-clipboard functionality
-- [ ] Show installation instructions
-- [ ] Add WordPress plugin guide
+- [x] Generate iframe embed code with theme parameter
+- [x] Generate JavaScript snippet embed code (HTML, React, Next.js)
+- [x] Add copy-to-clipboard functionality with animation
+- [x] Show installation instructions
+- [x] Add WordPress shortcode + PHP guide
 
-### Files to Modify
-- `src/modules/embed-pro/components/EmbedCodeDisplay.tsx`
-- `public/embed/bookingtms.js`
+### Features
+- 5 code formats: HTML, React, Next.js, WordPress, iFrame
+- Theme and color included in generated code
+- Animated copy button with success state
+- Format-specific installation instructions
+
+### Completed Files
+- `src/modules/embed-pro/services/codeGenerator.service.ts` - Enhanced with theme/color
+- `src/modules/embed-pro/components/EmbedCodeDisplay.tsx` - Full code display
+- `src/modules/embed-pro/hooks/useCodeGenerator.ts` - Code generation hook
 
 ---
 

@@ -1,11 +1,11 @@
 /**
- * Embed Pro 1.1 - Code Generator Service
+ * Embed Pro 2.0 - Code Generator Service
  * @module embed-pro/services/codeGenerator
  * 
- * Generates embed codes in multiple formats
+ * Generates embed codes in multiple formats with theme support.
  */
 
-import type { CodeFormat, GeneratedCode, CodeGeneratorOptions, EmbedConfigEntity } from '../types';
+import type { CodeFormat, GeneratedCode, CodeGeneratorOptions, EmbedConfigEntity, EmbedTheme } from '../types';
 
 // =====================================================
 // CODE TEMPLATES
@@ -18,6 +18,12 @@ const getBaseDomain = (): string => {
   return 'https://yourdomain.com';
 };
 
+// Extended options with style info
+interface ExtendedCodeOptions extends CodeGeneratorOptions {
+  theme?: EmbedTheme;
+  primaryColor?: string;
+}
+
 // =====================================================
 // CODE GENERATOR SERVICE
 // =====================================================
@@ -27,10 +33,12 @@ class CodeGeneratorService {
    * Generate embed code for all formats
    */
   generateAllFormats(config: EmbedConfigEntity): GeneratedCode[] {
-    const options: CodeGeneratorOptions = {
+    const options: ExtendedCodeOptions = {
       embedKey: config.embed_key,
       format: 'html',
       domain: getBaseDomain(),
+      theme: config.style?.theme || 'light',
+      primaryColor: config.style?.primaryColor || '#2563eb',
     };
 
     return [
@@ -65,14 +73,17 @@ class CodeGeneratorService {
   /**
    * HTML Embed Code
    */
-  private generateHtml(options: CodeGeneratorOptions): GeneratedCode {
+  private generateHtml(options: ExtendedCodeOptions): GeneratedCode {
     const domain = options.domain || getBaseDomain();
+    const theme = options.theme || 'light';
+    const color = options.primaryColor || '#2563eb';
     const code = `<!-- BookFlow Widget -->
 <div id="bookflow-widget-${options.embedKey}"></div>
 <script 
   src="${domain}/embed/bookflow.js" 
   data-key="${options.embedKey}"
-  data-theme="light"
+  data-theme="${theme}"
+  data-color="${color}"
   async>
 </script>`;
 
@@ -86,7 +97,9 @@ class CodeGeneratorService {
   /**
    * React Embed Code
    */
-  private generateReact(options: CodeGeneratorOptions): GeneratedCode {
+  private generateReact(options: ExtendedCodeOptions): GeneratedCode {
+    const theme = options.theme || 'light';
+    const color = options.primaryColor || '#2563eb';
     const code = `import { useEffect, useRef } from 'react';
 
 function BookFlowWidget() {
@@ -96,7 +109,8 @@ function BookFlowWidget() {
     const script = document.createElement('script');
     script.src = '${options.domain}/embed/bookflow.js';
     script.dataset.key = '${options.embedKey}';
-    script.dataset.theme = 'light';
+    script.dataset.theme = '${theme}';
+    script.dataset.color = '${color}';
     script.async = true;
     
     containerRef.current?.appendChild(script);
@@ -123,10 +137,11 @@ export default BookFlowWidget;`;
   /**
    * Next.js Embed Code
    */
-  private generateNextJs(options: CodeGeneratorOptions): GeneratedCode {
+  private generateNextJs(options: ExtendedCodeOptions): GeneratedCode {
+    const theme = options.theme || 'light';
+    const color = options.primaryColor || '#2563eb';
     const code = `'use client';
 
-import { useEffect, useRef } from 'react';
 import Script from 'next/script';
 
 export default function BookFlowWidget() {
@@ -136,7 +151,8 @@ export default function BookFlowWidget() {
       <Script
         src="${options.domain}/embed/bookflow.js"
         data-key="${options.embedKey}"
-        data-theme="light"
+        data-theme="${theme}"
+        data-color="${color}"
         strategy="lazyOnload"
       />
     </>
@@ -153,14 +169,17 @@ export default function BookFlowWidget() {
   /**
    * WordPress Shortcode
    */
-  private generateWordPress(options: CodeGeneratorOptions): GeneratedCode {
-    const shortcode = `[bookflow_widget key="${options.embedKey}" theme="light"]`;
+  private generateWordPress(options: ExtendedCodeOptions): GeneratedCode {
+    const theme = options.theme || 'light';
+    const color = options.primaryColor || '#2563eb';
+    const shortcode = `[bookflow_widget key="${options.embedKey}" theme="${theme}" color="${color}"]`;
     
     const phpCode = `// Add to your theme's functions.php
 function bookflow_widget_shortcode(\$atts) {
     \$atts = shortcode_atts(array(
         'key' => '',
-        'theme' => 'light',
+        'theme' => '${theme}',
+        'color' => '${color}',
     ), \$atts);
     
     if (empty(\$atts['key'])) return '';
@@ -168,7 +187,8 @@ function bookflow_widget_shortcode(\$atts) {
     return '<div id="bookflow-widget-' . esc_attr(\$atts['key']) . '"></div>
     <script src="${options.domain}/embed/bookflow.js" 
             data-key="' . esc_attr(\$atts['key']) . '" 
-            data-theme="' . esc_attr(\$atts['theme']) . '" 
+            data-theme="' . esc_attr(\$atts['theme']) . '"
+            data-color="' . esc_attr(\$atts['color']) . '" 
             async></script>';
 }
 add_shortcode('bookflow_widget', 'bookflow_widget_shortcode');`;
@@ -183,10 +203,11 @@ add_shortcode('bookflow_widget', 'bookflow_widget_shortcode');`;
   /**
    * iFrame Embed (Universal)
    */
-  private generateIframe(options: CodeGeneratorOptions): GeneratedCode {
+  private generateIframe(options: ExtendedCodeOptions): GeneratedCode {
     const domain = options.domain || getBaseDomain();
+    const theme = options.theme || 'light';
     const code = `<iframe 
-  src="${domain}/embed?key=${options.embedKey}"
+  src="${domain}/embed?key=${options.embedKey}&theme=${theme}"
   width="100%" 
   height="700"
   frameborder="0"

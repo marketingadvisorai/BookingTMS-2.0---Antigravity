@@ -2,6 +2,31 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { subDays, startOfWeek, format, parseISO, startOfToday, subWeeks, addDays } from 'date-fns';
 
+// Database row types
+interface BookingRow {
+  id: string;
+  final_amount: number | null;
+  party_size: number | null;
+  status: string;
+  created_at: string;
+  customer_id: string | null;
+}
+
+interface TrendBookingRow {
+  booking_date: string;
+}
+
+interface UpcomingBookingRow {
+  id: string;
+  booking_date: string;
+  start_time: string | null;
+  status: string;
+  final_amount: number | null;
+  customer: { full_name: string } | null;
+  activity: { name: string } | null;
+  venue: { name: string } | null;
+}
+
 export interface DashboardStats {
   total_bookings: number;
   confirmed_bookings: number;
@@ -64,13 +89,14 @@ export function useDashboard() {
       const eightWeeksAgo = subWeeks(today, 8);
 
       // 1. Fetch Stats (Total Bookings, Revenue, etc.) - Last 30 days
-      const { data: bookingsData, error: bookingsError } = await supabase
+      const { data: rawBookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select('id, final_amount, party_size, status, created_at, customer_id')
         .gte('created_at', thirtyDaysAgo.toISOString());
 
       if (bookingsError) throw bookingsError;
 
+      const bookingsData = (rawBookingsData || []) as BookingRow[];
       const total_bookings = bookingsData.length;
       const confirmed_bookings = bookingsData.filter(b => b.status === 'confirmed').length;
       const total_revenue = bookingsData.reduce((sum, b) => sum + (b.final_amount || 0), 0);
@@ -96,13 +122,14 @@ export function useDashboard() {
       });
 
       // 2. Weekly Trend
-      const { data: trendBookings, error: trendError } = await supabase
+      const { data: rawTrendBookings, error: trendError } = await supabase
         .from('bookings')
         .select('booking_date')
         .gte('booking_date', eightWeeksAgo.toISOString())
         .lte('booking_date', today.toISOString());
 
       if (trendError) throw trendError;
+      const trendBookings = (rawTrendBookings || []) as TrendBookingRow[];
 
       // Group by week
       const weeksMap = new Map<string, number>();
@@ -171,12 +198,13 @@ export function useDashboard() {
       setUpcomingBookings(upcomingBookings);
 
       // 4. Today's Hourly
-      const { data: todayBookings, error: todayError } = await supabase
+      const { data: rawTodayBookings, error: todayError } = await supabase
         .from('bookings')
         .select('start_time')
         .eq('booking_date', format(today, 'yyyy-MM-dd'));
 
       if (todayError) throw todayError;
+      const todayBookings = (rawTodayBookings || []) as { start_time: string }[];
 
       const hourlyMap = new Map<string, number>();
       for (let i = 9; i <= 21; i++) { // 9 AM to 9 PM
@@ -186,7 +214,7 @@ export function useDashboard() {
 
       todayBookings.forEach(b => {
         // Extract hour from HH:MM:SS
-        const hour = b.start_time.substring(0, 2) + ':00';
+        const hour = b.start_time?.substring(0, 2) + ':00';
         if (hourlyMap.has(hour)) {
           hourlyMap.set(hour, (hourlyMap.get(hour) || 0) + 1);
         }

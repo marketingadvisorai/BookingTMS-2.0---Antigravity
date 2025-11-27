@@ -205,40 +205,30 @@ function AppContent() {
 }
 
 export default function App() {
-  const [isEmbedMode, setIsEmbedMode] = useState(false);
-  const [isBetaLogin, setIsBetaLogin] = useState(false);
-  const [isOrgLogin, setIsOrgLogin] = useState(false);
   const [showLoadingScreen, setShowLoadingScreen] = useState(true);
 
+  // Compute mode from current URL - this runs on every render to handle route changes
+  const params = new URLSearchParams(window.location.search);
+  const path = window.location.pathname;
+
+  // Check if we're in beta-login mode
+  const isBetaLogin = params.has('beta') || path === '/beta-login' || path === '/beta-login/' || params.get('login') === 'beta';
+
+  // Check if we're in org-login mode
+  const isOrgLogin = path === '/org-login' || path === '/org-login/';
+
+  // Check if we're in embed mode (but NOT embed-pro which is an admin page)
+  // Embed mode is ONLY for: /embed with widget params, or /embed?key=xxx for venue widgets
+  const isEmbedMode = (params.has('widget') || params.has('widgetId') || params.has('key')) && 
+                      path.startsWith('/embed') && 
+                      !path.startsWith('/embed-pro');
+
+  // Skip loading screen for special modes
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const path = window.location.pathname;
-
-    // Check if we're in beta-login mode
-    if (params.has('beta') || path === '/beta-login' || path === '/beta-login/' || params.get('login') === 'beta') {
-      setIsBetaLogin(true);
+    if (isEmbedMode || isBetaLogin || isOrgLogin) {
       setShowLoadingScreen(false);
-      return;
     }
-
-    // Check if we're in org-login mode
-    if (path === '/org-login' || path === '/org-login/') {
-      setIsOrgLogin(true);
-      setShowLoadingScreen(false);
-      return;
-    }
-
-    // Check if we're in embed mode (but NOT embed-pro which is an admin page)
-    if (params.has('widget') || params.has('widgetId') || (path.startsWith('/embed') && !path.startsWith('/embed-pro'))) {
-      setIsEmbedMode(true);
-      // Skip loading screen for embed mode
-      setShowLoadingScreen(false);
-      return;
-    }
-
-    // For normal admin panel, loading screen is shown initially
-    // It will be hidden by LoadingScreen component after animation completes
-  }, []);
+  }, [isEmbedMode, isBetaLogin, isOrgLogin]);
 
   // Show loading screen on initial load
   if (showLoadingScreen && !isEmbedMode && !isBetaLogin) {

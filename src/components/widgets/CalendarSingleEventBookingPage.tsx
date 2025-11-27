@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Input } from '../ui/input';
@@ -19,12 +19,68 @@ import {
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { format } from 'date-fns';
 import { useAvailability } from './booking/hooks/useAvailability';
+import { useCalendarAvailability, DateAvailabilityStatus } from '../../hooks/useCalendarAvailability';
 import { PromoCodeInput } from './PromoCodeInput';
 import { GiftCardInput } from './GiftCardInput';
 import { useWidgetTheme } from './WidgetThemeContext';
 import SupabaseBookingService from '../../services/SupabaseBookingService';
 import { CheckoutService } from '../../lib/payments/checkoutService';
 import { toast } from 'sonner';
+
+// Helper: Get date styles based on availability status
+const getDateStyles = (
+  status: DateAvailabilityStatus,
+  isSelected: boolean,
+  isToday: boolean,
+  primaryColor: string
+): { className: string; style: React.CSSProperties } => {
+  if (isSelected) {
+    return {
+      className: 'text-white shadow-lg transform scale-105 ring-2 ring-offset-2',
+      style: { backgroundColor: primaryColor, borderColor: primaryColor, '--tw-ring-color': primaryColor } as React.CSSProperties
+    };
+  }
+  
+  if (isToday) {
+    return {
+      className: 'ring-2 ring-offset-1',
+      style: { backgroundColor: `${primaryColor}20`, color: primaryColor, '--tw-ring-color': primaryColor } as React.CSSProperties
+    };
+  }
+
+  switch (status) {
+    case 'available':
+      return {
+        className: 'bg-green-50 border-green-300 text-green-800 hover:bg-green-100 hover:border-green-400 hover:scale-105 cursor-pointer',
+        style: {}
+      };
+    case 'blocked':
+      return {
+        className: 'bg-red-100 border-red-300 text-red-400 cursor-not-allowed opacity-70',
+        style: {}
+      };
+    case 'unavailable':
+      return {
+        className: 'bg-red-50 border-red-200 text-red-300 cursor-not-allowed opacity-60',
+        style: {}
+      };
+    case 'past':
+      return {
+        className: 'bg-gray-100 border-gray-200 text-gray-300 cursor-not-allowed opacity-50',
+        style: {}
+      };
+    case 'outside-advance':
+      return {
+        className: 'bg-orange-50 border-orange-200 text-orange-300 cursor-not-allowed opacity-60',
+        style: {}
+      };
+    default:
+      return {
+        className: 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed',
+        style: {}
+      };
+  }
+};
 
 interface CalendarSingleEventBookingPageProps {
   primaryColor?: string;
@@ -192,7 +248,70 @@ export function CalendarSingleEventBookingPage({
     currentYear: currentDate.getFullYear()
   });
 
-  console.log('CalendarSingleEventBookingPage: slotsLoading:', slotsLoading);
+  // Refs for auto-scroll functionality
+  const timeSlotsRef = useRef<HTMLDivElement>(null);
+  const playersSectionRef = useRef<HTMLDivElement>(null);
+  const continueButtonRef = useRef<HTMLDivElement>(null);
+
+  // Extract schedule configuration for calendar availability
+  const schedule = gameData.schedule || {};
+  const operatingDays = schedule.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const blockedDates = selectedGame?.blockedDates || config?.blockedDates || [];
+  const customAvailableDates = selectedGame?.customDates || config?.customAvailableDates || [];
+  const advanceBookingDays = schedule.advanceBooking || 30;
+  const customHours = schedule.customHours;
+  const customHoursEnabled = schedule.customHoursEnabled;
+
+  // Use calendar availability hook for date status
+  const { getDateAvailability, stats: availabilityStats } = useCalendarAvailability(
+    {
+      operatingDays,
+      blockedDates,
+      customAvailableDates,
+      advanceBookingDays,
+      customHours,
+      customHoursEnabled
+    },
+    currentDate.getMonth(),
+    currentDate.getFullYear()
+  );
+
+  // Handle date selection with auto-scroll
+  const handleDateSelect = useCallback((day: number) => {
+    const availability = getDateAvailability(day);
+    if (availability.isClickable) {
+      setSelectedDate(day);
+      setSelectedTime(null); // Reset time selection when date changes
+      
+      // Auto-scroll sequence: date -> time slots -> players -> continue button
+      setTimeout(() => {
+        if (timeSlotsRef.current) {
+          timeSlotsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 150);
+    }
+  }, [getDateAvailability]);
+
+  // Handle time selection with auto-scroll to players
+  const handleTimeSelect = useCallback((time: string) => {
+    setSelectedTime(time);
+    
+    // Auto-scroll to players section
+    setTimeout(() => {
+      if (playersSectionRef.current) {
+        playersSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+    
+    // Then scroll to continue button
+    setTimeout(() => {
+      if (continueButtonRef.current) {
+        continueButtonRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 400);
+  }, []);
+
+  console.log('CalendarSingleEventBookingPage: slotsLoading:', slotsLoading, 'operatingDays:', operatingDays);
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -837,38 +956,40 @@ export function CalendarSingleEventBookingPage({
                         const isSelected = selectedDate === day;
                         const dateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
                         const isToday = new Date().toDateString() === dateObj.toDateString();
-                        const isPast = dateObj < new Date(new Date().setHours(0, 0, 0, 0));
-                        const isAvailable = !isPast;
+                        const availability = getDateAvailability(day);
+                        const { className, style } = getDateStyles(availability.status, isSelected, isToday, primaryColor);
 
                         return (
                           <button
                             key={i}
-                            onClick={() => isAvailable && setSelectedDate(day)}
-                            disabled={!isAvailable}
+                            onClick={() => handleDateSelect(day)}
+                            disabled={!availability.isClickable}
                             className={`
                               relative aspect-square rounded-xl sm:rounded-2xl flex flex-col items-center justify-center
-                              text-sm sm:text-base font-medium transition-all duration-200
-                              ${!isAvailable && 'opacity-40 cursor-not-allowed'}
-                              ${isAvailable && !isSelected && 'hover:bg-gray-100 hover:scale-105'}
-                              ${isToday && !isSelected && 'ring-2 ring-offset-2 ring-offset-white'}
-                              ${isSelected && 'text-white shadow-lg transform scale-105'}
+                              text-sm sm:text-base font-medium transition-all duration-200 border
+                              ${className}
                             `}
-                            style={{
-                              backgroundColor: isSelected ? primaryColor : isToday && !isSelected ? `${primaryColor}10` : undefined,
-                              color: isSelected ? 'white' : !isAvailable ? undefined : isToday ? primaryColor : undefined,
-                              // @ts-ignore
-                              '--tw-ring-color': isToday && !isSelected ? primaryColor : undefined,
-                            } as React.CSSProperties}
+                            style={style}
+                            title={availability.reason}
+                            aria-label={`${day} - ${availability.reason}`}
                           >
                             <span className={isSelected ? 'font-bold' : ''}>
                               {day}
                             </span>
-                            {/* Today indicator dot */}
-                            {isToday && !isSelected && (
+                            {/* Availability indicator dot */}
+                            {!isSelected && !isToday && (
                               <div 
-                                className="absolute bottom-1.5 sm:bottom-2 w-1 h-1 rounded-full"
-                                style={{ backgroundColor: primaryColor }}
+                                className={`absolute bottom-1.5 sm:bottom-2 w-1.5 h-1.5 rounded-full
+                                  ${availability.status === 'available' ? 'bg-green-500' : 
+                                    availability.status === 'blocked' ? 'bg-red-500' :
+                                    availability.status === 'unavailable' ? 'bg-red-400' : 
+                                    availability.status === 'outside-advance' ? 'bg-orange-400' : 'bg-gray-400'}
+                                `}
                               />
+                            )}
+                            {/* Custom hours indicator */}
+                            {availability.hasCustomHours && availability.status === 'available' && (
+                              <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-blue-500" />
                             )}
                           </button>
                         );
@@ -880,28 +1001,19 @@ export function CalendarSingleEventBookingPage({
                   <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 bg-gray-50">
                     <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-gray-500">
                       <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: primaryColor }}
-                        />
-                        <span>Today</span>
+                        <div className="w-3 h-3 rounded-full bg-green-500" />
+                        <span>Available</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: primaryColor }}
-                        />
-                        <span>Selected</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-gray-300" />
-                        <span>Unavailable</span>
+                        <div className="w-3 h-3 rounded-full bg-red-500" />
+                        <span>Blocked/Unavailable</span>
                       </div>
                     </div>
                   </div>
                 </Card>
 
                 {/* Time Slots */}
+                <div ref={timeSlotsRef}>
                 {selectedDate && (
                   <Card className="p-6 sm:p-8 bg-white shadow-sm border border-gray-200 rounded-2xl">
                     <h2 className="text-lg sm:text-xl text-gray-900 mb-4 sm:mb-6">
@@ -932,7 +1044,7 @@ export function CalendarSingleEventBookingPage({
                           return (
                             <button
                               key={slot.time}
-                              onClick={() => slot.available && setSelectedTime(slot.time)}
+                              onClick={() => slot.available && handleTimeSelect(slot.time)}
                               disabled={!slot.available}
                               className={`
                                 p-4 sm:p-5 rounded-xl border-2 text-center transition-all
@@ -963,10 +1075,11 @@ export function CalendarSingleEventBookingPage({
                     )}
                   </Card>
                 )}
+                </div>
               </div>
 
               {/* Booking Summary Sidebar */}
-              <div className="lg:col-span-1">
+              <div className="lg:col-span-1" ref={playersSectionRef}>
                 <div className="lg:sticky lg:top-4">
                   <Card className="p-6 sm:p-8 bg-gradient-to-br from-white to-gray-50 shadow-2xl border-2 rounded-2xl max-h-[calc(100vh-2rem)] overflow-y-auto" style={{ borderColor: `${primaryColor}20` }}>
                     <div className="space-y-6 pb-20 sm:pb-6">

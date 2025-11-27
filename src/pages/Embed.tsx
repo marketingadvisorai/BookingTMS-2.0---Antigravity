@@ -11,6 +11,8 @@ import FareBookWidget from '../components/widgets/FareBookWidget';
 import { WidgetThemeProvider } from '../components/widgets/WidgetThemeContext';
 import { ActivityPreviewCard } from '../components/widgets/ActivityPreviewCard';
 import { VenuePreviewCard } from '../components/widgets/VenuePreviewCard';
+// BookFlow - New modern booking widget system
+import { BookFlowWidget } from '../components/widgets/bookflow';
 import { supabase } from '../lib/supabase';
 import SupabaseBookingService from '../services/SupabaseBookingService';
 
@@ -402,6 +404,50 @@ export function Embed() {
     console.log('🎯 Rendering widget:', widgetId, 'with color:', primaryColor);
 
     switch (widgetId) {
+      // BookFlow - New modern booking widgets
+      case 'bookflow':
+      case 'booking-widget':
+        // Check if we have embedConfig from embed_configs table
+        if (embedConfig?.embedConfig) {
+          const ec = embedConfig.embedConfig;
+          return (
+            <BookFlowWidget
+              embedKey={widgetKey}
+              targetType={ec.target_type as 'activity' | 'venue'}
+              targetId={ec.target_id}
+              config={ec.config}
+              style={ec.style}
+              theme={widgetTheme}
+            />
+          );
+        }
+        // Fallback for activity embed
+        if (activityId && activityId !== 'preview') {
+          return (
+            <BookFlowWidget
+              embedKey={widgetKey}
+              targetType="activity"
+              targetId={activityId}
+              style={{ primaryColor }}
+              theme={widgetTheme}
+            />
+          );
+        }
+        // Fallback for venue embed
+        if (venueId) {
+          return (
+            <BookFlowWidget
+              embedKey={widgetKey}
+              targetType="venue"
+              targetId={venueId}
+              style={{ primaryColor }}
+              theme={widgetTheme}
+            />
+          );
+        }
+        // Final fallback
+        return <FareBookWidget {...widgetProps} />;
+        
       case 'farebook':
         return <FareBookWidget {...widgetProps} />;
       case 'calendar':

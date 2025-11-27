@@ -755,86 +755,149 @@ export function CalendarSingleEventBookingPage({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Calendar and Time Selection */}
               <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-                {/* Calendar */}
-                <Card className="p-6 sm:p-8 bg-white shadow-sm border border-gray-200 rounded-2xl">
-                  <div className="flex items-center justify-between mb-6 gap-2">
-                    <h2 className="text-lg sm:text-xl text-gray-900">Select Date</h2>
+                {/* Calendar - Enhanced Modern Design */}
+                <Card className="overflow-hidden bg-white shadow-lg border border-gray-100 rounded-2xl">
+                  {/* Calendar Header */}
+                  <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                     <div className="flex items-center gap-3">
+                      <div 
+                        className="w-10 h-10 rounded-xl flex items-center justify-center"
+                        style={{ backgroundColor: `${primaryColor}15` }}
+                      >
+                        <Calendar className="w-5 h-5" style={{ color: primaryColor }} />
+                      </div>
+                      <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                        {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                      </h2>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
-                        size="icon"
-                        className="h-10 w-10 rounded-lg border-gray-300 hover:bg-gray-50"
+                        size="sm"
+                        className="h-9 w-9 p-0 rounded-lg border-gray-200 hover:bg-gray-100"
                         onClick={() => {
                           const newDate = new Date(currentDate);
                           newDate.setMonth(newDate.getMonth() - 1);
                           setCurrentDate(newDate);
-                          setSelectedDate(1); // Reset selection
+                          setSelectedDate(1);
                         }}
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </Button>
-                      <span className="text-sm sm:text-base text-gray-900 px-2 whitespace-nowrap min-w-[140px] text-center">
-                        {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                      </span>
                       <Button
                         variant="outline"
-                        size="icon"
-                        className="h-10 w-10 rounded-lg border-gray-300 hover:bg-gray-50"
+                        size="sm"
+                        className="h-9 px-3 rounded-lg border-gray-200 hover:bg-gray-100 text-xs font-medium"
+                        onClick={() => {
+                          const today = new Date();
+                          setCurrentDate(today);
+                          setSelectedDate(today.getDate());
+                        }}
+                      >
+                        Today
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 w-9 p-0 rounded-lg border-gray-200 hover:bg-gray-100"
                         onClick={() => {
                           const newDate = new Date(currentDate);
                           newDate.setMonth(newDate.getMonth() + 1);
                           setCurrentDate(newDate);
-                          setSelectedDate(1); // Reset selection
+                          setSelectedDate(1);
                         }}
                       >
                         <ChevronRight className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-7 gap-2 sm:gap-3">
-                    {daysOfWeek.map((day) => (
-                      <div key={day} className="text-center text-sm text-gray-600 py-2">
-                        {day}
-                      </div>
-                    ))}
-                    {/* Empty slots for days before start of month */}
-                    {Array.from({ length: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay() }).map((_, i) => (
-                      <div key={`empty-${i}`} />
-                    ))}
-                    {/* Days of the month */}
-                    {Array.from({ length: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate() }).map((_, i) => {
-                      const day = i + 1;
-                      const isSelected = selectedDate === day;
-                      const dateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-                      const isToday = new Date().toDateString() === dateObj.toDateString();
-                      const isPast = dateObj < new Date(new Date().setHours(0, 0, 0, 0));
-                      const isAvailable = !isPast; // Basic check, useAvailability handles specific blocked dates
+                  
+                  {/* Calendar Grid */}
+                  <div className="p-3 sm:p-6">
+                    {/* Day Headers */}
+                    <div className="grid grid-cols-7 mb-2">
+                      {daysOfWeek.map((day) => (
+                        <div key={day} className="text-center py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                          <span className="hidden sm:inline">{day}</span>
+                          <span className="sm:hidden">{day.charAt(0)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Days Grid */}
+                    <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                      {/* Empty slots for days before start of month */}
+                      {Array.from({ length: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay() }).map((_, i) => (
+                        <div key={`empty-${i}`} className="aspect-square" />
+                      ))}
+                      
+                      {/* Days of the month */}
+                      {Array.from({ length: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate() }).map((_, i) => {
+                        const day = i + 1;
+                        const isSelected = selectedDate === day;
+                        const dateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                        const isToday = new Date().toDateString() === dateObj.toDateString();
+                        const isPast = dateObj < new Date(new Date().setHours(0, 0, 0, 0));
+                        const isAvailable = !isPast;
 
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => isAvailable && setSelectedDate(day)}
-                          disabled={!isAvailable}
-                          className={`
-                            aspect-square rounded-xl text-base transition-all flex items-center justify-center
-                            ${isToday && !isSelected
-                              ? 'text-white shadow-md'
-                              : isSelected
-                                ? 'text-gray-900 border-2 shadow-sm bg-white hover:bg-gray-50'
-                                : isAvailable
-                                  ? 'text-gray-700 hover:bg-gray-50 border border-gray-200'
-                                  : 'text-gray-300 cursor-not-allowed border border-gray-100'
-                            }
-                          `}
-                          style={{
-                            backgroundColor: isToday && !isSelected ? primaryColor : undefined,
-                            borderColor: isSelected ? primaryColor : undefined,
-                          }}
-                        >
-                          {day}
-                        </button>
-                      );
-                    })}
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => isAvailable && setSelectedDate(day)}
+                            disabled={!isAvailable}
+                            className={`
+                              relative aspect-square rounded-xl sm:rounded-2xl flex flex-col items-center justify-center
+                              text-sm sm:text-base font-medium transition-all duration-200
+                              ${!isAvailable && 'opacity-40 cursor-not-allowed'}
+                              ${isAvailable && !isSelected && 'hover:bg-gray-100 hover:scale-105'}
+                              ${isToday && !isSelected && 'ring-2 ring-offset-2 ring-offset-white'}
+                              ${isSelected && 'text-white shadow-lg transform scale-105'}
+                            `}
+                            style={{
+                              backgroundColor: isSelected ? primaryColor : isToday && !isSelected ? `${primaryColor}10` : undefined,
+                              color: isSelected ? 'white' : !isAvailable ? undefined : isToday ? primaryColor : undefined,
+                              // @ts-ignore
+                              '--tw-ring-color': isToday && !isSelected ? primaryColor : undefined,
+                            } as React.CSSProperties}
+                          >
+                            <span className={isSelected ? 'font-bold' : ''}>
+                              {day}
+                            </span>
+                            {/* Today indicator dot */}
+                            {isToday && !isSelected && (
+                              <div 
+                                className="absolute bottom-1.5 sm:bottom-2 w-1 h-1 rounded-full"
+                                style={{ backgroundColor: primaryColor }}
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  {/* Calendar Footer Legend */}
+                  <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 bg-gray-50">
+                    <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-gray-500">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: primaryColor }}
+                        />
+                        <span>Today</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: primaryColor }}
+                        />
+                        <span>Selected</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-gray-300" />
+                        <span>Unavailable</span>
+                      </div>
+                    </div>
                   </div>
                 </Card>
 

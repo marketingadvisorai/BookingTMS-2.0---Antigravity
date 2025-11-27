@@ -8,12 +8,20 @@
  * @date 2025-11-25
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table';
 import {
   Plus,
   Search,
@@ -34,6 +42,11 @@ import {
   XCircle,
   Clock,
   AlertTriangle,
+  LayoutGrid,
+  List,
+  ExternalLink,
+  Mail,
+  Phone,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -54,7 +67,7 @@ import { PermissionGuard } from '../components/auth/PermissionGuard';
 import { useOrganizations, usePlans } from '../features/system-admin/hooks';
 import { OrganizationService } from '../features/system-admin/services';
 import { OrganizationModal } from '../features/system-admin/components/organizations/OrganizationModal';
-import OrganizationSettingsModal from '../components/organizations/OrganizationSettingsModal';
+import { OrganizationSettingsModal } from '../components/organizations';
 import { toast } from 'sonner';
 import { formatDate, formatCurrency } from '../features/system-admin/utils';
 import type { Organization, CreateOrganizationDTO } from '../features/system-admin/types';
@@ -92,12 +105,14 @@ export function Organizations() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+  const [hasError, setHasError] = useState(false);
 
-  // Data hooks
-  const { organizations, total, isLoading, refetch, createOrganization, isCreating } = useOrganizations(
+  // Data hooks with error boundary
+  const { organizations = [], total = 0, isLoading, refetch, createOrganization, isCreating, error } = useOrganizations(
     { 
       search: searchQuery || undefined,
       status: statusFilter !== 'all' ? statusFilter as any : undefined,
@@ -106,6 +121,12 @@ export function Organizations() {
     10
   );
   const { plans } = usePlans(true);
+
+  // Auto-refresh on mount and periodically
+  useEffect(() => {
+    const interval = setInterval(() => refetch(), 30000); // Refresh every 30s
+    return () => clearInterval(interval);
+  }, [refetch]);
 
   // Stats
   const stats = useMemo(() => {
@@ -290,6 +311,25 @@ export function Organizations() {
                   <SelectItem value="suspended">Suspended</SelectItem>
                 </SelectContent>
               </Select>
+              {/* View Mode Toggle */}
+              <div className="flex border rounded-lg overflow-hidden">
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('table')}
+                  className={viewMode === 'table' ? 'bg-indigo-600' : ''}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className={viewMode === 'grid' ? 'bg-indigo-600' : ''}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </div>
               <Button variant="outline" size="icon" onClick={() => refetch()}>
                 <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               </Button>
@@ -297,9 +337,24 @@ export function Organizations() {
           </CardContent>
         </Card>
 
-        {/* Organizations Grid */}
+        {/* Error State */}
+        {error && (
+          <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-2 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+                <span>Error loading organizations: {(error as Error)?.message || 'Unknown error'}</span>
+                <Button variant="outline" size="sm" onClick={() => refetch()} className="ml-auto">
+                  Retry
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Organizations View */}
         {isLoading ? (
-          <OrganizationsLoadingSkeleton />
+          <OrganizationsLoadingSkeleton viewMode={viewMode} />
         ) : organizations.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -316,6 +371,13 @@ export function Organizations() {
               </Button>
             </CardContent>
           </Card>
+        ) : viewMode === 'table' ? (
+          <OrganizationsTable
+            organizations={organizations}
+            onEdit={handleEdit}
+            onSettings={handleSettings}
+            onDelete={handleDelete}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {organizations.map((org) => (
@@ -527,8 +589,156 @@ function OrganizationCard({
   );
 }
 
+// Organizations Table View
+function OrganizationsTable({ 
+  organizations, 
+  onEdit, 
+  onSettings, 
+  onDelete 
+}: {
+  organizations: Organization[];
+  onEdit: (org: Organization) => void;
+  onSettings: (org: Organization) => void;
+  onDelete: (org: Organization) => void;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-gray-50 dark:bg-gray-900/50">
+              <TableHead className="font-semibold">Organization</TableHead>
+              <TableHead className="font-semibold">Owner</TableHead>
+              <TableHead className="font-semibold">Plan</TableHead>
+              <TableHead className="font-semibold">Status</TableHead>
+              <TableHead className="font-semibold">Stripe</TableHead>
+              <TableHead className="font-semibold">Created</TableHead>
+              <TableHead className="font-semibold text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {organizations.map((org) => {
+              const statusInfo = statusConfig[org.status] || statusConfig.pending;
+              return (
+                <TableRow key={org.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/30">
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-indigo-100 dark:bg-indigo-950/50 flex items-center justify-center flex-shrink-0">
+                        <Building2 className="h-4 w-4 text-indigo-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">{org.name}</p>
+                        <p className="text-xs text-gray-500 font-mono">{org.id.slice(0, 8)}...</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="text-sm text-gray-900 dark:text-white">{org.owner_name || '-'}</p>
+                      {org.owner_email && (
+                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {org.owner_email}
+                        </p>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">
+                      {typeof org.plan === 'object' ? org.plan?.name : 'No Plan'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={statusInfo.variant} className={`${statusInfo.className} flex items-center gap-1 w-fit`}>
+                      {statusInfo.icon}
+                      {org.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {org.stripe_charges_enabled ? (
+                      <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Enabled
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-amber-600 border-amber-300">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Setup Required
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-gray-500">{formatDate(org.created_at)}</span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => onSettings(org)} title="Settings">
+                        <Settings className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => onEdit(org)} title="Edit">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onSettings(org)}>
+                            <Settings className="mr-2 h-4 w-4" />
+                            Settings
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onEdit(org)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => onDelete(org)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
 // Loading Skeleton
-function OrganizationsLoadingSkeleton() {
+function OrganizationsLoadingSkeleton({ viewMode = 'table' }: { viewMode?: 'grid' | 'table' }) {
+  if (viewMode === 'table') {
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center gap-4 animate-pulse">
+                <div className="h-9 w-9 rounded-lg bg-gray-200 dark:bg-gray-700" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded" />
+                  <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded" />
+                </div>
+                <div className="h-6 w-20 bg-gray-200 dark:bg-gray-700 rounded" />
+                <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {[...Array(6)].map((_, i) => (

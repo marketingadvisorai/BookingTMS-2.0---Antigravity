@@ -166,6 +166,11 @@ export const router = createBrowserRouter([
     path: '/organizations',
     element: <App />,
   },
+  // Embed Pro 1.1 - Admin embed management (must be before /:slug)
+  {
+    path: '/embed-pro',
+    element: <App />,
+  },
 
   // Slug-based Public Venue Profile Routes
   {

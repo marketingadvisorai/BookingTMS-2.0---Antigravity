@@ -12,7 +12,13 @@ import {
   LayoutGrid,
   List,
   Loader2,
-  Code2
+  Code2,
+  Sparkles,
+  ArrowRight,
+  Calendar,
+  MousePointer2,
+  Maximize2,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '../../../components/ui/utils';
 import { Button } from '../../../components/ui/button';
@@ -87,10 +93,110 @@ export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
     }
   };
 
+  // Loading state
   if (loading && configs.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto mb-4" />
+          <p className="text-gray-500 dark:text-gray-400">Loading your embeds...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Welcome state when no embeds exist
+  if (!loading && configs.length === 0) {
+    return (
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="text-center py-8">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', delay: 0.1 }}
+            className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25 mb-6"
+          >
+            <Code2 className="w-10 h-10 text-white" />
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-3xl font-bold text-gray-900 dark:text-white mb-3"
+          >
+            Welcome to Embed Pro 1.1
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-gray-500 dark:text-gray-400 text-lg max-w-lg mx-auto"
+          >
+            Create beautiful, customizable booking widgets and embed them anywhere on the web.
+          </motion.p>
+        </div>
+
+        {/* Feature Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto"
+        >
+          {[
+            { icon: Calendar, title: 'Booking Widget', desc: 'Full booking experience' },
+            { icon: MousePointer2, title: 'Button Widget', desc: 'Book Now popup trigger' },
+            { icon: Maximize2, title: 'Popup Widget', desc: 'Modal booking flow' },
+            { icon: BarChart3, title: 'Analytics', desc: 'Track widget performance' },
+          ].map((feature, i) => (
+            <motion.div
+              key={feature.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + i * 0.1 }}
+              className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700"
+            >
+              <feature.icon className="w-8 h-8 text-blue-500 mb-3" />
+              <h3 className="font-semibold text-gray-900 dark:text-white">{feature.title}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{feature.desc}</p>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9 }}
+          className="text-center pt-4"
+        >
+          <Button
+            onClick={() => setShowCreateModal(true)}
+            size="lg"
+            className="gap-2 shadow-lg shadow-blue-500/25"
+          >
+            <Sparkles className="w-5 h-5" />
+            Create Your First Embed
+            <ArrowRight className="w-5 h-5" />
+          </Button>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+            Select from multiple widget types and customize to match your brand
+          </p>
+        </motion.div>
+
+        {/* Create Modal */}
+        <CreateEmbedModal
+          open={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onCreate={async (input) => {
+            const newConfig = await create(input);
+            setSelectedConfig(newConfig);
+          }}
+          organizationId={organizationId}
+          activities={activities}
+          venues={venues}
+        />
       </div>
     );
   }

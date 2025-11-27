@@ -1,7 +1,11 @@
 /**
- * Embed Pro 1.1 - Type Exports
+ * Embed Pro 2.0 - Type Exports
  * @module embed-pro/types
  */
 
+// Admin Config Types
 export * from './embed-config.types';
 export * from './embed-analytics.types';
+
+// Customer Widget Types (Embed Pro 2.0)
+export * from './widget.types';

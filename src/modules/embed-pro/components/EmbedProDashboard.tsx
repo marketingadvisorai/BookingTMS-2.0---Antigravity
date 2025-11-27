@@ -18,7 +18,11 @@ import {
   Calendar,
   MousePointer2,
   Maximize2,
-  BarChart3
+  BarChart3,
+  X,
+  TrendingUp,
+  Eye,
+  MousePointerClick
 } from 'lucide-react';
 import { cn } from '../../../components/ui/utils';
 import { Button } from '../../../components/ui/button';
@@ -30,12 +34,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../../../components/ui/dialog';
 import { useEmbedConfigs } from '../hooks';
 import { EmbedConfigCard } from './EmbedConfigCard';
 import { EmbedCodeDisplay } from './EmbedCodeDisplay';
 import { EmbedPreviewPanel } from './EmbedPreviewPanel';
 import { CreateEmbedModal } from './CreateEmbedModal';
 import type { EmbedConfigWithRelations, EmbedType } from '../types';
+import { toast } from 'sonner';
 
 interface EmbedProDashboardProps {
   organizationId: string;
@@ -58,12 +69,17 @@ export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [selectedConfig, setSelectedConfig] = useState<EmbedConfigWithRelations | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<EmbedConfigWithRelations | null>(null);
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+  const [analyticsConfig, setAnalyticsConfig] = useState<EmbedConfigWithRelations | null>(null);
 
   const {
     configs,
     loading,
     error,
     create,
+    update,
     remove,
     duplicate,
     toggleActive,
@@ -86,12 +102,63 @@ export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
     bookings: configs.reduce((sum, c) => sum + c.booking_count, 0),
   }), [configs]);
 
+  // Handle Edit
+  const handleEdit = (config: EmbedConfigWithRelations) => {
+    setEditingConfig(config);
+    setShowEditModal(true);
+  };
+
+  // Handle Duplicate
+  const handleDuplicate = async (config: EmbedConfigWithRelations) => {
+    try {
+      const newConfig = await duplicate(config.id);
+      toast.success(`Duplicated "${config.name}" successfully!`);
+      setSelectedConfig(newConfig);
+    } catch (err) {
+      toast.error('Failed to duplicate embed config');
+    }
+  };
+
+  // Handle Analytics
+  const handleViewAnalytics = (config: EmbedConfigWithRelations) => {
+    setAnalyticsConfig(config);
+    setShowAnalyticsModal(true);
+  };
+
+  // Handle Toggle Active
+  const handleToggleActive = async (config: EmbedConfigWithRelations) => {
+    try {
+      await toggleActive(config.id, !config.is_active);
+      toast.success(config.is_active ? 'Embed deactivated' : 'Embed activated');
+    } catch (err) {
+      toast.error('Failed to update status');
+    }
+  };
+
+  // Handle Delete
   const handleDelete = async (config: EmbedConfigWithRelations) => {
     if (confirm(`Delete "${config.name}"? This cannot be undone.`)) {
-      await remove(config.id);
-      if (selectedConfig?.id === config.id) {
-        setSelectedConfig(null);
+      try {
+        await remove(config.id);
+        toast.success('Embed deleted successfully');
+        if (selectedConfig?.id === config.id) {
+          setSelectedConfig(null);
+        }
+      } catch (err) {
+        toast.error('Failed to delete embed');
       }
+    }
+  };
+
+  // Handle Update from Edit Modal
+  const handleUpdate = async (id: string, name: string) => {
+    try {
+      await update(id, { name });
+      toast.success('Embed updated successfully');
+      setShowEditModal(false);
+      setEditingConfig(null);
+    } catch (err) {
+      toast.error('Failed to update embed');
     }
   };
 
@@ -324,9 +391,11 @@ export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
                     config={config}
                     isSelected={selectedConfig?.id === config.id}
                     onSelect={setSelectedConfig}
-                    onDuplicate={() => duplicate(config.id)}
+                    onEdit={() => handleEdit(config)}
+                    onDuplicate={() => handleDuplicate(config)}
                     onDelete={() => handleDelete(config)}
-                    onToggleActive={() => toggleActive(config.id, !config.is_active)}
+                    onToggleActive={() => handleToggleActive(config)}
+                    onViewAnalytics={() => handleViewAnalytics(config)}
                   />
                 ))}
               </div>
@@ -348,11 +417,178 @@ export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
         onCreate={async (input) => {
           const newConfig = await create(input);
           setSelectedConfig(newConfig);
+          toast.success('Embed created successfully!');
         }}
         organizationId={organizationId}
         activities={activities}
         venues={venues}
       />
+
+      {/* Edit Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Embed</DialogTitle>
+          </DialogHeader>
+          {editingConfig && (
+            <EditEmbedForm
+              config={editingConfig}
+              onSave={handleUpdate}
+              onCancel={() => {
+                setShowEditModal(false);
+                setEditingConfig(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Analytics Modal */}
+      <Dialog open={showAnalyticsModal} onOpenChange={setShowAnalyticsModal}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-blue-500" />
+              Analytics: {analyticsConfig?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {analyticsConfig && (
+            <AnalyticsSummary config={analyticsConfig} />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+// =====================================================
+// EDIT FORM COMPONENT
+// =====================================================
+
+interface EditEmbedFormProps {
+  config: EmbedConfigWithRelations;
+  onSave: (id: string, name: string) => void;
+  onCancel: () => void;
+}
+
+const EditEmbedForm: React.FC<EditEmbedFormProps> = ({ config, onSave, onCancel }) => {
+  const [name, setName] = useState(config.name);
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    await onSave(config.id, name.trim());
+    setSaving(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Embed Name
+        </label>
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter embed name"
+          autoFocus
+        />
+      </div>
+      <div className="flex gap-3 justify-end">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={saving || !name.trim()}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+          Save Changes
+        </Button>
+      </div>
+    </form>
+  );
+};
+
+// =====================================================
+// ANALYTICS SUMMARY COMPONENT
+// =====================================================
+
+interface AnalyticsSummaryProps {
+  config: EmbedConfigWithRelations;
+}
+
+const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({ config }) => {
+  // Calculate conversion rate
+  const conversionRate = config.view_count > 0
+    ? ((config.booking_count / config.view_count) * 100).toFixed(1)
+    : '0';
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20">
+          <div className="flex items-center gap-2 mb-2">
+            <Eye className="w-4 h-4 text-blue-500" />
+            <span className="text-sm text-gray-600 dark:text-gray-400">Views</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {config.view_count.toLocaleString()}
+          </p>
+        </div>
+        <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/20">
+          <div className="flex items-center gap-2 mb-2">
+            <MousePointerClick className="w-4 h-4 text-green-500" />
+            <span className="text-sm text-gray-600 dark:text-gray-400">Bookings</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {config.booking_count.toLocaleString()}
+          </p>
+        </div>
+        <div className="p-4 rounded-xl bg-purple-50 dark:bg-purple-900/20">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-4 h-4 text-purple-500" />
+            <span className="text-sm text-gray-600 dark:text-gray-400">Conversion</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {conversionRate}%
+          </p>
+        </div>
+      </div>
+
+      {/* Embed Details */}
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          Embed Details
+        </h4>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="text-gray-500">Type:</span>
+            <span className="ml-2 font-medium">{config.type}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">Status:</span>
+            <span className={`ml-2 font-medium ${config.is_active ? 'text-green-600' : 'text-gray-500'}`}>
+              {config.is_active ? 'Active' : 'Inactive'}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-500">Target:</span>
+            <span className="ml-2 font-medium capitalize">{config.target_type}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">Created:</span>
+            <span className="ml-2 font-medium">
+              {new Date(config.created_at).toLocaleDateString()}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Embed Key */}
+      <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 font-mono text-xs text-gray-500 break-all">
+        {config.embed_key}
+      </div>
     </div>
   );
 };

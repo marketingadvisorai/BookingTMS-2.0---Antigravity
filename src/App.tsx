@@ -28,6 +28,7 @@ import { Billing } from './pages/Billing';
 import { Team } from './pages/Team';
 import { Embed } from './pages/Embed';
 import EmbedProPage from './pages/EmbedPro';
+import { EmbedProPage as EmbedProWidgetPage } from './modules/embed-pro';
 import { AccountSettings } from './pages/AccountSettings';
 import { PaymentHistory } from './pages/PaymentHistory';
 import Notifications from './pages/Notifications';
@@ -217,11 +218,17 @@ export default function App() {
   // Check if we're in org-login mode
   const isOrgLogin = path === '/org-login' || path === '/org-login/';
 
-  // Check if we're in embed mode (but NOT embed-pro which is an admin page)
+  // Check if we're in legacy embed mode
   // Embed mode is ONLY for: /embed with widget params, or /embed?key=xxx for venue widgets
-  const isEmbedMode = (params.has('widget') || params.has('widgetId') || params.has('key')) && 
-                      path.startsWith('/embed') && 
-                      !path.startsWith('/embed-pro');
+  const isLegacyEmbedMode = (params.has('widget') || params.has('widgetId') || params.has('key')) && 
+                            path === '/embed';
+
+  // Check if we're in Embed Pro 2.0 widget mode (customer-facing)
+  // /embed-pro?key=xxx bypasses auth and shows the booking widget
+  const isEmbedProWidgetMode = path.startsWith('/embed-pro') && params.has('key');
+
+  // Combined embed mode check
+  const isEmbedMode = isLegacyEmbedMode || isEmbedProWidgetMode;
 
   // Skip loading screen for special modes
   useEffect(() => {
@@ -261,8 +268,18 @@ export default function App() {
     );
   }
 
-  // Render embed mode without admin layout
-  if (isEmbedMode) {
+  // Render Embed Pro 2.0 widget (customer-facing booking widget)
+  if (isEmbedProWidgetMode) {
+    return (
+      <ThemeProvider>
+        <EmbedProWidgetPage />
+        <Toaster />
+      </ThemeProvider>
+    );
+  }
+
+  // Render legacy embed mode without admin layout
+  if (isLegacyEmbedMode) {
     return (
       <ThemeProvider>
         <Embed />

@@ -52,10 +52,13 @@ export function useEmbedPreview(options: UseEmbedPreviewOptions): UseEmbedPrevie
     }
   }, [configId]);
 
-  // Get preview URL
+  // Get preview URL with full config for proper widget routing
   const previewUrl = useMemo(() => {
     if (!previewData?.embedConfig?.embed_key) return null;
-    return previewService.getPreviewUrl(previewData.embedConfig.embed_key);
+    return previewService.getPreviewUrl(
+      previewData.embedConfig.embed_key,
+      previewData.embedConfig
+    );
   }, [previewData]);
 
   // Get CSS variables from style

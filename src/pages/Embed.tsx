@@ -19,7 +19,7 @@ import SupabaseBookingService from '../services/SupabaseBookingService';
 const DEFAULT_PRIMARY_COLOR = '#2563eb';
 
 export function Embed() {
-  const [widgetId, setWidgetId] = useState<string>('farebook');
+  const [widgetId, setWidgetId] = useState<string>('booking');
   const [primaryColor, setPrimaryColor] = useState<string>(DEFAULT_PRIMARY_COLOR);
   const [widgetKey, setWidgetKey] = useState<string>('');
   const [widgetTheme, setWidgetTheme] = useState<'light' | 'dark'>('light');
@@ -72,7 +72,7 @@ export function Embed() {
   useEffect(() => {
     // Parse URL parameters
     const params = new URLSearchParams(window.location.search);
-    const widget = params.get('widget') || 'farebook';
+    const widget = params.get('widget') || 'booking';
     const color = params.get('color') || DEFAULT_PRIMARY_COLOR.replace('#', '');
     const key = params.get('key') || '';
     const theme = (params.get('theme') as 'light' | 'dark') || 'light';
@@ -536,7 +536,18 @@ export function Embed() {
           />
         );
       default:
-        console.log('⚠️ Widget ID not matched, defaulting to farebook');
+        // Default to booking widget (CalendarSingleEventBookingPage)
+        console.log('⚠️ Widget ID not matched, defaulting to booking widget');
+        if (activityId && activityId !== 'preview') {
+          return (
+            <CalendarSingleEventBookingPage
+              {...widgetProps}
+              activityId={activityId}
+              venueId={urlVenueId}
+            />
+          );
+        }
+        // Fallback to FareBookWidget when no activity context
         return <FareBookWidget {...widgetProps} />;
     }
   };

@@ -172,11 +172,41 @@ class PreviewService {
   }
 
   /**
-   * Generate preview URL
+   * Map embed type to widget URL parameter
    */
-  getPreviewUrl(embedKey: string): string {
+  private mapEmbedTypeToWidget(type: string): string {
+    const typeMap: Record<string, string> = {
+      'booking-widget': 'booking',
+      'calendar-widget': 'calendar',
+      'button-widget': 'booking',
+      'inline-widget': 'booking',
+      'popup-widget': 'booking',
+    };
+    // Default to 'booking' for the full booking widget experience
+    return typeMap[type] || 'booking';
+  }
+
+  /**
+   * Generate preview URL using the new Embed Pro 2.0 page
+   * Route: /embed-pro?key={embedKey}&theme={theme}&preview=true
+   */
+  getPreviewUrl(embedKey: string, config?: EmbedConfigEntity): string {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${baseUrl}/embed?key=${embedKey}&preview=true`;
+    const params = new URLSearchParams();
+    
+    // Always include embed key and preview flag
+    params.set('key', embedKey);
+    params.set('preview', 'true');
+    
+    if (config) {
+      // Add theme if specified
+      if (config.style?.theme && config.style.theme !== 'auto') {
+        params.set('theme', config.style.theme);
+      }
+    }
+    
+    // Use new Embed Pro 2.0 route
+    return `${baseUrl}/embed-pro?${params.toString()}`;
   }
 
   /**

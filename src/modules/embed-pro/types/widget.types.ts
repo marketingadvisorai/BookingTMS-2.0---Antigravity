@@ -32,6 +32,9 @@ export interface PricingTier {
 /** Activity data normalized for widget consumption */
 export interface WidgetActivity {
   id: string;
+  organizationId: string;
+  venueId: string | null;
+  venueName: string | null;
   name: string;
   description: string | null;
   tagline: string | null;

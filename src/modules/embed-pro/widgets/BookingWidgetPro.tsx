@@ -18,6 +18,7 @@ import {
   WidgetSuccess,
   WidgetActivitySelector,
 } from '../widget-components';
+import { checkoutProService } from '../services';
 import type { WidgetData, CustomerInfo, WidgetActivity } from '../types/widget.types';
 
 // =====================================================
@@ -158,6 +159,7 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
 }) => {
   const { venue, style, config, isPreview, activities } = data;
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   
   // Track selected activity - for venues with multiple activities
@@ -209,29 +211,58 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
 
   // Handle checkout submission
   const handleCheckoutSubmit = useCallback(async (customerInfo: CustomerInfo) => {
-    if (isPreview) {
-      setTimeout(() => setBookingId('PREVIEW-' + Date.now()), 800);
+    if (!activity || !state.selectedDate || !state.selectedTime) {
+      setError('Missing booking information');
       return;
     }
 
+    // Preview mode - simulate success
+    if (isPreview) {
+      setIsCheckoutLoading(true);
+      setTimeout(() => {
+        setBookingId('PREVIEW-' + Date.now());
+        setIsCheckoutLoading(false);
+      }, 800);
+      return;
+    }
+
+    setIsCheckoutLoading(true);
+
     try {
-      // TODO: Integrate with create-checkout-session edge function
-      console.log('[BookingWidget] Creating booking:', {
-        activityId: activity?.id,
-        date: state.selectedDate?.toISOString(),
+      console.log('[BookingWidget] Creating checkout session:', {
+        activityId: activity.id,
+        date: state.selectedDate.toISOString(),
         time: state.selectedTime,
         partySize: state.partySize,
+        childCount: state.childCount,
         customer: customerInfo,
       });
 
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      const bookingId = 'BK-' + Date.now();
-      setBookingId(bookingId);
-      onBookingComplete?.(bookingId);
+      // Track the booking started event
+      if (data.embedKey) {
+        checkoutProService.trackBookingStarted(data.embedKey);
+      }
+
+      // Create Stripe checkout session
+      const { url } = await checkoutProService.createCheckoutSession({
+        activity,
+        date: state.selectedDate,
+        time: state.selectedTime,
+        partySize: state.partySize,
+        childCount: state.childCount,
+        customerInfo,
+        organizationId: activity.organizationId,
+        embedKey: data.embedKey,
+      });
+
+      // Redirect to Stripe Checkout
+      checkoutProService.redirectToCheckout(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Booking failed');
+      console.error('[BookingWidget] Checkout error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create checkout');
+      setIsCheckoutLoading(false);
     }
-  }, [activity, state, isPreview, setBookingId, setError, onBookingComplete]);
+  }, [activity, state, data.embedKey, isPreview, setBookingId, setError]);
 
   // Show activity selector for venues with multiple activities
   if (needsActivitySelection) {
@@ -407,7 +438,8 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
             onSubmit={handleCheckoutSubmit}
             onBack={() => handleStepChange(goBack)}
             style={style}
-            buttonText={isPreview ? 'Complete (Preview)' : config.buttonText}
+            isLoading={isCheckoutLoading}
+            buttonText={isPreview ? 'Complete (Preview)' : 'Continue to Payment'}
           />
         )}
 

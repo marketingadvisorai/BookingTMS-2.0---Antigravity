@@ -25,6 +25,8 @@ import type {
 
 interface RawActivity {
   id: string;
+  organization_id: string;
+  venue_id: string | null;
   name: string;
   description: string | null;
   tagline?: string | null;
@@ -40,6 +42,8 @@ interface RawActivity {
   stripe_price_id: string | null;
   stripe_product_id: string | null;
   stripe_prices?: Record<string, any> | null;
+  // Joined venue name (optional)
+  venue?: { name: string } | null;
 }
 
 interface RawVenue {
@@ -183,9 +187,15 @@ class EmbedProDataService {
       (a: any) => a.is_active === true
     );
 
+    // Add venue reference to each activity for venueName
+    const activitiesWithVenue = activeActivities.map(a => ({
+      ...a,
+      venue: { name: raw.name },
+    }));
+
     return {
       venue: this.normalizeVenue(raw),
-      activities: activeActivities.map((a) => this.normalizeActivity(a)),
+      activities: activitiesWithVenue.map((a) => this.normalizeActivity(a)),
     };
   }
 
@@ -217,6 +227,9 @@ class EmbedProDataService {
 
     return {
       id: raw.id,
+      organizationId: raw.organization_id,
+      venueId: raw.venue_id,
+      venueName: raw.venue?.name || null,
       name: raw.name,
       description: raw.description,
       tagline: raw.tagline || null,

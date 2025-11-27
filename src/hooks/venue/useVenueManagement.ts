@@ -85,12 +85,13 @@ export function useVenueManagement() {
     try {
       const newVenue: VenueInput = {
         ...formData,
+        timezone: formData.timezone || 'America/New_York',
         widgetConfig: createDefaultVenueWidgetConfig(),
         isActive: true,
         organizationId: isSystemAdmin ? formData.organizationId : currentUser?.organizationId,
       };
 
-      const venuePayload = mapUIVenueToDB(newVenue);
+      const venuePayload = mapUIVenueToDB(newVenue) as any;
 
       await createVenueDB(venuePayload);
       setShowCreateDialog(false);
@@ -113,7 +114,7 @@ export function useVenueManagement() {
     setIsLoading(true);
     try {
       const updatedVenue = { ...selectedVenue, ...formData };
-      await updateVenueDB(selectedVenue.id, mapUIVenueToDB(updatedVenue));
+      await updateVenueDB(selectedVenue.id, mapUIVenueToDB(updatedVenue) as any);
       setShowEditDialog(false);
       setSelectedVenue(null);
       resetForm();
@@ -148,7 +149,7 @@ export function useVenueManagement() {
 
     try {
       const updatedVenue = { ...venue, isActive: !venue.isActive };
-      await updateVenueDB(venueId, mapUIVenueToDB(updatedVenue));
+      await updateVenueDB(venueId, mapUIVenueToDB(updatedVenue) as any);
     } catch (error) {
       console.error('Error toggling venue status:', error);
     }
@@ -164,7 +165,7 @@ export function useVenueManagement() {
         widgetConfig: config,
       };
 
-      await updateVenueDB(selectedVenue.id, mapUIVenueToDB(updatedVenue));
+      await updateVenueDB(selectedVenue.id, mapUIVenueToDB(updatedVenue) as any);
       setSelectedVenue(updatedVenue);
 
       setSaveStatus('saved');

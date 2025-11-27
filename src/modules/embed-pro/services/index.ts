@@ -12,3 +12,4 @@ export { analyticsService } from './analytics.service';
 
 // Customer Widget Services (Embed Pro 2.0)
 export { embedProDataService } from './embedProData.service';
+export { checkoutProService } from './checkoutPro.service';

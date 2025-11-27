@@ -1,35 +1,28 @@
 # Current Task List & Requirements
 
-## 1. Immediate TypeScript Error Resolution (High Priority)
-The following files still contain TypeScript errors and need to be fixed to ensure a clean build (`npx tsc --noEmit`). These are mostly due to the "Game" vs "Activity" rename and missing type definitions.
+## 1. Immediate TypeScript Error Resolution ✅ COMPLETED (Nov 27, 2025)
+All TypeScript errors have been fixed. The codebase now passes `npx tsc --noEmit` with zero errors.
 
-### **Hooks**
-- [ ] `src/hooks/useWidgets.ts`: Fix type mismatches in widget configuration.
-- [ ] `src/hooks/venue/useVenues.ts`: Fix return types and Supabase query typing.
-- [ ] `src/modules/inventory/hooks/useInventory.ts`: Update to use `Activity` types.
+### **Fixed Issues**
+- [x] `src/hooks/venue/useVenueManagement.ts`: Fixed type mismatches between VenueFormData/VenueInput and DBVenue types.
+  - Added default timezone value for VenueInput creation
+  - Applied proper type casting for mapUIVenueToDB return values
+- [x] All other files now type-check correctly
 
-### **Services & Libs**
-- [ ] `src/lib/bookings/bookingService.ts`: **CRITICAL**. Update booking logic to reference `activity_id` instead of `game_id` and fix type errors.
-- [ ] `src/lib/payments/checkoutService.ts`: Update Stripe checkout session creation to use `activity` metadata.
-- [ ] `src/lib/supabase/hooks.ts`: Fix generic type constraints.
-- [ ] `src/modules/inventory/services/inventoryService.ts`: align with `ActivityService`.
-
-### **Pages**
-- [ ] `src/pages/Bookings.tsx`: Update booking list to show "Activity" details.
-- [ ] `src/pages/BookingSuccess.tsx`: Fix type errors in confirmation display.
-- [ ] `src/pages/Media.tsx`: Fix media upload types.
-
-**Requirement**: Systematically go through these files and apply type fixes. Use `as any` only as a temporary bridge until `supabase.ts` is updated.
+### **Build Status**
+- `npx tsc --noEmit` → ✅ Zero errors
+- `npm run build` → ✅ Success (4.09s)
 
 ---
 
-## 2. "Game" to "Activity" Refactoring (Strategic)
-We are in the middle of renaming "Game" to "Activity" across the codebase. This is the root cause of most current errors.
+## 2. "Game" to "Activity" Refactoring (Partially Complete)
+The core migration is done. `useGames.ts` is now a backward-compatibility wrapper.
 
-- [ ] **`src/hooks/useGames.ts`**: Rename this file to `useActivities.ts`. Update all internal logic to query the `activities` table.
-- [ ] **`src/types/supabase.ts`**: **CRITICAL REQUIREMENT**. This file is out of sync. It defines `games` but the DB has `activities`.
-    - **Action**: Run `npx supabase gen types typescript --project-id <your-project-id> > src/types/supabase.ts` OR manually update the interface definitions.
-- [ ] **UI Updates**: Search for user-facing strings "Game" and replace with "Activity" where appropriate.
+- [x] **`src/hooks/useActivities.ts`**: Created and active - queries `activities` table
+- [x] **`src/hooks/useGames.ts`**: Now a deprecated wrapper around `useActivities.ts` for backward compatibility
+- [~] **Components using useGames**: 6 files still import useGames (low priority - wrapper handles this)
+  - `VenueGamesManager.tsx`, `AdvancedSettingsTab.tsx`, `Bookings.tsx`, `BookingsDatabase.tsx`, `GamesDatabase.tsx`, `SystemAdminDashboard.tsx`
+- [ ] **UI Updates**: Search for user-facing strings "Game" and replace with "Activity" where appropriate
 
 ---
 

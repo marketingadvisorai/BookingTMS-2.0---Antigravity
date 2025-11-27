@@ -15,6 +15,7 @@ export { embedProDataService, availabilityService, widgetDataNormalizer } from '
 export { checkoutProService } from './checkoutPro.service';
 export { bookingVerificationService } from './bookingVerification.service';
 export { promoService } from './promo.service';
+export { waitlistService } from './waitlist.service';
 
 // Type exports for external use (renamed to avoid conflicts with types module)
 export type { 

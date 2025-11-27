@@ -194,10 +194,17 @@
 
 ### Phase 2
 - [x] Multi-language support (i18n) ✅ v0.1.38
-- [ ] Waitlist for sold-out slots
+- [x] Waitlist for sold-out slots ✅ v0.1.39
 - [ ] Group booking with multiple activities
 - [x] Promo code / discount support ✅ v0.1.37
 - [ ] Gift card redemption
+
+#### Waitlist System (v0.1.39)
+- **Types**: WaitlistEntry, WaitlistStatus, JoinWaitlistRequest/Response
+- **Service**: waitlistService - join, cancel, check availability
+- **Component**: WidgetWaitlistModal - form + success state
+- **Features**: Email notification, queue position, 24h expiry
+- **Storage**: localStorage (demo) - ready for Supabase
 
 #### Multi-Language Support (v0.1.38)
 - **Languages**: English, Spanish, French (+ placeholder for 5 more)

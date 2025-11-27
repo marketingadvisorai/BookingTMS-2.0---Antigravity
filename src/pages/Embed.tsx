@@ -4,7 +4,6 @@ import { BookGoWidget } from '../components/widgets/ListWidget';
 import { QuickBookWidget } from '../components/widgets/QuickBookWidget';
 import { MultiStepWidget } from '../components/widgets/MultiStepWidget';
 import { ResolvexWidget } from '../components/widgets/ResolvexWidget';
-import { CalendarSingleEventBookingPage } from '../components/widgets/CalendarSingleEventBookingPage';
 import { CalendarSingleEventBookingPageNew } from '../components/widgets/CalendarSingleEventBookingPageNew';
 import { VenueBookingWidget } from '../components/widgets/VenueBookingWidget';
 import FareBookWidget from '../components/widgets/FareBookWidget';

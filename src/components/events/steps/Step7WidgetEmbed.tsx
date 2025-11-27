@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { Textarea } from '../../ui/textarea';
 import { Copy, Check, ExternalLink, Code, Calendar, Eye, Globe } from 'lucide-react';
 import { StepProps, EmbedContext } from '../types';
-import { CalendarSingleEventBookingPage } from '../../widgets/CalendarSingleEventBookingPage';
+import { CalendarSingleEventBookingPageNew } from '../../widgets/CalendarSingleEventBookingPageNew';
 import { Badge } from '../../ui/badge';
 import { WidgetThemeProvider } from '../../widgets/WidgetThemeContext';
 
@@ -163,7 +163,7 @@ export default function Step7WidgetEmbed({ activityData, updateActivityData, t }
                                 <div className="h-[600px] overflow-y-auto pt-8 bg-white scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
                                     <div className="transform scale-[0.85] origin-top h-[120%] w-[117.6%] -ml-[8.8%]">
                                         <WidgetThemeProvider initialTheme="light">
-                                            <CalendarSingleEventBookingPage
+                                            <CalendarSingleEventBookingPageNew
                                                 primaryColor={embedContext.primaryColor}
                                                 gameName={activityData.name}
                                                 gameDescription={activityData.description}

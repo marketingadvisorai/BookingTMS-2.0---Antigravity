@@ -252,7 +252,6 @@ export class OrganizationService {
               organization_id: org.id,
               name: venueName,
               slug: venueSlug,
-              is_default: true,
               timezone: 'America/New_York',
               status: 'active',
               primary_color: '#2563eb',
@@ -324,9 +323,13 @@ export class OrganizationService {
           organization_id: org.id,
           name: defaultVenueName,
           slug: defaultVenueSlug,
-          is_default: true,
           timezone: 'UTC',
           status: 'active',
+          address: dto.address || '',
+          city: dto.city || '',
+          state: dto.state || '',
+          zip: dto.zip || '',
+          country: dto.country || 'United States',
           settings: { type: 'escape-room' },
         } as any]);
 

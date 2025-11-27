@@ -32,6 +32,7 @@ import { PaymentHistory } from './pages/PaymentHistory';
 import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import BetaLogin from './pages/BetaLogin';
+import OrgLogin from './pages/OrgLogin';
 import BackendDashboard from './pages/BackendDashboard';
 import GiftVouchers from './pages/GiftVouchers';
 import SystemAdminDashboard from './pages/SystemAdminDashboard';
@@ -203,6 +204,7 @@ function AppContent() {
 export default function App() {
   const [isEmbedMode, setIsEmbedMode] = useState(false);
   const [isBetaLogin, setIsBetaLogin] = useState(false);
+  const [isOrgLogin, setIsOrgLogin] = useState(false);
   const [showLoadingScreen, setShowLoadingScreen] = useState(true);
 
   useEffect(() => {
@@ -212,6 +214,13 @@ export default function App() {
     // Check if we're in beta-login mode
     if (params.has('beta') || path === '/beta-login' || path === '/beta-login/' || params.get('login') === 'beta') {
       setIsBetaLogin(true);
+      setShowLoadingScreen(false);
+      return;
+    }
+
+    // Check if we're in org-login mode
+    if (path === '/org-login' || path === '/org-login/') {
+      setIsOrgLogin(true);
       setShowLoadingScreen(false);
       return;
     }
@@ -241,6 +250,18 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <BetaLogin />
+          <Toaster />
+        </AuthProvider>
+      </ThemeProvider>
+    );
+  }
+
+  // Render org login page
+  if (isOrgLogin) {
+    return (
+      <ThemeProvider>
+        <AuthProvider>
+          <OrgLogin />
           <Toaster />
         </AuthProvider>
       </ThemeProvider>

@@ -24,9 +24,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Copy, Check, Mail, Key } from 'lucide-react';
 import { validateOrganization, hasValidationErrors, type OrganizationValidationErrors } from '../../utils';
 import type { Organization, CreateOrganizationDTO } from '../../types';
+import { toast } from 'sonner';
 
 interface OrganizationModalProps {
   open: boolean;
@@ -47,7 +48,7 @@ export const OrganizationModal: React.FC<OrganizationModalProps> = ({
 }) => {
   const isEdit = !!organization;
   
-  const [formData, setFormData] = useState<CreateOrganizationDTO>({
+  const [formData, setFormData] = useState<CreateOrganizationDTO & { initial_password?: string }>({
     name: '',
     owner_name: '',
     owner_email: '',
@@ -61,9 +62,12 @@ export const OrganizationModal: React.FC<OrganizationModalProps> = ({
     plan_id: '',
     status: 'pending',
     create_default_venue: true,
+    initial_password: '',
   });
 
   const [errors, setErrors] = useState<OrganizationValidationErrors>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Initialize form when organization changes
   useEffect(() => {
@@ -336,6 +340,36 @@ export const OrganizationModal: React.FC<OrganizationModalProps> = ({
                 <p className="text-sm text-red-600 dark:text-red-500">{errors.plan_id}</p>
               )}
             </div>
+
+            {/* Initial Password (Only for new orgs) */}
+            {!isEdit && (
+              <div className="grid gap-2">
+                <Label htmlFor="initial_password" className="text-gray-900 dark:text-white flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  Initial Password (Optional)
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="initial_password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.initial_password || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, initial_password: e.target.value }))}
+                    placeholder="Leave blank to auto-generate"
+                    className="bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-[#2a2a2a] pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  If left blank, a secure password will be generated and the owner will receive a reset link.
+                </p>
+              </div>
+            )}
 
             {/* Status */}
             <div className="grid gap-2">

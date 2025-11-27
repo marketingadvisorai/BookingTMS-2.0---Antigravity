@@ -147,9 +147,10 @@ export function Organizations() {
     }
   };
 
-  const handleSubmit = async (data: CreateOrganizationDTO) => {
+  const handleSubmit = async (data: CreateOrganizationDTO & { initial_password?: string }) => {
     try {
       if (selectedOrg) {
+        // Update existing organization
         await OrganizationService.update(selectedOrg.id, {
           name: data.name,
           owner_name: data.owner_name,
@@ -158,13 +159,31 @@ export function Organizations() {
           status: data.status === 'active' ? 'active' : data.status === 'pending' ? undefined : data.status as any,
         });
         toast.success('Organization updated successfully');
+        setIsAddModalOpen(false);
       } else {
-        await createOrganization(data);
-        toast.success('Organization created successfully');
+        // Create new organization with org admin user
+        const result = await OrganizationService.createComplete(data, data.initial_password);
+        
+        // Show success with credentials info
+        if (result.admin_credentials?.temp_password) {
+          toast.success(
+            `Organization created! Temp password: ${result.admin_credentials.temp_password}`,
+            { duration: 10000 }
+          );
+        } else if (result.admin_credentials?.reset_link) {
+          toast.success(
+            'Organization created! Password reset email sent to owner.',
+            { duration: 5000 }
+          );
+        } else {
+          toast.success('Organization created successfully');
+        }
+        
+        setIsAddModalOpen(false);
       }
-      setIsAddModalOpen(false);
       refetch();
     } catch (error: any) {
+      console.error('Organization operation failed:', error);
       toast.error(error.message || 'Operation failed');
       throw error;
     }

@@ -433,6 +433,86 @@ export class OrganizationService {
   }
 
   /**
+   * Create org admin user via Edge Function
+   * Returns user credentials and reset link
+   */
+  static async createOrgAdmin(params: {
+    organization_id: string;
+    email: string;
+    name: string;
+    phone?: string;
+    set_password?: string;
+    send_welcome_email?: boolean;
+  }): Promise<{
+    success: boolean;
+    user_id?: string;
+    temp_password?: string;
+    reset_link?: string;
+    message?: string;
+    error?: string;
+  }> {
+    try {
+      const { data, error } = await supabase.functions.invoke('create-org-admin', {
+        body: params,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data;
+    } catch (error: any) {
+      console.error('[OrganizationService] createOrgAdmin failed:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to create org admin',
+      };
+    }
+  }
+
+  /**
+   * Create organization with org admin user in one transaction
+   */
+  static async createComplete(
+    dto: CreateOrganizationDTO,
+    adminPassword?: string
+  ): Promise<{
+    organization: Organization;
+    admin_credentials?: {
+      email: string;
+      temp_password?: string;
+      reset_link?: string;
+    };
+  }> {
+    try {
+      // Step 1: Create the organization
+      const org = await this.create(dto);
+
+      // Step 2: Create org admin user
+      const adminResult = await this.createOrgAdmin({
+        organization_id: org.id,
+        email: dto.owner_email,
+        name: dto.owner_name,
+        phone: dto.phone,
+        set_password: adminPassword,
+        send_welcome_email: true,
+      });
+
+      return {
+        organization: org,
+        admin_credentials: adminResult.success ? {
+          email: dto.owner_email,
+          temp_password: adminResult.temp_password,
+          reset_link: adminResult.reset_link,
+        } : undefined,
+      };
+    } catch (error: any) {
+      console.error('[OrganizationService] createComplete failed:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get organization metrics
    */
   static async getMetrics(id: string): Promise<OrganizationMetrics> {

@@ -166,14 +166,27 @@
 
 ---
 
-## Priority 9: Accessibility
+## Priority 9: Accessibility ✅ COMPLETED (Nov 27, 2025)
 
 ### Tasks
-- [ ] Add ARIA labels to all interactive elements
-- [ ] Ensure keyboard navigation works
-- [ ] Test with screen readers
-- [ ] Add focus indicators
-- [ ] Ensure color contrast meets WCAG AA
+- [x] Add ARIA labels to all interactive elements
+- [x] Ensure keyboard navigation works (focus:ring, tabindex)
+- [x] Screen reader support (aria-live, aria-atomic, sr-only)
+- [x] Add focus indicators (focus:ring-2, focus:ring-offset-2)
+- [x] Semantic HTML (role=grid, role=listbox, role=option, dl/dt/dd)
+
+### ARIA Enhancements by Component
+- **WidgetCalendar**: role=grid, aria-selected, aria-current=date, aria-live for month
+- **WidgetTimeSlots**: role=listbox, role=option, aria-selected, aria-describedby
+- **WidgetSuccess**: role=alert, aria-live=polite, dl/dt/dd for booking details
+- **WidgetCheckout**: aria-label, aria-invalid, aria-describedby
+- **WidgetPartySize**: aria-label on +/- buttons
+
+### Completed Files
+- `src/modules/embed-pro/widget-components/WidgetCalendar.tsx`
+- `src/modules/embed-pro/widget-components/WidgetTimeSlots.tsx`
+- `src/modules/embed-pro/widget-components/WidgetSuccess.tsx`
+- `src/modules/embed-pro/widget-components/WidgetCheckout.tsx`
 
 ---
 

@@ -126,21 +126,36 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
   const canGoPrev = currentYear > today.getFullYear() || 
     (currentYear === today.getFullYear() && currentMonth > today.getMonth());
 
+  // Format date for screen readers
+  const formatDateForAria = (date: Date): string => {
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return `${dayNames[date.getDay()]}, ${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+  };
+
   return (
-    <div className="p-3 sm:p-4 md:p-5">
+    <div 
+      className="p-3 sm:p-4 md:p-5"
+      role="region"
+      aria-label="Date selection calendar"
+    >
       {/* Month Navigation - 44px touch targets */}
-      <div className="flex items-center justify-between mb-3 sm:mb-4">
+      <div className="flex items-center justify-between mb-3 sm:mb-4" role="group" aria-label="Month navigation">
         <button
           onClick={prevMonth}
           disabled={!canGoPrev}
           className="w-11 h-11 md:w-12 md:h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all duration-150 touch-manipulation focus:outline-none focus:ring-2 focus:ring-offset-2"
           style={{ ['--tw-ring-color' as any]: style.primaryColor }}
-          aria-label="Previous month"
+          aria-label={`Go to previous month, ${MONTHS[currentMonth === 0 ? 11 : currentMonth - 1]}`}
         >
-          <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
+          <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" aria-hidden="true" />
         </button>
         
-        <h2 className="text-base sm:text-lg md:text-xl font-semibold" style={{ color: style.textColor }}>
+        <h2 
+          className="text-base sm:text-lg md:text-xl font-semibold" 
+          style={{ color: style.textColor }}
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {MONTHS[currentMonth]} {currentYear}
         </h2>
         
@@ -148,18 +163,23 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
           onClick={nextMonth}
           className="w-11 h-11 md:w-12 md:h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 active:scale-95 transition-all duration-150 touch-manipulation focus:outline-none focus:ring-2 focus:ring-offset-2"
           style={{ ['--tw-ring-color' as any]: style.primaryColor }}
-          aria-label="Next month"
+          aria-label={`Go to next month, ${MONTHS[currentMonth === 11 ? 0 : currentMonth + 1]}`}
         >
-          <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
+          <ChevronRight className="w-5 h-5 md:w-6 md:h-6" aria-hidden="true" />
         </button>
       </div>
 
       {/* Day Headers */}
-      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 mb-1 sm:mb-2">
+      <div 
+        className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 mb-1 sm:mb-2" 
+        role="row"
+        aria-hidden="true"
+      >
         {DAYS.map(day => (
           <div
             key={day}
             className="text-center text-[10px] sm:text-xs md:text-sm font-medium text-gray-500 py-1 sm:py-2"
+            role="columnheader"
           >
             {day.slice(0, 2)}
           </div>
@@ -167,10 +187,14 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
       </div>
 
       {/* Calendar Grid - Min 44px touch targets */}
-      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2">
+      <div 
+        className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2"
+        role="grid"
+        aria-label={`Calendar for ${MONTHS[currentMonth]} ${currentYear}`}
+      >
         {calendarDays.map((date, index) => {
           if (!date) {
-            return <div key={`empty-${index}`} className="min-h-[44px] sm:aspect-square" />;
+            return <div key={`empty-${index}`} className="min-h-[44px] sm:aspect-square" role="gridcell" />;
           }
 
           const available = isDateAvailable(date);
@@ -182,6 +206,10 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
               key={date.toISOString()}
               onClick={() => available && onDateSelect(date)}
               disabled={!available}
+              role="gridcell"
+              aria-selected={selected}
+              aria-disabled={!available}
+              aria-current={isToday ? 'date' : undefined}
               className={`
                 min-h-[44px] sm:aspect-square flex items-center justify-center 
                 rounded-lg sm:rounded-xl text-sm font-medium
@@ -199,7 +227,7 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
                 backgroundColor: selected ? style.primaryColor : undefined,
                 ['--tw-ring-color' as any]: isToday ? style.primaryColor : undefined,
               }}
-              aria-label={`${date.toDateString()}${available ? '' : ' (unavailable)'}`}
+              aria-label={`${formatDateForAria(date)}${isToday ? ', today' : ''}${selected ? ', selected' : ''}${!available ? ', unavailable' : ', available'}`}
             >
               {date.getDate()}
             </button>
@@ -208,7 +236,7 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
       </div>
 
       {/* Hint Text */}
-      <p className="text-center text-[10px] sm:text-xs text-gray-400 mt-3 sm:mt-4">
+      <p className="text-center text-[10px] sm:text-xs text-gray-400 mt-3 sm:mt-4" aria-live="polite">
         Tap a green date to continue
       </p>
     </div>

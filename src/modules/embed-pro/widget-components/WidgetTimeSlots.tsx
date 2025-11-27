@@ -196,28 +196,44 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
   const formattedDate = `${days[selectedDate.getDay()]}, ${months[selectedDate.getMonth()]} ${selectedDate.getDate()}`;
 
   return (
-    <div className="p-3 sm:p-4 md:p-5">
+    <div 
+      className="p-3 sm:p-4 md:p-5"
+      role="region"
+      aria-label="Time slot selection"
+    >
       {/* Error Banner */}
       {error && (
-        <div className="flex items-center gap-2 mb-3 p-2 md:p-3 bg-yellow-50 rounded-lg text-yellow-700 text-xs md:text-sm">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+        <div 
+          className="flex items-center gap-2 mb-3 p-2 md:p-3 bg-yellow-50 rounded-lg text-yellow-700 text-xs md:text-sm"
+          role="alert"
+          aria-live="polite"
+        >
+          <AlertCircle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
           <span>{error} - Showing estimated times</span>
         </div>
       )}
 
       {/* Date Display */}
       <div className="flex items-center justify-between mb-3 md:mb-4">
-        <h3 className="font-semibold text-gray-800 text-sm sm:text-base md:text-lg">Select Time</h3>
+        <h3 className="font-semibold text-gray-800 text-sm sm:text-base md:text-lg" id="time-slot-heading">
+          Select Time
+        </h3>
         <span 
           className="text-[10px] sm:text-xs md:text-sm px-2 md:px-3 py-1 md:py-1.5 rounded-full font-medium"
           style={{ backgroundColor: `${style.primaryColor}15`, color: style.primaryColor }}
+          aria-label={`Selected date: ${formattedDate}`}
         >
           {formattedDate}
         </span>
       </div>
 
       {/* Time Grid - Min 44px touch targets, responsive columns */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-3 max-h-[280px] sm:max-h-[240px] md:max-h-[300px] overflow-y-auto overscroll-contain pr-1 -mr-1">
+      <div 
+        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-3 max-h-[280px] sm:max-h-[240px] md:max-h-[300px] overflow-y-auto overscroll-contain pr-1 -mr-1"
+        role="listbox"
+        aria-labelledby="time-slot-heading"
+        aria-describedby="time-slot-count"
+      >
         {availableSlots.map((slot) => {
           const isSelected = selectedTime === slot.time;
           const sessionId = (slot as any).sessionId;
@@ -226,6 +242,9 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
             <button
               key={slot.time}
               onClick={() => onTimeSelect(slot.time, sessionId)}
+              role="option"
+              aria-selected={isSelected}
+              aria-label={`${formatTime(slot.time)}${isSelected ? ', selected' : ''}${slot.spotsRemaining > 0 && slot.spotsRemaining <= 3 ? `, only ${slot.spotsRemaining} spots left` : ''}`}
               className={`
                 min-h-[44px] md:min-h-[48px] py-3 md:py-3.5 px-2 md:px-3 rounded-xl text-sm md:text-base font-semibold
                 transition-all duration-150 relative touch-manipulation
@@ -243,7 +262,7 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
               {formatTime(slot.time)}
               {/* Show spots remaining if available */}
               {slot.spotsRemaining > 0 && slot.spotsRemaining <= 3 && !isSelected && (
-                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] md:text-xs px-1.5 py-0.5 rounded-full">
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] md:text-xs px-1.5 py-0.5 rounded-full" aria-hidden="true">
                   {slot.spotsRemaining} left
                 </span>
               )}
@@ -253,7 +272,11 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
       </div>
 
       {/* Selection Hint */}
-      <p className="text-center text-[10px] sm:text-xs text-gray-400 mt-3">
+      <p 
+        className="text-center text-[10px] sm:text-xs text-gray-400 mt-3" 
+        id="time-slot-count"
+        aria-live="polite"
+      >
         {availableSlots.length} time{availableSlots.length !== 1 ? 's' : ''} available
       </p>
     </div>

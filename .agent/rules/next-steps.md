@@ -197,7 +197,14 @@
 - [x] Waitlist for sold-out slots ✅ v0.1.39
 - [ ] Group booking with multiple activities
 - [x] Promo code / discount support ✅ v0.1.37
-- [ ] Gift card redemption
+- [x] Gift card redemption ✅ v0.1.40
+
+#### Gift Card System (v0.1.40)
+- **Types**: GiftCard, GiftCardStatus, RedeemGiftCardRequest/Response
+- **Service**: giftCardService - redeem, check balance
+- **Hook**: useGiftCard - state management
+- **Component**: WidgetGiftCard - UI with balance display
+- **Demo Cards**: GC-DEMO-1000 ($100), GC-DEMO-5000 ($50)
 
 #### Waitlist System (v0.1.39)
 - **Types**: WaitlistEntry, WaitlistStatus, JoinWaitlistRequest/Response

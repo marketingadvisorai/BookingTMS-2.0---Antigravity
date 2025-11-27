@@ -18,3 +18,4 @@ export { WidgetBookingSummary } from './WidgetBookingSummary';
 export { WidgetErrorBoundary } from './WidgetErrorBoundary';
 export { WidgetPromoCode } from './WidgetPromoCode';
 export { WidgetWaitlistModal } from './WidgetWaitlistModal';
+export { WidgetGiftCard } from './WidgetGiftCard';

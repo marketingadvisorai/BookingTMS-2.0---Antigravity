@@ -13,3 +13,4 @@ export { useEmbedAnalytics } from './useEmbedAnalytics';
 export { useEmbedProData } from './useEmbedProData';
 export { useBookingFlow } from './useBookingFlow';
 export { usePromoCode } from './usePromoCode';
+export { useGiftCard } from './useGiftCard';

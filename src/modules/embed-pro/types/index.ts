@@ -11,3 +11,4 @@ export * from './embed-analytics.types';
 export * from './widget.types';
 export * from './promo.types';
 export * from './waitlist.types';
+export * from './giftcard.types';

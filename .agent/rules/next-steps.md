@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
 > Last Updated: 2025-11-28
-> Version: v0.1.45-ai-assistant
+> Version: v0.1.46-gift-card-integration
 
 ---
 
@@ -267,10 +267,21 @@
 
 ### Phase 4
 - [x] AI-powered booking assistant ✅ v0.1.45
-- [ ] Dynamic pricing based on demand
-- [ ] A/B testing for widget variants
-- [ ] Advanced analytics with cohort analysis
-- [ ] White-label solution
+- [x] Gift Card & Promo Code Integration ✅ v0.1.46
+- [ ] Dynamic pricing based on demand (deferred to v3)
+- [ ] A/B testing for widget variants (deferred to v3)
+- [ ] Advanced analytics with cohort analysis (deferred to v3)
+- [ ] White-label solution (deferred to v3)
+
+#### Gift Card & Promo Code Integration (v0.1.46)
+- **Component**: WidgetDiscounts - Combined promo + gift card section
+- **Integrated into**: BookingWidgetPro checkout step
+- **Features**:
+  - Subtotal calculation based on party size
+  - Promo code validation with discount display
+  - Gift card redemption with balance tracking
+  - Total savings summary
+  - Demo codes: WELCOME10, SAVE20, GC-DEMO-1000
 
 #### AI Booking Assistant (v0.1.45)
 - **Module**: `/src/modules/ai-assistant/`

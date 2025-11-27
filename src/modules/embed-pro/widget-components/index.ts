@@ -22,3 +22,4 @@ export { WidgetGiftCard } from './WidgetGiftCard';
 export { WidgetGroupCart } from './WidgetGroupCart';
 export { WidgetAddToCalendar } from './WidgetAddToCalendar';
 export { WidgetSMSOptIn } from './WidgetSMSOptIn';
+export { WidgetDiscounts } from './WidgetDiscounts';

@@ -14,6 +14,8 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { ChevronLeft, Calendar, Clock, Users, CreditCard, Check, Sparkles } from 'lucide-react';
 import { useBookingFlow } from '../hooks/useBookingFlow';
+import { usePromoCode } from '../hooks/usePromoCode';
+import { useGiftCard } from '../hooks/useGiftCard';
 import {
   WidgetHeader,
   WidgetCalendar,
@@ -23,6 +25,7 @@ import {
   WidgetSuccess,
   WidgetActivitySelector,
   WidgetBookingSummary,
+  WidgetDiscounts,
 } from '../widget-components';
 import { checkoutProService } from '../services';
 import type { WidgetData, CustomerInfo, WidgetActivity } from '../types/widget.types';
@@ -194,6 +197,27 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
   } = useBookingFlow({
     initialActivity: activity,
     hasMultipleActivities,
+  });
+
+  // Calculate subtotal in cents
+  const adultPrice = activity ? (activity.price || 0) * 100 : 0; // Convert to cents
+  const childPrice = activity ? ((activity.childPrice || activity.price || 0)) * 100 : 0;
+  const subtotal = (state.partySize * adultPrice) + (state.childCount * childPrice);
+
+  // Promo Code Hook
+  const promo = usePromoCode({
+    activityId: activity?.id || '',
+    organizationId: activity?.organizationId,
+    subtotal,
+    currency: activity?.currency || 'USD',
+  });
+
+  // Gift Card Hook
+  const giftCard = useGiftCard({
+    activityId: activity?.id || '',
+    organizationId: activity?.organizationId,
+    subtotal: subtotal - promo.discountAmount, // Apply after promo
+    currency: activity?.currency || 'USD',
   });
 
   // Handle activity selection for venue mode
@@ -448,13 +472,43 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
         )}
 
         {currentStep === 'checkout' && (
-          <WidgetCheckout
-            onSubmit={handleCheckoutSubmit}
-            onBack={() => handleStepChange(goBack)}
-            style={style}
-            isLoading={isCheckoutLoading}
-            buttonText={isPreview ? 'Complete (Preview)' : 'Continue to Payment'}
-          />
+          <>
+            {/* Discounts Section */}
+            <WidgetDiscounts
+              // Promo Code
+              promoCode={promo.code}
+              onPromoCodeChange={promo.setCode}
+              isPromoValidating={promo.isValidating}
+              appliedPromo={promo.appliedPromo}
+              promoDiscountAmount={promo.discountAmount}
+              promoError={promo.error}
+              onApplyPromo={promo.applyPromo}
+              onRemovePromo={promo.removePromo}
+              onClearPromoError={promo.clearError}
+              // Gift Card
+              giftCardCode={giftCard.code}
+              onGiftCardCodeChange={giftCard.setCode}
+              isGiftCardValidating={giftCard.isValidating}
+              appliedGiftCard={giftCard.appliedGiftCard}
+              giftCardAmountApplied={giftCard.amountApplied}
+              giftCardRemainingAfter={giftCard.remainingAfter}
+              giftCardError={giftCard.error}
+              onApplyGiftCard={giftCard.applyGiftCard}
+              onRemoveGiftCard={giftCard.removeGiftCard}
+              onClearGiftCardError={giftCard.clearError}
+              // Common
+              style={style}
+              subtotal={subtotal}
+              formatAmount={promo.formatAmount}
+            />
+            <WidgetCheckout
+              onSubmit={handleCheckoutSubmit}
+              onBack={() => handleStepChange(goBack)}
+              style={style}
+              isLoading={isCheckoutLoading}
+              buttonText={isPreview ? 'Complete (Preview)' : 'Continue to Payment'}
+            />
+          </>
         )}
 
         {currentStep === 'success' && state.selectedDate && state.selectedTime && (

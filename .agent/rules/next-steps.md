@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
 > Last Updated: 2025-11-28
-> Version: v0.1.51-storybook
+> Version: v0.1.52-e2e-tests
 
 ---
 
@@ -303,7 +303,7 @@
 
 - [x] Add unit tests for embed-pro hooks ✅ v0.1.48
 - [x] Add unit tests for services ✅ v0.1.50 (50 tests total)
-- [ ] Add E2E tests for booking flow
+- [x] Add E2E tests for booking flow ✅ v0.1.52
 - [x] Optimize bundle size (lazy load widgets) ✅ v0.1.35
 - [x] Add error boundary for widget crashes ✅ v0.1.35
 - [x] Improve TypeScript strictness ✅ v0.1.50
@@ -332,6 +332,14 @@
 - **Scripts**: `npm run storybook` (dev), `npm run build-storybook`
 - **Config**: `.storybook/main.ts`, `.storybook/preview.ts`
 - **Ready for**: Component documentation and visual testing
+
+### E2E Testing Setup (v0.1.52)
+- **Framework**: Playwright with Chromium
+- **Scripts**: `npm run test:e2e`, `npm run test:e2e:ui`, `npm run test:e2e:headed`
+- **Config**: `playwright.config.ts` with auto dev server
+- **Test Files**:
+  - `e2e/app.spec.ts` - Application health, accessibility, SEO
+  - `e2e/booking-widget.spec.ts` - Widget loading, navigation, responsive
 
 ### Completed Technical Improvements (v0.1.35)
 - **WidgetErrorBoundary** - Catches React errors, shows friendly UI, retry support

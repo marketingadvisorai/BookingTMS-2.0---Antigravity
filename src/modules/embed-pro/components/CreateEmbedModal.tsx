@@ -1,11 +1,23 @@
 /**
- * Embed Pro 1.1 - Create Embed Modal Component
+ * Embed Pro 2.0 - Create Embed Modal Component
  * @module embed-pro/components/CreateEmbedModal
+ * 
+ * Multi-step wizard for creating embed configurations with theme customization.
  */
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { 
+  Loader2, 
+  ChevronRight, 
+  ChevronLeft, 
+  Sun, 
+  Moon, 
+  Monitor,
+  Palette,
+  Type,
+  Square,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../../../components/ui/utils';
 import { Button } from '../../../components/ui/button';
@@ -29,6 +41,7 @@ import { EmbedTypeSelector } from './EmbedTypeSelector';
 import { 
   type EmbedType, 
   type TargetType, 
+  type EmbedTheme,
   type CreateEmbedConfigInput,
   TARGET_TYPES,
 } from '../types';
@@ -42,7 +55,39 @@ interface CreateEmbedModalProps {
   venues?: { id: string; name: string }[];
 }
 
-type Step = 'type' | 'target' | 'details';
+type Step = 'type' | 'target' | 'details' | 'style';
+
+// Preset colors for the color picker
+const PRESET_COLORS = [
+  '#2563eb', // Blue
+  '#7c3aed', // Purple
+  '#059669', // Green
+  '#dc2626', // Red
+  '#ea580c', // Orange
+  '#0891b2', // Cyan
+  '#be185d', // Pink
+  '#4f46e5', // Indigo
+  '#000000', // Black
+];
+
+// Border radius options
+const BORDER_RADIUS_OPTIONS = [
+  { value: '0px', label: 'Square' },
+  { value: '4px', label: 'Slight' },
+  { value: '8px', label: 'Small' },
+  { value: '12px', label: 'Medium' },
+  { value: '16px', label: 'Large' },
+  { value: '24px', label: 'Extra Large' },
+];
+
+// Font family options
+const FONT_OPTIONS = [
+  { value: 'Inter, system-ui, sans-serif', label: 'Inter (Default)' },
+  { value: 'system-ui, sans-serif', label: 'System UI' },
+  { value: 'Georgia, serif', label: 'Georgia (Serif)' },
+  { value: 'Roboto, sans-serif', label: 'Roboto' },
+  { value: 'Open Sans, sans-serif', label: 'Open Sans' },
+];
 
 export const CreateEmbedModal: React.FC<CreateEmbedModalProps> = ({
   open,
@@ -60,6 +105,11 @@ export const CreateEmbedModal: React.FC<CreateEmbedModalProps> = ({
     type: 'booking-widget' as EmbedType,
     target_type: 'activity' as TargetType,
     target_id: '',
+    // Style options
+    theme: 'light' as EmbedTheme,
+    primaryColor: '#2563eb',
+    borderRadius: '12px',
+    fontFamily: 'Inter, system-ui, sans-serif',
   });
 
   // Reset form when modal opens
@@ -72,6 +122,10 @@ export const CreateEmbedModal: React.FC<CreateEmbedModalProps> = ({
         type: 'booking-widget',
         target_type: 'activity',
         target_id: '',
+        theme: 'light',
+        primaryColor: '#2563eb',
+        borderRadius: '12px',
+        fontFamily: 'Inter, system-ui, sans-serif',
       });
     }
   }, [open]);
@@ -79,10 +133,12 @@ export const CreateEmbedModal: React.FC<CreateEmbedModalProps> = ({
   const handleNext = () => {
     if (step === 'type') setStep('target');
     else if (step === 'target') setStep('details');
+    else if (step === 'details') setStep('style');
   };
 
   const handleBack = () => {
-    if (step === 'details') setStep('target');
+    if (step === 'style') setStep('details');
+    else if (step === 'details') setStep('target');
     else if (step === 'target') setStep('type');
   };
 
@@ -96,6 +152,18 @@ export const CreateEmbedModal: React.FC<CreateEmbedModalProps> = ({
         type: formData.type,
         target_type: formData.target_type,
         target_id: formData.target_id || undefined,
+        style: {
+          primaryColor: formData.primaryColor,
+          secondaryColor: '#6b7280',
+          backgroundColor: formData.theme === 'dark' ? '#1f2937' : '#ffffff',
+          textColor: formData.theme === 'dark' ? '#f9fafb' : '#111827',
+          borderRadius: formData.borderRadius,
+          fontFamily: formData.fontFamily,
+          buttonStyle: 'filled',
+          theme: formData.theme,
+          shadow: 'md',
+          padding: '16px',
+        },
       });
       toast.success('Embed created successfully!');
       onClose();
@@ -126,9 +194,10 @@ export const CreateEmbedModal: React.FC<CreateEmbedModalProps> = ({
   const canSubmit = !!formData.name.trim();
 
   const stepIndicators = [
-    { key: 'type', label: 'Widget Type' },
+    { key: 'type', label: 'Type' },
     { key: 'target', label: 'Target' },
     { key: 'details', label: 'Details' },
+    { key: 'style', label: 'Style' },
   ];
 
   return (
@@ -302,6 +371,162 @@ export const CreateEmbedModal: React.FC<CreateEmbedModalProps> = ({
               </div>
             </motion.div>
           )}
+
+          {step === 'style' && (
+            <motion.div
+              key="style"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              {/* Theme Selector */}
+              <div>
+                <Label className="flex items-center gap-2 mb-3">
+                  <Monitor className="w-4 h-4" />
+                  Theme
+                </Label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { value: 'light', icon: Sun, label: 'Light' },
+                    { value: 'dark', icon: Moon, label: 'Dark' },
+                    { value: 'auto', icon: Monitor, label: 'Auto' },
+                  ].map(({ value, icon: Icon, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, theme: value as EmbedTheme }))}
+                      className={cn(
+                        'flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all',
+                        formData.theme === value
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                      )}
+                    >
+                      <Icon className={cn(
+                        'w-5 h-5',
+                        formData.theme === value ? 'text-blue-500' : 'text-gray-400'
+                      )} />
+                      <span className={cn(
+                        'text-sm font-medium',
+                        formData.theme === value ? 'text-blue-700 dark:text-blue-400' : 'text-gray-600'
+                      )}>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Color Picker */}
+              <div>
+                <Label className="flex items-center gap-2 mb-3">
+                  <Palette className="w-4 h-4" />
+                  Primary Color
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {PRESET_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, primaryColor: color }))}
+                      className={cn(
+                        'w-10 h-10 rounded-lg border-2 transition-all hover:scale-110',
+                        formData.primaryColor === color
+                          ? 'border-gray-900 dark:border-white ring-2 ring-offset-2 ring-blue-500'
+                          : 'border-transparent'
+                      )}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                  <label className="w-10 h-10 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-400 transition-colors">
+                    <input
+                      type="color"
+                      value={formData.primaryColor}
+                      onChange={(e) => setFormData(prev => ({ ...prev, primaryColor: e.target.value }))}
+                      className="sr-only"
+                    />
+                    <span className="text-xs text-gray-400">+</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Border Radius */}
+              <div>
+                <Label className="flex items-center gap-2 mb-3">
+                  <Square className="w-4 h-4" />
+                  Border Radius
+                </Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {BORDER_RADIUS_OPTIONS.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, borderRadius: value }))}
+                      className={cn(
+                        'px-3 py-2 text-sm rounded-lg border transition-all',
+                        formData.borderRadius === value
+                          ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Font Family */}
+              <div>
+                <Label className="flex items-center gap-2 mb-3">
+                  <Type className="w-4 h-4" />
+                  Font Family
+                </Label>
+                <Select
+                  value={formData.fontFamily}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, fontFamily: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FONT_OPTIONS.map(({ value, label }) => (
+                      <SelectItem key={value} value={value} style={{ fontFamily: value }}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Live Preview */}
+              <div className="mt-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 mb-3">Preview</p>
+                <div 
+                  className="p-4 rounded-lg"
+                  style={{
+                    backgroundColor: formData.theme === 'dark' ? '#1f2937' : '#ffffff',
+                    borderRadius: formData.borderRadius,
+                    fontFamily: formData.fontFamily,
+                  }}
+                >
+                  <h4 
+                    className="font-semibold mb-2"
+                    style={{ color: formData.theme === 'dark' ? '#f9fafb' : '#111827' }}
+                  >
+                    Book Now
+                  </h4>
+                  <button
+                    className="w-full py-2 px-4 text-white font-medium"
+                    style={{ 
+                      backgroundColor: formData.primaryColor,
+                      borderRadius: formData.borderRadius,
+                    }}
+                  >
+                    Select Date
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
 
         {/* Footer */}
@@ -318,7 +543,7 @@ export const CreateEmbedModal: React.FC<CreateEmbedModalProps> = ({
             )}
           </Button>
 
-          {step === 'details' ? (
+          {step === 'style' ? (
             <Button onClick={handleSubmit} disabled={!canSubmit || loading}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Create Embed
@@ -326,7 +551,11 @@ export const CreateEmbedModal: React.FC<CreateEmbedModalProps> = ({
           ) : (
             <Button 
               onClick={handleNext}
-              disabled={step === 'type' ? !canProceedFromType : !canProceedFromTarget}
+              disabled={
+                step === 'type' ? !canProceedFromType : 
+                step === 'target' ? !canProceedFromTarget :
+                step === 'details' ? !canSubmit : false
+              }
             >
               Next
               <ChevronRight className="w-4 h-4 ml-1" />

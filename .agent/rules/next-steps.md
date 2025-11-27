@@ -81,18 +81,17 @@
 
 ---
 
-## Priority 5: Theme Customization
+## Priority 5: Theme Customization ✅ COMPLETED (Nov 27, 2025)
 
 ### Tasks
-- [ ] Add theme selector in embed config (light/dark/auto)
-- [ ] Add custom color picker for primary color
-- [ ] Add font family selector
-- [ ] Add border radius options
-- [ ] Preview theme changes in real-time
+- [x] Add theme selector in embed config (light/dark/auto)
+- [x] Add custom color picker for primary color (9 presets + custom)
+- [x] Add font family selector (5 options)
+- [x] Add border radius options (6 levels)
+- [x] Preview theme changes in real-time
 
-### Files to Modify
-- `src/modules/embed-pro/components/CreateEmbedModal.tsx`
-- `src/modules/embed-pro/types/embed-config.types.ts`
+### Completed Files
+- `src/modules/embed-pro/components/CreateEmbedModal.tsx` - Added 4-step wizard with style step
 
 ---
 

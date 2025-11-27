@@ -20,3 +20,4 @@ export { WidgetPromoCode } from './WidgetPromoCode';
 export { WidgetWaitlistModal } from './WidgetWaitlistModal';
 export { WidgetGiftCard } from './WidgetGiftCard';
 export { WidgetGroupCart } from './WidgetGroupCart';
+export { WidgetAddToCalendar } from './WidgetAddToCalendar';

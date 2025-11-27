@@ -13,3 +13,4 @@ export * from './promo.types';
 export * from './waitlist.types';
 export * from './giftcard.types';
 export * from './groupbooking.types';
+export * from './calendar-sync.types';

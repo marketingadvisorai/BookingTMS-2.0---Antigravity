@@ -18,6 +18,7 @@ export { promoService } from './promo.service';
 export { waitlistService } from './waitlist.service';
 export { giftCardService } from './giftcard.service';
 export { groupBookingService } from './groupbooking.service';
+export { calendarSyncService } from './calendar-sync.service';
 
 // Type exports for external use (renamed to avoid conflicts with types module)
 export type { 

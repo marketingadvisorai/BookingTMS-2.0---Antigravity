@@ -236,11 +236,18 @@
 - **Demo Codes**: WELCOME10, SAVE20, FLAT25
 
 ### Phase 3
-- [ ] Calendar sync (Google, iCal)
+- [x] Calendar sync (Google, iCal) ✅ v0.1.42
 - [ ] SMS reminders
 - [ ] Customer portal for managing bookings
 - [ ] Recurring bookings
 - [ ] Membership / subscription bookings
+
+#### Calendar Sync System (v0.1.42)
+- **Types**: CalendarEvent, CalendarProvider, CalendarLinks
+- **Service**: calendarSyncService - generate links, iCal files
+- **Component**: WidgetAddToCalendar - dropdown with providers
+- **Supported**: Google, Outlook, Yahoo, Apple, iCal download
+- **Features**: iCal generation, reminders, timezone support
 
 ### Phase 4
 - [ ] AI-powered booking assistant

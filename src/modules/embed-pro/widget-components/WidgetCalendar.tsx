@@ -3,6 +3,7 @@
  * @module embed-pro/widget-components/WidgetCalendar
  * 
  * Month calendar grid for date selection with availability indicators.
+ * Mobile-optimized with 44px minimum touch targets (WCAG 2.1 AAA).
  */
 
 import React, { useMemo, useState } from 'react';
@@ -126,25 +127,25 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
     (currentYear === today.getFullYear() && currentMonth > today.getMonth());
 
   return (
-    <div className="p-4">
-      {/* Month Navigation */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="p-3 sm:p-4">
+      {/* Month Navigation - 44px touch targets */}
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
         <button
           onClick={prevMonth}
           disabled={!canGoPrev}
-          className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-transform touch-manipulation"
           aria-label="Previous month"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
         
-        <h2 className="text-lg font-semibold" style={{ color: style.textColor }}>
+        <h2 className="text-base sm:text-lg font-semibold" style={{ color: style.textColor }}>
           {MONTHS[currentMonth]} {currentYear}
         </h2>
         
         <button
           onClick={nextMonth}
-          className="p-2 rounded-lg hover:bg-gray-100"
+          className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-gray-100 active:scale-95 transition-transform touch-manipulation"
           aria-label="Next month"
         >
           <ChevronRight className="w-5 h-5" />
@@ -152,22 +153,22 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
       </div>
 
       {/* Day Headers */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-1 sm:mb-2">
         {DAYS.map(day => (
           <div
             key={day}
-            className="text-center text-xs font-medium text-gray-500 py-2"
+            className="text-center text-[10px] sm:text-xs font-medium text-gray-500 py-1 sm:py-2"
           >
-            {day}
+            {day.slice(0, 2)}
           </div>
         ))}
       </div>
 
-      {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-1">
+      {/* Calendar Grid - Min 44px touch targets */}
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
         {calendarDays.map((date, index) => {
           if (!date) {
-            return <div key={`empty-${index}`} className="aspect-square" />;
+            return <div key={`empty-${index}`} className="min-h-[44px] sm:aspect-square" />;
           }
 
           const available = isDateAvailable(date);
@@ -180,12 +181,14 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
               onClick={() => available && onDateSelect(date)}
               disabled={!available}
               className={`
-                aspect-square flex items-center justify-center rounded-xl text-sm font-medium
-                transition-all duration-200 transform
+                min-h-[44px] sm:aspect-square flex items-center justify-center 
+                rounded-lg sm:rounded-xl text-sm font-medium
+                transition-all duration-150 touch-manipulation
+                active:scale-95
                 ${selected
-                  ? 'text-white shadow-lg scale-110'
+                  ? 'text-white shadow-lg'
                   : available
-                    ? 'hover:scale-105 text-gray-800 bg-green-50 hover:bg-green-100'
+                    ? 'text-gray-800 bg-green-50 hover:bg-green-100 active:bg-green-200'
                     : 'text-gray-300 bg-gray-50 cursor-not-allowed'
                 }
                 ${isToday && !selected ? 'ring-2 ring-offset-1' : ''}
@@ -203,7 +206,7 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
       </div>
 
       {/* Hint Text */}
-      <p className="text-center text-xs text-gray-400 mt-4">
+      <p className="text-center text-[10px] sm:text-xs text-gray-400 mt-3 sm:mt-4">
         Tap a green date to continue
       </p>
     </div>

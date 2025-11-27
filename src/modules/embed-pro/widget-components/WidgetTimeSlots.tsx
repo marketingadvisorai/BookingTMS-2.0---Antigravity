@@ -196,28 +196,28 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
   const formattedDate = `${days[selectedDate.getDay()]}, ${months[selectedDate.getMonth()]} ${selectedDate.getDate()}`;
 
   return (
-    <div className="p-4">
+    <div className="p-3 sm:p-4">
       {/* Error Banner */}
       {error && (
         <div className="flex items-center gap-2 mb-3 p-2 bg-yellow-50 rounded-lg text-yellow-700 text-xs">
-          <AlertCircle className="w-4 h-4" />
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <span>{error} - Showing estimated times</span>
         </div>
       )}
 
       {/* Date Display */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-gray-800">Select Time</h3>
+        <h3 className="font-semibold text-gray-800 text-sm sm:text-base">Select Time</h3>
         <span 
-          className="text-xs px-2 py-1 rounded-full"
+          className="text-[10px] sm:text-xs px-2 py-1 rounded-full"
           style={{ backgroundColor: `${style.primaryColor}15`, color: style.primaryColor }}
         >
           {formattedDate}
         </span>
       </div>
 
-      {/* Time Grid */}
-      <div className="grid grid-cols-3 gap-2 max-h-[240px] overflow-y-auto pr-1">
+      {/* Time Grid - Min 44px touch targets, responsive columns */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[280px] sm:max-h-[240px] overflow-y-auto overscroll-contain pr-1 -mr-1">
         {availableSlots.map((slot) => {
           const isSelected = selectedTime === slot.time;
           const sessionId = (slot as any).sessionId;
@@ -227,11 +227,12 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
               key={slot.time}
               onClick={() => onTimeSelect(slot.time, sessionId)}
               className={`
-                py-3 px-2 rounded-xl text-sm font-semibold
-                transition-all duration-200 transform relative
+                min-h-[44px] py-3 px-2 rounded-xl text-sm font-semibold
+                transition-all duration-150 relative touch-manipulation
+                active:scale-95
                 ${isSelected
-                  ? 'text-white shadow-lg scale-105'
-                  : 'bg-blue-50 hover:bg-blue-100 text-gray-700 hover:scale-102'
+                  ? 'text-white shadow-lg'
+                  : 'bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-gray-700'
                 }
               `}
               style={{
@@ -251,7 +252,7 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
       </div>
 
       {/* Selection Hint */}
-      <p className="text-center text-xs text-gray-400 mt-3">
+      <p className="text-center text-[10px] sm:text-xs text-gray-400 mt-3">
         {availableSlots.length} time{availableSlots.length !== 1 ? 's' : ''} available
       </p>
     </div>

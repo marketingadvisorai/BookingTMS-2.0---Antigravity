@@ -3,6 +3,7 @@
  * @module embed-pro/widget-components/WidgetPartySize
  * 
  * Party size selector with adult/child counters.
+ * Mobile-optimized with 44px touch targets.
  */
 
 import React from 'react';
@@ -58,52 +59,52 @@ const Counter: React.FC<CounterProps> = ({
   };
 
   return (
-    <div className="flex items-center justify-between py-4 border-b border-white/30 last:border-b-0">
-      <div>
-        <p className="font-semibold text-gray-800">{label}</p>
-        {sublabel && <p className="text-xs text-gray-500">{sublabel}</p>}
+    <div className="flex items-center justify-between py-3 sm:py-4 border-b border-white/30 last:border-b-0">
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-gray-800 text-sm sm:text-base">{label}</p>
+        {sublabel && <p className="text-[10px] sm:text-xs text-gray-500">{sublabel}</p>}
         {price !== undefined && (
-          <p className="text-sm font-semibold mt-0.5" style={{ color: primaryColor }}>
+          <p className="text-xs sm:text-sm font-semibold mt-0.5" style={{ color: primaryColor }}>
             {formatPrice(price)} each
           </p>
         )}
       </div>
       
-      <div className="flex items-center gap-4">
-        {/* Decrease Button - Liquid Glass */}
+      <div className="flex items-center gap-3 sm:gap-4">
+        {/* Decrease Button - 44px touch target */}
         <button
           onClick={() => onChange(Math.max(min, value - 1))}
           disabled={value <= min}
-          className="w-10 h-10 rounded-xl flex items-center justify-center 
+          className="w-11 h-11 rounded-xl flex items-center justify-center touch-manipulation
                      bg-white/60 backdrop-blur-sm border border-white/80
                      shadow-[0_2px_8px_rgba(0,0,0,0.08),inset_0_1px_4px_rgba(255,255,255,0.6)]
-                     hover:bg-white/80 hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]
+                     hover:bg-white/80 active:bg-gray-100
                      disabled:opacity-30 disabled:cursor-not-allowed 
-                     transition-all duration-200 active:scale-95"
+                     transition-all duration-150 active:scale-95"
           aria-label={`Decrease ${label}`}
         >
-          <Minus className="w-4 h-4 text-gray-600" />
+          <Minus className="w-5 h-5 text-gray-600" />
         </button>
         
         {/* Value Display */}
-        <span className="w-10 text-center font-bold text-xl text-gray-800">{value}</span>
+        <span className="w-8 sm:w-10 text-center font-bold text-lg sm:text-xl text-gray-800">{value}</span>
         
-        {/* Increase Button - Liquid Glass Primary */}
+        {/* Increase Button - 44px touch target */}
         <button
           onClick={() => onChange(Math.min(max, value + 1))}
           disabled={value >= max}
-          className="w-10 h-10 rounded-xl flex items-center justify-center 
+          className="w-11 h-11 rounded-xl flex items-center justify-center touch-manipulation
                      shadow-[0_4px_12px_rgba(0,0,0,0.15)]
-                     hover:shadow-[0_6px_20px_rgba(0,0,0,0.2)]
+                     active:shadow-[0_2px_8px_rgba(0,0,0,0.1)]
                      disabled:opacity-30 disabled:cursor-not-allowed 
-                     transition-all duration-200 hover:scale-105 active:scale-95"
+                     transition-all duration-150 active:scale-95"
           style={{ 
             background: `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%)`,
             color: 'white' 
           }}
           aria-label={`Increase ${label}`}
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-5 h-5" />
         </button>
       </div>
     </div>

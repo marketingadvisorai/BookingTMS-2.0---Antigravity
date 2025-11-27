@@ -219,10 +219,15 @@
 
 - [ ] Add unit tests for embed-pro hooks
 - [ ] Add E2E tests for booking flow
-- [ ] Optimize bundle size (lazy load widgets)
-- [ ] Add error boundary for widget crashes
+- [x] Optimize bundle size (lazy load widgets) ✅ v0.1.35
+- [x] Add error boundary for widget crashes ✅ v0.1.35
 - [ ] Improve TypeScript strictness
 - [ ] Add Storybook for widget components
+
+### Completed Technical Improvements (v0.1.35)
+- **WidgetErrorBoundary** - Catches React errors, shows friendly UI, retry support
+- **Lazy Loading** - React.lazy + Suspense for EmbedProContainer
+- **PostMessage API** - Error reporting to parent window for embeds
 
 ---
 

@@ -15,3 +15,4 @@ export { WidgetError } from './WidgetError';
 export { WidgetLoading } from './WidgetLoading';
 export { WidgetActivitySelector } from './WidgetActivitySelector';
 export { WidgetBookingSummary } from './WidgetBookingSummary';
+export { WidgetErrorBoundary } from './WidgetErrorBoundary';

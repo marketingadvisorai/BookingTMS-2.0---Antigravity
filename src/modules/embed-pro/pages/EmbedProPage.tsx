@@ -4,12 +4,17 @@
  * 
  * Main entry point for the Embed Pro widget system.
  * Parses URL parameters and renders the appropriate container.
+ * Wrapped with ErrorBoundary for crash protection.
+ * Uses React.lazy for code splitting and bundle optimization.
  * 
  * URL: /embed-pro?key={embed_key}&theme={light|dark}&preview={true|false}
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { EmbedProContainer } from '../containers';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
+import { WidgetErrorBoundary, WidgetLoading } from '../widget-components';
+
+// Lazy load the container for better initial load performance
+const EmbedProContainer = lazy(() => import('../containers/EmbedProContainer'));
 
 // =====================================================
 // COMPONENT
@@ -120,15 +125,36 @@ export const EmbedProPage: React.FC = () => {
     ? 'bg-[#0a0a0a]' 
     : 'bg-white';
 
+  // Handle error boundary errors
+  const handleWidgetError = (error: Error) => {
+    console.error('[EmbedProPage] Widget error caught by boundary:', error.message);
+    
+    // Notify parent window of error
+    if (window.parent !== window) {
+      window.parent.postMessage(
+        { type: 'EMBED_PRO_ERROR', error: error.message },
+        '*'
+      );
+    }
+  };
+
   return (
     <div className={`min-h-screen w-full ${bgClass}`}>
       <div className="w-full max-w-2xl mx-auto py-4 px-4">
-        <EmbedProContainer
-          embedKey={params.embedKey}
-          theme={params.theme}
-          isPreview={params.isPreview}
-          onBookingComplete={handleBookingComplete}
-        />
+        <WidgetErrorBoundary
+          onError={handleWidgetError}
+          primaryColor="#2563eb"
+          showRetry={true}
+        >
+          <Suspense fallback={<WidgetLoading />}>
+            <EmbedProContainer
+              embedKey={params.embedKey}
+              theme={params.theme}
+              isPreview={params.isPreview}
+              onBookingComplete={handleBookingComplete}
+            />
+          </Suspense>
+        </WidgetErrorBoundary>
       </div>
     </div>
   );

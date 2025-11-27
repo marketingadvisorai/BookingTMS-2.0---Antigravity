@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
 > Last Updated: 2025-11-28
-> Version: v0.1.48-unit-tests
+> Version: v0.1.49-documentation-complete
 
 ---
 
@@ -327,9 +327,9 @@
 
 - [x] API documentation for edge functions ✅ v0.1.47
 - [x] Widget integration guide for developers ✅ v0.1.47
-- [ ] Admin user guide
-- [ ] Troubleshooting guide
-- [ ] Video tutorials
+- [x] Admin user guide ✅ v0.1.49
+- [x] Troubleshooting guide ✅ v0.1.49
+- [ ] Video tutorials (future)
 
 ### Completed Documentation (v0.1.47)
 - **WIDGET_INTEGRATION_GUIDE.md** - Complete developer guide for embedding widgets
@@ -343,6 +343,15 @@
   - Widget Config API (activity, venue)
   - Stripe Integration (products, prices)
   - Error codes and rate limits
+- **ADMIN_USER_GUIDE.md** - Complete admin documentation
+  - Dashboard, activities, bookings management
+  - Customer management, venues
+  - Payment setup, widget configuration
+  - Reports, user roles, keyboard shortcuts
+- **TROUBLESHOOTING_GUIDE.md** - Issue resolution guide
+  - Widget, payment, booking issues
+  - Authentication, performance problems
+  - Error codes and debug mode
 
 ---
 

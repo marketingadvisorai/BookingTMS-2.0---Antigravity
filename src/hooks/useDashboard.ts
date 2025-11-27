@@ -58,54 +58,68 @@ export function useDashboard() {
     try {
       setLoading(true);
 
-      // Fetch dashboard stats
-      const { data: statsData, error: statsError } = await (supabase as any)
-        .rpc('get_dashboard_stats');
-
-      if (statsError) throw statsError;
-      if (statsData && statsData.length > 0) {
-        setStats(statsData[0]);
+      // Fetch dashboard stats - with error handling per RPC
+      try {
+        const { data: statsData, error: statsError } = await (supabase as any)
+          .rpc('get_dashboard_stats');
+        if (!statsError && statsData && statsData.length > 0) {
+          setStats(statsData[0]);
+        }
+      } catch (e) {
+        console.warn('Dashboard stats fetch failed:', e);
       }
 
       // Fetch weekly trend
-      const { data: trendData, error: trendError } = await (supabase as any)
-        .rpc('get_weekly_bookings_trend');
-
-      if (trendError) throw trendError;
-      setWeeklyTrend(trendData || []);
+      try {
+        const { data: trendData, error: trendError } = await (supabase as any)
+          .rpc('get_weekly_bookings_trend');
+        if (!trendError) {
+          setWeeklyTrend(trendData || []);
+        }
+      } catch (e) {
+        console.warn('Weekly trend fetch failed:', e);
+      }
 
       // Fetch upcoming bookings
-      const { data: upcomingData, error: upcomingError } = await (supabase as any)
-        .rpc('get_upcoming_bookings', { limit_count: 5 });
-
-      if (upcomingError) throw upcomingError;
-
-      // Map game_name to activity_name if necessary
-      const mappedUpcoming = (upcomingData || []).map((item: any) => ({
-        ...item,
-        activity_name: item.activity_name || item.game_name || 'Unknown Activity'
-      }));
-      setUpcomingBookings(mappedUpcoming);
+      try {
+        const { data: upcomingData, error: upcomingError } = await (supabase as any)
+          .rpc('get_upcoming_bookings', { limit_count: 5 });
+        if (!upcomingError) {
+          const mappedUpcoming = (upcomingData || []).map((item: any) => ({
+            ...item,
+            activity_name: item.activity_name || item.game_name || 'Unknown Activity'
+          }));
+          setUpcomingBookings(mappedUpcoming);
+        }
+      } catch (e) {
+        console.warn('Upcoming bookings fetch failed:', e);
+      }
 
       // Fetch today's hourly bookings
-      const { data: hourlyData, error: hourlyError } = await (supabase as any)
-        .rpc('get_todays_bookings_by_hour');
-
-      if (hourlyError) throw hourlyError;
-      setTodaysHourly(hourlyData || []);
+      try {
+        const { data: hourlyData, error: hourlyError } = await (supabase as any)
+          .rpc('get_todays_bookings_by_hour');
+        if (!hourlyError) {
+          setTodaysHourly(hourlyData || []);
+        }
+      } catch (e) {
+        console.warn('Hourly bookings fetch failed:', e);
+      }
 
       // Fetch recent booking activity
-      const { data: activityData, error: activityError } = await (supabase as any)
-        .rpc('get_recent_booking_activity', { limit_count: 10 });
-
-      if (activityError) throw activityError;
-
-      // Map game_name to activity_name if necessary
-      const mappedActivity = (activityData || []).map((item: any) => ({
-        ...item,
-        activity_name: item.activity_name || item.game_name || 'Unknown Activity'
-      }));
-      setRecentActivity(mappedActivity);
+      try {
+        const { data: activityData, error: activityError } = await (supabase as any)
+          .rpc('get_recent_booking_activity', { limit_count: 10 });
+        if (!activityError) {
+          const mappedActivity = (activityData || []).map((item: any) => ({
+            ...item,
+            activity_name: item.activity_name || item.game_name || 'Unknown Activity'
+          }));
+          setRecentActivity(mappedActivity);
+        }
+      } catch (e) {
+        console.warn('Recent activity fetch failed:', e);
+      }
 
     } catch (err: any) {
       console.error('Error fetching dashboard data:', err);

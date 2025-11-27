@@ -109,9 +109,10 @@ export function Organizations() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+  const [hasError, setHasError] = useState(false);
 
-  // Data hooks
-  const { organizations, total, isLoading, refetch, createOrganization, isCreating, error } = useOrganizations(
+  // Data hooks with error boundary
+  const { organizations = [], total = 0, isLoading, refetch, createOrganization, isCreating, error } = useOrganizations(
     { 
       search: searchQuery || undefined,
       status: statusFilter !== 'all' ? statusFilter as any : undefined,

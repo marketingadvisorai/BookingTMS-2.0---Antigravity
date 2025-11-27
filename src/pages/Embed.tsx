@@ -321,8 +321,16 @@ export function Embed() {
         }
         setError(null);
 
-        console.log('🔍 Fetching venue config for embedKey:', widgetKey);
-        const result = await SupabaseBookingService.getVenueWidgetConfig(widgetKey);
+        console.log('🔍 Fetching config for embedKey:', widgetKey);
+        
+        // First try the new embed_configs table (Embed Pro 1.1)
+        let result = await SupabaseBookingService.getEmbedProConfig(widgetKey);
+        
+        // Fall back to legacy venue.embed_key lookup
+        if (!result) {
+          console.log('📦 Trying legacy venue lookup...');
+          result = await SupabaseBookingService.getVenueWidgetConfig(widgetKey);
+        }
 
         if (!result) {
           console.error('❌ No venue found for embedKey:', widgetKey);

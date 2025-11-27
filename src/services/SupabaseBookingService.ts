@@ -525,6 +525,79 @@ export class SupabaseBookingService {
       return [];
     }
   }
+
+  /**
+   * Get widget config from Embed Pro embed_configs table
+   * This is the new system - checks embed_configs first before falling back to venues
+   */
+  static async getEmbedProConfig(embedKey: string) {
+    try {
+      console.log('🔍 Checking embed_configs for key:', embedKey);
+      
+      const { data, error } = await (supabase
+        .from('embed_configs')
+        .select('*')
+        .eq('embed_key', embedKey)
+        .eq('is_active', true)
+        .single() as any);
+
+      if (error || !data) {
+        console.log('📦 No embed_config found, will try legacy venue lookup');
+        return null;
+      }
+
+      const embedConfig = data as {
+        id: string;
+        name: string;
+        target_type: string;
+        target_id: string;
+        style: Record<string, any>;
+      };
+
+      console.log('✅ Found embed_config:', embedConfig.name, 'type:', embedConfig.target_type);
+
+      // Based on target_type, fetch the appropriate data
+      if (embedConfig.target_type === 'activity' && embedConfig.target_id) {
+        const result = await this.getActivityWidgetConfig(embedConfig.target_id);
+        return result ? { ...result, embedConfig } : null;
+      }
+
+      if (embedConfig.target_type === 'venue' && embedConfig.target_id) {
+        // Get venue by ID directly
+        const { data: venue } = await (supabase
+          .from('venues')
+          .select('id, name, slug, embed_key, primary_color, base_url, timezone, settings')
+          .eq('id', embedConfig.target_id)
+          .single() as any);
+
+        if (venue) {
+          const activities = await this.getVenueActivities(venue.id);
+          const { config, activities: normalizedActivities } = this.mergeWidgetConfig(
+            venue as VenueConfig, 
+            activities
+          );
+
+          return {
+            venue,
+            activities: normalizedActivities,
+            games: normalizedActivities,
+            widgetConfig: {
+              ...config,
+              // Apply embed_config style overrides
+              primaryColor: embedConfig.style?.primaryColor || config.primaryColor,
+            },
+            embedConfig,
+          };
+        }
+      }
+
+      // Multi-activity not yet implemented, return null
+      return null;
+    } catch (error) {
+      console.error('Exception in getEmbedProConfig:', error);
+      return null;
+    }
+  }
 }
 
 export default SupabaseBookingService;

@@ -30,9 +30,10 @@ serve(async (req) => {
     });
 
     const body = await req.json();
-    const { 
+    const {
       priceId,
       quantity = 1,
+      line_items,
       customerEmail,
       customerName,
       customerPhone,
@@ -46,8 +47,8 @@ serve(async (req) => {
       endTime,
     } = body;
 
-    if (!priceId) {
-      throw new Error('Price ID is required');
+    if (!priceId && !line_items) {
+      throw new Error('Price ID or line items are required');
     }
 
     if (!successUrl || !cancelUrl) {
@@ -69,15 +70,18 @@ serve(async (req) => {
     if (startTime) bookingMetadata.start_time = startTime;
     if (endTime) bookingMetadata.end_time = endTime;
 
+    // Determine line items
+    const finalLineItems = line_items || [
+      {
+        price: priceId,
+        quantity: quantity,
+      },
+    ];
+
     // Create Checkout Session with all metadata
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
-      line_items: [
-        {
-          price: priceId,
-          quantity: quantity,
-        },
-      ],
+      line_items: finalLineItems,
       customer_email: customerEmail,
       success_url: successUrl,
       cancel_url: cancelUrl,
@@ -115,8 +119,8 @@ serve(async (req) => {
   } catch (error: any) {
     console.error('Error creating checkout session:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Failed to create checkout session' 
+      JSON.stringify({
+        error: error.message || 'Failed to create checkout session'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

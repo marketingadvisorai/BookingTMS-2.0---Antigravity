@@ -14,6 +14,11 @@ interface UseBookingLogicProps {
     currentMonth: number;
     currentYear: number;
     partySize: number;
+    participants: {
+        adults: number;
+        children: number;
+        custom: Record<string, number>;
+    };
     totalPrice: number;
     appliedPromoCode: any;
     appliedGiftCard: any;
@@ -32,6 +37,7 @@ export function useBookingLogic({
     currentMonth,
     currentYear,
     partySize,
+    participants,
     totalPrice,
     appliedPromoCode,
     appliedGiftCard,
@@ -174,11 +180,10 @@ export function useBookingLogic({
             }
 
             // Validate priceId before proceeding
-            if (!selectedActivityData.stripe_price_id) {
-                toast.error('Activity pricing not configured. Please contact support.', { id: 'booking-process' });
-                setIsProcessing(false);
-                return;
-            }
+            // Note: We might need to handle multiple price IDs here if we want to be strict,
+            // but for now we'll rely on the backend or checkout service to handle the line items
+            // based on the participants breakdown.
+            // if (!selectedActivityData.stripe_price_id) { ... } 
 
             // Find selected slot to get sessionId
             const selectedSlot = timeSlots.find((s: any) => s.time === selectedTime);
@@ -192,9 +197,11 @@ export function useBookingLogic({
                 startTime,
                 endTime,
                 partySize,
+                participants, // Pass detailed participants
                 customer: cleanCustomerData,
                 totalPrice: parseFloat(finalAmount.toFixed(2)),
-                priceId: selectedActivityData.stripe_price_id,
+                priceId: selectedActivityData.stripe_price_id, // Primary price ID (usually adult)
+                stripePrices: selectedActivityData.stripePrices, // All available prices
             };
 
             // Use Checkout Service (Payment Link or Checkout Session)

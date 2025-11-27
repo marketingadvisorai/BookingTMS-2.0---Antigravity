@@ -338,6 +338,7 @@ export default function Step6PaymentSettings({
         ...activityData,
         stripeProductId: result.productId,
         stripePriceId: result.priceId,
+        stripePrices: result.prices,
         stripeSyncStatus: 'synced' as SyncStatus,
         stripeLastSync: new Date().toISOString(),
       };
@@ -353,11 +354,11 @@ export default function Step6PaymentSettings({
         error: error,
       });
       setSyncStatus('error');
-      
+
       // Provide helpful error messages for common issues
       let errorMsg = error.message || 'Failed to create Stripe product';
       let helpText = '';
-      
+
       if (errorMsg.includes('non-2xx') || errorMsg.includes('Edge Function')) {
         errorMsg = 'Stripe API not configured';
         helpText = 'Please ensure STRIPE_SECRET_KEY is set in Supabase Edge Function secrets. Run: supabase secrets set STRIPE_SECRET_KEY=sk_...';
@@ -365,9 +366,9 @@ export default function Step6PaymentSettings({
         errorMsg = 'Invalid Stripe API Key';
         helpText = 'Check your STRIPE_SECRET_KEY in Supabase secrets';
       }
-      
+
       setErrorMessage(errorMsg);
-      toast.error(errorMsg, { 
+      toast.error(errorMsg, {
         id: 'stripe-create',
         description: helpText || undefined,
         duration: 8000,

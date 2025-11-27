@@ -8,10 +8,14 @@ interface BookingSummaryProps {
     selectedActivityData: any;
     selectedDate: number | null;
     selectedTime: string | null;
-    partySize: number;
+    participants: {
+        adults: number;
+        children: number;
+        custom: Record<string, number>;
+    };
     totalPrice: number;
     primaryColor: string;
-    onPartySizeChange: (size: number) => void;
+    onParticipantsChange: (type: string, count: number) => void;
     onShowDetails: () => void;
     onContinue: () => void;
     canContinue: boolean;
@@ -21,10 +25,10 @@ export const BookingSummary: React.FC<BookingSummaryProps> = ({
     selectedActivityData,
     selectedDate,
     selectedTime,
-    partySize,
+    participants,
     totalPrice,
     primaryColor,
-    onPartySizeChange,
+    onParticipantsChange,
     onShowDetails,
     onContinue,
     canContinue
@@ -39,36 +43,94 @@ export const BookingSummary: React.FC<BookingSummaryProps> = ({
                     <h2 className="text-xl text-gray-900">Your Booking</h2>
                 </div>
 
-                {/* Party Size */}
-                <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-                    <label className="text-sm text-gray-700 mb-3 flex items-center gap-2">
+                {/* Participants */}
+                <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm space-y-4">
+                    <label className="text-sm text-gray-700 flex items-center gap-2">
                         <Users className="w-4 h-4" style={{ color: primaryColor }} />
-                        <span className="">Number of Participants</span>
+                        <span className="">Participants</span>
                     </label>
-                    <div className="flex items-center justify-between gap-4 mt-3">
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => onPartySizeChange(Math.max(2, partySize - 1))}
-                            className="h-12 w-12 rounded-full hover:scale-110 transition-transform"
-                            style={{ borderColor: primaryColor, color: primaryColor }}
-                        >
-                            -
-                        </Button>
-                        <div className="text-center">
-                            <div className="text-3xl text-gray-900" style={{ color: primaryColor }}>{partySize}</div>
-                            <div className="text-xs text-gray-500">participants</div>
+
+                    {/* Adults */}
+                    <div className="flex items-center justify-between gap-4">
+                        <span className="text-sm text-gray-600">Adults (${selectedActivityData.price})</span>
+                        <div className="flex items-center gap-3">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => onParticipantsChange('adults', Math.max(1, participants.adults - 1))}
+                                className="h-8 w-8 rounded-full"
+                                style={{ borderColor: primaryColor, color: primaryColor }}
+                            >
+                                -
+                            </Button>
+                            <span className="w-4 text-center">{participants.adults}</span>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => onParticipantsChange('adults', Math.min(20, participants.adults + 1))}
+                                className="h-8 w-8 rounded-full"
+                                style={{ borderColor: primaryColor, color: primaryColor }}
+                            >
+                                +
+                            </Button>
                         </div>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => onPartySizeChange(Math.min(10, partySize + 1))}
-                            className="h-12 w-12 rounded-full hover:scale-110 transition-transform"
-                            style={{ borderColor: primaryColor, color: primaryColor }}
-                        >
-                            +
-                        </Button>
                     </div>
+
+                    {/* Children */}
+                    {selectedActivityData.childPrice > 0 && (
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-sm text-gray-600">Children (${selectedActivityData.childPrice})</span>
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => onParticipantsChange('children', Math.max(0, participants.children - 1))}
+                                    className="h-8 w-8 rounded-full"
+                                    style={{ borderColor: primaryColor, color: primaryColor }}
+                                >
+                                    -
+                                </Button>
+                                <span className="w-4 text-center">{participants.children}</span>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => onParticipantsChange('children', Math.min(20, participants.children + 1))}
+                                    className="h-8 w-8 rounded-full"
+                                    style={{ borderColor: primaryColor, color: primaryColor }}
+                                >
+                                    +
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Custom Fields */}
+                    {selectedActivityData.customCapacityFields?.map((field: any) => (
+                        <div key={field.id} className="flex items-center justify-between gap-4">
+                            <span className="text-sm text-gray-600">{field.name} (${field.price})</span>
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => onParticipantsChange(field.id, Math.max(0, (participants.custom[field.id] || 0) - 1))}
+                                    className="h-8 w-8 rounded-full"
+                                    style={{ borderColor: primaryColor, color: primaryColor }}
+                                >
+                                    -
+                                </Button>
+                                <span className="w-4 text-center">{participants.custom[field.id] || 0}</span>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => onParticipantsChange(field.id, Math.min(10, (participants.custom[field.id] || 0) + 1))}
+                                    className="h-8 w-8 rounded-full"
+                                    style={{ borderColor: primaryColor, color: primaryColor }}
+                                >
+                                    +
+                                </Button>
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
                 {/* Summary Details */}
@@ -108,7 +170,7 @@ export const BookingSummary: React.FC<BookingSummaryProps> = ({
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-5 border-2" style={{ borderColor: `${primaryColor}30` }}>
                     <div className="flex justify-between mb-3 text-sm">
                         <span className="text-gray-600">Subtotal</span>
-                        <span className="text-gray-900">${selectedActivityData.price} × {partySize}</span>
+                        <span className="text-gray-900">${selectedActivityData.price} × {participants.adults + participants.children + Object.values(participants.custom).reduce((a, b) => a + b, 0)}</span>
                     </div>
                     <Separator className="my-3" />
                     <div className="flex justify-between items-center">

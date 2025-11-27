@@ -63,7 +63,7 @@ export class StripeProductService {
   // Helper to invoke Edge Function with improved error handling
   private static async invokeStripeFunction(action: string, params: any) {
     console.log(`[Stripe] Invoking edge function: ${action}`, params);
-    
+
     try {
       const { data, error } = await supabase.functions.invoke('stripe-manage-product', {
         body: { action, ...params }
@@ -77,10 +77,10 @@ export class StripeProductService {
           context: (error as any).context,
           status: (error as any).status,
         });
-        
+
         // Try to extract more details from the error
         let errorMessage = error.message || 'Failed to invoke Stripe function';
-        
+
         // FunctionsHttpError often has the actual error in context
         if ((error as any).context) {
           try {
@@ -92,7 +92,7 @@ export class StripeProductService {
             // Ignore parse errors
           }
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -106,7 +106,7 @@ export class StripeProductService {
       return data;
     } catch (err: any) {
       console.error(`[Stripe] Exception in ${action}:`, err);
-      
+
       // Re-throw with better message
       if (err.message) {
         throw err;
@@ -119,7 +119,7 @@ export class StripeProductService {
    * Create both Stripe product and price for an activity
    * Includes support for child pricing, custom capacity fields, and group discounts
    */
-  static async createProductAndPrice(params: CreateProductParams): Promise<ProductAndPrice> {
+  static async createProductAndPrice(params: CreateProductParams): Promise<ProductAndPrice & { prices: any[] }> {
     try {
       console.log('Creating Stripe product and price with enhanced features:', params);
 
@@ -236,16 +236,51 @@ export class StripeProductService {
         metadata: cleanMetadata,
       });
 
-      // Create price for the product (using adult price as base)
-      const priceId = await this.createPrice(productId, {
+      const createdPrices: any[] = [];
+
+      // 1. Create Adult Price
+      const adultPriceId = await this.createPrice(productId, {
         amount: params.price,
         currency: params.currency || 'usd',
-        metadata: cleanMetadata,
+        metadata: { ...cleanMetadata, type: 'adult' },
+        lookup_key: 'adult',
       });
+      createdPrices.push({ id: adultPriceId, type: 'adult', unit_amount: params.price * 100, currency: params.currency || 'usd' });
 
-      console.log('Stripe product created with enhanced pricing:', { productId, priceId });
+      // 2. Create Child Price (if exists)
+      if (params.childPrice && params.childPrice > 0) {
+        const childPriceId = await this.createPrice(productId, {
+          amount: params.childPrice,
+          currency: params.currency || 'usd',
+          metadata: { ...cleanMetadata, type: 'child' },
+          lookup_key: 'child',
+        });
+        createdPrices.push({ id: childPriceId, type: 'child', unit_amount: params.childPrice * 100, currency: params.currency || 'usd' });
+      }
 
-      return { productId, priceId };
+      // 3. Create Custom Prices (if exist)
+      if (params.customCapacityFields && params.customCapacityFields.length > 0) {
+        for (let i = 0; i < params.customCapacityFields.length; i++) {
+          const field = params.customCapacityFields[i];
+          if (field.price > 0) {
+            const customPriceId = await this.createPrice(productId, {
+              amount: field.price,
+              currency: params.currency || 'usd',
+              metadata: { ...cleanMetadata, type: 'custom', name: field.name },
+              lookup_key: `custom_${i}`,
+            });
+            createdPrices.push({ id: customPriceId, type: 'custom', name: field.name, unit_amount: field.price * 100, currency: params.currency || 'usd' });
+          }
+        }
+      }
+
+      console.log('Stripe product created with enhanced pricing:', { productId, prices: createdPrices });
+
+      return {
+        productId,
+        priceId: adultPriceId, // Keep for backward compatibility
+        prices: createdPrices
+      };
     } catch (error) {
       console.error('Error creating product and price:', error);
       throw error;

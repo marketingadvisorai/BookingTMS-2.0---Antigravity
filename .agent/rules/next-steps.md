@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
 > Last Updated: 2025-11-28
-> Version: v0.1.47-documentation
+> Version: v0.1.48-unit-tests
 
 ---
 
@@ -301,12 +301,20 @@
 
 ## Technical Debt
 
-- [ ] Add unit tests for embed-pro hooks
+- [x] Add unit tests for embed-pro hooks ✅ v0.1.48
 - [ ] Add E2E tests for booking flow
 - [x] Optimize bundle size (lazy load widgets) ✅ v0.1.35
 - [x] Add error boundary for widget crashes ✅ v0.1.35
 - [ ] Improve TypeScript strictness
 - [ ] Add Storybook for widget components
+
+### Unit Testing Setup (v0.1.48)
+- **Framework**: Vitest with React Testing Library
+- **Config**: `vitest.config.ts` with jsdom environment
+- **Scripts**: `npm run test`, `npm run test:run`, `npm run test:coverage`
+- **Tests Created**:
+  - `usePromoCode.test.ts` - 8 tests (validation, apply, remove, error handling)
+  - `useGiftCard.test.ts` - 10 tests (redemption, partial, error handling)
 
 ### Completed Technical Improvements (v0.1.35)
 - **WidgetErrorBoundary** - Catches React errors, shows friendly UI, retry support

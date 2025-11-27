@@ -139,26 +139,8 @@ export default function Step7WidgetEmbed({
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Preview */}
+        {/* Left: Embed Code (Primary Focus - No Preview to avoid crashes) */}
         <div className="lg:col-span-2 space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Live Preview</CardTitle>
-              <CardDescription>
-                See how your widget looks on different devices
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DevicePreview
-                previewUrl={previewUrl}
-                device={previewDevice}
-                onDeviceChange={setPreviewDevice}
-                onOpenFullPreview={openFullPreview}
-                canOpenPreview={!!realEmbedUrl}
-              />
-            </CardContent>
-          </Card>
-
           {/* Embed Code */}
           <CodeDisplay
             code={generatedCode}
@@ -169,6 +151,24 @@ export default function Step7WidgetEmbed({
             onCopy={copyToClipboard}
             onDownload={downloadEmbedHTML}
           />
+          
+          {/* Preview Link */}
+          {realEmbedUrl && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">Live Preview</p>
+                    <p className="text-xs text-gray-500">Opens in new tab</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={openFullPreview}>
+                    <Eye className="w-4 h-4 mr-2" />
+                    Open Preview
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Right: Settings & Downloads */}

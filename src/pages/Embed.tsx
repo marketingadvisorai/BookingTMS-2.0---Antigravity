@@ -4,7 +4,8 @@ import { BookGoWidget } from '../components/widgets/ListWidget';
 import { QuickBookWidget } from '../components/widgets/QuickBookWidget';
 import { MultiStepWidget } from '../components/widgets/MultiStepWidget';
 import { ResolvexWidget } from '../components/widgets/ResolvexWidget';
-import { CalendarSingleEventBookingPageNew } from '../components/widgets/CalendarSingleEventBookingPageNew';
+// Use original working version - modular version caused crashes
+import { CalendarSingleEventBookingPage } from '../components/widgets/CalendarSingleEventBookingPage';
 import { VenueBookingWidget } from '../components/widgets/VenueBookingWidget';
 import FareBookWidget from '../components/widgets/FareBookWidget';
 import { WidgetThemeProvider } from '../components/widgets/WidgetThemeContext';
@@ -469,9 +470,9 @@ export function Embed() {
           );
         }
         console.log('✅ Rendering Calendar Booking widget with activityId:', activityId, 'venueId:', urlVenueId);
-        // Use new refactored modular component with Step 5 Schedule sync
+        // Use original stable component (modular version caused crashes)
         return (
-          <CalendarSingleEventBookingPageNew
+          <CalendarSingleEventBookingPage
             {...widgetProps}
             activityId={activityId}
             venueId={urlVenueId}

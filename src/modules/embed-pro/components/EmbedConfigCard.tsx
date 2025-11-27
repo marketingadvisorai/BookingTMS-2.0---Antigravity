@@ -17,15 +17,15 @@ import {
   ToggleRight,
   BarChart3
 } from 'lucide-react';
-import { cn } from '@/components/ui/utils';
-import { Button } from '@/components/ui/button';
+import { cn } from '../../../components/ui/utils';
+import { Button } from '../../../components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '../../../components/ui/dropdown-menu';
 import { EMBED_TYPES, type EmbedConfigWithRelations } from '../types';
 
 interface EmbedConfigCardProps {

@@ -14,16 +14,16 @@ import {
   Loader2,
   Code2
 } from 'lucide-react';
-import { cn } from '@/components/ui/utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { cn } from '../../../components/ui/utils';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '../../../components/ui/select';
 import { useEmbedConfigs } from '../hooks';
 import { EmbedConfigCard } from './EmbedConfigCard';
 import { EmbedCodeDisplay } from './EmbedCodeDisplay';

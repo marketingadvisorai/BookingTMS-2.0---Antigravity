@@ -14,8 +14,8 @@ import {
   Eye,
   Loader2
 } from 'lucide-react';
-import { cn } from '@/components/ui/utils';
-import { Button } from '@/components/ui/button';
+import { cn } from '../../../components/ui/utils';
+import { Button } from '../../../components/ui/button';
 import { useEmbedPreview } from '../hooks';
 
 interface EmbedPreviewPanelProps {

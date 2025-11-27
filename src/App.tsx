@@ -228,8 +228,8 @@ export default function App() {
       return;
     }
 
-    // Check if we're in embed mode
-    if (params.has('widget') || params.has('widgetId') || path.startsWith('/embed')) {
+    // Check if we're in embed mode (but NOT embed-pro which is an admin page)
+    if (params.has('widget') || params.has('widgetId') || (path.startsWith('/embed') && !path.startsWith('/embed-pro'))) {
       setIsEmbedMode(true);
       // Skip loading screen for embed mode
       setShowLoadingScreen(false);

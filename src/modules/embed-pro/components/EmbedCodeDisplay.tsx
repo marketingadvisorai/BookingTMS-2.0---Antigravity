@@ -14,9 +14,9 @@ import {
   Frame,
   Globe
 } from 'lucide-react';
-import { cn } from '@/components/ui/utils';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { cn } from '../../../components/ui/utils';
+import { Button } from '../../../components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/tabs';
 import { useCodeGenerator } from '../hooks';
 import type { EmbedConfigEntity, CodeFormat } from '../types';
 

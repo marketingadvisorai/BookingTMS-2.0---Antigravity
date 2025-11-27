@@ -13,7 +13,7 @@ import {
   Maximize2,
   Check
 } from 'lucide-react';
-import { cn } from '@/components/ui/utils';
+import { cn } from '../../../components/ui/utils';
 import { EMBED_TYPES, type EmbedType } from '../types';
 
 interface EmbedTypeSelectorProps {

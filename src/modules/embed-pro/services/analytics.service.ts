@@ -5,7 +5,7 @@
  * Handles analytics tracking and reporting
  */
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../../../lib/supabase';
 import type {
   AnalyticsEventType,
   TrackEventInput,

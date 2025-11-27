@@ -5,7 +5,7 @@
  * Handles widget preview data fetching
  */
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../../../lib/supabase';
 import type { EmbedConfigEntity, EmbedStyle } from '../types';
 
 // =====================================================

@@ -374,71 +374,15 @@ export function Embed() {
     }
   }, [widgetKey, activityId, fetchWidgetConfig]);
 
-  // Set up real-time subscription for activity updates (optimized for high traffic)
+  // DISABLED: Real-time subscription was causing infinite loops and system crashes
+  // Real-time updates will be re-enabled after architecture refactor
+  // The widget will still work correctly, just won't auto-update without page refresh
+  /*
   useEffect(() => {
     if (!venueId) return;
-
-    console.log('🔄 Setting up real-time subscription for venue:', venueId);
-
-    // Debounce to prevent excessive updates under high traffic
-    let debounceTimer: NodeJS.Timeout | null = null;
-    const debouncedRefresh = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        fetchWidgetConfig({ showLoading: false });
-      }, 500); // 500ms debounce for better performance
-    };
-
-    const channel = supabase
-      .channel(`widget-${venueId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'activities',
-          filter: `venue_id=eq.${venueId}`,
-        },
-        (payload) => {
-          console.log('🔔 Activity update detected:', payload.eventType);
-          debouncedRefresh();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'activity_sessions',
-          filter: `venue_id=eq.${venueId}`,
-        },
-        (payload) => {
-          console.log('🔔 Session update detected:', payload.eventType);
-          debouncedRefresh();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'venues',
-          filter: `id=eq.${venueId}`,
-        },
-        () => {
-          console.log('🔔 Venue update detected');
-          debouncedRefresh();
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscriptions on unmount
-    return () => {
-      console.log('🔌 Cleaning up real-time subscriptions');
-      if (debounceTimer) clearTimeout(debounceTimer);
-      channel.unsubscribe();
-    };
-  }, [venueId, fetchWidgetConfig]);
+    // Real-time subscription code disabled for stability
+  }, [venueId]);
+  */
 
   const renderWidget = () => {
     const widgetProps = {

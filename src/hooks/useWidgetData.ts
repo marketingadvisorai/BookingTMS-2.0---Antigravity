@@ -32,7 +32,9 @@ const isValidUUID = (str: string | undefined): boolean => {
  * - Session is updated (capacity changes from bookings)
  * - New sessions are generated
  */
-export const useWidgetData = ({ venueId, activityId, date, enableRealtime = true }: UseWidgetDataProps) => {
+// IMPORTANT: Real-time disabled by default to prevent infinite loops
+// Enable only after thorough testing with stable dependency arrays
+export const useWidgetData = ({ venueId, activityId, date, enableRealtime = false }: UseWidgetDataProps) => {
     const [venue, setVenue] = useState<Venue | null>(null);
     const [activities, setActivities] = useState<Activity[]>([]);
     const [sessions, setSessions] = useState<Session[]>([]);

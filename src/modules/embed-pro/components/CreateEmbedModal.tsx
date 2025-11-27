@@ -5,7 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Loader2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '../../../components/ui/utils';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -96,9 +97,12 @@ export const CreateEmbedModal: React.FC<CreateEmbedModalProps> = ({
         target_type: formData.target_type,
         target_id: formData.target_id || undefined,
       });
+      toast.success('Embed created successfully!');
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create embed:', error);
+      const message = error?.message || 'Failed to create embed. Please try again.';
+      toast.error(message);
     } finally {
       setLoading(false);
     }

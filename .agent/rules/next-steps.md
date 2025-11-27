@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
 > Last Updated: 2025-11-28
-> Version: v0.1.49-documentation-complete
+> Version: v0.1.50-typescript-strict
 
 ---
 
@@ -302,19 +302,30 @@
 ## Technical Debt
 
 - [x] Add unit tests for embed-pro hooks ✅ v0.1.48
+- [x] Add unit tests for services ✅ v0.1.50 (50 tests total)
 - [ ] Add E2E tests for booking flow
 - [x] Optimize bundle size (lazy load widgets) ✅ v0.1.35
 - [x] Add error boundary for widget crashes ✅ v0.1.35
-- [ ] Improve TypeScript strictness
+- [x] Improve TypeScript strictness ✅ v0.1.50
 - [ ] Add Storybook for widget components
 
-### Unit Testing Setup (v0.1.48)
+### Unit Testing Setup (v0.1.48 → v0.1.50)
 - **Framework**: Vitest with React Testing Library
 - **Config**: `vitest.config.ts` with jsdom environment
 - **Scripts**: `npm run test`, `npm run test:run`, `npm run test:coverage`
-- **Tests Created**:
-  - `usePromoCode.test.ts` - 8 tests (validation, apply, remove, error handling)
-  - `useGiftCard.test.ts` - 10 tests (redemption, partial, error handling)
+- **Total Tests**: 50 passing
+- **Hook Tests**:
+  - `usePromoCode.test.ts` - 8 tests
+  - `useGiftCard.test.ts` - 10 tests
+- **Service Tests**:
+  - `promo.service.test.ts` - 14 tests
+  - `giftcard.service.test.ts` - 18 tests
+
+### TypeScript Strictness (v0.1.50)
+- **Enabled**: strictNullChecks, strictFunctionTypes, strictBindCallApply
+- **Enabled**: noImplicitReturns, noFallthroughCasesInSwitch, noImplicitOverride
+- **Enabled**: isolatedModules, forceConsistentCasingInFileNames
+- **Kept off**: noImplicitAny (for legacy compatibility)
 
 ### Completed Technical Improvements (v0.1.35)
 - **WidgetErrorBoundary** - Catches React errors, shows friendly UI, retry support

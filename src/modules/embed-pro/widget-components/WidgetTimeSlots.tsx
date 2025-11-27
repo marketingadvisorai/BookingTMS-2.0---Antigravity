@@ -3,11 +3,14 @@
  * @module embed-pro/widget-components/WidgetTimeSlots
  * 
  * Displays available time slots for the selected date.
+ * Supports real-time availability from database sessions.
+ * Cross-browser compatible with graceful fallbacks.
  */
 
-import React, { useMemo } from 'react';
-import { Clock } from 'lucide-react';
+import React, { useMemo, useEffect, useState } from 'react';
+import { Clock, AlertCircle } from 'lucide-react';
 import type { ActivitySchedule, WidgetStyle, TimeSlot } from '../types/widget.types';
+import { availabilityService, AvailabilitySlot } from '../services';
 
 // =====================================================
 // PROPS INTERFACE
@@ -17,17 +20,20 @@ interface WidgetTimeSlotsProps {
   schedule: ActivitySchedule;
   selectedDate: Date | null;
   selectedTime: string | null;
-  onTimeSelect: (time: string) => void;
+  onTimeSelect: (time: string, sessionId?: string) => void;
   style: WidgetStyle;
   duration: number;
+  activityId?: string;
+  partySize?: number;
+  useRealAvailability?: boolean; // Enable DB-backed availability
 }
 
 // =====================================================
-// HELPERS
+// HELPERS (Cross-browser safe)
 // =====================================================
 
 /**
- * Generate time slots based on schedule
+ * Generate time slots based on schedule (fallback mode)
  */
 const generateTimeSlots = (
   schedule: ActivitySchedule,
@@ -44,9 +50,11 @@ const generateTimeSlots = (
   let currentMinutes = startHour * 60 + startMin;
   const endMinutes = endHour * 60 + endMin;
 
-  // Check if date is today and skip past times
+  // Cross-browser date comparison
   const now = new Date();
-  const isToday = date.toDateString() === now.toDateString();
+  const dateStr = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+  const nowStr = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+  const isToday = dateStr === nowStr;
   const currentTimeMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : 0;
 
   while (currentMinutes + duration <= endMinutes) {
@@ -54,14 +62,14 @@ const generateTimeSlots = (
     const mins = currentMinutes % 60;
     const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 
-    // Skip past times for today
+    // Skip past times for today (30 min buffer)
     const isAvailable = !isToday || currentMinutes > currentTimeMinutes + 30;
 
     slots.push({
       time: timeStr,
       available: isAvailable,
-      spotsRemaining: isAvailable ? 8 : 0, // Placeholder - would come from sessions
-      price: 0, // Price is per activity, not per slot
+      spotsRemaining: isAvailable ? 10 : 0,
+      price: 0,
     });
 
     currentMinutes += interval;
@@ -71,13 +79,15 @@ const generateTimeSlots = (
 };
 
 /**
- * Format time for display (12-hour format)
+ * Format time for display (12-hour format) - Cross-browser safe
  */
 const formatTime = (time: string): string => {
-  const [hours, mins] = time.split(':').map(Number);
+  const parts = time.split(':');
+  const hours = parseInt(parts[0], 10);
+  const mins = parts[1] || '00';
   const ampm = hours >= 12 ? 'PM' : 'AM';
   const displayHours = hours % 12 || 12;
-  return `${displayHours}:${mins.toString().padStart(2, '0')} ${ampm}`;
+  return `${displayHours}:${mins} ${ampm}`;
 };
 
 // =====================================================
@@ -91,11 +101,74 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
   onTimeSelect,
   style,
   duration,
+  activityId,
+  partySize = 1,
+  useRealAvailability = false,
 }) => {
-  const timeSlots = useMemo(
+  // State for real-time availability
+  const [realSlots, setRealSlots] = useState<AvailabilitySlot[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fallback to schedule-based slots
+  const fallbackSlots = useMemo(
     () => generateTimeSlots(schedule, selectedDate, duration),
     [schedule, selectedDate, duration]
   );
+
+  // Fetch real availability when enabled and date changes
+  useEffect(() => {
+    if (!useRealAvailability || !activityId || !selectedDate) {
+      setRealSlots([]);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    availabilityService
+      .getAvailableSlots(activityId, selectedDate, partySize)
+      .then((slots) => {
+        if (!cancelled) {
+          setRealSlots(slots);
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error('[WidgetTimeSlots] Availability error:', err);
+          setError('Unable to load availability');
+          setIsLoading(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [useRealAvailability, activityId, selectedDate, partySize]);
+
+  // Merge real slots with fallback (real slots override when available)
+  const timeSlots = useMemo(() => {
+    if (useRealAvailability && realSlots.length > 0) {
+      return realSlots.map((rs) => ({
+        time: rs.time,
+        available: rs.available,
+        spotsRemaining: rs.spotsRemaining,
+        price: rs.price,
+        sessionId: rs.sessionId,
+      }));
+    }
+    return fallbackSlots;
+  }, [useRealAvailability, realSlots, fallbackSlots]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="p-4 text-center text-gray-500">
+        <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin mx-auto mb-2" />
+        <p className="text-sm">Loading available times...</p>
+      </div>
+    );
+  }
 
   if (!selectedDate) {
     return (
@@ -117,15 +190,21 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
 
   const availableSlots = timeSlots.filter(s => s.available);
 
-  // Format selected date for display
-  const formattedDate = selectedDate.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
+  // Cross-browser safe date formatting
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const formattedDate = `${days[selectedDate.getDay()]}, ${months[selectedDate.getMonth()]} ${selectedDate.getDate()}`;
 
   return (
     <div className="p-4">
+      {/* Error Banner */}
+      {error && (
+        <div className="flex items-center gap-2 mb-3 p-2 bg-yellow-50 rounded-lg text-yellow-700 text-xs">
+          <AlertCircle className="w-4 h-4" />
+          <span>{error} - Showing estimated times</span>
+        </div>
+      )}
+
       {/* Date Display */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-gray-800">Select Time</h3>
@@ -139,16 +218,17 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
 
       {/* Time Grid */}
       <div className="grid grid-cols-3 gap-2 max-h-[240px] overflow-y-auto pr-1">
-        {timeSlots.filter(s => s.available).map((slot) => {
+        {availableSlots.map((slot) => {
           const isSelected = selectedTime === slot.time;
+          const sessionId = (slot as any).sessionId;
           
           return (
             <button
               key={slot.time}
-              onClick={() => onTimeSelect(slot.time)}
+              onClick={() => onTimeSelect(slot.time, sessionId)}
               className={`
                 py-3 px-2 rounded-xl text-sm font-semibold
-                transition-all duration-200 transform
+                transition-all duration-200 transform relative
                 ${isSelected
                   ? 'text-white shadow-lg scale-105'
                   : 'bg-blue-50 hover:bg-blue-100 text-gray-700 hover:scale-102'
@@ -159,6 +239,12 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
               }}
             >
               {formatTime(slot.time)}
+              {/* Show spots remaining if available */}
+              {slot.spotsRemaining > 0 && slot.spotsRemaining <= 3 && !isSelected && (
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                  {slot.spotsRemaining} left
+                </span>
+              )}
             </button>
           );
         })}

@@ -1,4 +1,6 @@
-# Embed Pro 2.0 Architecture
+# Embed Pro 2.0 - Enterprise Architecture
+
+> **Last Updated:** Nov 27, 2025 | **Version:** v2.1.0
 
 ## Overview
 
@@ -76,9 +78,14 @@ Embed Pro 2.0 is an independent, modular widget embedding system that allows org
 │   └── useCalendarState.ts      # Calendar selection (< 100 lines)
 │
 ├── services/
-│   ├── index.ts                 # Service exports
-│   ├── embedProData.service.ts  # Supabase data queries (< 200 lines)
-│   └── embedProBooking.service.ts # Booking creation (< 150 lines)
+│   ├── index.ts                   # Service exports
+│   ├── embedProData.service.ts    # Orchestrator (< 200 lines)
+│   ├── availability.service.ts    # Real-time slot availability (< 220 lines)
+│   ├── widgetData.normalizer.ts   # Data transformation (< 200 lines)
+│   ├── checkoutPro.service.ts     # Stripe checkout (< 180 lines)
+│   ├── embedConfig.service.ts     # Config CRUD (< 170 lines)
+│   ├── analytics.service.ts       # Widget analytics (< 150 lines)
+│   └── preview.service.ts         # Preview mode (< 180 lines)
 │
 ├── types/
 │   ├── index.ts                 # Type exports
@@ -168,4 +175,48 @@ Add to App.tsx routes:
 EmbedPreviewPanel uses:
 ```
 /embed-pro?key={embed_key}&preview=true&theme={theme}
+```
+
+## Cross-Browser & Zero-Downtime Design
+
+### Browser Compatibility
+- **No modern-only APIs** without fallbacks
+- Date formatting uses manual arrays, not `toLocaleDateString()` options
+- CSS uses widely supported properties (no CSS Container Queries)
+- ES6+ is transpiled via Vite for IE11+ support
+
+### Graceful Degradation
+```
+1. Real availability → Database sessions (activity_sessions)
+   ↓ (if error)
+2. Fallback slots → Schedule-based generation
+   ↓ (if error)
+3. Error message → "Unable to load availability"
+```
+
+### Retry Logic
+- Network failures automatically retry (2 attempts)
+- 500ms delay between retries
+- Silent fallback to cached/generated data
+
+### Zero-Downtime Patterns
+- Widgets work offline with generated slots
+- No hard dependencies on external services
+- Supabase RLS allows anonymous reads
+- Assets served via CDN with long cache headers
+
+## Service Architecture (Modular)
+
+```
+embedProData.service.ts (Orchestrator)
+    ├── getWidgetData()          → Main entry point
+    ├── getConfigByKey()         → Fetch embed config
+    ├── getActivityWithVenue()   → Activity + venue
+    ├── getVenueWithActivities() → Venue + all activities
+    └── delegates to:
+        ├── widgetData.normalizer.ts  → Transform DB → Widget format
+        └── availability.service.ts   → Real-time slot availability
+            ├── getAvailableSlots()
+            ├── checkSessionAvailability()
+            └── getDateRangeAvailability()
 ```

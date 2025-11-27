@@ -11,5 +11,13 @@ export type { PreviewData, PreviewActivityData, PreviewVenueData } from './previ
 export { analyticsService } from './analytics.service';
 
 // Customer Widget Services (Embed Pro 2.0)
-export { embedProDataService } from './embedProData.service';
+export { embedProDataService, availabilityService, widgetDataNormalizer } from './embedProData.service';
 export { checkoutProService } from './checkoutPro.service';
+
+// Type exports for external use (renamed to avoid conflicts with types module)
+export type { 
+  TimeSlotAvailability as AvailabilitySlot, 
+  AvailabilityCheckResult,
+  DateAvailability as SessionDateAvailability 
+} from './availability.service';
+export type { RawActivity, RawVenue } from './widgetData.normalizer';

@@ -196,8 +196,15 @@
 - [ ] Multi-language support (i18n)
 - [ ] Waitlist for sold-out slots
 - [ ] Group booking with multiple activities
-- [ ] Promo code / discount support
+- [x] Promo code / discount support ✅ v0.1.37
 - [ ] Gift card redemption
+
+#### Promo Code System (v0.1.36-37)
+- **Types**: PromoCode, PromoValidationResult, PromoCodeState
+- **Service**: promoService - validation, discount calculation
+- **Hook**: usePromoCode - state management
+- **Component**: WidgetPromoCode - UI with expand/collapse
+- **Demo Codes**: WELCOME10, SAVE20, FLAT25
 
 ### Phase 3
 - [ ] Calendar sync (Google, iCal)

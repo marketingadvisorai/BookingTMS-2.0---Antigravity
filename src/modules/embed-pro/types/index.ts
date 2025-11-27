@@ -9,3 +9,4 @@ export * from './embed-analytics.types';
 
 // Customer Widget Types (Embed Pro 2.0)
 export * from './widget.types';
+export * from './promo.types';

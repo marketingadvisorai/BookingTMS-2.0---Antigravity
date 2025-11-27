@@ -12,3 +12,4 @@ export { useEmbedAnalytics } from './useEmbedAnalytics';
 // Customer Widget Hooks (Embed Pro 2.0)
 export { useEmbedProData } from './useEmbedProData';
 export { useBookingFlow } from './useBookingFlow';
+export { usePromoCode } from './usePromoCode';

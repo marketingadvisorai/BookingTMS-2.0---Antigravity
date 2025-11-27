@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
 > Last Updated: 2025-11-28
-> Version: v0.1.46-gift-card-integration
+> Version: v0.1.47-documentation
 
 ---
 
@@ -317,11 +317,24 @@
 
 ## Documentation Needed
 
-- [ ] API documentation for edge functions
-- [ ] Widget integration guide for developers
+- [x] API documentation for edge functions ✅ v0.1.47
+- [x] Widget integration guide for developers ✅ v0.1.47
 - [ ] Admin user guide
 - [ ] Troubleshooting guide
 - [ ] Video tutorials
+
+### Completed Documentation (v0.1.47)
+- **WIDGET_INTEGRATION_GUIDE.md** - Complete developer guide for embedding widgets
+  - HTML, iframe, React, Vue, WordPress examples
+  - Customization options (CSS variables, themes)
+  - Events & callbacks (PostMessage API)
+  - Troubleshooting common issues
+- **API_REFERENCE.md** - Full API documentation
+  - Checkout API (create session, verify)
+  - Booking API (create, verify)
+  - Widget Config API (activity, venue)
+  - Stripe Integration (products, prices)
+  - Error codes and rate limits
 
 ---
 

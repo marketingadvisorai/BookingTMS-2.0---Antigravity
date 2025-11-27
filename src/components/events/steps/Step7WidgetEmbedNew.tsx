@@ -155,6 +155,9 @@ export default function Step7WidgetEmbed({
                 onDeviceChange={setPreviewDevice}
                 onOpenFullPreview={openFullPreview}
                 canOpenPreview={!!realEmbedUrl}
+                activityName={activityData.name}
+                activityPrice={activityData.adultPrice || 30}
+                primaryColor={primaryColor}
               />
             </CardContent>
           </Card>

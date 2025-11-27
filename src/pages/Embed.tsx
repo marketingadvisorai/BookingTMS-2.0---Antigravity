@@ -324,7 +324,7 @@ export function Embed() {
         console.log('🔍 Fetching config for embedKey:', widgetKey);
         
         // First try the new embed_configs table (Embed Pro 1.1)
-        let result = await SupabaseBookingService.getEmbedProConfig(widgetKey);
+        let result: any = await SupabaseBookingService.getEmbedProConfig(widgetKey);
         
         // Fall back to legacy venue.embed_key lookup
         if (!result) {

@@ -64,7 +64,7 @@ BEGIN
 END;
 $$;
 
--- 3. Create get_recent_booking_activity  
+-- 3. Create get_recent_booking_activity (use varchar for db column types)
 CREATE OR REPLACE FUNCTION get_recent_booking_activity(limit_count integer DEFAULT 10)
 RETURNS TABLE(
     booking_id uuid,
@@ -72,8 +72,8 @@ RETURNS TABLE(
     activity_name text,
     venue_name text,
     booking_date date,
-    booking_time text,
-    status text,
+    booking_time varchar,
+    status varchar,
     total_amount numeric,
     created_at timestamptz,
     is_future_booking boolean
@@ -89,8 +89,8 @@ BEGIN
         COALESCE(a.name, 'Unknown Activity')::text as activity_name,
         COALESCE(v.name, 'Unknown Venue')::text as venue_name,
         b.booking_date,
-        COALESCE(b.start_time, '00:00')::text as booking_time,
-        b.status::text,
+        COALESCE(b.start_time, '00:00')::varchar as booking_time,
+        b.status::varchar,
         COALESCE(b.total_amount, 0)::numeric,
         b.created_at,
         (b.booking_date >= CURRENT_DATE)::boolean as is_future_booking
@@ -103,20 +103,20 @@ BEGIN
 END;
 $$;
 
--- 4. Create get_upcoming_bookings
+-- 4. Create get_upcoming_bookings (use varchar for db column types)
 CREATE OR REPLACE FUNCTION get_upcoming_bookings(limit_count integer DEFAULT 5)
 RETURNS TABLE(
     booking_id uuid,
-    booking_number text,
+    booking_number varchar,
     customer_name text,
     customer_email text,
     activity_name text,
     venue_name text,
     booking_date date,
-    start_time text,
+    start_time varchar,
     party_size integer,
     total_amount numeric,
-    status text,
+    status varchar,
     created_at timestamptz
 )
 LANGUAGE plpgsql
@@ -126,16 +126,16 @@ BEGIN
     RETURN QUERY
     SELECT 
         b.id as booking_id,
-        COALESCE(b.booking_number, b.id::text) as booking_number,
+        COALESCE(b.booking_number, b.id::varchar) as booking_number,
         COALESCE(c.first_name || ' ' || c.last_name, 'Guest')::text as customer_name,
         COALESCE(c.email, '')::text as customer_email,
         COALESCE(a.name, 'Unknown Activity')::text as activity_name,
         COALESCE(v.name, 'Unknown Venue')::text as venue_name,
         b.booking_date,
-        COALESCE(b.start_time, '00:00')::text as start_time,
+        COALESCE(b.start_time, '00:00')::varchar as start_time,
         COALESCE(b.party_size, 1)::integer as party_size,
         COALESCE(b.total_amount, 0)::numeric as total_amount,
-        b.status::text,
+        b.status::varchar,
         b.created_at
     FROM bookings b
     LEFT JOIN customers c ON b.customer_id = c.id

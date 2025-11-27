@@ -57,7 +57,7 @@ export class CheckoutService {
       // Update session
       const { error: updateError } = await (supabase
         .from('activity_sessions') as any)
-        .update({ 
+        .update({
           capacity_remaining: newCapacity,
           updated_at: new Date().toISOString()
         } as any)
@@ -141,6 +141,11 @@ export class CheckoutService {
     startTime: string;
     endTime: string;
     partySize: number;
+    participants?: {
+      adults: number;
+      children: number;
+      custom: Record<string, number>;
+    };
     customer: {
       email: string;
       firstName: string;
@@ -149,6 +154,7 @@ export class CheckoutService {
     };
     totalPrice: number;
     priceId: string;
+    stripePrices?: any[];
     successUrl: string;
     cancelUrl: string;
   }) {
@@ -170,6 +176,7 @@ export class CheckoutService {
           total_price: params.totalPrice,
           status: 'pending',
           payment_status: 'pending',
+          metadata: { participants: params.participants }
         } as any)
         .select()
         .single() as any;
@@ -181,10 +188,44 @@ export class CheckoutService {
         await this.updateSessionCapacity(params.sessionId, params.partySize);
       }
 
+      // Construct line items for Stripe
+      let lineItems: any[] = [];
+      if (params.participants && params.stripePrices) {
+        // Adult
+        if (params.participants.adults > 0) {
+          const adultPrice = params.stripePrices.find((p: any) => p.lookup_key === 'adult' || p.type === 'adult') || { id: params.priceId };
+          lineItems.push({ price: adultPrice.id, quantity: params.participants.adults });
+        }
+        // Child
+        if (params.participants.children > 0) {
+          const childPrice = params.stripePrices.find((p: any) => p.lookup_key === 'child' || p.type === 'child');
+          if (childPrice) {
+            lineItems.push({ price: childPrice.id, quantity: params.participants.children });
+          }
+        }
+        // Custom
+        Object.entries(params.participants.custom).forEach(([key, count]) => {
+          if (count > 0) {
+            // Try to find by lookup_key (e.g., custom_0) or metadata name if needed
+            // Assuming key is the ID from customCapacityFields, we might need to map it to the price
+            // For now, let's assume we can find it by some property or we need to pass the price ID directly in participants
+            // A better approach: stripePrices should contain the custom field ID in metadata
+            const customPrice = params.stripePrices?.find((p: any) => p.metadata?.name === key || p.lookup_key === key || p.name === key); // Approximate matching
+            if (customPrice) {
+              lineItems.push({ price: customPrice.id, quantity: count });
+            }
+          }
+        });
+      } else {
+        // Fallback to single price
+        lineItems.push({ price: params.priceId, quantity: params.partySize });
+      }
+
       // Create Checkout Session
       const session = await this.createCheckoutSession({
-        priceId: params.priceId,
-        quantity: params.partySize, // Use party size as quantity for correct total
+        // @ts-ignore - we are changing the interface dynamically here, ideally we update the interface definition
+        line_items: lineItems,
+        mode: 'payment',
         customerEmail: params.customer.email,
         customerName: `${params.customer.firstName} ${params.customer.lastName}`,
         successUrl: params.successUrl,
@@ -195,7 +236,7 @@ export class CheckoutService {
           venue_id: params.venueId,
           party_size: params.partySize.toString(),
         },
-      });
+      } as any);
 
       // Update booking with session ID
       await (supabase

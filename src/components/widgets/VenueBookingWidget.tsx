@@ -37,6 +37,13 @@ interface Activity {
   maxPlayers: number;
   coverImage?: string;
   category?: string;
+  customCapacityFields?: Array<{
+    id: string;
+    name: string;
+    min: number;
+    max: number;
+    price: number;
+  }>;
   stripe?: {
     priceId?: string;
     productId?: string;
@@ -177,7 +184,7 @@ interface ActivityCardProps {
 
 function ActivityCard({ activity, primaryColor, onSelect }: ActivityCardProps) {
   return (
-    <Card 
+    <Card
       className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group"
       onClick={onSelect}
     >
@@ -189,7 +196,7 @@ function ActivityCard({ activity, primaryColor, onSelect }: ActivityCardProps) {
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         {activity.category && (
-          <Badge 
+          <Badge
             className="absolute top-2 left-2 text-xs"
             style={{ backgroundColor: primaryColor }}
           >
@@ -230,8 +237,8 @@ function ActivityCard({ activity, primaryColor, onSelect }: ActivityCardProps) {
             </span>
             <span className="text-sm text-gray-500">/person</span>
           </div>
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             style={{ backgroundColor: primaryColor }}
             className="text-white"
           >

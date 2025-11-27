@@ -34,8 +34,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         setSelectedTime,
         selectedActivityId,
         setSelectedActivityId,
-        partySize,
-        setPartySize,
+        participants,
+        setParticipants,
         customerData,
         setCustomerData,
         validationErrors,
@@ -88,7 +88,21 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     });
 
     // 4. Derived State
-    const subtotal = (selectedActivityData?.price || 0) * partySize;
+    const subtotal = useMemo(() => {
+        if (!selectedActivityData) return 0;
+        let total = (selectedActivityData.price || 0) * participants.adults;
+        if (selectedActivityData.childPrice) {
+            total += selectedActivityData.childPrice * participants.children;
+        }
+        if (selectedActivityData.customCapacityFields) {
+            selectedActivityData.customCapacityFields.forEach((field: any) => {
+                if (participants.custom[field.id]) {
+                    total += field.price * participants.custom[field.id];
+                }
+            });
+        }
+        return total;
+    }, [selectedActivityData, participants]);
 
     let displayPrice = subtotal;
     if (appliedPromoCode) {
@@ -105,6 +119,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     const canAddToCart = !!(selectedDate && selectedTime && selectedActivityData);
     const canContinueToPayment = !!(customerData.name && customerData.email && customerData.phone);
 
+    // Calculate total party size for logic hook
+    const totalPartySize = participants.adults + participants.children + Object.values(participants.custom).reduce((a, b) => a + b, 0);
+
     // 5. Booking Logic Hook
     const { handleCompleteBooking, isProcessing } = useBookingLogic({
         customerData,
@@ -113,7 +130,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         selectedDate,
         currentMonth,
         currentYear,
-        partySize,
+        partySize: totalPartySize,
+        participants,
         totalPrice: subtotal, // Pass subtotal to logic hook to avoid double discounting
         appliedPromoCode,
         appliedGiftCard,
@@ -222,7 +240,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                                 primaryColor={primaryColor}
                             />
                             <TimeSlotGrid
-                                timeSlots={timeSlots}
+                                timeSlots={timeSlots.map(slot => ({
+                                    ...slot,
+                                    available: slot.available && (slot.capacity === undefined || slot.capacity >= totalPartySize)
+                                }))}
                                 selectedDate={selectedDate}
                                 currentMonth={currentMonth}
                                 currentYear={currentYear}
@@ -239,10 +260,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                                 selectedActivityData={selectedActivityData}
                                 selectedDate={selectedDate}
                                 selectedTime={selectedTime}
-                                partySize={partySize}
+                                participants={participants}
                                 totalPrice={displayPrice}
                                 primaryColor={primaryColor}
-                                onPartySizeChange={setPartySize}
+                                onParticipantsChange={setParticipants}
                                 onShowDetails={() => setShowActivityDetails(true)}
                                 onContinue={() => setCurrentStep('cart')}
                                 canContinue={canAddToCart}

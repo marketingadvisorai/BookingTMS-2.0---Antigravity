@@ -17,7 +17,11 @@ interface BookingState {
     selectedDate: number;
     selectedTime: string | null;
     selectedActivityId: string | null;
-    partySize: number;
+    participants: {
+        adults: number;
+        children: number;
+        custom: Record<string, number>;
+    };
     customerData: CustomerData;
     validationErrors: {
         name?: string;
@@ -37,7 +41,7 @@ type BookingAction =
     | { type: 'SET_DATE'; payload: number }
     | { type: 'SET_TIME'; payload: string | null }
     | { type: 'SET_ACTIVITY'; payload: string | null }
-    | { type: 'SET_PARTY_SIZE'; payload: number }
+    | { type: 'SET_PARTICIPANTS'; payload: { type: 'adults' | 'children' | string; count: number } }
     | { type: 'UPDATE_CUSTOMER_DATA'; payload: Partial<CustomerData> }
     | { type: 'SET_VALIDATION_ERRORS'; payload: BookingState['validationErrors'] }
     | { type: 'SET_PROCESSING'; payload: boolean }
@@ -52,7 +56,11 @@ const initialState: BookingState = {
     selectedDate: new Date().getDate(),
     selectedTime: null,
     selectedActivityId: null,
-    partySize: 4,
+    participants: {
+        adults: 2,
+        children: 0,
+        custom: {},
+    },
     customerData: {
         name: '',
         email: '',
@@ -81,8 +89,20 @@ function bookingReducer(state: BookingState, action: BookingAction): BookingStat
             return { ...state, selectedTime: action.payload };
         case 'SET_ACTIVITY':
             return { ...state, selectedActivityId: action.payload, selectedTime: null }; // Reset time on activity change
-        case 'SET_PARTY_SIZE':
-            return { ...state, partySize: action.payload };
+        case 'SET_PARTICIPANTS':
+            if (action.payload.type === 'adults') {
+                return { ...state, participants: { ...state.participants, adults: action.payload.count } };
+            } else if (action.payload.type === 'children') {
+                return { ...state, participants: { ...state.participants, children: action.payload.count } };
+            } else {
+                return {
+                    ...state,
+                    participants: {
+                        ...state.participants,
+                        custom: { ...state.participants.custom, [action.payload.type]: action.payload.count }
+                    }
+                };
+            }
         case 'UPDATE_CUSTOMER_DATA':
             return { ...state, customerData: { ...state.customerData, ...action.payload } };
         case 'SET_VALIDATION_ERRORS':
@@ -115,7 +135,7 @@ export const useBookingState = (defaultActivityId?: string, defaultDate?: number
     const setSelectedDate = (date: number) => dispatch({ type: 'SET_DATE', payload: date });
     const setSelectedTime = (time: string | null) => dispatch({ type: 'SET_TIME', payload: time });
     const setSelectedActivityId = (id: string | null) => dispatch({ type: 'SET_ACTIVITY', payload: id });
-    const setPartySize = (size: number) => dispatch({ type: 'SET_PARTY_SIZE', payload: size });
+    const setParticipants = (type: string, count: number) => dispatch({ type: 'SET_PARTICIPANTS', payload: { type, count } });
     const setCustomerData = (data: CustomerData) => dispatch({ type: 'UPDATE_CUSTOMER_DATA', payload: data });
     const setValidationErrors = (errors: BookingState['validationErrors']) => dispatch({ type: 'SET_VALIDATION_ERRORS', payload: errors });
     const setIsProcessing = (isProcessing: boolean) => dispatch({ type: 'SET_PROCESSING', payload: isProcessing });
@@ -139,8 +159,8 @@ export const useBookingState = (defaultActivityId?: string, defaultDate?: number
         setSelectedTime,
         selectedActivityId: state.selectedActivityId,
         setSelectedActivityId,
-        partySize: state.partySize,
-        setPartySize,
+        participants: state.participants,
+        setParticipants,
         customerData: state.customerData,
         setCustomerData,
         validationErrors: state.validationErrors,

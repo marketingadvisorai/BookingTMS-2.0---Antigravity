@@ -4,6 +4,11 @@
  * 
  * Main booking widget with Apple Liquid Glass design.
  * Features glassmorphism, smooth transitions, and premium UX.
+ * 
+ * Responsive Layouts:
+ * - Desktop (lg+): 2-panel with sticky booking summary
+ * - Tablet (md): Wide single column with enhanced spacing
+ * - Mobile: Compact single column
  */
 
 import React, { useCallback, useState, useRef, useEffect } from 'react';
@@ -17,6 +22,7 @@ import {
   WidgetCheckout,
   WidgetSuccess,
   WidgetActivitySelector,
+  WidgetBookingSummary,
 } from '../widget-components';
 import { checkoutProService } from '../services';
 import type { WidgetData, CustomerInfo, WidgetActivity } from '../types/widget.types';
@@ -293,15 +299,23 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
   // Get current step index
   const currentStepIndex = STEPS.findIndex(s => s.id === currentStep);
 
+  // Desktop 2-panel layout check
+  const showSummaryPanel = currentStep !== 'success';
+
   return (
     <>
       {/* Inject Liquid Glass Styles */}
       <style>{liquidGlassStyles}</style>
       
-      <div
-        className="w-full max-w-md mx-auto liquid-glass rounded-3xl overflow-hidden"
+      {/* Responsive Container */}
+      <div 
+        className="w-full flex flex-col lg:flex-row lg:gap-6 lg:max-w-5xl mx-auto"
         style={{ fontFamily: style.fontFamily }}
       >
+        {/* Main Booking Panel */}
+        <div
+          className="w-full lg:flex-1 max-w-md mx-auto lg:max-w-none liquid-glass rounded-3xl overflow-hidden"
+        >
         {/* Compact Header - Always visible */}
         {currentStep !== 'success' && (
           <WidgetHeader activity={activity} venue={venue} style={style} />
@@ -476,7 +490,29 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
             </div>
           </div>
         )}
+        </div>
+        {/* End Main Booking Panel */}
+
+        {/* Desktop Sidebar - Booking Summary */}
+        {showSummaryPanel && (
+          <div className="hidden lg:block lg:w-80 xl:w-96 flex-shrink-0">
+            <div className="sticky top-4">
+              <WidgetBookingSummary
+                activity={activity}
+                venueName={venue?.name}
+                venueCity={venue?.city || undefined}
+                selectedDate={state.selectedDate}
+                selectedTime={state.selectedTime}
+                partySize={state.partySize}
+                childCount={state.childCount}
+                style={style}
+                currentStep={currentStep}
+              />
+            </div>
+          </div>
+        )}
       </div>
+      {/* End Responsive Container */}
     </>
   );
 };

@@ -127,37 +127,39 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
     (currentYear === today.getFullYear() && currentMonth > today.getMonth());
 
   return (
-    <div className="p-3 sm:p-4">
+    <div className="p-3 sm:p-4 md:p-5">
       {/* Month Navigation - 44px touch targets */}
       <div className="flex items-center justify-between mb-3 sm:mb-4">
         <button
           onClick={prevMonth}
           disabled={!canGoPrev}
-          className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-transform touch-manipulation"
+          className="w-11 h-11 md:w-12 md:h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all duration-150 touch-manipulation focus:outline-none focus:ring-2 focus:ring-offset-2"
+          style={{ ['--tw-ring-color' as any]: style.primaryColor }}
           aria-label="Previous month"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
         </button>
         
-        <h2 className="text-base sm:text-lg font-semibold" style={{ color: style.textColor }}>
+        <h2 className="text-base sm:text-lg md:text-xl font-semibold" style={{ color: style.textColor }}>
           {MONTHS[currentMonth]} {currentYear}
         </h2>
         
         <button
           onClick={nextMonth}
-          className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-gray-100 active:scale-95 transition-transform touch-manipulation"
+          className="w-11 h-11 md:w-12 md:h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 active:scale-95 transition-all duration-150 touch-manipulation focus:outline-none focus:ring-2 focus:ring-offset-2"
+          style={{ ['--tw-ring-color' as any]: style.primaryColor }}
           aria-label="Next month"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
         </button>
       </div>
 
       {/* Day Headers */}
-      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-1 sm:mb-2">
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 mb-1 sm:mb-2">
         {DAYS.map(day => (
           <div
             key={day}
-            className="text-center text-[10px] sm:text-xs font-medium text-gray-500 py-1 sm:py-2"
+            className="text-center text-[10px] sm:text-xs md:text-sm font-medium text-gray-500 py-1 sm:py-2"
           >
             {day.slice(0, 2)}
           </div>
@@ -165,7 +167,7 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
       </div>
 
       {/* Calendar Grid - Min 44px touch targets */}
-      <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2">
         {calendarDays.map((date, index) => {
           if (!date) {
             return <div key={`empty-${index}`} className="min-h-[44px] sm:aspect-square" />;

@@ -37,11 +37,12 @@ export class OrganizationService {
     perPage: number = 10
   ): Promise<OrganizationListResponse> {
     try {
+      // First try simple query to ensure data loads
       let query = supabase
         .from('organizations')
         .select(`
           *,
-          plan:plan_id (
+          plan:plans!organizations_plan_id_fkey (
             id,
             name,
             slug,
@@ -53,8 +54,8 @@ export class OrganizationService {
             max_bookings_per_month,
             max_widgets
           ),
-          venues:venues(count),
-          activities:activities(count)
+          venues (count),
+          activities (count)
         `, { count: 'exact' });
 
       // Apply filters
@@ -104,10 +105,32 @@ export class OrganizationService {
         total_pages: Math.ceil((count || 0) / perPage),
       };
     } catch (error: any) {
-      // Suppress full error object logging
-      const msg = error?.message || 'Database query failed';
-      console.warn('[OrganizationService] getAll failed:', msg);
-      throw new Error(msg);
+      // Log full error for debugging
+      console.error('[OrganizationService] getAll error:', error);
+      const msg = error?.message || error?.code || 'Database query failed';
+      
+      // Try fallback simple query without joins
+      try {
+        console.log('[OrganizationService] Trying fallback query...');
+        const { data, error: fallbackError, count } = await supabase
+          .from('organizations')
+          .select('*', { count: 'exact' })
+          .order('created_at', { ascending: false })
+          .range((page - 1) * perPage, page * perPage - 1);
+        
+        if (fallbackError) throw fallbackError;
+        
+        return {
+          data: data || [],
+          total: count || 0,
+          page,
+          per_page: perPage,
+          total_pages: Math.ceil((count || 0) / perPage),
+        };
+      } catch (fallbackErr: any) {
+        console.error('[OrganizationService] Fallback also failed:', fallbackErr);
+        throw new Error(msg);
+      }
     }
   }
 

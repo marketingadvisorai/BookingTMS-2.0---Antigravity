@@ -159,34 +159,33 @@ export default function Step7WidgetEmbed({ activityData, updateActivityData, t }
                                         {generatePreviewUrl()}
                                     </div>
                                 </div>
-                                <div className="h-[600px] overflow-y-auto bg-gray-50 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                                    <div className="transform scale-[0.9] origin-top">
-                                        <ActivityPreviewCard
-                                            activity={{
-                                                id: activityData.id || 'preview',
-                                                name: activityData.name || 'Your Activity',
-                                                description: activityData.description,
-                                                duration: activityData.duration || 60,
-                                                difficulty: ['Very Easy', 'Easy', 'Moderate', 'Hard', 'Very Hard'][(activityData.difficulty || 3) - 1],
-                                                min_players: activityData.minAdults || 2,
-                                                max_players: activityData.maxAdults || 8,
-                                                price: activityData.adultPrice || 0,
-                                                child_price: activityData.childPrice,
-                                                image_url: activityData.coverImage,
-                                                gallery_images: activityData.galleryImages,
-                                                schedule: {
-                                                    operatingDays: activityData.operatingDays,
-                                                    startTime: activityData.startTime,
-                                                    endTime: activityData.endTime,
-                                                    slotInterval: activityData.slotInterval,
-                                                    advanceBookingDays: activityData.advanceBooking
-                                                }
-                                            }}
-                                            venueName={embedContext.venueName}
-                                            primaryColor={embedContext.primaryColor}
-                                            showBookingFlow={true}
-                                        />
-                                    </div>
+                                <div className="h-[600px] overflow-y-auto pt-10 bg-white scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                                    <ActivityPreviewCard
+                                        activity={{
+                                            id: activityData.id || 'preview',
+                                            name: activityData.name || 'Your Activity',
+                                            description: activityData.description,
+                                            duration: activityData.duration || 60,
+                                            difficulty: ['Very Easy', 'Easy', 'Moderate', 'Hard', 'Very Hard'][(activityData.difficulty || 3) - 1],
+                                            min_players: activityData.minAdults || 2,
+                                            max_players: activityData.maxAdults || 8,
+                                            price: activityData.adultPrice || 0,
+                                            child_price: activityData.childPrice,
+                                            image_url: activityData.coverImage,
+                                            gallery_images: activityData.galleryImages,
+                                            schedule: {
+                                                operatingDays: activityData.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+                                                startTime: activityData.startTime || '10:00',
+                                                endTime: activityData.endTime || '22:00',
+                                                slotInterval: activityData.slotInterval || 60,
+                                                advanceBookingDays: activityData.advanceBooking || 30
+                                            }
+                                        }}
+                                        venueName={embedContext.venueName}
+                                        primaryColor={embedContext.primaryColor}
+                                        showBookingFlow={true}
+                                        compact={true}
+                                    />
                                 </div>
                             </div>
                         </TabsContent>

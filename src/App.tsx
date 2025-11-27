@@ -27,6 +27,7 @@ import { Account } from './pages/Account';
 import { Billing } from './pages/Billing';
 import { Team } from './pages/Team';
 import { Embed } from './pages/Embed';
+import EmbedProPage from './pages/EmbedPro';
 import { AccountSettings } from './pages/AccountSettings';
 import { PaymentHistory } from './pages/PaymentHistory';
 import Notifications from './pages/Notifications';
@@ -128,6 +129,8 @@ function AppContent() {
         return <Organizations />;
       case 'widgets':
         return <BookingWidgets />;
+      case 'embed-pro':
+        return <EmbedProPage />;
       case 'notifications':
         return <Notifications />;
       case 'settings':

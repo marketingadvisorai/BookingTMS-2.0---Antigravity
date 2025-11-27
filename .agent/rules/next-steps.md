@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
 > Last Updated: 2025-11-28
-> Version: v0.1.44-customer-portal
+> Version: v0.1.45-ai-assistant
 
 ---
 
@@ -239,8 +239,8 @@
 - [x] Calendar sync (Google, iCal) ✅ v0.1.42
 - [x] SMS reminders ✅ v0.1.43
 - [x] Customer portal for managing bookings ✅ v0.1.44
-- [ ] Recurring bookings
-- [ ] Membership / subscription bookings
+- [ ] Recurring bookings (deferred to v2.x)
+- [ ] Membership / subscription bookings (deferred to v2.x)
 
 #### Customer Portal System (v0.1.44)
 - **Routes**: `/my-bookings`, `/customer-portal` (public, no admin auth)
@@ -266,11 +266,25 @@
 - **Features**: iCal generation, reminders, timezone support
 
 ### Phase 4
-- [ ] AI-powered booking assistant
+- [x] AI-powered booking assistant ✅ v0.1.45
 - [ ] Dynamic pricing based on demand
 - [ ] A/B testing for widget variants
 - [ ] Advanced analytics with cohort analysis
 - [ ] White-label solution
+
+#### AI Booking Assistant (v0.1.45)
+- **Module**: `/src/modules/ai-assistant/`
+- **Components**: BookingAssistant (chat UI), ChatMessage (message bubble)
+- **Services**: intentDetectionService, responseGeneratorService
+- **Hook**: useBookingAssistant - state management with reducer
+- **Features**:
+  - Natural language intent detection (12 intents)
+  - Entity extraction (date, time, party size, email, phone, name)
+  - Contextual response generation
+  - Quick reply suggestions
+  - Progress indicator with step tracking
+  - Floating button or embedded mode
+  - Customizable colors and bot name
 
 ---
 

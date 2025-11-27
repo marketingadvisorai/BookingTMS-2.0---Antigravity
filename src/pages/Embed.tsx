@@ -5,9 +5,11 @@ import { QuickBookWidget } from '../components/widgets/QuickBookWidget';
 import { MultiStepWidget } from '../components/widgets/MultiStepWidget';
 import { ResolvexWidget } from '../components/widgets/ResolvexWidget';
 import { CalendarSingleEventBookingPage } from '../components/widgets/CalendarSingleEventBookingPage';
+import { VenueBookingWidget } from '../components/widgets/VenueBookingWidget';
 import FareBookWidget from '../components/widgets/FareBookWidget';
 import { WidgetThemeProvider } from '../components/widgets/WidgetThemeContext';
 import { ActivityPreviewCard } from '../components/widgets/ActivityPreviewCard';
+import { VenuePreviewCard } from '../components/widgets/VenuePreviewCard';
 import { supabase } from '../lib/supabase';
 import SupabaseBookingService from '../services/SupabaseBookingService';
 
@@ -450,6 +452,39 @@ export function Embed() {
       case 'farebook':
         return <FareBookWidget {...widgetProps} />;
       case 'calendar':
+      case 'venue':
+        // Venue embed - show all activities at venue
+        if (embedConfig?.activities?.length > 0 || embedConfig?.games?.length > 0) {
+          const activities = embedConfig?.activities || embedConfig?.games || [];
+          return (
+            <VenueBookingWidget
+              venueId={embedConfig?.venueId || venueId || ''}
+              venueName={embedConfig?.venueName || 'Venue'}
+              venueAddress={embedConfig?.venueAddress}
+              timezone={embedConfig?.timezone || 'UTC'}
+              activities={activities.map((a: any) => ({
+                id: a.id,
+                name: a.name,
+                tagline: a.tagline || a.description?.substring(0, 100),
+                description: a.description,
+                duration: a.duration || 60,
+                price: a.price || 0,
+                childPrice: a.childPrice || a.child_price,
+                minPlayers: a.minPlayers || a.min_players || 2,
+                maxPlayers: a.maxPlayers || a.max_players || 8,
+                coverImage: a.coverImage || a.image || a.imageUrl || a.image_url,
+                category: a.category,
+                stripe: {
+                  priceId: a.stripe_price_id || a.stripePriceId,
+                  productId: a.stripe_product_id || a.stripeProductId,
+                },
+              }))}
+              primaryColor={primaryColor}
+              stripePublishableKey={embedConfig?.stripePublishableKey}
+            />
+          );
+        }
+        // Fallback to legacy CalendarWidget
         return <CalendarWidget {...widgetProps} />;
       case 'bookgo':
         return <BookGoWidget {...widgetProps} />;

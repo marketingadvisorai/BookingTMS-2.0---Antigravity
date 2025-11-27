@@ -1,8 +1,19 @@
 # Booking System Architecture
 
+> **Version**: 2.0 | **Updated**: Nov 27, 2025
+
 ## Overview
 
-This document describes the enterprise-grade booking system architecture designed for scalability, reliability, and real-time performance.
+Enterprise-grade booking system designed for scalability, reliability, and real-time performance. Features modular widget architecture with Edge caching.
+
+### Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **One Stripe Product per Activity** | No per-session products; session data passed via metadata |
+| **Edge Caching** | 5-min cache for activities, 2-min for venues |
+| **Real-time Subscriptions** | 500ms debounce for high-traffic widgets |
+| **Modular Components** | Files ≤250 lines; clear separation of concerns |
 
 ## Entity Relationship Diagram
 
@@ -110,44 +121,78 @@ Customer Selects Slot
 ## Widget Architecture
 
 ### Embed Types
-| Type | URL Pattern | Use Case |
-|------|-------------|----------|
-| Single Activity | `/embed?widget=singlegame&activityId={id}` | Dedicated activity page |
-| Venue Calendar | `/embed?widget=calendar&key={embed_key}` | All venue activities |
+
+| Type | URL Pattern | Component | Use Case |
+|------|-------------|-----------|----------|
+| Single Activity | `/embed?widget=singlegame&activityId={id}` | `CalendarSingleEventBookingPage` | Dedicated activity page |
+| Venue Calendar | `/embed?widget=calendar&key={embed_key}` | `VenueBookingWidget` | All venue activities |
+| Activity Preview | `/embed?widget=booking&activityId=preview` | `ActivityPreviewCard` | Admin preview |
+
+### Widget API (Edge Function)
+
+**Endpoint**: `/functions/v1/widget-api`
+
+| Query Param | Description |
+|-------------|-------------|
+| `activityId` | Single activity embed |
+| `embedKey` | Venue embed (all activities) |
+| `date` | YYYY-MM-DD for availability |
+| `color` | Hex color (without #) |
+| `theme` | `light` or `dark` |
+
+**Caching**:
+- Activity: `max-age=300` (5 min)
+- Venue: `max-age=120` (2 min)
+- Availability: No cache (real-time)
 
 ### Data Flow
+
 ```
 Widget Loads
     │
     ▼
 ┌───────────────────────┐
-│ useWidgetData Hook    │
-│ - Fetch venue         │
-│ - Fetch activities    │
-│ - Fetch sessions      │
-│ - Subscribe to changes│
+│ Widget API (Edge)     │◀─── CDN Cache (5 min)
+│ - Single query JOIN   │
+│ - Returns normalized  │
 └───────────┬───────────┘
             │
             ▼
 ┌───────────────────────┐
-│ useAvailability Hook  │
-│ - Filter by date      │
-│ - Generate time slots │
-│ - Mark booked slots   │
+│ WidgetApiClient       │
+│ - In-memory cache     │
+│ - TypeScript types    │
 └───────────┬───────────┘
             │
             ▼
 ┌───────────────────────┐
-│ Booking Component     │
-│ - Show available slots│
-│ - Handle selection    │
-│ - Process payment     │
+│ useWidgetRealtime     │
+│ - Supabase subscribe  │
+│ - 500ms debounce      │
+│ - Auto-refresh        │
+└───────────┬───────────┘
+            │
+            ▼
+┌───────────────────────┐
+│ Widget Component      │
+│ - Activity or Venue   │
+│ - BookingWizard       │
+│ - Stripe Checkout     │
 └───────────────────────┘
 ```
+
+### Frontend Service Files
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `/src/lib/widget/WidgetApiClient.ts` | ~240 | API client with caching |
+| `/src/lib/widget/useWidgetRealtime.ts` | ~200 | Real-time subscription hook |
+| `/src/components/widgets/VenueBookingWidget.tsx` | ~230 | Multi-activity venue widget |
 
 ### Real-Time Updates
 - **Activities Table**: Price/schedule changes
 - **Sessions Table**: Capacity changes from bookings
+- **Venues Table**: Theme/settings changes
 - **Debounce**: 500ms to prevent excessive updates
 
 ## Security
@@ -188,6 +233,43 @@ CREATE POLICY "Owner can manage sessions" ON activity_sessions
 - **Concurrent Bookings**: Row-level locking ensures consistency
 - **Read Replicas**: Supabase supports read replicas for scale
 
+## Stripe Integration
+
+### Product Strategy
+
+**One Product per Activity** - Session-specific data passed via metadata:
+
+```
+Activity: "Mystery Manor" 
+  └── Stripe Product: prod_xxx
+       └── Stripe Price: price_xxx ($30/person)
+            └── Checkout Session Metadata:
+                 - session_id: "uuid"
+                 - booking_date: "2025-01-15"
+                 - start_time: "14:00"
+                 - party_size: "4"
+```
+
+### Checkout Flow
+
+```
+Customer Selects Slot → Create Checkout Session → Stripe Hosted Checkout → Webhook → Create Booking
+```
+
+**Metadata passed to Stripe**:
+- `activity_id`, `venue_id`, `organization_id`
+- `session_id` (activity_sessions table row)
+- `booking_date`, `start_time`, `end_time`
+- `party_size`, `customer_name`, `customer_phone`
+
+### Edge Functions
+
+| Function | Purpose |
+|----------|---------|
+| `create-checkout-session` | Creates Stripe checkout with metadata |
+| `verify-checkout-session` | Verifies payment, creates booking |
+| `stripe-webhook` | Handles payment events |
+
 ## API Endpoints
 
 ### Session Management
@@ -198,6 +280,13 @@ CREATE POLICY "Owner can manage sessions" ON activity_sessions
 | `reserve_slot(session_id, party_size, email)` | Reserve slot for 10 minutes |
 | `confirm_reservation(reservation_id)` | Confirm after payment |
 | `release_expired_reservations()` | Release expired reservations |
+
+### Widget API
+| Endpoint | Description |
+|----------|-------------|
+| `GET /widget-api?activityId={id}` | Single activity config |
+| `GET /widget-api?embedKey={key}` | Venue config (all activities) |
+| `GET /widget-api?activityId={id}&date={date}` | With availability |
 
 ### Dashboard
 | Function | Description |

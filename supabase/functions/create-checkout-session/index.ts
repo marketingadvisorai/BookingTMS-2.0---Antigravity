@@ -1,3 +1,16 @@
+/**
+ * Create Checkout Session - Enterprise Booking Integration
+ * 
+ * Uses ONE Stripe price per activity, passes session-specific data via metadata.
+ * This avoids creating separate products for each time slot.
+ * 
+ * @metadata Session info stored in checkout.metadata and payment_intent.metadata:
+ * - booking_id, activity_id, venue_id, organization_id
+ * - session_id (activity_session DB row)
+ * - booking_date, start_time, end_time
+ * - party_size, customer_name, customer_phone
+ */
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 
@@ -7,7 +20,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -17,15 +29,22 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
+    const body = await req.json();
     const { 
       priceId,
       quantity = 1,
       customerEmail,
       customerName,
+      customerPhone,
       successUrl,
       cancelUrl,
-      metadata = {}
-    } = await req.json();
+      metadata = {},
+      // Session-specific booking data (passed via metadata, not separate products)
+      sessionId,
+      bookingDate,
+      startTime,
+      endTime,
+    } = body;
 
     if (!priceId) {
       throw new Error('Price ID is required');
@@ -35,7 +54,22 @@ serve(async (req) => {
       throw new Error('Success URL and Cancel URL are required');
     }
 
-    // Create Checkout Session
+    // Build comprehensive metadata for webhook processing
+    const bookingMetadata: Record<string, string> = {
+      ...metadata,
+      customer_name: customerName || '',
+      customer_phone: customerPhone || '',
+      party_size: String(quantity),
+      created_at: new Date().toISOString(),
+    };
+
+    // Add session-specific data if provided
+    if (sessionId) bookingMetadata.session_id = sessionId;
+    if (bookingDate) bookingMetadata.booking_date = bookingDate;
+    if (startTime) bookingMetadata.start_time = startTime;
+    if (endTime) bookingMetadata.end_time = endTime;
+
+    // Create Checkout Session with all metadata
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: [
@@ -47,19 +81,13 @@ serve(async (req) => {
       customer_email: customerEmail,
       success_url: successUrl,
       cancel_url: cancelUrl,
-      metadata: {
-        ...metadata,
-        customer_name: customerName || '',
-      },
+      expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 min expiry
+      metadata: bookingMetadata,
       payment_intent_data: {
-        metadata: {
-          ...metadata,
-        },
+        metadata: bookingMetadata,
+        description: `Booking: ${metadata.activity_name || 'Activity'} - ${bookingDate || 'Date TBD'} ${startTime || ''}`,
       },
-      // Enable additional payment methods
       payment_method_types: ['card'],
-      // Uncomment to enable more payment methods:
-      // payment_method_types: ['card', 'us_bank_account', 'cashapp', 'link'],
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
       phone_number_collection: {
@@ -67,7 +95,7 @@ serve(async (req) => {
       },
       custom_text: {
         submit: {
-          message: 'Complete your booking payment',
+          message: `Complete your booking for ${quantity} ${quantity > 1 ? 'people' : 'person'}`,
         },
       },
     });
@@ -77,6 +105,7 @@ serve(async (req) => {
         sessionId: session.id,
         url: session.url,
         clientSecret: session.client_secret,
+        expiresAt: session.expires_at,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

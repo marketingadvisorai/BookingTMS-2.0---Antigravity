@@ -41,6 +41,7 @@ interface EmbedProDashboardProps {
   organizationId: string;
   activities?: { id: string; name: string }[];
   venues?: { id: string; name: string }[];
+  isLoading?: boolean;
 }
 
 type ViewMode = 'grid' | 'list';
@@ -50,6 +51,7 @@ export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
   organizationId,
   activities = [],
   venues = [],
+  isLoading: externalLoading = false,
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -93,8 +95,8 @@ export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
     }
   };
 
-  // Loading state
-  if (loading && configs.length === 0) {
+  // Loading state (include external loading for activities/venues)
+  if ((loading || externalLoading) && configs.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -106,7 +108,7 @@ export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
   }
 
   // Welcome state when no embeds exist
-  if (!loading && configs.length === 0) {
+  if (!loading && !externalLoading && configs.length === 0) {
     return (
       <div className="space-y-8">
         {/* Header */}

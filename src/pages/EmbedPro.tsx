@@ -1,13 +1,14 @@
 /**
  * Embed Pro 1.1 - Page Component
  * @module pages/EmbedPro
+ * 
+ * Fetches activities and venues for the current/selected organization
+ * and passes them to the EmbedProDashboard component.
  */
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { EmbedProDashboard } from '../modules/embed-pro';
 import { useAuth } from '../lib/auth/AuthContext';
-import { useActivities } from '../hooks/useActivities';
-import { useVenues } from '../hooks/venue/useVenues';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { AlertTriangle, Loader2, Building2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -25,15 +26,30 @@ interface Organization {
   name: string;
 }
 
+interface SimpleActivity {
+  id: string;
+  name: string;
+}
+
+interface SimpleVenue {
+  id: string;
+  name: string;
+}
+
 const EmbedProPage: React.FC = () => {
   const { currentUser, isLoading: authLoading, isRole } = useAuth();
-  const { activities, loading: activitiesLoading } = useActivities();
-  const { venues, loading: venuesLoading } = useVenues();
   
-  // For system admins, allow selecting an organization
+  // Data states
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
+  const [activities, setActivities] = useState<SimpleActivity[]>([]);
+  const [venues, setVenues] = useState<SimpleVenue[]>([]);
+  
+  // Loading states
   const [orgsLoading, setOrgsLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
+  
+  // Selection state for system admins
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
 
   const isSystemAdmin = isRole('system-admin');
 
@@ -51,6 +67,7 @@ const EmbedProPage: React.FC = () => {
           const { data } = await supabase
             .from('organizations')
             .select('id, name')
+            .eq('status', 'active')
             .order('name');
           const orgData = (data as Organization[]) || [];
           setOrganizations(orgData);
@@ -66,21 +83,59 @@ const EmbedProPage: React.FC = () => {
       };
       fetchOrgs();
     }
-  }, [isSystemAdmin, selectedOrgId]);
+  }, [isSystemAdmin]);
 
-  // Prepare simplified lists for the dashboard
-  const activityList = useMemo(() => 
-    activities?.map(a => ({ id: a.id, name: a.name })) || [],
-    [activities]
-  );
+  // Fetch activities and venues for the selected organization
+  const fetchOrgData = useCallback(async (orgId: string) => {
+    setDataLoading(true);
+    try {
+      // Fetch activities for this organization
+      const { data: activityData, error: activityError } = await supabase
+        .from('activities')
+        .select('id, name')
+        .eq('organization_id', orgId)
+        .eq('is_active', true)
+        .order('name');
+      
+      if (activityError) {
+        console.error('Failed to fetch activities:', activityError);
+      } else {
+        setActivities(activityData || []);
+      }
 
-  const venueList = useMemo(() => 
-    venues?.map(v => ({ id: v.id, name: v.name })) || [],
-    [venues]
-  );
+      // Fetch venues for this organization
+      const { data: venueData, error: venueError } = await supabase
+        .from('venues')
+        .select('id, name')
+        .eq('organization_id', orgId)
+        .eq('status', 'active')
+        .order('name');
+      
+      if (venueError) {
+        console.error('Failed to fetch venues:', venueError);
+      } else {
+        setVenues(venueData || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch organization data:', error);
+    } finally {
+      setDataLoading(false);
+    }
+  }, []);
+
+  // Fetch data when organization changes
+  useEffect(() => {
+    if (organizationId) {
+      fetchOrgData(organizationId);
+    } else {
+      // Clear data if no organization
+      setActivities([]);
+      setVenues([]);
+    }
+  }, [organizationId, fetchOrgData]);
 
   // Loading state
-  if (authLoading || activitiesLoading || venuesLoading || orgsLoading) {
+  if (authLoading || orgsLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
@@ -156,8 +211,9 @@ const EmbedProPage: React.FC = () => {
       {organizationId && (
         <EmbedProDashboard
           organizationId={organizationId}
-          activities={activityList}
-          venues={venueList}
+          activities={activities}
+          venues={venues}
+          isLoading={dataLoading}
         />
       )}
     </div>

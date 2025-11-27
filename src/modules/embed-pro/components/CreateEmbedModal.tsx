@@ -105,9 +105,20 @@ export const CreateEmbedModal: React.FC<CreateEmbedModalProps> = ({
   };
 
   const canProceedFromType = !!formData.type;
-  const canProceedFromTarget = formData.target_type === 'venue' 
-    ? !!formData.target_id || venues.length === 0
-    : !!formData.target_id || activities.length === 0;
+  
+  // Require a target selection - can't proceed if no target is selected or no items to select from
+  const canProceedFromTarget = (() => {
+    if (formData.target_type === 'venue') {
+      return venues.length > 0 && !!formData.target_id;
+    } else if (formData.target_type === 'activity') {
+      return activities.length > 0 && !!formData.target_id;
+    } else if (formData.target_type === 'multi-activity') {
+      // Multi-activity doesn't require specific selection in this step
+      return activities.length > 0;
+    }
+    return false;
+  })();
+  
   const canSubmit = !!formData.name.trim();
 
   const stepIndicators = [
@@ -199,42 +210,58 @@ export const CreateEmbedModal: React.FC<CreateEmbedModalProps> = ({
               {formData.target_type === 'activity' && (
                 <div>
                   <Label>Select Activity</Label>
-                  <Select
-                    value={formData.target_id}
-                    onValueChange={(v) => setFormData(prev => ({ ...prev, target_id: v }))}
-                  >
-                    <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Choose an activity" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activities.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>
-                          {a.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {activities.length === 0 ? (
+                    <div className="mt-2 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                      <p className="text-sm text-amber-800 dark:text-amber-200">
+                        No activities found for this organization. Please create an activity first.
+                      </p>
+                    </div>
+                  ) : (
+                    <Select
+                      value={formData.target_id}
+                      onValueChange={(v) => setFormData(prev => ({ ...prev, target_id: v }))}
+                    >
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Choose an activity" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {activities.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               )}
 
               {formData.target_type === 'venue' && (
                 <div>
                   <Label>Select Venue</Label>
-                  <Select
-                    value={formData.target_id}
-                    onValueChange={(v) => setFormData(prev => ({ ...prev, target_id: v }))}
-                  >
-                    <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Choose a venue" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {venues.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>
-                          {v.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {venues.length === 0 ? (
+                    <div className="mt-2 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                      <p className="text-sm text-amber-800 dark:text-amber-200">
+                        No venues found for this organization. Please create a venue first.
+                      </p>
+                    </div>
+                  ) : (
+                    <Select
+                      value={formData.target_id}
+                      onValueChange={(v) => setFormData(prev => ({ ...prev, target_id: v }))}
+                    >
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Choose a venue" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {venues.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               )}
             </motion.div>

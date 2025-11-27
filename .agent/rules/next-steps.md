@@ -192,12 +192,19 @@
 
 ## Future Enhancements
 
-### Phase 2
+### Phase 2 ✅ COMPLETE
 - [x] Multi-language support (i18n) ✅ v0.1.38
 - [x] Waitlist for sold-out slots ✅ v0.1.39
-- [ ] Group booking with multiple activities
+- [x] Group booking with multiple activities ✅ v0.1.41
 - [x] Promo code / discount support ✅ v0.1.37
 - [x] Gift card redemption ✅ v0.1.40
+
+#### Group Booking System (v0.1.41)
+- **Types**: GroupBooking, GroupBookingCart, GroupBookingCartItem
+- **Service**: groupBookingService - cart management, validation
+- **Hook**: useGroupBooking - reducer-based state management
+- **Component**: WidgetGroupCart - cart UI with item management
+- **Features**: Multi-activity cart, totals, promo/gift integration
 
 #### Gift Card System (v0.1.40)
 - **Types**: GiftCard, GiftCardStatus, RedeemGiftCardRequest/Response

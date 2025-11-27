@@ -12,3 +12,4 @@ export * from './widget.types';
 export * from './promo.types';
 export * from './waitlist.types';
 export * from './giftcard.types';
+export * from './groupbooking.types';

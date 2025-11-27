@@ -1,11 +1,13 @@
 /**
- * BookingSidebar - Booking summary and party size selection
+ * BookingSidebar - Booking summary with adult/child pricing (USD)
+ * Supports multi-tier Stripe pricing for adults, children, and custom fields
  */
-import React, { useState } from 'react';
-import { ShoppingCart, Users, Clock, Tag, CreditCard, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ShoppingCart, Users, Clock, Tag, CreditCard, Minus, Plus, Trash2, Baby, User } from 'lucide-react';
 import { Button } from '../../../ui/button';
 import { Card } from '../../../ui/card';
 import { Separator } from '../../../ui/separator';
+import { Label } from '../../../ui/label';
 import { PromoCodeInput } from '../../PromoCodeInput';
 import { GiftCardInput } from '../../GiftCardInput';
 import { BookingSidebarProps } from './types';
@@ -14,8 +16,8 @@ export function BookingSidebar({
   gameData,
   selectedDate,
   selectedTime,
-  partySize,
-  onPartySizeChange,
+  participants,
+  onParticipantsChange,
   onContinue,
   primaryColor,
   currentDate,
@@ -24,10 +26,16 @@ export function BookingSidebar({
   onApplyPromoCode,
   onApplyGiftCard,
   onRemovePromoCode,
-  onRemoveGiftCard
+  onRemoveGiftCard,
+  stripePrices
 }: BookingSidebarProps) {
   const [showPromoInput, setShowPromoInput] = useState(false);
   const [showGiftCardInput, setShowGiftCardInput] = useState(false);
+
+  // Get prices from stripePrices or fallback to gameData
+  const adultPrice = stripePrices?.adult?.amount || gameData.price || 0;
+  const childPrice = stripePrices?.child?.amount || (gameData as any).childPrice || adultPrice;
+  const hasChildPricing = childPrice !== adultPrice && childPrice > 0;
 
   // Format selected date
   const formattedDate = selectedDate 
@@ -47,17 +55,36 @@ export function BookingSidebar({
     });
   };
 
-  // Calculate pricing
-  const basePrice = gameData.price * partySize;
-  const promoDiscount = appliedPromoCode
-    ? appliedPromoCode.type === 'percentage'
-      ? (basePrice * appliedPromoCode.discount) / 100
-      : appliedPromoCode.discount
-    : 0;
-  const giftCardAmount = appliedGiftCard?.amount || 0;
-  const totalPrice = Math.max(0, basePrice - promoDiscount - giftCardAmount);
+  // Calculate pricing breakdown
+  const pricing = useMemo(() => {
+    const adultTotal = adultPrice * participants.adults;
+    const childTotal = childPrice * participants.children;
+    const subtotal = adultTotal + childTotal;
+    
+    const promoDiscount = appliedPromoCode
+      ? appliedPromoCode.type === 'percentage'
+        ? (subtotal * appliedPromoCode.discount) / 100
+        : appliedPromoCode.discount
+      : 0;
+    const giftCardAmount = appliedGiftCard?.amount || 0;
+    const total = Math.max(0, subtotal - promoDiscount - giftCardAmount);
 
-  const canContinue = selectedDate && selectedTime && partySize > 0;
+    return { adultTotal, childTotal, subtotal, promoDiscount, giftCardAmount, total };
+  }, [adultPrice, childPrice, participants, appliedPromoCode, appliedGiftCard]);
+
+  const totalParticipants = participants.adults + participants.children;
+  const canContinue = selectedDate && selectedTime && totalParticipants > 0;
+
+  // Participant change handlers
+  const updateAdults = (delta: number) => {
+    const newCount = Math.max(0, participants.adults + delta);
+    onParticipantsChange({ ...participants, adults: newCount });
+  };
+
+  const updateChildren = (delta: number) => {
+    const newCount = Math.max(0, participants.children + delta);
+    onParticipantsChange({ ...participants, children: newCount });
+  };
 
   return (
     <div className="lg:sticky lg:top-4">
@@ -98,36 +125,82 @@ export function BookingSidebar({
             </div>
           )}
 
-          {/* Party Size */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">
-              Number of Players
-            </label>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => partySize > 1 && onPartySizeChange(partySize - 1)}
-                disabled={partySize <= 1}
-                className="h-10 w-10 rounded-full"
-              >
-                <ChevronDown className="w-4 h-4" />
-              </Button>
-              <div className="flex-1 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <Users className="w-5 h-5" style={{ color: primaryColor }} />
-                  <span className="text-2xl font-bold text-gray-900">{partySize}</span>
+          {/* Participants Selection */}
+          <div className="space-y-4">
+            <Label className="text-sm font-medium text-gray-700">Participants</Label>
+            
+            {/* Adults */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                  <User className="w-5 h-5 text-blue-600" />
                 </div>
-                <span className="text-xs text-gray-500">players</span>
+                <div>
+                  <p className="font-medium text-gray-900">Adults</p>
+                  <p className="text-sm text-gray-500">${adultPrice.toFixed(2)} each</p>
+                </div>
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => onPartySizeChange(partySize + 1)}
-                className="h-10 w-10 rounded-full"
-              >
-                <ChevronUp className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => updateAdults(-1)}
+                  disabled={participants.adults <= 0}
+                  className="h-8 w-8 rounded-full"
+                >
+                  <Minus className="w-4 h-4" />
+                </Button>
+                <span className="w-8 text-center font-semibold text-lg">{participants.adults}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => updateAdults(1)}
+                  className="h-8 w-8 rounded-full"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Children (only show if child pricing exists) */}
+            {hasChildPricing && (
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                    <Baby className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">Children</p>
+                    <p className="text-sm text-gray-500">${childPrice.toFixed(2)} each</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => updateChildren(-1)}
+                    disabled={participants.children <= 0}
+                    className="h-8 w-8 rounded-full"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                  <span className="w-8 text-center font-semibold text-lg">{participants.children}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => updateChildren(1)}
+                    className="h-8 w-8 rounded-full"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Total Participants */}
+            <div className="flex items-center justify-center gap-2 py-2">
+              <Users className="w-5 h-5" style={{ color: primaryColor }} />
+              <span className="text-lg font-semibold">{totalParticipants} participant{totalParticipants !== 1 ? 's' : ''}</span>
             </div>
           </div>
 
@@ -135,10 +208,18 @@ export function BookingSidebar({
 
           {/* Pricing Breakdown */}
           <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">${gameData.price} × {partySize} players</span>
-              <span className="text-gray-900">${basePrice.toFixed(2)}</span>
-            </div>
+            {participants.adults > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Adults × {participants.adults}</span>
+                <span className="text-gray-900">${pricing.adultTotal.toFixed(2)}</span>
+              </div>
+            )}
+            {hasChildPricing && participants.children > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Children × {participants.children}</span>
+                <span className="text-gray-900">${pricing.childTotal.toFixed(2)}</span>
+              </div>
+            )}
             
             {appliedPromoCode && (
               <div className="flex justify-between text-sm text-green-600">
@@ -149,7 +230,7 @@ export function BookingSidebar({
                     <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
-                <span>-${promoDiscount.toFixed(2)}</span>
+                <span>-${pricing.promoDiscount.toFixed(2)}</span>
               </div>
             )}
             
@@ -162,7 +243,7 @@ export function BookingSidebar({
                     <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
-                <span>-${giftCardAmount.toFixed(2)}</span>
+                <span>-${pricing.giftCardAmount.toFixed(2)}</span>
               </div>
             )}
           </div>
@@ -173,7 +254,7 @@ export function BookingSidebar({
           <div className="flex justify-between items-center">
             <span className="text-lg font-semibold text-gray-900">Total</span>
             <span className="text-2xl font-bold" style={{ color: primaryColor }}>
-              ${totalPrice.toFixed(2)}
+              ${pricing.total.toFixed(2)}
             </span>
           </div>
 

@@ -3,13 +3,13 @@
  * Centralizes all booking page state and actions
  */
 import { useState, useCallback, useRef } from 'react';
-import { BookingStep, CustomerData, PromoCode, GiftCard } from './types';
+import { BookingStep, CustomerData, PromoCode, GiftCard, ParticipantCounts } from './types';
 
 interface BookingPageState {
   currentStep: BookingStep;
   selectedDate: number;
   selectedTime: string | null;
-  partySize: number;
+  participants: ParticipantCounts;
   customerData: CustomerData;
   appliedPromoCode: PromoCode | null;
   appliedGiftCard: GiftCard | null;
@@ -18,6 +18,12 @@ interface BookingPageState {
   showGameDetails: boolean;
   showVideoModal: boolean;
 }
+
+const initialParticipants: ParticipantCounts = {
+  adults: 2,
+  children: 0,
+  custom: {}
+};
 
 const initialCustomerData: CustomerData = {
   name: '',
@@ -36,7 +42,7 @@ export function useBookingPageState(initialDate?: number) {
     currentStep: 'booking',
     selectedDate: initialDate || today.getDate(),
     selectedTime: null,
-    partySize: 4,
+    participants: initialParticipants,
     customerData: initialCustomerData,
     appliedPromoCode: null,
     appliedGiftCard: null,
@@ -77,8 +83,8 @@ export function useBookingPageState(initialDate?: number) {
     }, 400);
   }, []);
 
-  const setPartySize = useCallback((size: number) => {
-    setState(prev => ({ ...prev, partySize: Math.max(1, size) }));
+  const setParticipants = useCallback((participants: ParticipantCounts) => {
+    setState(prev => ({ ...prev, participants }));
   }, []);
 
   const setCurrentStep = useCallback((step: BookingStep) => {
@@ -133,7 +139,7 @@ export function useBookingPageState(initialDate?: number) {
       currentStep: 'booking',
       selectedDate: today.getDate(),
       selectedTime: null,
-      partySize: 4,
+      participants: initialParticipants,
       customerData: initialCustomerData,
       appliedPromoCode: null,
       appliedGiftCard: null,
@@ -158,7 +164,7 @@ export function useBookingPageState(initialDate?: number) {
     // Actions
     setSelectedDate,
     setSelectedTime,
-    setPartySize,
+    setParticipants,
     setCurrentStep,
     updateCustomerData,
     applyPromoCode,

@@ -73,11 +73,42 @@ export interface GiftCard {
 
 export type BookingStep = 'booking' | 'cart' | 'checkout' | 'success';
 
+export interface ParticipantCounts {
+  adults: number;
+  children: number;
+  custom: Record<string, number>;
+}
+
+export interface StripePrices {
+  adult?: {
+    price_id: string;
+    lookup_key: string;
+    amount: number;
+    currency: string;
+  } | null;
+  child?: {
+    price_id: string;
+    lookup_key: string;
+    amount: number;
+    currency: string;
+  } | null;
+  custom?: Array<{
+    id: string;
+    name: string;
+    price_id: string;
+    lookup_key: string;
+    amount: number;
+    min: number;
+    max: number;
+    currency: string;
+  }>;
+}
+
 export interface BookingPageState {
   currentStep: BookingStep;
   selectedDate: number;
   selectedTime: string | null;
-  partySize: number;
+  participants: ParticipantCounts;
   customerData: CustomerData;
   appliedPromoCode: PromoCode | null;
   appliedGiftCard: GiftCard | null;
@@ -128,8 +159,8 @@ export interface BookingSidebarProps {
   gameData: GameData;
   selectedDate: number;
   selectedTime: string | null;
-  partySize: number;
-  onPartySizeChange: (size: number) => void;
+  participants: ParticipantCounts;
+  onParticipantsChange: (participants: ParticipantCounts) => void;
   onContinue: () => void;
   primaryColor: string;
   currentDate: Date;
@@ -139,13 +170,14 @@ export interface BookingSidebarProps {
   onApplyGiftCard: (card: GiftCard) => void;
   onRemovePromoCode: () => void;
   onRemoveGiftCard: () => void;
+  stripePrices?: StripePrices;
 }
 
 export interface BookingCheckoutProps {
   gameData: GameData;
   selectedDate: number;
   selectedTime: string;
-  partySize: number;
+  participants: ParticipantCounts;
   customerData: CustomerData;
   onCustomerDataChange: (data: Partial<CustomerData>) => void;
   onSubmit: () => Promise<void>;
@@ -154,6 +186,7 @@ export interface BookingCheckoutProps {
   isSubmitting: boolean;
   currentDate: Date;
   totalAmount: number;
+  stripePrices?: StripePrices;
 }
 
 export interface BookingSuccessProps {
@@ -161,7 +194,7 @@ export interface BookingSuccessProps {
   gameData: GameData;
   selectedDate: number;
   selectedTime: string;
-  partySize: number;
+  participants: ParticipantCounts;
   customerData: CustomerData;
   primaryColor: string;
   currentDate: Date;

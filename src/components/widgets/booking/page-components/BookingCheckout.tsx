@@ -14,7 +14,7 @@ export function BookingCheckout({
   gameData,
   selectedDate,
   selectedTime,
-  partySize,
+  participants,
   customerData,
   onCustomerDataChange,
   onSubmit,
@@ -22,8 +22,14 @@ export function BookingCheckout({
   primaryColor,
   isSubmitting,
   currentDate,
-  totalAmount
+  totalAmount,
+  stripePrices
 }: BookingCheckoutProps) {
+  // Get prices
+  const adultPrice = stripePrices?.adult?.amount || gameData.price || 0;
+  const childPrice = stripePrices?.child?.amount || (gameData as any).childPrice || adultPrice;
+  const hasChildPricing = childPrice !== adultPrice && childPrice > 0;
+  const totalParticipants = participants.adults + participants.children;
   // Format selected date
   const formattedDate = new Date(
     currentDate.getFullYear(),
@@ -172,9 +178,21 @@ export function BookingCheckout({
               <Separator />
 
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">${gameData.price} × {partySize} players</span>
-                  <span className="text-gray-900">${(gameData.price * partySize).toFixed(2)}</span>
+                {participants.adults > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Adults × {participants.adults}</span>
+                    <span className="text-gray-900">${(adultPrice * participants.adults).toFixed(2)}</span>
+                  </div>
+                )}
+                {hasChildPricing && participants.children > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Children × {participants.children}</span>
+                    <span className="text-gray-900">${(childPrice * participants.children).toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-gray-500">
+                  <span>Total participants</span>
+                  <span>{totalParticipants}</span>
                 </div>
               </div>
 

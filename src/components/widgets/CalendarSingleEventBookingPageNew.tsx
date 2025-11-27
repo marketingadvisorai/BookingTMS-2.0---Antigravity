@@ -119,7 +119,7 @@ export function CalendarSingleEventBookingPageNew({
     currentStep,
     selectedDate,
     selectedTime,
-    partySize,
+    participants,
     customerData,
     appliedPromoCode,
     appliedGiftCard,
@@ -133,7 +133,7 @@ export function CalendarSingleEventBookingPageNew({
     continueButtonRef,
     setSelectedDate,
     setSelectedTime,
-    setPartySize,
+    setParticipants,
     setCurrentStep,
     updateCustomerData,
     applyPromoCode,
@@ -158,17 +158,26 @@ export function CalendarSingleEventBookingPageNew({
     currentYear: currentDate.getFullYear()
   });
 
+  // Get Stripe prices from activity data
+  const stripePrices = useMemo(() => selectedGame?.stripePrices || selectedGame?.stripe_prices, [selectedGame]);
+  
+  // Get prices for adults and children
+  const adultPrice = stripePrices?.adult?.amount || gameData.price || 0;
+  const childPrice = stripePrices?.child?.amount || (gameData as any).childPrice || adultPrice;
+  
   // Calculate total amount
   const totalAmount = useMemo(() => {
-    const basePrice = gameData.price * partySize;
+    const adultTotal = adultPrice * participants.adults;
+    const childTotal = childPrice * participants.children;
+    const subtotal = adultTotal + childTotal;
     const promoDiscount = appliedPromoCode
       ? appliedPromoCode.type === 'percentage'
-        ? (basePrice * appliedPromoCode.discount) / 100
+        ? (subtotal * appliedPromoCode.discount) / 100
         : appliedPromoCode.discount
       : 0;
     const giftCardAmount = appliedGiftCard?.amount || 0;
-    return Math.max(0, basePrice - promoDiscount - giftCardAmount);
-  }, [gameData.price, partySize, appliedPromoCode, appliedGiftCard]);
+    return Math.max(0, subtotal - promoDiscount - giftCardAmount);
+  }, [adultPrice, childPrice, participants, appliedPromoCode, appliedGiftCard]);
 
   // Handle checkout submission
   const handleCheckoutSubmit = useCallback(async () => {
@@ -187,10 +196,8 @@ export function CalendarSingleEventBookingPageNew({
     try {
       const sessionDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDate).toISOString();
       
-      // Create Stripe checkout session
-      const result = await CheckoutService.createCheckoutSession({
-        priceId,
-        quantity: partySize,
+      // Build checkout params with multi-tier pricing
+      const checkoutParams: any = {
         customerEmail: customerData.email,
         customerName: customerData.name,
         successUrl: `${window.location.origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -200,9 +207,29 @@ export function CalendarSingleEventBookingPageNew({
           sessionDate,
           sessionTime: selectedTime,
           customerPhone: customerData.phone,
-          partySize: String(partySize)
+          adult_count: String(participants.adults),
+          child_count: String(participants.children),
+          total_participants: String(participants.adults + participants.children)
         }
-      });
+      };
+
+      // Use multi-tier pricing if available
+      if (stripePrices?.adult?.price_id && participants.adults > 0) {
+        checkoutParams.adultPriceId = stripePrices.adult.price_id;
+        checkoutParams.adultQuantity = participants.adults;
+      }
+      if (stripePrices?.child?.price_id && participants.children > 0) {
+        checkoutParams.childPriceId = stripePrices.child.price_id;
+        checkoutParams.childQuantity = participants.children;
+      }
+      // Fallback to single price if no multi-tier
+      if (!checkoutParams.adultPriceId) {
+        checkoutParams.priceId = priceId;
+        checkoutParams.quantity = participants.adults + participants.children;
+      }
+
+      // Create Stripe checkout session
+      const result = await CheckoutService.createCheckoutSession(checkoutParams);
 
       if (result.url) {
         window.location.href = result.url;
@@ -217,7 +244,7 @@ export function CalendarSingleEventBookingPageNew({
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedTime, selectedDate, selectedGame, activityId, partySize, customerData, currentDate]);
+  }, [selectedTime, selectedDate, selectedGame, activityId, participants, customerData, currentDate, stripePrices]);
 
   // Render based on current step
   return (
@@ -294,8 +321,8 @@ export function CalendarSingleEventBookingPageNew({
                   gameData={gameData}
                   selectedDate={selectedDate}
                   selectedTime={selectedTime}
-                  partySize={partySize}
-                  onPartySizeChange={setPartySize}
+                  participants={participants}
+                  onParticipantsChange={setParticipants}
                   onContinue={() => setCurrentStep('checkout')}
                   primaryColor={primaryColor}
                   currentDate={currentDate}
@@ -305,6 +332,7 @@ export function CalendarSingleEventBookingPageNew({
                   onApplyGiftCard={applyGiftCard}
                   onRemovePromoCode={removePromoCode}
                   onRemoveGiftCard={removeGiftCard}
+                  stripePrices={stripePrices}
                 />
               </div>
             </div>
@@ -317,7 +345,7 @@ export function CalendarSingleEventBookingPageNew({
           gameData={gameData}
           selectedDate={selectedDate}
           selectedTime={selectedTime}
-          partySize={partySize}
+          participants={participants}
           customerData={customerData}
           onCustomerDataChange={updateCustomerData}
           onSubmit={handleCheckoutSubmit}
@@ -326,6 +354,7 @@ export function CalendarSingleEventBookingPageNew({
           isSubmitting={isSubmitting}
           currentDate={currentDate}
           totalAmount={totalAmount}
+          stripePrices={stripePrices}
         />
       )}
 
@@ -335,7 +364,7 @@ export function CalendarSingleEventBookingPageNew({
           gameData={gameData}
           selectedDate={selectedDate}
           selectedTime={selectedTime}
-          partySize={partySize}
+          participants={participants}
           customerData={customerData}
           primaryColor={primaryColor}
           currentDate={currentDate}

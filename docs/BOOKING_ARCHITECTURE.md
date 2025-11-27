@@ -1,19 +1,21 @@
 # Booking System Architecture
 
-> **Version**: 2.0 | **Updated**: Nov 27, 2025
+> **Version**: 2.1 | **Updated**: Nov 27, 2025
 
 ## Overview
 
-Enterprise-grade booking system designed for scalability, reliability, and real-time performance. Features modular widget architecture with Edge caching.
+Enterprise-grade booking system designed for scalability, reliability, and real-time performance. Features modular widget architecture with Edge caching and multi-tier Stripe pricing.
 
 ### Key Design Decisions
 
 | Decision | Rationale |
 |----------|-----------|
-| **One Stripe Product per Activity** | No per-session products; session data passed via metadata |
+| **One Stripe Product per Activity** | Multiple prices (adult, child, custom) under one product |
+| **Multi-Tier Pricing** | Adult + Child + Custom prices with lookup keys |
 | **Edge Caching** | 5-min cache for activities, 2-min for venues |
 | **Real-time Subscriptions** | 500ms debounce for high-traffic widgets |
 | **Modular Components** | Files ≤250 lines; clear separation of concerns |
+| **Schedule in Settings JSONB** | Single source of truth in `activities.settings` |
 
 ## Entity Relationship Diagram
 
@@ -306,3 +308,246 @@ Customer Selects Slot → Create Checkout Session → Stripe Hosted Checkout →
 - **Supabase Dashboard**: Query performance, RLS hits
 - **Edge Function Logs**: Payment errors, booking failures
 - **Alerts**: Configure alerts for failed bookings
+
+---
+
+## Step 5 Schedule → Widget Sync Architecture
+
+### Data Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        ADMIN WIZARD (Step 5)                            │
+│  Step5Schedule.tsx → updateActivityData() → activityData state         │
+└────────────────────────────────┬────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    AddServiceItemWizard.tsx                             │
+│  activityData → handleSubmit() → onComplete(data)                       │
+└────────────────────────────────┬────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        Events.tsx                                        │
+│  handleAddComplete() → useServiceItems.createServiceItem()              │
+│                                                                          │
+│  Maps to settings JSONB:                                                │
+│  - operatingDays, startTime, endTime, slotInterval                      │
+│  - advanceBooking, customHours, customDates, blockedDates               │
+└────────────────────────────────┬────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    ActivityService.createActivity()                      │
+│                                                                          │
+│  1. Save to activities table (settings JSONB)                           │
+│  2. Call StripeIntegrationService.syncNewActivity()                     │
+│  3. Call SessionService.generateSessions(id, 90)                        │
+└────────────────────────────────┬────────────────────────────────────────┘
+                                 │
+          ┌──────────────────────┼──────────────────────┐
+          ▼                      ▼                      ▼
+┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│   activities     │  │ activity_sessions│  │     Stripe       │
+│   table          │  │     table        │  │   (Product +     │
+│                  │  │                  │  │    Prices)       │
+│ settings JSONB:  │  │ Generated from   │  │                  │
+│ - operatingDays  │  │ schedule:        │  │ - productId      │
+│ - startTime      │  │ - date           │  │ - adultPriceId   │
+│ - endTime        │  │ - start_time     │  │ - childPriceId   │
+│ - slotInterval   │  │ - end_time       │  │ - customPrices[] │
+│ - blockedDates   │  │ - capacity       │  │                  │
+│ - customHours    │  │ - status         │  │ Prices in USD    │
+└────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘
+         │                     │                     │
+         └─────────────────────┼─────────────────────┘
+                               │
+                               ▼ Real-time subscription
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        WIDGET (Customer-facing)                          │
+│                                                                          │
+│  Embed.tsx → SupabaseBookingService.getActivityWidgetConfig()           │
+│            → normalizeActivityForWidget()                                │
+│                                                                          │
+│  Extracts from settings:                                                │
+│  - schedule.operatingDays → Calendar shows green/red dates              │
+│  - schedule.blockedDates → Red blocked dates                            │
+│  - schedule.customHours → Blue dot indicator                            │
+│  - stripePrices → Adult/Child/Custom pricing for checkout               │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Settings JSONB Structure
+
+```typescript
+// activities.settings JSONB
+{
+  // Schedule (Step 5)
+  operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+  startTime: '09:00',
+  endTime: '21:00',
+  slotInterval: 60,  // minutes
+  advanceBooking: 30, // days
+  customHoursEnabled: false,
+  customHours: {
+    'Saturday': { enabled: true, startTime: '10:00', endTime: '18:00' }
+  },
+  customDates: [
+    { id: '1', date: '2025-12-25', startTime: '12:00', endTime: '17:00' }
+  ],
+  blockedDates: [
+    { id: '1', date: '2025-12-31', reason: 'New Year Eve' }
+  ],
+  
+  // Other settings
+  child_price: 25,
+  min_age: 8,
+  requiresWaiver: true,
+  // ...
+}
+```
+
+---
+
+## Stripe Multi-Tier Pricing Architecture
+
+### Price Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        STRIPE PRODUCT                                    │
+│                    (One per Activity)                                    │
+│                                                                          │
+│  product_id: prod_xxx                                                   │
+│  name: "Escape Room Experience"                                         │
+│  metadata: { activity_id, venue_id, organization_id }                   │
+└────────────────────────────────┬────────────────────────────────────────┘
+                                 │
+         ┌───────────────────────┼───────────────────────┐
+         ▼                       ▼                       ▼
+┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│   ADULT PRICE    │  │   CHILD PRICE    │  │  CUSTOM PRICE    │
+│                  │  │                  │  │                  │
+│ price_id: price_a│  │ price_id: price_c│  │ price_id: price_v│
+│ lookup_key:      │  │ lookup_key:      │  │ lookup_key:      │
+│   activity_{id}_ │  │   activity_{id}_ │  │   activity_{id}_ │
+│   adult          │  │   child          │  │   custom_{name}  │
+│ amount: $35.00   │  │ amount: $25.00   │  │ amount: $50.00   │
+│ currency: usd    │  │ currency: usd    │  │ currency: usd    │
+│                  │  │                  │  │                  │
+│ metadata:        │  │ metadata:        │  │ metadata:        │
+│   tier_type:adult│  │   tier_type:child│  │   tier_type:custom│
+│   display_name:  │  │   display_name:  │  │   display_name:  │
+│     Adult        │  │     Child        │  │     VIP Pass     │
+└──────────────────┘  └──────────────────┘  └──────────────────┘
+```
+
+### Checkout Flow with Multi-Tier Pricing
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        BOOKING WIDGET                                    │
+│                                                                          │
+│  BookingSidebar.tsx                                                      │
+│  ├── Adults: 2 × $35.00 = $70.00                                        │
+│  ├── Children: 1 × $25.00 = $25.00                                      │
+│  └── Total: $95.00                                                      │
+└────────────────────────────────┬────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    CheckoutService.createCheckoutSession()               │
+│                                                                          │
+│  params: {                                                              │
+│    adultPriceId: 'price_xxx_adult',                                     │
+│    adultQuantity: 2,                                                    │
+│    childPriceId: 'price_xxx_child',                                     │
+│    childQuantity: 1,                                                    │
+│    customerEmail: 'user@example.com',                                   │
+│    successUrl: '/booking/success',                                      │
+│    cancelUrl: '/booking/cancel',                                        │
+│    metadata: { session_id, booking_date, start_time }                   │
+│  }                                                                       │
+└────────────────────────────────┬────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│              Edge Function: create-checkout-session                      │
+│                                                                          │
+│  Builds line_items:                                                     │
+│  [                                                                       │
+│    { price: 'price_xxx_adult', quantity: 2 },                           │
+│    { price: 'price_xxx_child', quantity: 1 }                            │
+│  ]                                                                       │
+│                                                                          │
+│  Creates Stripe Checkout Session with:                                  │
+│  - line_items (multi-tier)                                              │
+│  - mode: 'payment'                                                      │
+│  - success_url, cancel_url                                              │
+│  - metadata (for webhook processing)                                    │
+└────────────────────────────────┬────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    STRIPE CHECKOUT PAGE                                  │
+│                                                                          │
+│  Order Summary:                                                         │
+│  ├── Adult × 2                          $70.00                          │
+│  ├── Child × 1                          $25.00                          │
+│  └── Total                              $95.00                          │
+│                                                                          │
+│  [Pay $95.00]                                                           │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Webhook Processing
+
+```
+checkout.session.completed
+        │
+        ▼
+Edge Function: verify-checkout-session
+        │
+        ├── Extract metadata (session_id, booking_date, party_size)
+        │
+        ├── Create booking in database
+        │
+        ├── Update session capacity_remaining
+        │
+        └── Send confirmation email
+```
+
+---
+
+## Real-Time Sync
+
+### Subscribed Tables
+
+| Table | Events | Purpose |
+|-------|--------|---------|
+| `activities` | INSERT, UPDATE, DELETE | Schedule changes |
+| `activity_sessions` | INSERT, UPDATE, DELETE | Capacity changes |
+| `venues` | UPDATE | Theme/config changes |
+| `bookings` | INSERT, UPDATE | Capacity updates |
+
+### Debounce Strategy
+
+```typescript
+// Embed.tsx
+const DEBOUNCE_MS = 500;
+let debounceTimer: NodeJS.Timeout;
+
+const debouncedRefresh = () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    fetchWidgetConfig();
+  }, DEBOUNCE_MS);
+};
+
+// Subscribe to changes
+supabase.channel('widget-updates')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, debouncedRefresh)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_sessions' }, debouncedRefresh)
+  .subscribe();
+```

@@ -13,12 +13,13 @@ export function BookingSuccess({
   gameData,
   selectedDate,
   selectedTime,
-  partySize,
+  participants,
   customerData,
   primaryColor,
   currentDate,
   onBookAnother
 }: BookingSuccessProps) {
+  const totalParticipants = participants.adults + participants.children;
   // Format selected date
   const formattedDate = new Date(
     currentDate.getFullYear(),
@@ -95,7 +96,10 @@ export function BookingSuccess({
               <Users className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-500">Party Size</p>
-                <p className="font-medium text-gray-900">{partySize} players</p>
+                <p className="font-medium text-gray-900">
+                  {participants.adults} adult{participants.adults !== 1 ? 's' : ''}
+                  {participants.children > 0 && `, ${participants.children} child${participants.children !== 1 ? 'ren' : ''}`}
+                </p>
               </div>
             </div>
 

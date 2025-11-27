@@ -331,6 +331,86 @@ class EmbedProDataService {
       timezone: config?.timezone || 'UTC',
     };
   }
+
+  // =====================================================
+  // AVAILABILITY METHODS
+  // =====================================================
+
+  /**
+   * Get available time slots from activity_sessions for a specific date
+   */
+  async getAvailableSlots(
+    activityId: string,
+    date: Date,
+    partySize: number = 1
+  ): Promise<{
+    time: string;
+    sessionId: string;
+    available: boolean;
+    spotsRemaining: number;
+    price: number;
+  }[]> {
+    // Format date for query (YYYY-MM-DD)
+    const dateStr = date.toISOString().split('T')[0];
+    const startOfDay = `${dateStr}T00:00:00`;
+    const endOfDay = `${dateStr}T23:59:59`;
+
+    const { data, error } = await (supabase
+      .from('activity_sessions') as any)
+      .select('id, start_time, capacity_remaining, price_at_generation')
+      .eq('activity_id', activityId)
+      .gte('start_time', startOfDay)
+      .lte('start_time', endOfDay)
+      .order('start_time', { ascending: true });
+
+    if (error) {
+      console.error('[EmbedProData] Error fetching sessions:', error);
+      return [];
+    }
+
+    // Transform to time slots
+    return (data || []).map((session: any) => {
+      const startTime = new Date(session.start_time);
+      const time = startTime.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+
+      return {
+        time,
+        sessionId: session.id,
+        available: session.capacity_remaining >= partySize,
+        spotsRemaining: session.capacity_remaining || 0,
+        price: session.price_at_generation || 0,
+      };
+    });
+  }
+
+  /**
+   * Check if a specific session is still available for booking
+   */
+  async checkSessionAvailability(
+    sessionId: string,
+    partySize: number
+  ): Promise<{ available: boolean; spotsRemaining: number; message?: string }> {
+    const { data, error } = await (supabase
+      .from('activity_sessions') as any)
+      .select('capacity_remaining')
+      .eq('id', sessionId)
+      .single();
+
+    if (error || !data) {
+      return { available: false, spotsRemaining: 0, message: 'Session not found' };
+    }
+
+    const available = (data as any).capacity_remaining >= partySize;
+    return {
+      available,
+      spotsRemaining: (data as any).capacity_remaining,
+      message: available ? undefined : `Only ${(data as any).capacity_remaining} spots remaining`,
+    };
+  }
 }
 
 // Export singleton instance

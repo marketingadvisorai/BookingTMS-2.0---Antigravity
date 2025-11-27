@@ -29,19 +29,21 @@
 
 ---
 
-## Priority 2: Real Availability Check
+## Priority 2: Real Availability Check (In Progress)
 
 ### Tasks
-- [ ] Query `activity_sessions` for actual available slots
-- [ ] Check `booked_count` vs `capacity` for each session
-- [ ] Update `WidgetTimeSlots` to show real availability
-- [ ] Add `check_availability` database function
-- [ ] Block booking if slot becomes unavailable
+- [x] Query `activity_sessions` for actual available slots (`getAvailableSlots` method)
+- [x] Check `capacity_remaining` vs `partySize` for each session
+- [ ] Update `WidgetTimeSlots` to show real availability (integrate with hook)
+- [x] Add `checkSessionAvailability` method for pre-booking validation
+- [ ] Block booking if slot becomes unavailable (frontend validation)
 
-### Files to Modify
-- `src/modules/embed-pro/services/embedProData.service.ts`
-- `src/modules/embed-pro/widget-components/WidgetTimeSlots.tsx`
-- `supabase/functions/check-availability/index.ts`
+### Completed Files
+- `src/modules/embed-pro/services/embedProData.service.ts` - Added `getAvailableSlots()` and `checkSessionAvailability()` methods
+
+### Files to Update Next
+- `src/modules/embed-pro/widget-components/WidgetTimeSlots.tsx` - Use real availability data
+- `src/modules/embed-pro/hooks/useBookingFlow.ts` - Add availability check before checkout
 
 ---
 

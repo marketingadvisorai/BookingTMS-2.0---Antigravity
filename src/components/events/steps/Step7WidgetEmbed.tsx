@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { Textarea } from '../../ui/textarea';
 import { Copy, Check, ExternalLink, Code, Calendar, Eye, Globe } from 'lucide-react';
 import { StepProps, EmbedContext } from '../types';
-import { ActivityPreviewCard } from '../../widgets/ActivityPreviewCard';
+import { SimpleActivityPreview } from '../../widgets/SimpleActivityPreview';
 import { Badge } from '../../ui/badge';
 
 export default function Step7WidgetEmbed({ activityData, updateActivityData, t }: StepProps) {
@@ -159,32 +159,16 @@ export default function Step7WidgetEmbed({ activityData, updateActivityData, t }
                                         {generatePreviewUrl()}
                                     </div>
                                 </div>
-                                <div className="h-[600px] overflow-y-auto pt-10 bg-white scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                                    <ActivityPreviewCard
-                                        activity={{
-                                            id: activityData.id || 'preview',
-                                            name: activityData.name || 'Your Activity',
-                                            description: activityData.description,
-                                            duration: activityData.duration || 60,
-                                            difficulty: ['Very Easy', 'Easy', 'Moderate', 'Hard', 'Very Hard'][(activityData.difficulty || 3) - 1],
-                                            min_players: activityData.minAdults || 2,
-                                            max_players: activityData.maxAdults || 8,
-                                            price: activityData.adultPrice || 0,
-                                            child_price: activityData.childPrice,
-                                            image_url: activityData.coverImage,
-                                            gallery_images: activityData.galleryImages,
-                                            schedule: {
-                                                operatingDays: activityData.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-                                                startTime: activityData.startTime || '10:00',
-                                                endTime: activityData.endTime || '22:00',
-                                                slotInterval: activityData.slotInterval || 60,
-                                                advanceBookingDays: activityData.advanceBooking || 30
-                                            }
-                                        }}
-                                        venueName={embedContext.venueName}
+                                <div className="h-[600px] overflow-y-auto pt-10 bg-gray-50 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                                    <SimpleActivityPreview
+                                        activityName={activityData.name || 'Your Activity'}
+                                        activityDescription={activityData.description}
+                                        price={activityData.adultPrice || 30}
+                                        duration={activityData.duration || 60}
+                                        minPlayers={activityData.minAdults || 2}
+                                        maxPlayers={activityData.maxAdults || 8}
                                         primaryColor={embedContext.primaryColor}
-                                        showBookingFlow={true}
-                                        compact={true}
+                                        coverImage={activityData.coverImage}
                                     />
                                 </div>
                             </div>

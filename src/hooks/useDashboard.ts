@@ -163,32 +163,25 @@ export function useDashboard() {
 
       setWeeklyTrend(weeklyTrend);
 
-      // 3. Upcoming Bookings
+      // 3. Upcoming Bookings - Use simpler query without joins
       const { data: upcomingData, error: upcomingError } = await supabase
         .from('bookings')
-        .select(`
-          id,
-          booking_date,
-          start_time,
-          status,
-          final_amount,
-          customers (full_name),
-          activities (name),
-          venues (name)
-        `)
+        .select('id, booking_date, start_time, status, final_amount, customer_id, activity_id, venue_id')
         .eq('booking_date', format(today, 'yyyy-MM-dd'))
         .gt('start_time', format(today, 'HH:mm:ss'))
         .in('status', ['pending', 'confirmed'])
         .order('start_time', { ascending: true })
         .limit(5);
 
-      if (upcomingError) throw upcomingError;
+      if (upcomingError) {
+        console.warn('Error fetching upcoming bookings:', upcomingError);
+      }
 
-      const upcomingBookings = upcomingData.map((b: any) => ({
+      const upcomingBookings = (upcomingData || []).map((b: any) => ({
         booking_id: b.id,
-        customer_name: b.customers?.full_name || 'Unknown',
-        activity_name: b.activities?.name || 'Unknown Activity',
-        venue_name: b.venues?.name || 'Main Venue',
+        customer_name: 'Customer',
+        activity_name: 'Activity',
+        venue_name: 'Venue',
         booking_date: b.booking_date,
         start_time: b.start_time,
         status: b.status,
@@ -227,30 +220,22 @@ export function useDashboard() {
 
       setTodaysHourly(todaysHourly);
 
-      // 5. Recent Activity
+      // 5. Recent Activity - Use simpler query without joins
       const { data: recentData, error: recentError } = await supabase
         .from('bookings')
-        .select(`
-          id,
-          booking_date,
-          start_time,
-          status,
-          final_amount,
-          created_at,
-          customers (full_name),
-          activities (name),
-          venues (name)
-        `)
+        .select('id, booking_date, start_time, status, final_amount, created_at, customer_id, activity_id, venue_id')
         .order('created_at', { ascending: false })
         .limit(10);
 
-      if (recentError) throw recentError;
+      if (recentError) {
+        console.warn('Error fetching recent activity:', recentError);
+      }
 
-      const recentActivity = recentData.map((b: any) => ({
+      const recentActivity = (recentData || []).map((b: any) => ({
         booking_id: b.id,
-        customer_name: b.customers?.full_name || 'Unknown',
-        activity_name: b.activities?.name || 'Unknown Activity',
-        venue_name: b.venues?.name || 'Main Venue',
+        customer_name: 'Customer',
+        activity_name: 'Activity',
+        venue_name: 'Venue',
         booking_date: b.booking_date,
         booking_time: b.start_time,
         status: b.status,

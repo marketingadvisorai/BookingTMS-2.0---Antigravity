@@ -76,6 +76,11 @@ export interface BookingResult {
 export class SupabaseBookingService {
   private static normalizeActivityForWidget(activity: VenueActivity) {
     const settings = activity.settings || {};
+    const stripePrices = (activity as any).stripe_prices;
+    
+    // Get the primary price ID (adult price or fallback to single price)
+    const primaryPriceId = stripePrices?.adult?.price_id || (activity as any).stripe_price_id;
+    
     return {
       id: activity.id,
       name: activity.name,
@@ -88,9 +93,9 @@ export class SupabaseBookingService {
       maxPlayers: activity.max_players || 8,
       min_players: activity.min_players || 2,
       max_players: activity.max_players || 8,
-      price: activity.price || 0,
-      childPrice: activity.child_price,
-      child_price: activity.child_price,
+      price: stripePrices?.adult?.amount || activity.price || 0,
+      childPrice: stripePrices?.child?.amount || activity.child_price,
+      child_price: stripePrices?.child?.amount || activity.child_price,
       minAge: activity.min_age,
       successRate: activity.success_rate || 50,
       image: activity.image_url,
@@ -118,6 +123,15 @@ export class SupabaseBookingService {
       location: settings.location || '',
       faqs: settings.faqs || [],
       cancellationPolicies: settings.cancellationPolicies || [],
+      // Stripe integration - CRITICAL for checkout
+      stripe_price_id: primaryPriceId,
+      stripePriceId: primaryPriceId,
+      stripe_product_id: (activity as any).stripe_product_id,
+      stripeProductId: (activity as any).stripe_product_id,
+      stripe_prices: stripePrices,
+      stripePrices: stripePrices,
+      // Custom pricing tiers
+      customCapacityFields: (activity as any).custom_capacity_fields || [],
     };
   }
 

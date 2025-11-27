@@ -45,6 +45,7 @@ import { EmbedConfigCard } from './EmbedConfigCard';
 import { EmbedCodeDisplay } from './EmbedCodeDisplay';
 import { EmbedPreviewPanel } from './EmbedPreviewPanel';
 import { CreateEmbedModal } from './CreateEmbedModal';
+import { AnalyticsDashboard } from './AnalyticsDashboard';
 import type { EmbedConfigWithRelations, EmbedType } from '../types';
 import { toast } from 'sonner';
 
@@ -445,7 +446,7 @@ export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
 
       {/* Analytics Modal */}
       <Dialog open={showAnalyticsModal} onOpenChange={setShowAnalyticsModal}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-blue-500" />
@@ -453,7 +454,7 @@ export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
             </DialogTitle>
           </DialogHeader>
           {analyticsConfig && (
-            <AnalyticsSummary config={analyticsConfig} />
+            <AnalyticsDashboard config={analyticsConfig} />
           )}
         </DialogContent>
       </Dialog>

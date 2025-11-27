@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
 > Last Updated: 2025-11-28
-> Version: v0.1.50-typescript-strict
+> Version: v0.1.51-storybook
 
 ---
 
@@ -307,7 +307,7 @@
 - [x] Optimize bundle size (lazy load widgets) ✅ v0.1.35
 - [x] Add error boundary for widget crashes ✅ v0.1.35
 - [x] Improve TypeScript strictness ✅ v0.1.50
-- [ ] Add Storybook for widget components
+- [x] Add Storybook for widget components ✅ v0.1.51
 
 ### Unit Testing Setup (v0.1.48 → v0.1.50)
 - **Framework**: Vitest with React Testing Library
@@ -326,6 +326,12 @@
 - **Enabled**: noImplicitReturns, noFallthroughCasesInSwitch, noImplicitOverride
 - **Enabled**: isolatedModules, forceConsistentCasingInFileNames
 - **Kept off**: noImplicitAny (for legacy compatibility)
+
+### Storybook Setup (v0.1.51)
+- **Framework**: Storybook 10.1 with React Vite
+- **Scripts**: `npm run storybook` (dev), `npm run build-storybook`
+- **Config**: `.storybook/main.ts`, `.storybook/preview.ts`
+- **Ready for**: Component documentation and visual testing
 
 ### Completed Technical Improvements (v0.1.35)
 - **WidgetErrorBoundary** - Catches React errors, shows friendly UI, retry support

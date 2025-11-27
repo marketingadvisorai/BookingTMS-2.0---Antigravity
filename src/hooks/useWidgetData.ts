@@ -115,14 +115,17 @@ export const useWidgetData = ({ venueId, activityId, date, enableRealtime = true
     }, []);
 
     // Auto-fetch sessions when dependencies change
+    // Use date timestamp for stable dependency comparison
+    const dateTimestamp = date?.getTime();
+    
     useEffect(() => {
         // Only fetch if activityId is a valid UUID (not 'preview' or other placeholder)
-        if (isValidUUID(activityId) && date) {
+        if (isValidUUID(activityId) && date && dateTimestamp) {
             fetchSessions(activityId!, date);
         } else {
             setSessions([]);
         }
-    }, [activityId, date, fetchSessions]);
+    }, [activityId, dateTimestamp, fetchSessions]);
 
     // Real-time subscription for activities (price/schedule changes)
     useEffect(() => {

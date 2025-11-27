@@ -32,6 +32,12 @@ export const useAvailability = ({
     currentYear
 }: UseAvailabilityProps) => {
 
+    // Memoize the date object to prevent infinite re-renders
+    // Only recreate when the actual date values change
+    const memoizedDate = useMemo(() => {
+        return new Date(currentYear, currentMonth, selectedDate);
+    }, [currentYear, currentMonth, selectedDate]);
+
     // Fetch real data from Supabase if not passed
     const {
         venue,
@@ -42,7 +48,7 @@ export const useAvailability = ({
     } = useWidgetData({
         venueId: config?.venueId,
         activityId: selectedActivity || undefined,
-        date: new Date(currentYear, currentMonth, selectedDate)
+        date: memoizedDate
     });
 
     // Use passed data or fetched data

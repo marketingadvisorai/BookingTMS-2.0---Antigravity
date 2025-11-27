@@ -22,7 +22,7 @@ export class PlanService {
       let query = (supabase
         .from('plans') as any)
         .select('*')
-        .order('display_order', { ascending: true });
+        .order('display_order', { ascending: true, nullsFirst: false });
 
       if (activeOnly) {
         query = query.eq('is_active', true);

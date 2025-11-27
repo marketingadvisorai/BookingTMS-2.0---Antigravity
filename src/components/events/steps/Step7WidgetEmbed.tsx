@@ -7,9 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { Textarea } from '../../ui/textarea';
 import { Copy, Check, ExternalLink, Code, Calendar, Eye, Globe } from 'lucide-react';
 import { StepProps, EmbedContext } from '../types';
-import { CalendarSingleEventBookingPageNew } from '../../widgets/CalendarSingleEventBookingPageNew';
+import { ActivityPreviewCard } from '../../widgets/ActivityPreviewCard';
 import { Badge } from '../../ui/badge';
-import { WidgetThemeProvider } from '../../widgets/WidgetThemeContext';
 
 export default function Step7WidgetEmbed({ activityData, updateActivityData, t }: StepProps) {
     const [copied, setCopied] = useState(false);
@@ -160,42 +159,33 @@ export default function Step7WidgetEmbed({ activityData, updateActivityData, t }
                                         {generatePreviewUrl()}
                                     </div>
                                 </div>
-                                <div className="h-[600px] overflow-y-auto pt-8 bg-white scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                                    <div className="transform scale-[0.85] origin-top h-[120%] w-[117.6%] -ml-[8.8%]">
-                                        <WidgetThemeProvider initialTheme="light">
-                                            <CalendarSingleEventBookingPageNew
-                                                primaryColor={embedContext.primaryColor}
-                                                gameName={activityData.name}
-                                                gameDescription={activityData.description}
-                                                gamePrice={activityData.adultPrice}
-                                                gameSchedule={{
+                                <div className="h-[600px] overflow-y-auto bg-gray-50 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                                    <div className="transform scale-[0.9] origin-top">
+                                        <ActivityPreviewCard
+                                            activity={{
+                                                id: activityData.id || 'preview',
+                                                name: activityData.name || 'Your Activity',
+                                                description: activityData.description,
+                                                duration: activityData.duration || 60,
+                                                difficulty: ['Very Easy', 'Easy', 'Moderate', 'Hard', 'Very Hard'][(activityData.difficulty || 3) - 1],
+                                                min_players: activityData.minAdults || 2,
+                                                max_players: activityData.maxAdults || 8,
+                                                price: activityData.adultPrice || 0,
+                                                child_price: activityData.childPrice,
+                                                image_url: activityData.coverImage,
+                                                gallery_images: activityData.galleryImages,
+                                                schedule: {
                                                     operatingDays: activityData.operatingDays,
                                                     startTime: activityData.startTime,
                                                     endTime: activityData.endTime,
                                                     slotInterval: activityData.slotInterval,
-                                                    duration: activityData.duration,
-                                                    advanceBooking: activityData.advanceBooking,
-                                                    customHours: activityData.customHours,
-                                                    customHoursEnabled: activityData.customHoursEnabled
-                                                }}
-                                                timezone={activityData.timezone}
-                                                config={{
-                                                    // Pass minimal config for preview
-                                                    businessName: embedContext.venueName,
-                                                    games: [{
-                                                        name: activityData.name,
-                                                        description: activityData.description,
-                                                        price: activityData.adultPrice,
-                                                        image: activityData.coverImage,
-                                                        galleryImages: activityData.galleryImages,
-                                                        duration: `${activityData.duration} min`,
-                                                        difficulty: ['Very Easy', 'Easy', 'Moderate', 'Hard', 'Very Hard'][activityData.difficulty - 1] || 'Moderate',
-                                                        players: `${activityData.minAdults}-${activityData.maxAdults} players`,
-                                                        minAge: activityData.minAge
-                                                    }]
-                                                }}
-                                            />
-                                        </WidgetThemeProvider>
+                                                    advanceBookingDays: activityData.advanceBooking
+                                                }
+                                            }}
+                                            venueName={embedContext.venueName}
+                                            primaryColor={embedContext.primaryColor}
+                                            showBookingFlow={true}
+                                        />
                                     </div>
                                 </div>
                             </div>

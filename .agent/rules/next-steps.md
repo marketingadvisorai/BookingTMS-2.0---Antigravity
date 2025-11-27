@@ -193,11 +193,19 @@
 ## Future Enhancements
 
 ### Phase 2
-- [ ] Multi-language support (i18n)
+- [x] Multi-language support (i18n) ✅ v0.1.38
 - [ ] Waitlist for sold-out slots
 - [ ] Group booking with multiple activities
 - [x] Promo code / discount support ✅ v0.1.37
 - [ ] Gift card redemption
+
+#### Multi-Language Support (v0.1.38)
+- **Languages**: English, Spanish, French (+ placeholder for 5 more)
+- **Types**: SupportedLocale, WidgetTranslations, I18nContextValue
+- **Provider**: I18nProvider with auto-detect browser locale
+- **Hook**: useI18n() - t(), formatDate(), formatTime(), formatCurrency()
+- **URL Param**: `?lang=en|es|fr` for locale override
+- **Keys**: 150+ translation keys covering all widget sections
 
 #### Promo Code System (v0.1.36-37)
 - **Types**: PromoCode, PromoValidationResult, PromoCodeState

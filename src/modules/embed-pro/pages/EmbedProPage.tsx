@@ -6,12 +6,15 @@
  * Parses URL parameters and renders the appropriate container.
  * Wrapped with ErrorBoundary for crash protection.
  * Uses React.lazy for code splitting and bundle optimization.
+ * Includes i18n provider for multi-language support.
  * 
- * URL: /embed-pro?key={embed_key}&theme={light|dark}&preview={true|false}
+ * URL: /embed-pro?key={embed_key}&theme={light|dark}&preview={true|false}&lang={en|es|fr}
  */
 
 import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { WidgetErrorBoundary, WidgetLoading } from '../widget-components';
+import { I18nProvider } from '../i18n';
+import type { SupportedLocale } from '../i18n/types';
 
 // Lazy load the container for better initial load performance
 const EmbedProContainer = lazy(() => import('../containers/EmbedProContainer'));
@@ -25,10 +28,12 @@ export const EmbedProPage: React.FC = () => {
     embedKey: string | null;
     theme: 'light' | 'dark';
     isPreview: boolean;
+    locale: SupportedLocale | undefined;
   }>({
     embedKey: null,
     theme: 'light',
     isPreview: false,
+    locale: undefined,
   });
 
   // Parse URL parameters on mount
@@ -38,17 +43,26 @@ export const EmbedProPage: React.FC = () => {
     const embedKey = urlParams.get('key');
     const themeParam = urlParams.get('theme');
     const previewParam = urlParams.get('preview');
+    const langParam = urlParams.get('lang');
+
+    // Validate locale
+    const validLocales: SupportedLocale[] = ['en', 'es', 'fr', 'de', 'pt', 'it', 'ja', 'zh'];
+    const locale = validLocales.includes(langParam as SupportedLocale) 
+      ? (langParam as SupportedLocale) 
+      : undefined;
 
     setParams({
       embedKey,
       theme: themeParam === 'dark' ? 'dark' : 'light',
       isPreview: previewParam === 'true',
+      locale,
     });
 
     console.log('[EmbedProPage] Initialized with params:', {
       embedKey,
       theme: themeParam,
       preview: previewParam,
+      lang: langParam,
     });
   }, []);
 
@@ -139,24 +153,26 @@ export const EmbedProPage: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen w-full ${bgClass}`}>
-      <div className="w-full max-w-2xl mx-auto py-4 px-4">
-        <WidgetErrorBoundary
-          onError={handleWidgetError}
-          primaryColor="#2563eb"
-          showRetry={true}
-        >
-          <Suspense fallback={<WidgetLoading />}>
-            <EmbedProContainer
-              embedKey={params.embedKey}
-              theme={params.theme}
-              isPreview={params.isPreview}
-              onBookingComplete={handleBookingComplete}
-            />
-          </Suspense>
-        </WidgetErrorBoundary>
+    <I18nProvider initialLocale={params.locale}>
+      <div className={`min-h-screen w-full ${bgClass}`}>
+        <div className="w-full max-w-2xl mx-auto py-4 px-4">
+          <WidgetErrorBoundary
+            onError={handleWidgetError}
+            primaryColor="#2563eb"
+            showRetry={true}
+          >
+            <Suspense fallback={<WidgetLoading />}>
+              <EmbedProContainer
+                embedKey={params.embedKey}
+                theme={params.theme}
+                isPreview={params.isPreview}
+                onBookingComplete={handleBookingComplete}
+              />
+            </Suspense>
+          </WidgetErrorBoundary>
+        </div>
       </div>
-    </div>
+    </I18nProvider>
   );
 };
 

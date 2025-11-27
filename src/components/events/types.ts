@@ -104,12 +104,36 @@ export interface ActivityData {
     // Step 6: Payment Settings
     stripeProductId?: string;
     stripePriceId?: string;
-    stripePrices?: any[];
+    stripePrices?: {
+        adult?: {
+            price_id: string;
+            lookup_key: string;
+            amount: number;
+            currency: string;
+        } | null;
+        child?: {
+            price_id: string;
+            lookup_key: string;
+            amount: number;
+            currency: string;
+        } | null;
+        custom?: Array<{
+            id: string;
+            name: string;
+            price_id: string;
+            lookup_key: string;
+            amount: number;
+            min: number;
+            max: number;
+            currency: string;
+        }>;
+    };
     stripeCheckoutUrl?: string;
     stripeSyncStatus?: 'not_synced' | 'pending' | 'synced' | 'error';
     stripeLastSync?: string;
     checkoutEnabled?: boolean;
     checkoutConnectedAt?: string;
+    pricingNeedsSync?: boolean;
 
     // Step 7: Additional Settings
     requiresWaiver: boolean;

@@ -270,6 +270,130 @@ export class EmailService {
   }
 
   /**
+   * Send admin notification when new booking is created
+   */
+  static async sendAdminBookingNotification(
+    booking: BookingData,
+    adminEmails: string[],
+    businessInfo: { name: string; address?: string; phone?: string }
+  ): Promise<{ success: boolean; data?: any; error?: any }> {
+    try {
+      const bookingDate = new Date(booking.date).toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+            .booking-card { background: white; padding: 20px; border-radius: 8px; margin: 15px 0; border: 1px solid #e5e7eb; }
+            .label { font-size: 12px; color: #6b7280; text-transform: uppercase; margin-bottom: 4px; }
+            .value { font-size: 16px; color: #111827; font-weight: 500; }
+            .highlight { background: #ecfdf5; border-left: 4px solid #10b981; padding: 12px 16px; margin: 15px 0; }
+            .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+            .amount { font-size: 24px; color: #10b981; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin: 0;">🎉 New Booking Received!</h1>
+              <p style="margin: 10px 0 0 0; opacity: 0.9;">${businessInfo.name}</p>
+            </div>
+            <div class="content">
+              <div class="highlight">
+                <div class="label">Total Revenue</div>
+                <div class="amount">$${booking.total_amount.toFixed(2)}</div>
+              </div>
+              
+              <div class="booking-card">
+                <h3 style="margin-top: 0; color: #374151;">📋 Booking Details</h3>
+                <div class="grid">
+                  <div>
+                    <div class="label">Booking ID</div>
+                    <div class="value">${booking.id}</div>
+                  </div>
+                  <div>
+                    <div class="label">Activity</div>
+                    <div class="value">${booking.room_name}</div>
+                  </div>
+                  <div>
+                    <div class="label">Date</div>
+                    <div class="value">${bookingDate}</div>
+                  </div>
+                  <div>
+                    <div class="label">Time</div>
+                    <div class="value">${booking.time}</div>
+                  </div>
+                  <div>
+                    <div class="label">Players</div>
+                    <div class="value">${booking.player_count} people</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="booking-card">
+                <h3 style="margin-top: 0; color: #374151;">👤 Customer</h3>
+                <div class="grid">
+                  <div>
+                    <div class="label">Name</div>
+                    <div class="value">${booking.customer_name}</div>
+                  </div>
+                  <div>
+                    <div class="label">Email</div>
+                    <div class="value">${booking.customer_email}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="footer">
+                <p>This is an automated notification from your booking system.</p>
+                <p>Log in to your dashboard to view full details and manage this booking.</p>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const text = `
+New Booking Received!
+
+Booking ID: ${booking.id}
+Activity: ${booking.room_name}
+Date: ${bookingDate}
+Time: ${booking.time}
+Players: ${booking.player_count}
+Amount: $${booking.total_amount.toFixed(2)}
+
+Customer: ${booking.customer_name}
+Email: ${booking.customer_email}
+
+Log in to your dashboard to view full details.
+      `;
+
+      return await this.sendEmail({
+        to: adminEmails,
+        subject: `🎉 New Booking: ${booking.room_name} - $${booking.total_amount.toFixed(2)}`,
+        html: html,
+        text: text
+      });
+    } catch (error) {
+      console.error('❌ Failed to send admin notification:', error);
+      return { success: false, error };
+    }
+  }
+
+  /**
    * Send test email
    */
   static async sendTestEmail(toEmail: string): Promise<{ success: boolean; data?: any; error?: any }> {

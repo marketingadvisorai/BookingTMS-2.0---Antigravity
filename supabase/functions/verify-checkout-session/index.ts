@@ -129,6 +129,66 @@ serve(async (req) => {
           bookingRecord = data;
         }
       }
+
+      // Send admin notification for new/confirmed booking
+      if (bookingRecord) {
+        try {
+          // Get organization admin emails
+          const { data: orgData } = await supabase
+            .from('organizations')
+            .select('notification_email, owner_email, name')
+            .eq('id', metadata.organization_id)
+            .single();
+
+          const adminEmails: string[] = [];
+          if (orgData?.notification_email) adminEmails.push(orgData.notification_email);
+          if (orgData?.owner_email && !adminEmails.includes(orgData.owner_email)) {
+            adminEmails.push(orgData.owner_email);
+          }
+
+          // Send notification via send-email function
+          if (adminEmails.length > 0) {
+            await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                to: adminEmails,
+                subject: `🎉 New Booking: ${metadata.activity_name || 'Activity'} - $${(session.amount_total || 0) / 100}`,
+                html: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+                      <h1 style="margin: 0;">🎉 New Booking Received!</h1>
+                      <p style="margin: 10px 0 0 0; opacity: 0.9;">${orgData?.name || 'Your Business'}</p>
+                    </div>
+                    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px;">
+                      <div style="background: #ecfdf5; border-left: 4px solid #10b981; padding: 12px 16px; margin: 15px 0;">
+                        <div style="font-size: 12px; color: #6b7280; text-transform: uppercase;">Total Revenue</div>
+                        <div style="font-size: 24px; color: #10b981; font-weight: bold;">$${((session.amount_total || 0) / 100).toFixed(2)}</div>
+                      </div>
+                      <table style="width: 100%; border-collapse: collapse;">
+                        <tr><td style="padding: 8px 0; color: #6b7280;">Booking ID:</td><td style="padding: 8px 0; font-weight: 500;">${bookingRecord.booking_number || bookingNumber}</td></tr>
+                        <tr><td style="padding: 8px 0; color: #6b7280;">Activity:</td><td style="padding: 8px 0; font-weight: 500;">${metadata.activity_name || 'Activity'}</td></tr>
+                        <tr><td style="padding: 8px 0; color: #6b7280;">Date:</td><td style="padding: 8px 0; font-weight: 500;">${metadata.booking_date}</td></tr>
+                        <tr><td style="padding: 8px 0; color: #6b7280;">Time:</td><td style="padding: 8px 0; font-weight: 500;">${metadata.booking_time}</td></tr>
+                        <tr><td style="padding: 8px 0; color: #6b7280;">Party Size:</td><td style="padding: 8px 0; font-weight: 500;">${metadata.party_size} people</td></tr>
+                        <tr><td style="padding: 8px 0; color: #6b7280;">Customer:</td><td style="padding: 8px 0; font-weight: 500;">${customerName}</td></tr>
+                        <tr><td style="padding: 8px 0; color: #6b7280;">Email:</td><td style="padding: 8px 0; font-weight: 500;">${customerEmail}</td></tr>
+                      </table>
+                    </div>
+                  </div>
+                `,
+              }),
+            });
+            console.log('✅ Admin notification sent to:', adminEmails);
+          }
+        } catch (notifyError) {
+          console.error('Failed to send admin notification:', notifyError);
+          // Don't fail the whole request if notification fails
+        }
+      }
     }
 
     // Build response

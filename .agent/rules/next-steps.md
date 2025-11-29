@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
-> Last Updated: 2025-11-30 01:45 UTC+6
-> Version: v0.1.57-e2e-complete
+> Last Updated: 2025-11-30 04:15 UTC+6
+> Version: v0.1.63-phase2-complete
 
 ---
 
@@ -437,16 +437,48 @@
 - **Migration**: `20251129_enable_rls_core_tables.sql`
 - **Verification**: All 7 tables confirmed with `rowsecurity = true`
 
-### Phase 2: Important (Better UX/Operations)
+### Phase 2: Important (Better UX/Operations) ✅ COMPLETED (Nov 30, 2025)
 
 | Status | Task | Priority | Effort |
 |--------|------|----------|--------|
 | [x] | **2.1 QR Ticket System** - QR code generation, scanning, check-in ✅ v0.1.62 | 🔴 High | 4 hrs |
-| [ ] | **2.2 Admin Notification** - Email/Slack alert on new booking | 🟡 Medium | 1-2 hrs |
-| [ ] | **2.3 Booking Receipt PDF** - Generate downloadable receipt | 🟡 Medium | 2-3 hrs |
-| [ ] | **2.4 Capacity Management** - Block/unblock sessions from admin | 🟡 Medium | 2-3 hrs |
+| [x] | **2.2 Admin Notification** - Email/Slack alert on new booking ✅ v0.1.63 | 🟡 Medium | 1-2 hrs |
+| [x] | **2.3 Booking Receipt PDF** - Generate downloadable receipt ✅ v0.1.63 | 🟡 Medium | 2-3 hrs |
+| [x] | **2.4 Capacity Management** - Block/unblock sessions from admin ✅ v0.1.63 | 🟡 Medium | 2-3 hrs |
 | [x] | **2.5 Refund Processing** - Connect `create-refund` edge function ✅ v0.1.61 | 🟡 Medium | 2 hrs |
-| [ ] | **2.6 Customer Dedup** - Handle duplicate customer records | 🟡 Medium | 2 hrs |
+| [x] | **2.6 Customer Dedup** - Handle duplicate customer records ✅ v0.1.63 | 🟡 Medium | 2 hrs |
+
+#### Task 2.2: Admin Notification ✅ COMPLETED (Nov 30, 2025)
+- **Feature**: `/src/features/admin-notifications/`
+- **Types**: AdminNotificationConfig, BookingNotificationData, AdminNotificationPayload
+- **Service**: adminNotificationService - sends email/Slack alerts to org admins
+- **Integration**: stripe-webhook sends notification after booking creation
+- **Email Template**: Professional HTML with booking details
+- **Slack Support**: Webhook-based notifications with block kit format
+
+#### Task 2.3: Booking Receipt PDF ✅ COMPLETED (Nov 30, 2025)
+- **Feature**: `/src/features/booking-receipt/`
+- **Types**: ReceiptData, ReceiptConfig
+- **Service**: receiptGeneratorService - generates HTML receipts
+- **Hook**: useBookingReceipt - download/view receipts
+- **Features**: Print-optimized, branded, status badges
+
+#### Task 2.4: Capacity Management ✅ COMPLETED (Nov 30, 2025)
+- **Feature**: `/src/features/capacity-management/`
+- **Types**: BlockedSession, CapacityOverride, CapacityStats
+- **Service**: capacityService - block/unblock sessions, capacity overrides
+- **Hook**: useCapacityManagement - state management
+- **Component**: BlockSessionModal - UI for blocking sessions
+- **Migration**: `058_capacity_management_tables.sql`
+- **Block Reasons**: maintenance, private_event, staff_unavailable, weather, holiday, other
+
+#### Task 2.6: Customer Dedup ✅ COMPLETED (Nov 30, 2025)
+- **Feature**: `/src/features/customer-dedup/`
+- **Types**: DuplicateGroup, DuplicateCustomerMatch, MergeResult
+- **Service**: customerDedupService - find/merge duplicates
+- **Hook**: useCustomerDedup - scan and merge operations
+- **Algorithm**: Match score based on email (100), phone (80), name (60)
+- **Features**: Levenshtein distance for name similarity, booking migration
 
 ### Phase 3: Nice-to-Have (Polish)
 

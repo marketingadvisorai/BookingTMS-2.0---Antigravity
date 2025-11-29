@@ -199,6 +199,18 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, supabas
 
   console.log('Booking created from checkout session:', bookingNumber)
 
+  // Send admin notification
+  await sendAdminNotification({
+    customerEmail,
+    customerName,
+    bookingNumber,
+    activityId,
+    bookingDate,
+    bookingTime,
+    partySize,
+    totalAmount: (session.amount_total || 0) / 100
+  }, supabase)
+
   // Send confirmation email
   await sendBookingConfirmationEmail({
     customerEmail,
@@ -426,5 +438,109 @@ async function sendBookingConfirmationEmail(data: BookingEmailData, supabase: an
   } catch (error) {
     console.error('Error sending confirmation email:', error)
     // Don't throw - email failure shouldn't fail the webhook
+  }
+}
+
+/**
+ * Send admin notification email for new bookings
+ */
+async function sendAdminNotification(data: BookingEmailData, supabase: any) {
+  try {
+    // Fetch activity and organization details
+    const { data: activity } = await supabase
+      .from('activities')
+      .select('name, organization_id, venue_id, venues(name)')
+      .eq('id', data.activityId)
+      .single()
+
+    if (!activity?.organization_id) {
+      console.log('No organization found for activity:', data.activityId)
+      return
+    }
+
+    // Get organization admin emails
+    const { data: orgMembers } = await supabase
+      .from('organization_members')
+      .select('user_id')
+      .eq('organization_id', activity.organization_id)
+      .in('role', ['admin', 'owner'])
+
+    if (!orgMembers?.length) {
+      console.log('No admins found for organization:', activity.organization_id)
+      return
+    }
+
+    // Get user emails
+    const userIds = orgMembers.map((m: any) => m.user_id)
+    const { data: users } = await supabase
+      .from('users')
+      .select('email')
+      .in('id', userIds)
+
+    const adminEmails = users?.map((u: any) => u.email).filter(Boolean) || []
+    
+    if (!adminEmails.length) {
+      console.log('No admin emails found')
+      return
+    }
+
+    const activityName = activity?.name || 'Activity'
+    const venueName = activity?.venues?.name || ''
+
+    // Format date
+    const formattedDate = new Date(data.bookingDate).toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    })
+
+    // Build admin notification email
+    const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: #2563eb; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0;">🎉 New Booking!</h1>
+  </div>
+  <div style="background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr><td style="padding: 8px 0; color: #666;">Reference</td><td style="padding: 8px 0; font-weight: bold; text-align: right;">${data.bookingNumber}</td></tr>
+      <tr><td style="padding: 8px 0; color: #666;">Customer</td><td style="padding: 8px 0; font-weight: bold; text-align: right;">${data.customerName}</td></tr>
+      <tr><td style="padding: 8px 0; color: #666;">Email</td><td style="padding: 8px 0; text-align: right;">${data.customerEmail}</td></tr>
+      <tr><td style="padding: 8px 0; color: #666;">Activity</td><td style="padding: 8px 0; font-weight: bold; text-align: right;">${activityName}</td></tr>
+      ${venueName ? `<tr><td style="padding: 8px 0; color: #666;">Venue</td><td style="padding: 8px 0; text-align: right;">${venueName}</td></tr>` : ''}
+      <tr><td style="padding: 8px 0; color: #666;">Date & Time</td><td style="padding: 8px 0; font-weight: bold; text-align: right;">${formattedDate} at ${data.bookingTime}</td></tr>
+      <tr><td style="padding: 8px 0; color: #666;">Party Size</td><td style="padding: 8px 0; font-weight: bold; text-align: right;">${data.partySize} people</td></tr>
+      <tr style="border-top: 2px solid #2563eb;"><td style="padding: 12px 0; color: #666; font-size: 18px;">Amount</td><td style="padding: 12px 0; font-weight: bold; text-align: right; font-size: 18px; color: #2563eb;">$${data.totalAmount.toFixed(2)}</td></tr>
+    </table>
+    <p style="margin-top: 20px; color: #666; font-size: 14px; text-align: center;">
+      View this booking in your admin dashboard.
+    </p>
+  </div>
+</body>
+</html>`.trim()
+
+    // Send to all admins
+    await fetch(
+      `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+        },
+        body: JSON.stringify({
+          to: adminEmails,
+          subject: `🎉 New Booking: ${activityName} - ${data.bookingNumber}`,
+          html: emailHtml
+        })
+      }
+    )
+
+    console.log('Admin notification sent to:', adminEmails.join(', '))
+  } catch (error) {
+    console.error('Error sending admin notification:', error)
+    // Don't throw - notification failure shouldn't fail the webhook
   }
 }

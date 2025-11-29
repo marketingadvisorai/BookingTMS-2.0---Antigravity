@@ -6,7 +6,8 @@
  * @module features/bookings/components/BookingDetailsDialog
  */
 import { useState } from 'react';
-import { Users, Mail, Phone, CalendarDays, Clock, RefreshCcw, Loader2 } from 'lucide-react';
+import { Users, Mail, Phone, CalendarDays, Clock, RefreshCcw, Loader2, FileText } from 'lucide-react';
+import { downloadBookingReceipt } from '../../../lib/pdf/bookingReceiptService';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from '../../../components/ui/dialog';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
@@ -223,6 +224,34 @@ export function BookingDetailsDialog({
           </Button>
           <Button variant="outline" className="w-full sm:w-auto h-11" onClick={() => onReschedule(booking)}>
             <CalendarDays className="w-4 h-4 mr-2" />Reschedule
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto h-11"
+            onClick={() => {
+              downloadBookingReceipt(
+                {
+                  id: booking.id,
+                  bookingNumber: booking.id,
+                  customerName: booking.customer,
+                  customerEmail: booking.email,
+                  customerPhone: booking.phone,
+                  activityName: booking.game,
+                  venueName: booking.venueName || 'Venue',
+                  date: booking.date,
+                  time: booking.time,
+                  partySize: booking.groupSize,
+                  adults: booking.adults,
+                  children: booking.children,
+                  totalAmount: booking.amount,
+                  paymentMethod: booking.paymentMethod,
+                  paymentStatus: 'paid',
+                },
+                { name: booking.venueName || 'Booking Receipt' }
+              );
+            }}
+          >
+            <FileText className="w-4 h-4 mr-2" />Download Receipt
           </Button>
           {!booking.checkInTime && booking.status !== 'cancelled' && (
             <Button onClick={onCheckIn} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto h-11">

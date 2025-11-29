@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
-> Last Updated: 2025-11-30
-> Version: v0.1.56-multi-tenant
+> Last Updated: 2025-11-30 01:45 UTC+6
+> Version: v0.1.57-e2e-complete
 
 ---
 
@@ -355,7 +355,7 @@
 | [x] | **1.3 Fix Customer Portal** - Fixed DB field mismatch, added test customer ✅ | 🔴 High | Done |
 | [x] | **1.4 Email Confirmation** - Integrated Resend via stripe-webhook ✅ | 🔴 High | Done |
 | [x] | **1.5 Enable RLS Policies** - Secure all core tables with RLS ✅ | 🔴 High | Done |
-| [ ] | **1.6 Test E2E Booking Flow** - Widget → Checkout → Payment → Confirmation | 🔴 High | 1 hr |
+| [x] | **1.6 Test E2E Booking Flow** - Widget → Checkout → Payment → Confirmation ✅ | 🔴 High | Done |
 
 #### Task 1.1: Fix Customers Page ✅ COMPLETED (Nov 29, 2025)
 - **Finding**: Page already used `useCustomers()` hook - mockCustomers was dead code
@@ -400,8 +400,20 @@
 - **Architecture Doc**: `/docs/CUSTOMER_PORTAL_ARCHITECTURE.md`
 - **Test URL**: `http://localhost:5173/my-bookings`
 
-#### Task 1.6: End-to-End Booking Test (Moved)
-- **Flow**: Embed Widget → Select Activity/Date/Time → Checkout → Stripe Payment → Webhook → Database → Success Page
+#### Task 1.6: E2E Booking Flow ✅ COMPLETED (Nov 30, 2025)
+- **Test Guide**: `/E2E_BOOKING_TEST_GUIDE.md`
+- **Test Widget URL**: `http://localhost:3001/embed-pro?key=emb_57fdcedc75b56c818aba35ed`
+- **Test Activity**: "R+ STRIPE" - $30.00
+- **Flow Verified**:
+  1. Widget loads with activity header ✓
+  2. Calendar displays with available dates ✓
+  3. Time slots appear for Dec 1, 2025 (10:00-20:00) ✓
+  4. Party size selection works ✓
+  5. Checkout form collects customer info ✓
+  6. Stripe Checkout session created ✓
+  7. Webhook handles `checkout.session.completed` ✓
+  8. Booking record created in database ✓
+  9. Confirmation email sent via Resend ✓
 - **Test Cards**: `4242 4242 4242 4242` (success), `4000 0000 0000 0002` (decline)
 
 #### Task 1.4: Email Confirmation ✅ COMPLETED (Nov 29, 2025)

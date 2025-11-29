@@ -90,27 +90,52 @@ class PasswordService {
 
   /**
    * Admin: Set a new password for any user
-   * Requires admin privileges (service role or admin API)
+   * Uses edge function with service role to update password
    */
   async adminSetPassword(userId: string, newPassword: string): Promise<SetPasswordResult> {
     try {
-      // Use the admin API to update user password
-      const { error } = await supabase.auth.admin.updateUserById(userId, {
-        password: newPassword,
-      });
-
-      if (error) {
-        console.error('Admin password set error:', error);
+      // Get current session for authorization
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
         return {
           success: false,
-          message: 'Failed to set password',
-          error: error.message,
+          message: 'You must be logged in to perform this action',
+          error: 'No active session',
+        };
+      }
+
+      // Call the edge function with service role
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL || 'https://qftjyjpitnoapqxlrvfs.supabase.co'}/functions/v1/admin-password-reset`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            action: 'set_password',
+            userId,
+            newPassword,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Admin password set error:', data);
+        return {
+          success: false,
+          message: data.error || 'Failed to set password',
+          error: data.details || data.message,
         };
       }
 
       return {
         success: true,
-        message: 'Password set successfully',
+        message: data.message || 'Password set successfully',
       };
     } catch (error: any) {
       console.error('Admin password set error:', error);
@@ -124,35 +149,52 @@ class PasswordService {
 
   /**
    * Admin: Send password reset email to any user
-   * Does not require knowing the current password
+   * Uses edge function with service role to generate and send reset link
    */
-  async adminSendResetEmail(email: string): Promise<PasswordResetResult> {
+  async adminSendResetEmail(email: string, userName?: string): Promise<PasswordResetResult> {
     try {
-      // Generate a password reset link for the user
-      const { data, error } = await supabase.auth.admin.generateLink({
-        type: 'recovery',
-        email: email,
-        options: {
-          redirectTo: `${window.location.origin}/reset-password`,
-        },
-      });
-
-      if (error) {
-        console.error('Admin reset email error:', error);
+      // Get current session for authorization
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
         return {
           success: false,
-          message: 'Failed to generate reset link',
-          error: error.message,
+          message: 'You must be logged in to perform this action',
+          error: 'No active session',
         };
       }
 
-      // The link is generated but we need to send it via email
-      // For now, return the link (in production, send via Resend)
-      console.log('Reset link generated:', data);
+      // Call the edge function with service role
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL || 'https://qftjyjpitnoapqxlrvfs.supabase.co'}/functions/v1/admin-password-reset`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            email,
+            userName,
+            redirectUrl: window.location.origin,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Admin reset email error:', data);
+        return {
+          success: false,
+          message: data.error || 'Failed to send reset email',
+          error: data.details || data.message,
+        };
+      }
 
       return {
         success: true,
-        message: 'Password reset email sent to user',
+        message: data.message || 'Password reset email sent successfully',
       };
     } catch (error: any) {
       console.error('Admin reset email error:', error);

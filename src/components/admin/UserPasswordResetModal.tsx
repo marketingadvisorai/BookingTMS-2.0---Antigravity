@@ -53,7 +53,7 @@ export const UserPasswordResetModal: React.FC<UserPasswordResetModalProps> = ({
     setLoading(true);
 
     try {
-      const result = await passwordService.adminSendResetEmail(user.email);
+      const result = await passwordService.adminSendResetEmail(user.email, user.name);
 
       if (result.success) {
         toast.success(`Password reset email sent to ${user.email}`);

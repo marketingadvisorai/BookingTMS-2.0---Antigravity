@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
-> Last Updated: 2025-11-30 04:35 UTC+6
-> Version: v0.1.64-activity-embed-fixes
+> Last Updated: 2025-11-30 04:55 UTC+6
+> Version: v0.1.65-auth-password-reset-fix
 
 ---
 
@@ -527,6 +527,56 @@
 - `src/modules/embed-pro/services/widgetData.normalizer.ts` - Dual-source schedule reading
 - `src/modules/embed-pro/services/embedProData.service.ts` - Explicit schedule column selection
 - `src/modules/inventory/services/activity.service.ts` - Dual-save for schedule data
+
+### Fix: Admin Password Reset "User not allowed" Error ✅ COMPLETED (Nov 30, 2025)
+**Issue**: Admin-initiated password resets showed "User not allowed" error.
+
+**Root Cause**: 
+- `supabase.auth.admin.*` methods require the **service role key**
+- Client-side code only has the **anon key**
+- The anon key cannot call admin auth APIs
+
+**Solution - Authentication Architecture**:
+| Flow | Method | Email Provider |
+|------|--------|----------------|
+| User Forgot Password | `supabase.auth.resetPasswordForEmail()` | Supabase built-in |
+| Admin Reset User | Edge Function with service role | Resend |
+| Admin Set Password | Edge Function with service role | N/A |
+
+**Implementation**:
+1. Created `supabase/functions/admin-password-reset/index.ts` edge function
+   - Uses service role key (secure server-side)
+   - Handles `send_reset` and `set_password` actions
+   - Sends branded emails via Resend
+   - Validates admin permissions before action
+   
+2. Updated `src/services/password.service.ts`
+   - `adminSendResetEmail()` now calls edge function
+   - `adminSetPassword()` now calls edge function
+   - Removed direct `supabase.auth.admin.*` calls
+
+3. Updated `src/components/admin/UserPasswordResetModal.tsx`
+   - Passes user name for personalized emails
+
+**Tenant Isolation**:
+- Org admins only see data for their organization
+- All hooks filter by `currentUser?.organizationId`
+- System/Super admins can see all data (`fetchAll: true`)
+- RLS policies enforce database-level isolation
+
+**Files Modified/Created**:
+- `supabase/functions/admin-password-reset/index.ts` (NEW)
+- `src/services/password.service.ts`
+- `src/components/admin/UserPasswordResetModal.tsx`
+
+**Deployment Requirement**:
+```bash
+# Deploy the edge function
+supabase functions deploy admin-password-reset
+
+# Set secrets (if not already)
+supabase secrets set RESEND_API_KEY=re_xxxx
+```
 
 ### Phase 3: Nice-to-Have (Polish)
 

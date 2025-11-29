@@ -56,6 +56,9 @@ const BetaLogin = () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await login(username, password, 'beta-owner');
       toast.success('Welcome to BookingTMS Beta!');
+      
+      // Redirect to dashboard after successful login
+      window.location.href = '/dashboard';
     } catch (error) {
       console.error('Login error:', error);
       toast.error('Login failed. Please try again.');

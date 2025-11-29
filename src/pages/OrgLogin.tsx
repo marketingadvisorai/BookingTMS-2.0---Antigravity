@@ -61,7 +61,8 @@ const OrgLogin = () => {
 
       toast.success('Successfully logged in');
       
-      // App component will handle redirection based on role
+      // Redirect to dashboard after successful login
+      window.location.href = '/dashboard';
     } catch (error: any) {
       console.error('Login error:', error);
       toast.error(error.message || 'Invalid email or password');

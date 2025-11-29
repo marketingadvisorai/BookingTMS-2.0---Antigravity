@@ -21,13 +21,14 @@ const CANCELLATION_WINDOW_HOURS = 24;
 // Database row types
 interface BookingRow {
   id: string;
-  booking_reference: string;
+  booking_number: string | null;  // Fixed: was booking_reference
   status: BookingStatus;
   activity_id: string;
   booking_date: string;
   start_time: string;
   end_time: string;
-  party_size: number;
+  party_size: number | null;
+  players: number | null;  // Legacy field
   total_amount: number | null;
   payment_status: PaymentStatus | null;
   created_at: string;
@@ -107,7 +108,7 @@ export async function getCustomerBookings(
 
       return {
         id: booking.id,
-        bookingReference: booking.booking_reference,
+        bookingReference: booking.booking_number || booking.id.slice(0, 8).toUpperCase(),
         status: booking.status,
         activityId: booking.activity_id,
         activityName: activity?.name || 'Unknown Activity',
@@ -119,7 +120,7 @@ export async function getCustomerBookings(
         bookingDate: booking.booking_date,
         startTime: booking.start_time,
         endTime: booking.end_time,
-        partySize: booking.party_size,
+        partySize: booking.party_size || booking.players || 1,
         totalAmount: booking.total_amount || 0,
         currency: 'USD',
         paymentStatus: booking.payment_status || 'pending',
@@ -147,13 +148,14 @@ export async function getBookingById(
       .from('bookings')
       .select(`
         id,
-        booking_reference,
+        booking_number,
         status,
         activity_id,
         booking_date,
         start_time,
         end_time,
         party_size,
+        players,
         total_amount,
         payment_status,
         created_at,
@@ -189,7 +191,7 @@ export async function getBookingById(
 
     return {
       id: booking.id,
-      bookingReference: booking.booking_reference,
+      bookingReference: booking.booking_number || booking.id.slice(0, 8).toUpperCase(),
       status: booking.status,
       activityId: booking.activity_id,
       activityName: activity?.name || 'Unknown Activity',
@@ -201,7 +203,7 @@ export async function getBookingById(
       bookingDate: booking.booking_date,
       startTime: booking.start_time,
       endTime: booking.end_time,
-      partySize: booking.party_size,
+      partySize: booking.party_size || booking.players || 1,
       totalAmount: booking.total_amount || 0,
       currency: 'USD',
       paymentStatus: booking.payment_status || 'pending',

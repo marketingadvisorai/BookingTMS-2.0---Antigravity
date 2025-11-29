@@ -53,11 +53,23 @@ export async function lookupCustomer(
 
     // Handle booking reference lookup separately
     if (request.method === 'booking_reference') {
-      const { data: booking } = await supabase
+      // Try booking_number first, then confirmation_code as fallback
+      const searchValue = request.value.toUpperCase().trim();
+      let { data: booking } = await supabase
         .from('bookings')
         .select('customer_id')
-        .eq('booking_reference', request.value.toUpperCase().trim())
+        .eq('booking_number', searchValue)
         .single<BookingRow>();
+      
+      // If not found by booking_number, try confirmation_code
+      if (!booking?.customer_id) {
+        const { data: bookingByCode } = await supabase
+          .from('bookings')
+          .select('customer_id')
+          .eq('confirmation_code', searchValue)
+          .single<BookingRow>();
+        booking = bookingByCode;
+      }
       
       if (!booking?.customer_id) {
         return {

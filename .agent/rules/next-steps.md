@@ -311,9 +311,10 @@
 |--------|------|----------|--------|
 | [x] | **1.1 Fix Customers Page** - Remove dead mock data, verify real DB integration ✅ | 🔴 High | Done |
 | [x] | **1.2 Verify Stripe Webhook** - Enhanced & deployed with checkout.session handler ✅ | 🔴 High | Done |
-| [ ] | **1.3 Test E2E Booking Flow** - Widget → Checkout → Payment → Confirmation | 🔴 High | 1 hr |
+| [x] | **1.3 Fix Customer Portal** - Fixed DB field mismatch, added test customer ✅ | 🔴 High | Done |
 | [x] | **1.4 Email Confirmation** - Integrated Resend via stripe-webhook ✅ | 🔴 High | Done |
 | [ ] | **1.5 Enable RLS Policies** - Secure `bookings`, `customers`, `embed_configs` | 🔴 High | 1 hr |
+| [ ] | **1.6 Test E2E Booking Flow** - Widget → Checkout → Payment → Confirmation | 🔴 High | 1 hr |
 
 #### Task 1.1: Fix Customers Page ✅ COMPLETED (Nov 29, 2025)
 - **Finding**: Page already used `useCustomers()` hook - mockCustomers was dead code
@@ -342,7 +343,19 @@
   - Creates customer record if not exists
   - Creates booking with proper metadata from session
 
-#### Task 1.3: End-to-End Booking Test
+#### Task 1.3: Fix Customer Portal ✅ COMPLETED (Nov 29, 2025)
+- **Problem**: Customer Portal showed "venue not found" - database field mismatch
+- **Root Cause**: Service used `booking_reference` but database has `booking_number`
+- **Actions Taken**:
+  - Fixed `customerBooking.service.ts` - changed `booking_reference` to `booking_number`
+  - Fixed `customerAuth.service.ts` - lookup by `booking_number` with `confirmation_code` fallback
+  - Added `players` field support for legacy bookings
+  - Created test customer: `test@bookingtms.com`
+  - Created test booking: `BK-TEST-c352` for Dec 6, 2025
+- **Architecture Doc**: `/docs/CUSTOMER_PORTAL_ARCHITECTURE.md`
+- **Test URL**: `http://localhost:5173/my-bookings`
+
+#### Task 1.6: End-to-End Booking Test (Moved)
 - **Flow**: Embed Widget → Select Activity/Date/Time → Checkout → Stripe Payment → Webhook → Database → Success Page
 - **Test Cards**: `4242 4242 4242 4242` (success), `4000 0000 0000 0002` (decline)
 

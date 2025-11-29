@@ -1,9 +1,9 @@
 # Bookings Feature Module Architecture
 
-> Version: v0.1.58
+> Version: v0.1.59
 > Date: 2025-11-30
-> Status: 🚧 In Progress (Refactoring)
-> Main file reduced: 3,410 → 2,875 lines (-535 lines)
+> Status: ✅ Dialog Components Extracted
+> Main file reduced: 3,410 → 1,655 lines (-1,755 lines, 51% reduction)
 
 ## Overview
 
@@ -20,14 +20,20 @@ src/features/bookings/
 │   ├── WeekView.tsx             # ✅ Extracted (169 lines)
 │   ├── DayView.tsx              # ✅ Extracted (183 lines)
 │   ├── ScheduleView.tsx         # ✅ Extracted (170 lines)
-│   ├── BookingTable.tsx         # ⏳ TODO
-│   ├── BookingFilters.tsx       # ⏳ TODO
-│   ├── BookingStats.tsx         # ⏳ TODO
-│   ├── AddBookingDialog.tsx     # ⏳ TODO
-│   ├── BookingDetailsDialog.tsx # ⏳ TODO
-│   ├── RefundDialog.tsx         # ⏳ TODO
-│   ├── RescheduleDialog.tsx     # ⏳ TODO
-│   └── AttendeeListDialog.tsx   # ⏳ TODO
+│   ├── AddBookingDialog.tsx     # ✅ Extracted (245 lines)
+│   ├── BookingDetailsDialog.tsx # ✅ Extracted (222 lines)
+│   ├── RefundDialog.tsx         # ✅ Extracted (128 lines)
+│   ├── RescheduleDialog.tsx     # ✅ Extracted (157 lines)
+│   ├── CancelDialog.tsx         # ✅ Extracted (78 lines)
+│   ├── AttendeeListDialog.tsx   # ✅ Extracted (210 lines)
+│   ├── add-booking/             # AddBookingDialog step components
+│   │   ├── index.ts             # Barrel export
+│   │   ├── Step1CustomerInfo.tsx    # ✅ (75 lines)
+│   │   ├── Step2BookingDetails.tsx  # ✅ (200 lines)
+│   │   └── Step3PaymentConfirmation.tsx # ✅ (185 lines)
+│   ├── BookingTable.tsx         # ⏳ TODO (future)
+│   ├── BookingFilters.tsx       # ⏳ TODO (future)
+│   └── BookingStats.tsx         # ⏳ TODO (future)
 ├── hooks/
 │   └── useBookingFilters.ts     # ⏳ TODO - Date range filtering
 ├── types/
@@ -38,9 +44,9 @@ src/features/bookings/
 
 ## Original File Analysis
 
-**Source**: `src/pages/Bookings.tsx` (3,409 lines)
+**Source**: `src/pages/Bookings.tsx` (Originally 3,409 lines → Now 1,655 lines)
 
-### Components to Extract
+### Extracted Components
 
 | Component | Lines | Priority | Status |
 |-----------|-------|----------|--------|
@@ -48,12 +54,20 @@ src/features/bookings/
 | WeekView | 169 | High | ✅ Done |
 | DayView | 183 | High | ✅ Done |
 | ScheduleView | 170 | High | ✅ Done |
-| AddBookingDialog | ~550 | High | ⏳ Pending |
-| BookingDetailsDialog | ~210 | High | ⏳ Pending |
-| RefundDialog | ~100 | Medium | ⏳ Pending |
-| AttendeeListDialog | ~190 | Medium | ⏳ Pending |
-| RescheduleDialog | ~130 | Medium | ⏳ Pending |
-| CancelDialog | ~50 | Low | ⏳ Pending |
+| AddBookingDialog | 245 | High | ✅ Done (Nov 30, 2025) |
+| BookingDetailsDialog | 222 | High | ✅ Done (Nov 30, 2025) |
+| RefundDialog | 128 | Medium | ✅ Done (Nov 30, 2025) |
+| RescheduleDialog | 157 | Medium | ✅ Done (Nov 30, 2025) |
+| CancelDialog | 78 | Medium | ✅ Done (Nov 30, 2025) |
+| AttendeeListDialog | 210 | Medium | ✅ Done (Nov 30, 2025) |
+
+### AddBookingDialog Sub-Components
+
+| Component | Lines | Purpose |
+|-----------|-------|---------|
+| Step1CustomerInfo | 75 | Customer name, email, phone |
+| Step2BookingDetails | 200 | Venue, game, date, time, group size |
+| Step3PaymentConfirmation | 185 | Payment method, summary, confirmation |
 
 ### Logic to Extract
 
@@ -123,14 +137,21 @@ Dialogs (AddBooking, Details, Refund, etc.)
 - **Service**: `src/services/AdminBookingService.ts` - Admin booking creation
 - **Original Page**: `src/pages/Bookings.tsx` - Main page (being refactored)
 
-## Next Steps
+## Completed Steps
 
-1. Extract `WeekView`, `DayView`, `ScheduleView`
-2. Extract `AddBookingDialog` (largest dialog ~550 lines)
-3. Extract `BookingDetailsDialog`
-4. Create `useBookingFilters` hook for date range logic
-5. Update `Bookings.tsx` to use extracted components
-6. Final cleanup and testing
+1. ✅ Extract `WeekView`, `DayView`, `ScheduleView` - Done
+2. ✅ Extract `AddBookingDialog` with step components - Done (Nov 30, 2025)
+3. ✅ Extract `BookingDetailsDialog` - Done (Nov 30, 2025)
+4. ✅ Extract all other dialogs (Refund, Reschedule, Cancel, AttendeeList) - Done (Nov 30, 2025)
+5. ✅ Update `Bookings.tsx` to use extracted components - Done (Nov 30, 2025)
+
+## Future Steps
+
+1. Create `useBookingFilters` hook for date range logic (~100 lines from main file)
+2. Extract `BookingTable` component for table view
+3. Extract `BookingFilters` component for search/filter UI
+4. Extract `BookingStats` component for statistics cards
+5. Remove seed data (mock bookings) once real data is stable
 
 ## Contributing
 

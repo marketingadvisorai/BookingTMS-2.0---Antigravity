@@ -15,10 +15,10 @@ src/features/bookings/
 ├── ARCHITECTURE.md          # This file
 ├── components/
 │   ├── index.ts             # Barrel export
-│   ├── MonthCalendarView.tsx    # ✅ Extracted (200 lines)
-│   ├── WeekView.tsx             # ⏳ TODO
-│   ├── DayView.tsx              # ⏳ TODO
-│   ├── ScheduleView.tsx         # ⏳ TODO
+│   ├── MonthCalendarView.tsx    # ✅ Extracted (208 lines)
+│   ├── WeekView.tsx             # ✅ Extracted (169 lines)
+│   ├── DayView.tsx              # ✅ Extracted (183 lines)
+│   ├── ScheduleView.tsx         # ✅ Extracted (170 lines)
 │   ├── BookingTable.tsx         # ⏳ TODO
 │   ├── BookingFilters.tsx       # ⏳ TODO
 │   ├── BookingStats.tsx         # ⏳ TODO
@@ -43,10 +43,10 @@ src/features/bookings/
 
 | Component | Lines | Priority | Status |
 |-----------|-------|----------|--------|
-| MonthCalendarView | ~140 | High | ✅ Done |
-| WeekView | ~130 | High | ⏳ Pending |
-| DayView | ~120 | High | ⏳ Pending |
-| ScheduleView | ~130 | High | ⏳ Pending |
+| MonthCalendarView | 208 | High | ✅ Done |
+| WeekView | 169 | High | ✅ Done |
+| DayView | 183 | High | ✅ Done |
+| ScheduleView | 170 | High | ✅ Done |
 | AddBookingDialog | ~550 | High | ⏳ Pending |
 | BookingDetailsDialog | ~210 | High | ⏳ Pending |
 | RefundDialog | ~100 | Medium | ⏳ Pending |

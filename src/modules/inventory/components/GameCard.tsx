@@ -12,7 +12,8 @@ import {
     Trash2,
     Calendar,
     Power,
-    Trophy
+    Trophy,
+    MapPin
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -73,10 +74,16 @@ export function GameCard({
 
             <CardHeader className="p-4 pb-2">
                 <div className="flex justify-between items-start">
-                    <div>
+                    <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-lg line-clamp-1 text-gray-900 dark:text-white">
                             {game.name}
                         </h3>
+                        {game.venue_name && (
+                            <div className="flex items-center gap-1 mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                <MapPin className="w-3 h-3" />
+                                <span className="truncate">{game.venue_name}</span>
+                            </div>
+                        )}
                         <div className="flex items-center gap-2 mt-1">
                             <Badge variant="outline" className="text-xs font-normal">
                                 {game.difficulty}

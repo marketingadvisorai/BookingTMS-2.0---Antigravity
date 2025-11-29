@@ -61,43 +61,52 @@ export type CreateActivityInput = Omit<Activity, 'id' | 'created_at' | 'updated_
 
 export class ActivityService {
     /**
-     * Fetch all activities for a specific venue
+     * Fetch all activities for a specific venue with venue/org info
      */
     static async listActivities(venueId: string): Promise<Activity[]> {
         try {
             const { data, error } = await (supabase
                 .from('activities') as any)
-                .select('*')
+                .select(`
+                    *,
+                    venue:venues(id, name, organization_id),
+                    organization:organizations(id, name)
+                `)
                 .eq('venue_id', venueId)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
 
             return (data || []).map((item: any) => {
-                // Reconstruct schedule from settings if it exists there
-                const schedule: ActivityScheduleRules | undefined = item.settings ? {
-                    operatingDays: item.settings.operatingDays || [],
-                    startTime: item.settings.startTime || '09:00',
-                    endTime: item.settings.endTime || '17:00',
-                    slotInterval: item.settings.slotInterval || 60,
-                    advanceBooking: item.settings.advanceBooking || 0,
-                    customHoursEnabled: item.settings.customHoursEnabled || false,
-                    customHours: item.settings.customHours || {},
-                    customDates: item.settings.customDates || [],
-                    blockedDates: item.settings.blockedDates || []
-                } : undefined;
+                // Extract schedule from BOTH schedule column and settings (fallback)
+                const scheduleData = item.schedule || {};
+                const settingsData = item.settings || {};
+                
+                const schedule: ActivityScheduleRules = {
+                    operatingDays: scheduleData.operatingDays || settingsData.operatingDays || [],
+                    startTime: scheduleData.startTime || settingsData.startTime || '09:00',
+                    endTime: scheduleData.endTime || settingsData.endTime || '17:00',
+                    slotInterval: scheduleData.slotInterval || settingsData.slotInterval || 60,
+                    advanceBooking: scheduleData.advanceBooking || settingsData.advanceBooking || 0,
+                    customHoursEnabled: scheduleData.customHoursEnabled || settingsData.customHoursEnabled || false,
+                    customHours: scheduleData.customHours || settingsData.customHours || {},
+                    customDates: scheduleData.customDates || settingsData.customDates || [],
+                    blockedDates: scheduleData.blockedDates || settingsData.blockedDates || []
+                };
 
                 return {
                     ...item,
-                    // Map legacy fields if necessary, or just pass through
-                    capacity: item.max_players || item.capacity || 1, // Fallback
+                    // Include venue and organization info
+                    venue_name: item.venue?.name || null,
+                    organization_name: item.organization?.name || null,
+                    // Map legacy fields
+                    capacity: item.max_players || item.capacity || 1,
                     min_players: item.min_players || 1,
                     max_players: item.max_players || item.capacity || 10,
-
-                    child_price: item.settings?.child_price || 0,
-                    min_age: item.settings?.min_age || 0,
-                    status: item.is_active ? 'active' : 'inactive', // Map is_active to status
-                    schedule // Attach reconstructed schedule
+                    child_price: settingsData.child_price || 0,
+                    min_age: settingsData.min_age || 0,
+                    status: item.is_active ? 'active' : 'inactive',
+                    schedule
                 };
             });
         } catch (error: any) {
@@ -178,6 +187,9 @@ export class ActivityService {
 
             const { capacity, child_price, min_age, slug, tagline, success_rate, status, ...restInput } = input as any;
 
+            // Extract schedule from input
+            const scheduleInput = (input as any).schedule || {};
+
             // Construct the insert object matching the 'activities' table schema
             const insertData = {
                 ...restInput,
@@ -192,13 +204,25 @@ export class ActivityService {
                 min_players: input.min_players || 1,
                 max_players: input.max_players || capacity,
                 is_active: status === 'active', // Map status to is_active
+                // Save schedule to both schedule column AND settings for widget compatibility
+                schedule: scheduleInput,
                 settings: {
                     ...input.settings,
                     child_price: child_price !== undefined ? child_price : input.settings?.child_price,
                     min_age: min_age !== undefined ? min_age : input.settings?.min_age,
                     slug: (input as any).slug,
                     tagline: (input as any).tagline,
-                    success_rate: (input as any).success_rate
+                    success_rate: (input as any).success_rate,
+                    // Also store schedule fields in settings for widget backward compatibility
+                    operatingDays: scheduleInput.operatingDays || input.settings?.operatingDays,
+                    startTime: scheduleInput.startTime || input.settings?.startTime,
+                    endTime: scheduleInput.endTime || input.settings?.endTime,
+                    slotInterval: scheduleInput.slotInterval || input.settings?.slotInterval,
+                    advanceBooking: scheduleInput.advanceBooking || input.settings?.advanceBooking,
+                    customHoursEnabled: scheduleInput.customHoursEnabled || input.settings?.customHoursEnabled,
+                    customHours: scheduleInput.customHours || input.settings?.customHours,
+                    customDates: scheduleInput.customDates || input.settings?.customDates,
+                    blockedDates: scheduleInput.blockedDates || input.settings?.blockedDates,
                 }
             };
 

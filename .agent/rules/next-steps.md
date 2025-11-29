@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
-> Last Updated: 2025-11-30 04:15 UTC+6
-> Version: v0.1.63-phase2-complete
+> Last Updated: 2025-11-30 04:35 UTC+6
+> Version: v0.1.64-activity-embed-fixes
 
 ---
 
@@ -479,6 +479,54 @@
 - **Hook**: useCustomerDedup - scan and merge operations
 - **Algorithm**: Match score based on email (100), phone (80), name (60)
 - **Features**: Levenshtein distance for name similarity, booking migration
+
+---
+
+## Bug Fixes (Nov 30, 2025)
+
+### Fix: Activities Not Showing Venue/Org Info ✅ COMPLETED
+**Issue**: Activities created on venues weren't showing venue name and organization name on the Activities page.
+
+**Root Cause**: `ActivityService.listActivities` only selected `*` from activities table without JOINing venues/organizations tables.
+
+**Solution**:
+1. Updated `ActivityService.listActivities` to include JOIN with `venues` and `organizations` tables
+2. Added `venue_name` and `organization_name` fields to `Activity` return type
+3. Updated `Game` interface in `/src/modules/inventory/types.ts` with optional venue/org name fields
+4. Updated `GameCard.tsx` to display venue name with MapPin icon
+5. Updated `Events.tsx` to map venue_name and organization_name to games
+
+**Files Modified**:
+- `src/modules/inventory/services/activity.service.ts` - Added JOINs
+- `src/modules/inventory/types.ts` - Added venue_name, organization_name
+- `src/modules/inventory/components/GameCard.tsx` - Added venue display
+- `src/pages/Events.tsx` - Updated game mapping
+
+### Fix: Embed Pro Not Showing Schedules for Venue Widgets ✅ COMPLETED
+**Issue**: Venue widgets in Embed Pro weren't displaying schedules, time slots, or booking activities.
+
+**Root Cause**: 
+1. Schedule data stored in BOTH `schedule` JSONB column AND `settings.operatingDays` etc.
+2. `widgetData.normalizer.extractSchedule()` only read from `settings`, ignoring `schedule` column
+3. Queries didn't explicitly select the `schedule` column
+
+**Solution**:
+1. Updated `widgetData.normalizer.ts`:
+   - Added `schedule` field to `RawActivity` interface
+   - Modified `extractSchedule()` to read from BOTH `schedule` column AND `settings`
+   - Priority: `schedule` column > `settings` > defaults
+2. Updated `embedProData.service.ts`:
+   - `getActivityWithVenue` - explicitly selects `schedule` column
+   - `getVenueWithActivities` - explicitly selects `schedule` column for activities
+   - `getMultipleActivities` - explicitly selects `schedule` column
+   - Added debug logging for schedule presence
+3. Updated `ActivityService.createActivity`:
+   - Saves schedule to BOTH `schedule` column AND `settings` JSONB for backward compatibility
+
+**Files Modified**:
+- `src/modules/embed-pro/services/widgetData.normalizer.ts` - Dual-source schedule reading
+- `src/modules/embed-pro/services/embedProData.service.ts` - Explicit schedule column selection
+- `src/modules/inventory/services/activity.service.ts` - Dual-save for schedule data
 
 ### Phase 3: Nice-to-Have (Polish)
 

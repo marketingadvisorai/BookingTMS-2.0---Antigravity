@@ -34,6 +34,7 @@ export interface RawActivity {
   child_price?: number | null;
   currency?: string;
   settings: Record<string, any> | null;
+  schedule?: Record<string, any> | null; // Schedule column (JSONB)
   stripe_price_id: string | null;
   stripe_product_id: string | null;
   stripe_prices?: Record<string, any> | null;
@@ -96,7 +97,8 @@ class WidgetDataNormalizer {
    * Normalize activity from database to widget format
    */
   normalizeActivity(raw: RawActivity): WidgetActivity {
-    const schedule = this.extractSchedule(raw.settings);
+    // Read schedule from both schedule column AND settings (for backward compatibility)
+    const schedule = this.extractSchedule(raw.settings, raw.schedule);
     const pricingTiers = this.extractPricingTiers(raw);
 
     return {
@@ -140,19 +142,24 @@ class WidgetDataNormalizer {
   }
 
   /**
-   * Extract schedule configuration from settings JSONB
+   * Extract schedule configuration from schedule column AND settings JSONB
+   * Priority: schedule column > settings > defaults
    */
-  extractSchedule(settings: Record<string, any> | null): ActivitySchedule {
-    if (!settings) return { ...DEFAULT_SCHEDULE };
+  extractSchedule(
+    settings: Record<string, any> | null,
+    schedule?: Record<string, any> | null
+  ): ActivitySchedule {
+    const sched = schedule || {};
+    const sets = settings || {};
 
     return {
-      operatingDays: settings.operatingDays || DEFAULT_SCHEDULE.operatingDays,
-      startTime: settings.startTime || DEFAULT_SCHEDULE.startTime,
-      endTime: settings.endTime || DEFAULT_SCHEDULE.endTime,
-      slotInterval: settings.slotInterval || settings.slotDuration || DEFAULT_SCHEDULE.slotInterval,
-      blockedDates: settings.blockedDates || [],
-      customAvailableDates: settings.customAvailableDates || [],
-      advanceBookingDays: settings.advanceBookingDays || DEFAULT_SCHEDULE.advanceBookingDays,
+      operatingDays: sched.operatingDays || sets.operatingDays || DEFAULT_SCHEDULE.operatingDays,
+      startTime: sched.startTime || sets.startTime || DEFAULT_SCHEDULE.startTime,
+      endTime: sched.endTime || sets.endTime || DEFAULT_SCHEDULE.endTime,
+      slotInterval: sched.slotInterval || sets.slotInterval || sets.slotDuration || DEFAULT_SCHEDULE.slotInterval,
+      blockedDates: sched.blockedDates || sets.blockedDates || [],
+      customAvailableDates: sched.customAvailableDates || sched.customDates || sets.customAvailableDates || sets.customDates || [],
+      advanceBookingDays: sched.advanceBookingDays || sched.advanceBooking || sets.advanceBookingDays || sets.advanceBooking || DEFAULT_SCHEDULE.advanceBookingDays,
     };
   }
 

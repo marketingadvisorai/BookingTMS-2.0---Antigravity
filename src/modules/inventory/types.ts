@@ -17,6 +17,9 @@ export interface Game {
   video_url?: string;
   created_at: string;
   updated_at: string;
+  // Joined fields for display
+  venue_name?: string | null;
+  organization_name?: string | null;
 }
 
 export interface GameFilters {

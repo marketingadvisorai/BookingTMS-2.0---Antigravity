@@ -104,7 +104,13 @@ class EmbedProDataService {
   } | null> {
     const { data, error } = await supabase
       .from('activities')
-      .select(`*, venue:venues(*)`)
+      .select(`
+        id, organization_id, venue_id, name, description, tagline, image_url,
+        duration, difficulty, min_players, max_players, price, child_price,
+        settings, schedule, stripe_price_id, stripe_product_id, stripe_prices,
+        is_active, created_at,
+        venue:venues(*)
+      `)
       .eq('id', activityId)
       .eq('is_active', true)
       .single();
@@ -115,6 +121,8 @@ class EmbedProDataService {
     }
 
     const raw = data as RawActivity & { venue: RawVenue | null };
+    console.log('[EmbedProData] Activity loaded:', raw.name, 'Schedule:', !!raw.schedule, 'Settings schedule:', !!raw.settings?.operatingDays);
+    
     return {
       activity: widgetDataNormalizer.normalizeActivity(raw),
       venue: raw.venue ? widgetDataNormalizer.normalizeVenue(raw.venue) : null,
@@ -130,7 +138,15 @@ class EmbedProDataService {
   } | null> {
     const { data, error } = await supabase
       .from('venues')
-      .select(`*, activities(*)`)
+      .select(`
+        *,
+        activities(
+          id, organization_id, venue_id, name, description, tagline, image_url,
+          duration, difficulty, min_players, max_players, price, child_price,
+          settings, schedule, stripe_price_id, stripe_product_id, stripe_prices,
+          is_active, created_at
+        )
+      `)
       .eq('id', venueId)
       .eq('status', 'active')
       .single();
@@ -145,6 +161,9 @@ class EmbedProDataService {
       .filter((a: any) => a.is_active === true)
       .map(a => ({ ...a, venue: { name: raw.name } }));
 
+    console.log('[EmbedProData] Venue activities loaded:', activeActivities.length, 
+      'Schedule present:', activeActivities.map(a => !!a.schedule || !!a.settings?.operatingDays));
+
     return {
       venue: widgetDataNormalizer.normalizeVenue(raw),
       activities: activeActivities.map(a => widgetDataNormalizer.normalizeActivity(a)),
@@ -157,7 +176,12 @@ class EmbedProDataService {
   async getMultipleActivities(activityIds: string[]): Promise<WidgetActivity[]> {
     const { data, error } = await supabase
       .from('activities')
-      .select('*')
+      .select(`
+        id, organization_id, venue_id, name, description, tagline, image_url,
+        duration, difficulty, min_players, max_players, price, child_price,
+        settings, schedule, stripe_price_id, stripe_product_id, stripe_prices,
+        is_active, created_at
+      `)
       .in('id', activityIds)
       .eq('is_active', true);
 

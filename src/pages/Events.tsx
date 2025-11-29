@@ -77,9 +77,12 @@ export function Events() {
       image_url: item.image_url,
       is_active: item.status === 'active',
       created_at: item.created_at,
-      updated_at: item.updated_at
+      updated_at: item.updated_at,
+      // Include venue and organization names from joined data
+      venue_name: item.venue_name || activeVenue?.name || null,
+      organization_name: item.organization_name || organization?.name || null
     }));
-  }, [serviceItems]);
+  }, [serviceItems, activeVenue, organization]);
 
   // Calculate stats from service items
   const stats = useMemo(() => {

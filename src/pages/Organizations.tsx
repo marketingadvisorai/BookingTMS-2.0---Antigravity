@@ -47,6 +47,8 @@ import {
   ExternalLink,
   Mail,
   Phone,
+  KeyRound,
+  UserCog,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -68,6 +70,7 @@ import { useOrganizations, usePlans } from '../features/system-admin/hooks';
 import { OrganizationService } from '../features/system-admin/services';
 import { OrganizationModal } from '../features/system-admin/components/organizations/OrganizationModal';
 import { OrganizationSettingsModal } from '../components/organizations';
+import { UserPasswordResetModal } from '../components/admin';
 import { toast } from 'sonner';
 import { formatDate, formatCurrency } from '../features/system-admin/utils';
 import type { Organization, CreateOrganizationDTO } from '../features/system-admin/types';
@@ -108,7 +111,9 @@ export function Organizations() {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+  const [resetUser, setResetUser] = useState<{ id: string; email: string; name: string } | null>(null);
   const [hasError, setHasError] = useState(false);
 
   // Data hooks with error boundary
@@ -153,6 +158,19 @@ export function Organizations() {
   const handleSettings = (org: Organization) => {
     setSelectedOrg(org);
     setIsSettingsModalOpen(true);
+  };
+
+  const handleResetPassword = (org: Organization) => {
+    if (org.owner_email) {
+      setResetUser({
+        id: (org as any).owner_user_id || org.id, // Use owner_user_id if available
+        email: org.owner_email,
+        name: org.owner_name || org.name,
+      });
+      setIsPasswordResetOpen(true);
+    } else {
+      toast.error('No owner email configured for this organization');
+    }
   };
 
   const handleDelete = async (org: Organization) => {
@@ -377,6 +395,7 @@ export function Organizations() {
             onEdit={handleEdit}
             onSettings={handleSettings}
             onDelete={handleDelete}
+            onResetPassword={handleResetPassword}
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -387,6 +406,7 @@ export function Organizations() {
                 onEdit={handleEdit}
                 onSettings={handleSettings}
                 onDelete={handleDelete}
+                onResetPassword={handleResetPassword}
               />
             ))}
           </div>
@@ -440,6 +460,16 @@ export function Organizations() {
             }}
           />
         )}
+
+        {/* Password Reset Modal */}
+        <UserPasswordResetModal
+          open={isPasswordResetOpen}
+          onClose={() => {
+            setIsPasswordResetOpen(false);
+            setResetUser(null);
+          }}
+          user={resetUser}
+        />
       </div>
     </div>
   );
@@ -481,12 +511,14 @@ function OrganizationCard({
   organization, 
   onEdit, 
   onSettings, 
-  onDelete 
+  onDelete,
+  onResetPassword 
 }: {
   organization: Organization;
   onEdit: (org: Organization) => void;
   onSettings: (org: Organization) => void;
   onDelete: (org: Organization) => void;
+  onResetPassword: (org: Organization) => void;
 }) {
   const statusInfo = statusConfig[organization.status] || statusConfig.pending;
 
@@ -521,6 +553,11 @@ function OrganizationCard({
               <DropdownMenuItem onClick={() => onEdit(organization)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onResetPassword(organization)}>
+                <KeyRound className="mr-2 h-4 w-4" />
+                Reset Password
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
@@ -594,12 +631,14 @@ function OrganizationsTable({
   organizations, 
   onEdit, 
   onSettings, 
-  onDelete 
+  onDelete,
+  onResetPassword 
 }: {
   organizations: Organization[];
   onEdit: (org: Organization) => void;
   onSettings: (org: Organization) => void;
   onDelete: (org: Organization) => void;
+  onResetPassword: (org: Organization) => void;
 }) {
   return (
     <Card>
@@ -692,6 +731,11 @@ function OrganizationsTable({
                           <DropdownMenuItem onClick={() => onEdit(org)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => onResetPassword(org)}>
+                            <KeyRound className="mr-2 h-4 w-4" />
+                            Reset Password
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 

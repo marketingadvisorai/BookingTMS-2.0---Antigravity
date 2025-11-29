@@ -203,14 +203,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const initializeSupabaseAuth = async (supabase: any) => {
+  const initializeSupabaseAuth = async (supabase: any): Promise<(() => void) | undefined> => {
     try {
       // Check for existing session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
         console.error('Error getting session:', sessionError);
-        return;
+        return undefined;
       }
 
       if (session?.user) {
@@ -238,6 +238,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
     } catch (error) {
       console.error('Supabase auth initialization failed:', error);
+      return undefined;
     }
   };
 

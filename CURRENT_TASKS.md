@@ -1,7 +1,7 @@
 # Current Task List
 
-> **Last Updated**: 2025-11-30 02:00 UTC+6
-> **Version**: v0.1.58
+> **Last Updated**: 2025-11-30 03:50 UTC+6
+> **Version**: v0.1.63
 > **For**: AI Agents, Developers, Designers
 
 ---
@@ -17,18 +17,23 @@
 | Bookings Module Structure | ✅ Done | types, utils extracted |
 | Calendar Views Extraction | ✅ Done | 4 views: Month, Week, Day, Schedule |
 | Integrate Modules into Bookings.tsx | ✅ Done | 3,410 → 2,875 lines (-535) |
+| Extract BookingTableView | ✅ Done | 3,410 → 1,222 lines (64% reduction) |
+| Remove Seed Data | ✅ Done | Cleaned up unused mock data |
+| QR Ticket System | ✅ Done | v0.1.62 - QR generation, scanning, check-in |
+| Refund Processing | ✅ Done | v0.1.61 - Stripe refund edge function |
 
 ### 🔄 In Progress
 | Task | Priority | Assignee | ETA |
 |------|----------|----------|-----|
-| Extract Booking Dialogs | 🔴 High | Any Agent | 1.5 hrs |
+| - | - | - | - |
 
 ### 📋 Up Next
 | Task | Priority | Depends On |
 |------|----------|------------|
-| Test Org Admin Portal Isolation | 🟡 Medium | - |
-| Refactor Bookings.tsx (3409 lines) | 🔴 High | Coding Standards |
-| Refactor Marketing.tsx (2772 lines) | 🟡 Medium | Bookings done |
+| Refactor Marketing.tsx (2772 lines) | 🔴 High | Bookings done ✅ |
+| Admin Notification (Email/Slack) | 🟡 Medium | - |
+| Booking Receipt PDF | 🟡 Medium | - |
+| Capacity Management (Block/unblock sessions) | 🟡 Medium | - |
 
 ---
 
@@ -38,7 +43,7 @@
 
 | File | Current Lines | Target | Priority |
 |------|---------------|--------|----------|
-| `src/pages/Bookings.tsx` | 3,409 | < 250 | 🔴 CRITICAL |
+| `src/pages/Bookings.tsx` | 1,222 ✅ (was 3,409) | < 500 | 🟢 Good Progress |
 | `src/pages/Marketing.tsx` | 2,772 | < 250 | 🔴 High |
 | `src/components/widgets/FareBookWidget.tsx` | 2,747 | < 250 | 🔴 High |
 | `src/pages/SystemAdminDashboard.tsx` | 1,901 | < 250 | 🟡 Medium |

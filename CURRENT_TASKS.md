@@ -1,7 +1,7 @@
 # Current Task List
 
-> **Last Updated**: 2025-11-30 01:50 UTC+6
-> **Version**: v0.1.57
+> **Last Updated**: 2025-11-30 02:00 UTC+6
+> **Version**: v0.1.58
 > **For**: AI Agents, Developers, Designers
 
 ---
@@ -16,11 +16,12 @@
 | Enterprise Coding Standards | ✅ Done | `.agent/rules/coding-standards.md` |
 | Bookings Module Structure | ✅ Done | types, utils extracted |
 | Calendar Views Extraction | ✅ Done | 4 views: Month, Week, Day, Schedule |
+| Integrate Modules into Bookings.tsx | ✅ Done | 3,410 → 2,875 lines (-535) |
 
 ### 🔄 In Progress
 | Task | Priority | Assignee | ETA |
 |------|----------|----------|-----|
-| Refactor Bookings.tsx (Dialogs) | 🔴 High | Any Agent | 2 hrs |
+| Extract Booking Dialogs | 🔴 High | Any Agent | 1.5 hrs |
 
 ### 📋 Up Next
 | Task | Priority | Depends On |

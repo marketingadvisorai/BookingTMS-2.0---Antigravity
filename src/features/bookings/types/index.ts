@@ -48,10 +48,12 @@ export interface GameOption {
   id: string;
   name: string;
   price: number;
+  childPrice?: number;
   duration: number;
-  minPlayers: number;
-  maxPlayers: number;
+  minPlayers?: number;
+  maxPlayers?: number;
   venueId?: string;
+  color?: string;
 }
 
 export interface AddBookingSubmission extends AddBookingFormValues {

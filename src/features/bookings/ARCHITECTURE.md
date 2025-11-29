@@ -1,8 +1,9 @@
 # Bookings Feature Module Architecture
 
-> Version: v0.1.57
+> Version: v0.1.58
 > Date: 2025-11-30
 > Status: 🚧 In Progress (Refactoring)
+> Main file reduced: 3,410 → 2,875 lines (-535 lines)
 
 ## Overview
 

@@ -41,9 +41,13 @@ export function Sidebar({ currentPage, onNavigate = () => { }, isMobileOpen = fa
   // Check admin roles
   const isSystemAdmin = isRole('system-admin');
   const isSuperAdmin = isRole('super-admin');
+  const isOrgAdmin = isRole('org-admin');
+  const isBetaOwner = isRole('beta-owner');
   const canManageOrgs = isSystemAdmin || isSuperAdmin;
+  const isOrgLevelUser = isOrgAdmin || isBetaOwner;
 
   // Navigation items with permission requirements
+  // Items are filtered based on role and permission
   let navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard.view' as Permission },
     { id: 'bookings', label: 'Bookings', icon: Calendar, permission: 'bookings.view' as Permission },
@@ -59,13 +63,19 @@ export function Sidebar({ currentPage, onNavigate = () => { }, isMobileOpen = fa
     { id: 'widgets', label: 'Booking Widgets', icon: Code, permission: 'widgets.view' as Permission },
     { id: 'embed-pro', label: 'Embed Pro 1.1', icon: Code2, permission: 'widgets.view' as Permission },
     { id: 'customers', label: 'Customers / Guests', icon: UserCircle, permission: 'customers.view' as Permission },
-    { id: 'inbox', label: 'Inbox', icon: Inbox, permission: 'dashboard.view' as Permission },
-    { id: 'campaigns', label: 'Campaigns', icon: Megaphone, permission: 'campaigns.view' as Permission },
-    { id: 'marketing', label: 'Marketing', icon: Tag, permission: 'marketing.view' as Permission },
-    { id: 'aiagents', label: 'AI Agents', icon: Bot, permission: 'ai-agents.view' as Permission },
-    { id: 'staff', label: 'Staff', icon: Users, permission: 'staff.view' as Permission },
+    // System-level items - hide for org-level users
+    ...(!isOrgLevelUser ? [
+      { id: 'inbox', label: 'Inbox', icon: Inbox, permission: 'dashboard.view' as Permission },
+      { id: 'campaigns', label: 'Campaigns', icon: Megaphone, permission: 'campaigns.view' as Permission },
+      { id: 'marketing', label: 'Marketing', icon: Tag, permission: 'marketing.view' as Permission },
+      { id: 'aiagents', label: 'AI Agents', icon: Bot, permission: 'ai-agents.view' as Permission },
+      { id: 'media', label: 'Media / Photos', icon: Image, permission: 'media.view' as Permission },
+    ] : []),
+    // Show staff only for system/super admins (org admins manage through their org settings)
+    ...(!isOrgLevelUser ? [
+      { id: 'staff', label: 'Staff', icon: Users, permission: 'staff.view' as Permission },
+    ] : []),
     { id: 'reports', label: 'Reports', icon: BarChart3, permission: 'reports.view' as Permission },
-    { id: 'media', label: 'Media / Photos', icon: Image, permission: 'media.view' as Permission },
     { id: 'waivers', label: 'Waivers', icon: FileText, permission: 'waivers.view' as Permission },
     { id: 'payment-history', label: 'Payments & History', icon: CreditCard, permission: 'payments.view' as Permission },
     { id: 'settings', label: 'Settings', icon: Settings, permission: 'settings.view' as Permission },

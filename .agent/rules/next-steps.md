@@ -1,7 +1,48 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
-> Last Updated: 2025-11-29
-> Version: v0.1.53-real-bookings
+> Last Updated: 2025-11-30
+> Version: v0.1.56-multi-tenant
+
+---
+
+## Multi-Tenant Architecture ✅ COMPLETED (Nov 30, 2025)
+
+### Tasks
+- [x] Enable RLS on all core tables (organizations, venues, activities, bookings, customers, embed_configs, users)
+- [x] Enable RLS on organization_members table
+- [x] Create multi-tenant architecture documentation with ERD (`/docs/MULTI_TENANT_ARCHITECTURE.md`)
+- [x] Add password reset functionality for org admins (Organizations page dropdown menu)
+- [x] Create role-based redirect utility (`/src/lib/auth/redirectUtils.ts`)
+- [x] Update Sidebar to hide system-level menu items for org-admin/beta-owner roles
+- [x] Support real Supabase auth in BetaLogin page (email + password)
+- [x] Add password visibility toggle to all login pages
+- [x] Create ForgotPassword and ResetPassword pages
+
+### Files Created/Modified
+- `docs/MULTI_TENANT_ARCHITECTURE.md` - Complete architecture with ERD
+- `docs/ORG_ADMIN_SETUP_GUIDE.md` - Setup and testing guide
+- `src/lib/auth/redirectUtils.ts` - Role-based redirect utility
+- `src/services/password.service.ts` - Password reset service
+- `src/pages/ForgotPassword.tsx` - Self-service password reset request
+- `src/pages/ResetPassword.tsx` - Set new password page
+- `src/components/admin/UserPasswordResetModal.tsx` - Admin password reset modal
+- `src/pages/Organizations.tsx` - Added Reset Password option
+- `src/components/layout/Sidebar.tsx` - Role-based menu filtering
+
+### Org Admin Portal Menu Items
+| Visible | Hidden |
+|---------|--------|
+| Dashboard | System Admin |
+| Bookings | Organizations |
+| Activities | Backend Dashboard |
+| Venues | Inbox |
+| Booking Widgets | Campaigns |
+| Embed Pro | Marketing |
+| Customers | AI Agents |
+| Reports | Staff |
+| Waivers | Media |
+| Settings | Account Settings |
+| Payments | |
 
 ---
 

@@ -6,18 +6,20 @@ import { useAuth } from '../lib/auth/AuthContext';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
-import { X } from 'lucide-react';
+import { X, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 
 const BetaLogin = () => {
   const { theme } = useTheme();
   const { login } = useAuth();
   const isDark = theme === 'dark';
 
-  const [username, setUsername] = useState('');
+  const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ emailOrUsername?: string; password?: string }>({});
 
   // Styling - Match main login page
   const bgOverlay = isDark ? 'bg-black/50' : 'bg-black/30';
@@ -29,12 +31,14 @@ const BetaLogin = () => {
   const inputBorder = isDark ? 'border-gray-700' : 'border-gray-300';
   const buttonHoverBg = isDark ? 'hover:bg-[#252525]' : 'hover:bg-gray-50';
 
-  const BETA_USERNAME = 'betaadmin';
-  const BETA_PASSWORD = '123admin';
+  // Demo credentials for testing (mock mode)
+  const DEMO_CREDENTIALS = {
+    'betaadmin': '123admin',
+  };
 
   const validateForm = () => {
-    const newErrors: { username?: string; password?: string } = {};
-    if (!username.trim()) newErrors.username = 'Username is required';
+    const newErrors: { emailOrUsername?: string; password?: string } = {};
+    if (!emailOrUsername.trim()) newErrors.emailOrUsername = 'Email or username is required';
     if (!password) newErrors.password = 'Password is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -47,21 +51,50 @@ const BetaLogin = () => {
     setLoading(true);
 
     try {
-      if (username !== BETA_USERNAME || password !== BETA_PASSWORD) {
+      const input = emailOrUsername.trim().toLowerCase();
+      
+      // Check if it's a demo username first
+      if (DEMO_CREDENTIALS[input as keyof typeof DEMO_CREDENTIALS]) {
+        if (password === DEMO_CREDENTIALS[input as keyof typeof DEMO_CREDENTIALS]) {
+          await login(input, password, 'beta-owner');
+          toast.success('Welcome to BookingTMS Beta!');
+          window.location.href = '/dashboard';
+          return;
+        } else {
+          toast.error('Invalid password for demo account');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Check if input looks like an email - try Supabase auth
+      if (input.includes('@')) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: input,
+          password: password,
+        });
+
+        if (error) {
+          console.error('Supabase login error:', error);
+          toast.error(error.message || 'Invalid email or password');
+          setLoading(false);
+          return;
+        }
+
+        if (data.user) {
+          toast.success('Welcome to BookingTMS!');
+          window.location.href = '/dashboard';
+          return;
+        }
+      } else {
+        // Not an email, not a recognized demo username
         toast.error('Invalid username or password');
         setLoading(false);
         return;
       }
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      await login(username, password, 'beta-owner');
-      toast.success('Welcome to BookingTMS Beta!');
-      
-      // Redirect to dashboard after successful login
-      window.location.href = '/dashboard';
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      toast.error('Login failed. Please try again.');
+      toast.error(error.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -99,43 +132,52 @@ const BetaLogin = () => {
         <div className="px-6 pb-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
           {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-4">
-            {/* Username Field */}
+            {/* Email or Username Field */}
             <div className="space-y-2">
               <Label className={isDark ? 'text-gray-300' : 'text-gray-700'}>
-                Username
+                Email or Username
               </Label>
               <Input
                 type="text"
-                value={username}
+                value={emailOrUsername}
                 onChange={(e) => {
-                  setUsername(e.target.value);
-                  if (errors.username) setErrors({ ...errors, username: undefined });
+                  setEmailOrUsername(e.target.value);
+                  if (errors.emailOrUsername) setErrors({ ...errors, emailOrUsername: undefined });
                 }}
-                placeholder="Enter your username"
+                placeholder="Enter your email or username"
                 className={`h-12 ${inputBg} ${inputBorder} ${isDark ? 'text-white placeholder:text-gray-500' : 'text-gray-900 placeholder:text-gray-500'}`}
                 disabled={loading}
               />
-              {errors.username && (
-                <p className="text-sm text-red-500">{errors.username}</p>
+              {errors.emailOrUsername && (
+                <p className="text-sm text-red-500">{errors.emailOrUsername}</p>
               )}
             </div>
 
-            {/* Password Field */}
+            {/* Password Field with Visibility Toggle */}
             <div className="space-y-2">
               <Label className={isDark ? 'text-gray-300' : 'text-gray-700'}>
                 Password
               </Label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (errors.password) setErrors({ ...errors, password: undefined });
-                }}
-                placeholder="Enter your password"
-                className={`h-12 ${inputBg} ${inputBorder} ${isDark ? 'text-white placeholder:text-gray-500' : 'text-gray-900 placeholder:text-gray-500'}`}
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password) setErrors({ ...errors, password: undefined });
+                  }}
+                  placeholder="Enter your password"
+                  className={`h-12 pr-12 ${inputBg} ${inputBorder} ${isDark ? 'text-white placeholder:text-gray-500' : 'text-gray-900 placeholder:text-gray-500'}`}
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${textSecondary} hover:${textPrimary} transition-colors`}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-sm text-red-500">{errors.password}</p>
               )}

@@ -6,7 +6,7 @@ import { useAuth } from '../lib/auth/AuthContext';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
-import { Building2, Loader2 } from 'lucide-react';
+import { Building2, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 const OrgLogin = () => {
@@ -19,6 +19,7 @@ const OrgLogin = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [showPassword, setShowPassword] = useState(false);
 
   // Styling
   const bgPage = isDark ? 'bg-[#161616]' : 'bg-gray-50';
@@ -120,22 +121,31 @@ const OrgLogin = () => {
                 <button
                   type="button"
                   className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
-                  onClick={() => toast.info('Please contact support to reset your password')}
+                  onClick={() => window.location.href = '/forgot-password'}
                 >
                   Forgot password?
                 </button>
               </div>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (errors.password) setErrors({ ...errors, password: undefined });
-                }}
-                placeholder="Enter your password"
-                className={`h-12 ${inputBg} ${inputBorder} ${isDark ? 'text-white placeholder:text-gray-500' : 'text-gray-900 placeholder:text-gray-500'}`}
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password) setErrors({ ...errors, password: undefined });
+                  }}
+                  placeholder="Enter your password"
+                  className={`h-12 pr-12 ${inputBg} ${inputBorder} ${isDark ? 'text-white placeholder:text-gray-500' : 'text-gray-900 placeholder:text-gray-500'}`}
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${textSecondary} hover:text-gray-700 dark:hover:text-gray-300 transition-colors`}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-sm text-red-500">{errors.password}</p>
               )}

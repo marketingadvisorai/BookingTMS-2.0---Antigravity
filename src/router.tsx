@@ -197,6 +197,16 @@ export const router = createBrowserRouter([
     path: '/org-login',
     element: <App />,
   },
+  
+  // Password Reset Routes
+  {
+    path: '/forgot-password',
+    element: <App />,
+  },
+  {
+    path: '/reset-password',
+    element: <App />,
+  },
 
   // Slug-based Public Venue Profile Routes
   {

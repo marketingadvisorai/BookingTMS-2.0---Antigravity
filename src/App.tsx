@@ -36,6 +36,8 @@ import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import BetaLogin from './pages/BetaLogin';
 import OrgLogin from './pages/OrgLogin';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import BackendDashboard from './pages/BackendDashboard';
 import GiftVouchers from './pages/GiftVouchers';
 import SystemAdminDashboard from './pages/SystemAdminDashboard';
@@ -219,6 +221,12 @@ export default function App() {
   // Check if we're in org-login mode
   const isOrgLogin = path === '/org-login' || path === '/org-login/';
 
+  // Check if we're in forgot-password mode
+  const isForgotPassword = path === '/forgot-password' || path === '/forgot-password/';
+
+  // Check if we're in reset-password mode
+  const isResetPassword = path === '/reset-password' || path === '/reset-password/';
+
   // Check if we're in legacy embed mode
   // Embed mode is ONLY for: /embed with widget params, or /embed?key=xxx for venue widgets
   const isLegacyEmbedMode = (params.has('widget') || params.has('widgetId') || params.has('key')) && 
@@ -236,10 +244,10 @@ export default function App() {
 
   // Skip loading screen for special modes
   useEffect(() => {
-    if (isEmbedMode || isBetaLogin || isOrgLogin || isCustomerPortalMode) {
+    if (isEmbedMode || isBetaLogin || isOrgLogin || isForgotPassword || isResetPassword || isCustomerPortalMode) {
       setShowLoadingScreen(false);
     }
-  }, [isEmbedMode, isBetaLogin, isOrgLogin, isCustomerPortalMode]);
+  }, [isEmbedMode, isBetaLogin, isOrgLogin, isForgotPassword, isResetPassword, isCustomerPortalMode]);
 
   // Show loading screen on initial load
   if (showLoadingScreen && !isEmbedMode && !isBetaLogin) {
@@ -268,6 +276,26 @@ export default function App() {
           <OrgLogin />
           <Toaster />
         </AuthProvider>
+      </ThemeProvider>
+    );
+  }
+
+  // Render forgot password page
+  if (isForgotPassword) {
+    return (
+      <ThemeProvider>
+        <ForgotPassword />
+        <Toaster />
+      </ThemeProvider>
+    );
+  }
+
+  // Render reset password page
+  if (isResetPassword) {
+    return (
+      <ThemeProvider>
+        <ResetPassword />
+        <Toaster />
       </ThemeProvider>
     );
   }

@@ -157,7 +157,7 @@ const BetaLogin = () => {
               <button
                 type="button"
                 className={`text-sm ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'} transition-colors`}
-                onClick={() => toast.info('Password reset feature coming soon')}
+                onClick={() => window.location.href = '/forgot-password'}
               >
                 Forgot your password?
               </button>

@@ -441,11 +441,12 @@
 
 | Status | Task | Priority | Effort |
 |--------|------|----------|--------|
-| [ ] | **2.1 Admin Notification** - Email/Slack alert on new booking | 🟡 Medium | 1-2 hrs |
-| [ ] | **2.2 Booking Receipt PDF** - Generate downloadable receipt | 🟡 Medium | 2-3 hrs |
-| [ ] | **2.3 Capacity Management** - Block/unblock sessions from admin | 🟡 Medium | 2-3 hrs |
-| [x] | **2.4 Refund Processing** - Connect `create-refund` edge function ✅ v0.1.61 | 🟡 Medium | 2 hrs |
-| [ ] | **2.5 Customer Dedup** - Handle duplicate customer records | 🟡 Medium | 2 hrs |
+| [x] | **2.1 QR Ticket System** - QR code generation, scanning, check-in ✅ v0.1.62 | 🔴 High | 4 hrs |
+| [ ] | **2.2 Admin Notification** - Email/Slack alert on new booking | 🟡 Medium | 1-2 hrs |
+| [ ] | **2.3 Booking Receipt PDF** - Generate downloadable receipt | 🟡 Medium | 2-3 hrs |
+| [ ] | **2.4 Capacity Management** - Block/unblock sessions from admin | 🟡 Medium | 2-3 hrs |
+| [x] | **2.5 Refund Processing** - Connect `create-refund` edge function ✅ v0.1.61 | 🟡 Medium | 2 hrs |
+| [ ] | **2.6 Customer Dedup** - Handle duplicate customer records | 🟡 Medium | 2 hrs |
 
 ### Phase 3: Nice-to-Have (Polish)
 

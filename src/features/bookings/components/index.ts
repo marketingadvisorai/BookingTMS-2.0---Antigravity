@@ -24,6 +24,8 @@ export { CancelDialog } from './CancelDialog';
 export type { CancelDialogProps } from './CancelDialog';
 export { AttendeeListDialog } from './AttendeeListDialog';
 export type { AttendeeListDialogProps } from './AttendeeListDialog';
+export { QRScannerDialog } from './QRScannerDialog';
+export type { QRScannerDialogProps } from './QRScannerDialog';
 
 // TODO: Future extractions
 // export { BookingTable } from './BookingTable';

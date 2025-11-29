@@ -48,7 +48,8 @@ import {
   FileText,
   Grid3x3,
   Columns,
-  Loader2
+  Loader2,
+  QrCode
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -80,6 +81,7 @@ import {
   RescheduleDialog,
   CancelDialog,
   AttendeeListDialog,
+  QRScannerDialog,
 } from '../features/bookings/components';
 import type { AddBookingSubmission } from '../features/bookings/components';
 import type { Booking as BookingType, GameOption } from '../features/bookings/types';
@@ -304,6 +306,7 @@ export function Bookings() {
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showAttendeeList, setShowAttendeeList] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
@@ -683,6 +686,14 @@ export function Bookings() {
               className="h-11 w-11 flex-shrink-0"
             >
               <RefreshCcw className={`w - 4 h - 4 ${isRefreshing ? 'animate-spin' : ''} `} />
+            </Button>
+            <Button
+              variant="outline"
+              className="h-11 flex items-center justify-center gap-2"
+              onClick={() => setShowQRScanner(true)}
+            >
+              <QrCode className="w-4 h-4" />
+              <span className="hidden sm:inline">Scan QR</span>
             </Button>
             <Button
               className="bg-blue-600 dark:bg-[#4f46e5] hover:bg-blue-700 dark:hover:bg-[#4338ca] flex-1 sm:flex-initial sm:w-auto h-11 flex items-center justify-center gap-2"
@@ -1419,6 +1430,13 @@ export function Bookings() {
         }}
         booking={selectedBooking}
         onConfirm={confirmCancel}
+      />
+
+      {/* QR Scanner Dialog */}
+      <QRScannerDialog
+        open={showQRScanner}
+        onOpenChange={setShowQRScanner}
+        onCheckInComplete={refreshBookings}
       />
 
       {/* Export Dialog */}

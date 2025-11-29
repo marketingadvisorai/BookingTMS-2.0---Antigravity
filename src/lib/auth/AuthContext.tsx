@@ -127,7 +127,7 @@ const MOCK_USERS: User[] = [
     status: 'active',
     createdAt: '2024-11-08T00:00:00Z',
     lastLogin: '2025-11-08T00:00:00Z',
-    organizationId: '00000000-0000-0000-0000-000000000001',
+    organizationId: '8e0a3390-ec2c-4670-a846-919f05926a60', // Real Org: Advisor AI
   },
   {
     id: '00000000-0000-0000-0000-000000000003',

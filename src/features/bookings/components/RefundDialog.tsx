@@ -2,32 +2,36 @@
  * RefundDialog Component
  * 
  * Dialog for processing booking refunds with amount and reason.
+ * Connects to Stripe via the create-refund edge function.
  * @module features/bookings/components/RefundDialog
  */
 import { useState, useEffect } from 'react';
-import { RefreshCcw, AlertCircle } from 'lucide-react';
+import { RefreshCcw, AlertCircle, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from '../../../components/ui/dialog';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
 import { toast } from 'sonner';
+import { RefundService } from '../../../lib/payments/refundService';
 import type { Booking } from '../types';
 
 export interface RefundDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   booking: Booking | null;
-  onRefund?: (booking: Booking, amount: number, reason: string) => Promise<void>;
+  onRefundComplete?: () => void;
 }
 
 /**
  * Displays a dialog for processing refunds on a booking.
  * Supports partial refunds with reason documentation.
+ * Connects to Stripe via Supabase Edge Function.
  */
-export function RefundDialog({ open, onOpenChange, booking, onRefund }: RefundDialogProps) {
+export function RefundDialog({ open, onOpenChange, booking, onRefundComplete }: RefundDialogProps) {
   const [refundAmount, setRefundAmount] = useState(0);
   const [refundReason, setRefundReason] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Reset form when booking changes
   useEffect(() => {
@@ -40,13 +44,36 @@ export function RefundDialog({ open, onOpenChange, booking, onRefund }: RefundDi
   if (!booking) return null;
 
   const handleRefund = async () => {
-    if (onRefund) {
-      await onRefund(booking, refundAmount, refundReason);
-    } else {
-      // Fallback toast for demo
-      toast.success(`Refund of $${refundAmount.toFixed(2)} processed successfully!`);
+    if (!booking?.id) {
+      toast.error('Invalid booking');
+      return;
     }
-    onOpenChange(false);
+
+    setIsProcessing(true);
+    try {
+      const result = await RefundService.processRefund({
+        bookingId: booking.id,
+        amount: refundAmount,
+        reason: refundReason || undefined
+      });
+
+      if (result.success) {
+        toast.success(
+          result.isFullRefund 
+            ? `Full refund of $${result.amount?.toFixed(2)} processed successfully!`
+            : `Partial refund of $${result.amount?.toFixed(2)} processed successfully!`
+        );
+        onRefundComplete?.();
+        onOpenChange(false);
+      } else {
+        toast.error(result.error || 'Failed to process refund');
+      }
+    } catch (error) {
+      console.error('Refund error:', error);
+      toast.error('An unexpected error occurred while processing the refund');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -117,15 +144,27 @@ export function RefundDialog({ open, onOpenChange, booking, onRefund }: RefundDi
         </div>
 
         <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto h-11">
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)} 
+            className="w-full sm:w-auto h-11"
+            disabled={isProcessing}
+          >
             Cancel
           </Button>
           <Button
             onClick={handleRefund}
             className="bg-orange-600 dark:bg-orange-600 hover:bg-orange-700 dark:hover:bg-orange-700 w-full sm:w-auto h-11"
-            disabled={!refundAmount || refundAmount <= 0}
+            disabled={!refundAmount || refundAmount <= 0 || isProcessing}
           >
-            Process Refund
+            {isProcessing ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Processing...
+              </span>
+            ) : (
+              'Process Refund'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

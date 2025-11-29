@@ -1,9 +1,9 @@
 # Bookings Feature Module Architecture
 
-> Version: v0.1.59
+> Version: v0.1.60
 > Date: 2025-11-30
-> Status: ✅ Dialog Components Extracted
-> Main file reduced: 3,410 → 1,655 lines (-1,755 lines, 51% reduction)
+> Status: ✅ Dialogs + Filters Extracted
+> Main file reduced: 3,410 → 1,528 lines (-1,882 lines, 55% reduction)
 
 ## Overview
 
@@ -35,7 +35,8 @@ src/features/bookings/
 │   ├── BookingFilters.tsx       # ⏳ TODO (future)
 │   └── BookingStats.tsx         # ⏳ TODO (future)
 ├── hooks/
-│   └── useBookingFilters.ts     # ⏳ TODO - Date range filtering
+│   ├── index.ts                 # Barrel export
+│   └── useBookingFilters.ts     # ✅ Extracted (249 lines) - Date range filtering
 ├── types/
 │   └── index.ts             # ✅ Extracted (100 lines)
 └── utils/
@@ -44,7 +45,7 @@ src/features/bookings/
 
 ## Original File Analysis
 
-**Source**: `src/pages/Bookings.tsx` (Originally 3,409 lines → Now 1,655 lines)
+**Source**: `src/pages/Bookings.tsx` (Originally 3,409 lines → Now 1,528 lines)
 
 ### Extracted Components
 
@@ -144,14 +145,15 @@ Dialogs (AddBooking, Details, Refund, etc.)
 3. ✅ Extract `BookingDetailsDialog` - Done (Nov 30, 2025)
 4. ✅ Extract all other dialogs (Refund, Reschedule, Cancel, AttendeeList) - Done (Nov 30, 2025)
 5. ✅ Update `Bookings.tsx` to use extracted components - Done (Nov 30, 2025)
+6. ✅ Create `useBookingFilters` hook - Done (Nov 30, 2025) - 249 lines, removed ~127 lines from main
 
 ## Future Steps
 
-1. Create `useBookingFilters` hook for date range logic (~100 lines from main file)
-2. Extract `BookingTable` component for table view
-3. Extract `BookingFilters` component for search/filter UI
-4. Extract `BookingStats` component for statistics cards
-5. Remove seed data (mock bookings) once real data is stable
+1. Extract `BookingTable` component for table view
+2. Extract `BookingFilters` component for search/filter UI
+3. Extract `BookingStats` component for statistics cards
+4. Remove seed data (mock bookings) once real data is stable
+5. Connect RefundDialog to Stripe refund edge function
 
 ## Contributing
 

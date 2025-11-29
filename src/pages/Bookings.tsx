@@ -84,6 +84,7 @@ import {
 import type { AddBookingSubmission } from '../features/bookings/components';
 import type { Booking as BookingType, GameOption } from '../features/bookings/types';
 import { adaptBookingFromSupabase, formatCurrency } from '../features/bookings/utils';
+import { useBookingFilters } from '../features/bookings/hooks';
 
 interface Booking {
   id: string;
@@ -329,17 +330,32 @@ export function Bookings() {
   // Staff list - for now empty, will be populated from auth users in future
   const [staffList, setStaffList] = useState<{ id: string; name: string }[]>([]);
 
-  // Date range states
-  const [dateRangePreset, setDateRangePreset] = useState('all');
-  const [customStartDate, setCustomStartDate] = useState<Date | undefined>(undefined);
-  const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
-  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+  // Use the booking filters hook for all filter state and logic
+  const {
+    filters,
+    setSearchTerm,
+    setStatusFilter,
+    setGameFilter,
+    setDateRangePreset,
+    setCustomStartDate,
+    setCustomEndDate,
+    setShowDateRangePicker,
+    getDateRangeLabel,
+    filterBookings,
+    clearAllFilters,
+    hasActiveFilters,
+  } = useBookingFilters();
 
-  // Filter states
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [gameFilter, setGameFilter] = useState('all-games');
-  // Removed staff filter from search options bar
+  // Destructure for easier access
+  const { 
+    searchTerm, 
+    statusFilter, 
+    gameFilter, 
+    dateRangePreset, 
+    customStartDate, 
+    customEndDate, 
+    showDateRangePicker 
+  } = filters;
 
   const handleViewDetails = (booking: any) => {
     setSelectedBooking(booking);
@@ -520,117 +536,9 @@ export function Bookings() {
     toast.success('Confirmation email sent to ' + booking.email);
   };
 
-  // Date range filtering
-  const getDateRangeLabel = () => {
-    if (dateRangePreset === 'all') return 'All Time';
-    if (dateRangePreset === 'today') return 'Today';
-    if (dateRangePreset === 'yesterday') return 'Yesterday';
-    if (dateRangePreset === 'last7days') return 'Last 7 Days';
-    if (dateRangePreset === 'last30days') return 'Last 30 Days';
-    if (dateRangePreset === 'thisWeek') return 'This Week';
-    if (dateRangePreset === 'lastWeek') return 'Last Week';
-    if (dateRangePreset === 'thisMonth') return 'This Month';
-    if (dateRangePreset === 'lastMonth') return 'Last Month';
-    if (dateRangePreset === 'thisQuarter') return 'This Quarter';
-    if (dateRangePreset === 'thisYear') return 'This Year';
-    if (dateRangePreset === 'custom' && customStartDate && customEndDate) {
-      return `${customStartDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${customEndDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} `;
-    }
-    return 'Select Date Range';
-  };
-
-  const isDateInRange = (dateStr: string) => {
-    if (dateRangePreset === 'all') return true;
-
-    const bookingDate = new Date(dateStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (dateRangePreset === 'today') {
-      const todayStr = today.toISOString().split('T')[0];
-      return dateStr === todayStr;
-    }
-
-    if (dateRangePreset === 'yesterday') {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      return dateStr === yesterday.toISOString().split('T')[0];
-    }
-
-    if (dateRangePreset === 'last7days') {
-      const sevenDaysAgo = new Date(today);
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      return bookingDate >= sevenDaysAgo && bookingDate <= today;
-    }
-
-    if (dateRangePreset === 'last30days') {
-      const thirtyDaysAgo = new Date(today);
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      return bookingDate >= thirtyDaysAgo && bookingDate <= today;
-    }
-
-    if (dateRangePreset === 'thisWeek') {
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay());
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
-      return bookingDate >= startOfWeek && bookingDate <= endOfWeek;
-    }
-
-    if (dateRangePreset === 'lastWeek') {
-      const startOfLastWeek = new Date(today);
-      startOfLastWeek.setDate(today.getDate() - today.getDay() - 7);
-      const endOfLastWeek = new Date(startOfLastWeek);
-      endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
-      return bookingDate >= startOfLastWeek && bookingDate <= endOfLastWeek;
-    }
-
-    if (dateRangePreset === 'thisMonth') {
-      return bookingDate.getMonth() === today.getMonth() && bookingDate.getFullYear() === today.getFullYear();
-    }
-
-    if (dateRangePreset === 'lastMonth') {
-      const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      return bookingDate.getMonth() === lastMonth.getMonth() && bookingDate.getFullYear() === lastMonth.getFullYear();
-    }
-
-    if (dateRangePreset === 'thisQuarter') {
-      const quarter = Math.floor(today.getMonth() / 3);
-      const startMonth = quarter * 3;
-      const bookingQuarter = Math.floor(bookingDate.getMonth() / 3);
-      return bookingQuarter === quarter && bookingDate.getFullYear() === today.getFullYear();
-    }
-
-    if (dateRangePreset === 'thisYear') {
-      return bookingDate.getFullYear() === today.getFullYear();
-    }
-
-    if (dateRangePreset === 'custom' && customStartDate && customEndDate) {
-      const start = new Date(customStartDate);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(customEndDate);
-      end.setHours(23, 59, 59, 999);
-      return bookingDate >= start && bookingDate <= end;
-    }
-
-    return true;
-  };
-
-  // Filter bookings based on search, filters, and date range
-  const filteredBookings = bookings.filter(booking => {
-    const matchesSearch = searchTerm === '' ||
-      booking.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.id.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
-
-    const matchesGame = gameFilter === 'all-games' || booking.game === gameFilter;
-
-    const matchesDateRange = isDateInRange(booking.date);
-
-    return matchesSearch && matchesStatus && matchesGame && matchesDateRange;
-  });
+  // Filter bookings using the hook's filterBookings function
+  // Date range, search, status, and game filters are all handled by the hook
+  const filteredBookings = useMemo(() => filterBookings(bookings), [filterBookings, bookings]);
 
   const assignStaff = async (bookingId: string, staffId: string) => {
     try {

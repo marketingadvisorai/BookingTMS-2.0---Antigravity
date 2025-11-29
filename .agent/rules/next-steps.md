@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
-> Last Updated: 2025-11-28
-> Version: v0.1.52-e2e-tests
+> Last Updated: 2025-11-29
+> Version: v0.1.53-real-bookings
 
 ---
 
@@ -296,6 +296,81 @@
   - Progress indicator with step tracking
   - Floating button or embedded mode
   - Customizable colors and bot name
+
+---
+
+## Real Booking Implementation (v0.1.53+)
+
+> **Goal**: Enable production-ready booking flow with real payments, customers, and confirmations.
+
+### Phase 1: Critical (Must-Have for Real Bookings)
+
+| Status | Task | Priority | Effort |
+|--------|------|----------|--------|
+| [x] | **1.1 Fix Customers Page** - Remove dead mock data, verify real DB integration ✅ | 🔴 High | Done |
+| [ ] | **1.2 Verify Stripe Webhook** - Ensure webhook is registered in Stripe Dashboard | 🔴 High | 30 min |
+| [ ] | **1.3 Test E2E Booking Flow** - Widget → Checkout → Payment → Confirmation | 🔴 High | 1 hr |
+| [ ] | **1.4 Email Confirmation** - Integrate Resend for booking confirmations | 🔴 High | 2-3 hrs |
+| [ ] | **1.5 Enable RLS Policies** - Secure `bookings`, `customers`, `embed_configs` | 🔴 High | 1 hr |
+
+#### Task 1.1: Fix Customers Page ✅ COMPLETED (Nov 29, 2025)
+- **Finding**: Page already used `useCustomers()` hook - mockCustomers was dead code
+- **Actions Taken**:
+  - Removed 107 lines of unused mock data
+  - Added helpful empty state with CTA when no customers exist
+  - Added documentation comment to component
+- **Files Modified**: `src/pages/Customers.tsx`
+
+#### Task 1.2: Verify Stripe Webhook ⏳ IN PROGRESS
+- **Edge Function**: `stripe-webhook` (deployed, enhanced for checkout.session)
+- **Webhook URL**: `https://qftjyjpitnoapqxlrvfs.supabase.co/functions/v1/stripe-webhook`
+- **Events to register**:
+  - `checkout.session.completed` (primary - widget bookings)
+  - `payment_intent.succeeded` (direct payments)
+  - `payment_intent.payment_failed`
+  - `payment_intent.canceled`
+- **Setup Steps**:
+  1. Go to Stripe Dashboard → Developers → Webhooks
+  2. Click "Add endpoint"
+  3. Enter webhook URL above
+  4. Select events listed above
+  5. Copy webhook signing secret to `STRIPE_WEBHOOK_SECRET` env var
+- **Edge Function Updates** (Nov 29, 2025):
+  - Added `handleCheckoutCompleted()` for Stripe Checkout flow
+  - Creates customer record if not exists
+  - Creates booking with proper metadata
+
+#### Task 1.3: End-to-End Booking Test
+- **Flow**: Embed Widget → Select Activity/Date/Time → Checkout → Stripe Payment → Webhook → Database → Success Page
+- **Test Cards**: `4242 4242 4242 4242` (success), `4000 0000 0000 0002` (decline)
+
+#### Task 1.4: Email Confirmation
+- **Service**: Resend (recommended) or Supabase Edge Function
+- **Templates**: Booking confirmation, Cancellation, Reminder
+- **Edge Function**: `send-email` (exists but needs Resend integration)
+
+#### Task 1.5: RLS Policies
+- **Tables needing RLS**: `bookings`, `customers`, `embed_configs`, `organizations`
+- **Policies**: Tenant isolation, public widget read access
+
+### Phase 2: Important (Better UX/Operations)
+
+| Status | Task | Priority | Effort |
+|--------|------|----------|--------|
+| [ ] | **2.1 Admin Notification** - Email/Slack alert on new booking | 🟡 Medium | 1-2 hrs |
+| [ ] | **2.2 Booking Receipt PDF** - Generate downloadable receipt | 🟡 Medium | 2-3 hrs |
+| [ ] | **2.3 Capacity Management** - Block/unblock sessions from admin | 🟡 Medium | 2-3 hrs |
+| [ ] | **2.4 Refund Processing** - Connect `create-refund` edge function | 🟡 Medium | 2 hrs |
+| [ ] | **2.5 Customer Dedup** - Handle duplicate customer records | 🟡 Medium | 2 hrs |
+
+### Phase 3: Nice-to-Have (Polish)
+
+| Status | Task | Priority | Effort |
+|--------|------|----------|--------|
+| [ ] | **3.1 Booking Analytics** - Revenue, conversion rates dashboard | 🟢 Low | 3-4 hrs |
+| [ ] | **3.2 SMS Confirmation** - Connect Twilio to existing SMS module | 🟢 Low | 2 hrs |
+| [ ] | **3.3 Webhook Retry** - Handle failed webhook deliveries | 🟢 Low | 1 hr |
+| [ ] | **3.4 Stripe Connect UX** - Better org onboarding flow | 🟢 Low | 3-4 hrs |
 
 ---
 

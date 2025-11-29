@@ -43,114 +43,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useCustomers } from '../hooks/useCustomers';
 import { toast } from 'sonner';
 
-// Mock customer data
-const mockCustomers = [
-  {
-    id: 'CUST-001',
-    firstName: 'Sarah',
-    lastName: 'Johnson',
-    email: 'sarah.johnson@email.com',
-    phone: '(555) 123-4567',
-    totalBookings: 24,
-    totalSpent: 2880,
-    lastBooking: 'Nov 1, 2024',
-    segment: 'VIP',
-    status: 'Active',
-    communicationPreference: 'Email'
-  },
-  {
-    id: 'CUST-002',
-    firstName: 'Michael',
-    lastName: 'Chen',
-    email: 'michael.chen@email.com',
-    phone: '(555) 234-5678',
-    totalBookings: 8,
-    totalSpent: 960,
-    lastBooking: 'Oct 28, 2024',
-    segment: 'Regular',
-    status: 'Active',
-    communicationPreference: 'SMS'
-  },
-  {
-    id: 'CUST-003',
-    firstName: 'Emily',
-    lastName: 'Davis',
-    email: 'emily.davis@email.com',
-    phone: '(555) 345-6789',
-    totalBookings: 2,
-    totalSpent: 240,
-    lastBooking: 'Oct 30, 2024',
-    segment: 'New',
-    status: 'Active',
-    communicationPreference: 'Both'
-  },
-  {
-    id: 'CUST-004',
-    firstName: 'James',
-    lastName: 'Wilson',
-    email: 'james.wilson@email.com',
-    phone: '(555) 456-7890',
-    totalBookings: 15,
-    totalSpent: 1800,
-    lastBooking: 'Oct 25, 2024',
-    segment: 'VIP',
-    status: 'Active',
-    communicationPreference: 'Email'
-  },
-  {
-    id: 'CUST-005',
-    firstName: 'Jessica',
-    lastName: 'Martinez',
-    email: 'jessica.martinez@email.com',
-    phone: '(555) 567-8901',
-    totalBookings: 6,
-    totalSpent: 720,
-    lastBooking: 'Oct 20, 2024',
-    segment: 'Regular',
-    status: 'Active',
-    communicationPreference: 'Email'
-  },
-  {
-    id: 'CUST-006',
-    firstName: 'David',
-    lastName: 'Brown',
-    email: 'david.brown@email.com',
-    phone: '(555) 678-9012',
-    totalBookings: 3,
-    totalSpent: 360,
-    lastBooking: 'May 15, 2024',
-    segment: 'Inactive',
-    status: 'Inactive',
-    communicationPreference: 'None'
-  },
-  {
-    id: 'CUST-007',
-    firstName: 'Amanda',
-    lastName: 'Taylor',
-    email: 'amanda.taylor@email.com',
-    phone: '(555) 789-0123',
-    totalBookings: 1,
-    totalSpent: 120,
-    lastBooking: 'Oct 31, 2024',
-    segment: 'New',
-    status: 'Active',
-    communicationPreference: 'SMS'
-  },
-  {
-    id: 'CUST-008',
-    firstName: 'Robert',
-    lastName: 'Anderson',
-    email: 'robert.anderson@email.com',
-    phone: '(555) 890-1234',
-    totalBookings: 12,
-    totalSpent: 1440,
-    lastBooking: 'Oct 29, 2024',
-    segment: 'VIP',
-    status: 'Active',
-    communicationPreference: 'Both'
-  }
-];
-
+/**
+ * Customers Page
+ * Uses real database data via useCustomers() hook
+ * Updated: 2025-11-29 (v0.1.53)
+ */
 export default function Customers() {
   const { theme } = useTheme();
   const { hasPermission } = useAuth();
@@ -659,8 +556,30 @@ export default function Customers() {
               )}
 
               {!loading && filteredCustomers.length === 0 && (
-                <div className="p-8 text-center">
-                  <p className={subtextClass}>No customers found matching your search.</p>
+                <div className="p-12 text-center">
+                  {customers.length === 0 ? (
+                    <>
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-[#1e1e1e] flex items-center justify-center">
+                        <UserPlus className={`w-8 h-8 ${subtextClass}`} />
+                      </div>
+                      <p className={`text-lg font-medium ${textClass} mb-2`}>No customers yet</p>
+                      <p className={`${subtextClass} mb-4`}>
+                        Customers will appear here when they make bookings or are added manually.
+                      </p>
+                      <Button 
+                        onClick={() => {
+                          setSelectedCustomer(null);
+                          setShowAddDialog(true);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Add First Customer
+                      </Button>
+                    </>
+                  ) : (
+                    <p className={subtextClass}>No customers found matching your search.</p>
+                  )}
                 </div>
               )}
             </div>

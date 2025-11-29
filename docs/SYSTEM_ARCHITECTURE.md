@@ -1,7 +1,7 @@
 # BookingTMS System Architecture
 
-> **Version**: 0.1.7  
-> **Last Updated**: November 25, 2025
+> **Version**: 0.1.65  
+> **Last Updated**: November 30, 2025
 
 ---
 
@@ -90,6 +90,105 @@ Organization (Tenant) → Venue(s) → Activity(ies) → Time Slots → Bookings
 ---
 
 ## Database Schema
+
+### Entity Relationship Diagram (ERD)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           BOOKINGTMS DATABASE ERD                                │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│   ┌──────────────────────┐         ┌──────────────────────┐                     │
+│   │      auth.users      │◄────────┤       users          │                     │
+│   │  (Supabase Auth)     │   1:1   │  (Profile + Role)    │                     │
+│   └──────────────────────┘         └──────────┬───────────┘                     │
+│                                               │                                  │
+│                                               │ N:1                              │
+│                                               ▼                                  │
+│   ┌───────────────────────────────────────────────────────────────────────┐     │
+│   │                         organizations (4 rows)                         │     │
+│   │                                                                        │     │
+│   │  id, name, owner_email, owner_name, stripe_account_id,                │     │
+│   │  stripe_connect_enabled, plan_id, status, primary_color               │     │
+│   └────────────────────────┬──────────────────────────────────────────────┘     │
+│                            │                                                     │
+│            ┌───────────────┼───────────────────┬─────────────────┐              │
+│            │               │                   │                 │              │
+│            ▼               ▼                   ▼                 ▼              │
+│   ┌────────────────┐ ┌────────────┐ ┌─────────────────┐ ┌────────────────┐     │
+│   │  venues (6)    │ │   users    │ │ embed_configs   │ │ organization_  │     │
+│   │                │ │   (2)      │ │     (7)         │ │  members (2)   │     │
+│   └───────┬────────┘ └────────────┘ └─────────────────┘ └────────────────┘     │
+│           │                                                                      │
+│           │ 1:N                                                                  │
+│           ▼                                                                      │
+│   ┌──────────────────────────────────────────────────────────────────────┐      │
+│   │                        activities (10 rows)                           │      │
+│   │                                                                       │      │
+│   │  id, venue_id, organization_id, name, description, duration,         │      │
+│   │  price, min_players, max_players, schedule (JSONB), is_active,       │      │
+│   │  stripe_product_id, stripe_price_id                                   │      │
+│   └────────────────────────┬─────────────────────────────────────────────┘      │
+│                            │                                                     │
+│                            │ 1:N                                                 │
+│                            ▼                                                     │
+│   ┌──────────────────────────────────────────────────────────────────────┐      │
+│   │                   activity_sessions (2,305 rows)                      │      │
+│   │                                                                       │      │
+│   │  id, activity_id, venue_id, organization_id, start_time, end_time,   │      │
+│   │  capacity_total, capacity_remaining, is_closed                        │      │
+│   └────────────────────────┬─────────────────────────────────────────────┘      │
+│                            │                                                     │
+│            ┌───────────────┴───────────────┐                                    │
+│            │                               │                                    │
+│            ▼                               ▼                                    │
+│   ┌─────────────────────┐        ┌─────────────────────┐                       │
+│   │   bookings (2)      │        │ slot_reservations   │                       │
+│   │                     │        │  (temp holds)       │                       │
+│   │  session_id         │        └─────────────────────┘                       │
+│   │  activity_id        │                                                       │
+│   │  customer_id ───────┼──────────────┐                                       │
+│   │  venue_id           │              │                                       │
+│   │  organization_id    │              ▼                                       │
+│   │  total_amount       │    ┌─────────────────────┐                           │
+│   │  status             │    │  customers (6)      │                           │
+│   │  payment_status     │    │                     │                           │
+│   │  stripe_payment_id  │    │  id, email, name,   │                           │
+│   └─────────────────────┘    │  phone, org_id      │                           │
+│                              └─────────────────────┘                           │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+RELATIONSHIPS:
+─────────────────────────────────────────────────────────────────────────────────
+• organizations 1:N venues (organization_id)
+• organizations 1:N activities (organization_id) 
+• organizations 1:N users (organization_id)
+• organizations 1:N customers (organization_id)
+• organizations 1:N embed_configs (organization_id)
+• organizations 1:N organization_members (organization_id)
+• venues 1:N activities (venue_id)
+• venues 1:N activity_sessions (venue_id)
+• activities 1:N activity_sessions (activity_id)
+• activity_sessions 1:N bookings (session_id)
+• activity_sessions 1:N slot_reservations (session_id)
+• customers 1:N bookings (customer_id)
+• auth.users 1:1 users (id)
+```
+
+### Current Database Statistics (Nov 30, 2025)
+
+| Table | Row Count | RLS Enabled |
+|-------|-----------|-------------|
+| organizations | 4 | ✅ |
+| venues | 6 | ✅ |
+| activities | 10 | ✅ |
+| activity_sessions | 2,305 | ✅ |
+| bookings | 2 | ✅ |
+| customers | 6 | ✅ |
+| users | 2 | ✅ |
+| embed_configs | 7 | ✅ |
+| organization_members | 2 | ✅ |
 
 ### Organizations Table
 ```sql
@@ -623,13 +722,75 @@ Routes are defined in `/src/router.tsx`. Order matters!
 
 ---
 
-## Next Steps
+## Edge Functions (Supabase)
 
-1. **Session Auto-Generation**: Trigger session generation when activity is published
-2. **Activity Embed Keys**: Add dedicated embedKey for activities (optional)
-3. **Real-time Availability**: Ensure sessions update in real-time
-4. **Production Cron**: Set up rolling session generation
+### Deployed Edge Functions
+
+| Function | Purpose | Auth Required |
+|----------|---------|---------------|
+| `create-booking` | Create bookings from widget | No (Public) |
+| `stripe-webhook` | Handle Stripe events | Yes (Stripe) |
+| `generate-sessions` | Auto-generate time slots | Yes |
+| `stripe-manage-product` | Sync products/prices | Yes |
+| `create-staff-member` | Create staff users | Yes |
+| `create-checkout-session` | Stripe Checkout | Yes |
+| `verify-checkout-session` | Verify payment | Yes |
+| `stripe-direct` | Direct Stripe API calls | Yes |
+| `widget-api` | Widget data API | Yes |
+| `create-org-admin` | Create org admin users | Yes |
+| `admin-password-reset` | Admin password operations | Yes (Admin only) |
+
+### Admin Password Reset Function
+
+```typescript
+// POST /functions/v1/admin-password-reset
+{
+  action: 'send_reset' | 'set_password',
+  email: string,        // For send_reset
+  userName?: string,    // For personalized email
+  userId?: string,      // For set_password
+  newPassword?: string  // For set_password
+}
+```
 
 ---
 
-*Document maintained by the development team. Last reviewed: November 2025.*
+## Authentication Architecture
+
+### Flow Types
+
+| Flow | Method | Email Provider |
+|------|--------|----------------|
+| User Forgot Password | `supabase.auth.resetPasswordForEmail()` | Supabase built-in |
+| Admin Reset User | Edge Function + Service Role | Resend |
+| Admin Set Password | Edge Function + Service Role | N/A |
+
+### Tenant Isolation
+
+- All data filtered by `organization_id` 
+- RLS policies enforce database-level isolation
+- Org admins see only their organization's data
+- System/Super admins can see all data
+
+---
+
+## Supabase Project Details
+
+- **Project ID**: `qftjyjpitnoapqxlrvfs`
+- **Project Name**: Embed PRO | Booking TMS Beta V 0.17 With AI Features
+- **Region**: us-west-1
+- **Database Version**: PostgreSQL 17.6.1
+- **Status**: ACTIVE_HEALTHY
+
+---
+
+## Next Steps
+
+1. ✅ **Session Auto-Generation**: Implemented via `generate-sessions` edge function
+2. ✅ **Real-time Availability**: Implemented via Supabase real-time subscriptions
+3. ✅ **Admin Password Reset**: Implemented via `admin-password-reset` edge function
+4. ⏳ **Production Cron**: Set up rolling session generation for 90+ days ahead
+
+---
+
+*Document maintained by the development team. Last reviewed: November 30, 2025.*

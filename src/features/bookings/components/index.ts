@@ -27,7 +27,10 @@ export type { AttendeeListDialogProps } from './AttendeeListDialog';
 export { QRScannerDialog } from './QRScannerDialog';
 export type { QRScannerDialogProps } from './QRScannerDialog';
 
+// Table/List View
+export { BookingTableView } from './BookingTableView';
+export type { BookingTableViewProps } from './BookingTableView';
+
 // TODO: Future extractions
-// export { BookingTable } from './BookingTable';
 // export { BookingFilters } from './BookingFilters';
 // export { BookingStats } from './BookingStats';

@@ -1,9 +1,9 @@
 # Bookings Feature Module Architecture
 
-> Version: v0.1.60
+> Version: v0.1.63
 > Date: 2025-11-30
-> Status: ✅ Dialogs + Filters Extracted
-> Main file reduced: 3,410 → 1,528 lines (-1,882 lines, 55% reduction)
+> Status: ✅ Dialogs + Filters + Table View Extracted
+> Main file reduced: 3,410 → 1,222 lines (-2,188 lines, 64% reduction)
 
 ## Overview
 
@@ -31,7 +31,7 @@ src/features/bookings/
 │   │   ├── Step1CustomerInfo.tsx    # ✅ (75 lines)
 │   │   ├── Step2BookingDetails.tsx  # ✅ (200 lines)
 │   │   └── Step3PaymentConfirmation.tsx # ✅ (185 lines)
-│   ├── BookingTable.tsx         # ⏳ TODO (future)
+│   ├── BookingTableView.tsx     # ✅ Extracted (291 lines) - Table/list view
 │   ├── BookingFilters.tsx       # ⏳ TODO (future)
 │   └── BookingStats.tsx         # ⏳ TODO (future)
 ├── hooks/

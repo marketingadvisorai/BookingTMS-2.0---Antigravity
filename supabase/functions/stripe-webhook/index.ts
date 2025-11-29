@@ -198,6 +198,18 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, supabas
   }
 
   console.log('Booking created from checkout session:', bookingNumber)
+
+  // Send confirmation email
+  await sendBookingConfirmationEmail({
+    customerEmail,
+    customerName,
+    bookingNumber,
+    activityId,
+    bookingDate,
+    bookingTime,
+    partySize,
+    totalAmount: (session.amount_total || 0) / 100
+  }, supabase)
 }
 
 async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent, supabase: any) {
@@ -271,4 +283,148 @@ async function handlePaymentCanceled(paymentIntent: Stripe.PaymentIntent, supaba
     .eq('id', bookingId)
 
   console.log('Payment canceled for booking:', bookingId)
+}
+
+/**
+ * Send booking confirmation email via Resend
+ */
+interface BookingEmailData {
+  customerEmail: string;
+  customerName: string;
+  bookingNumber: string;
+  activityId: string;
+  bookingDate: string;
+  bookingTime: string;
+  partySize: number;
+  totalAmount: number;
+}
+
+async function sendBookingConfirmationEmail(data: BookingEmailData, supabase: any) {
+  try {
+    // Fetch activity details for email
+    const { data: activity } = await supabase
+      .from('activities')
+      .select('name, venue_id, venues(name, address, city, state)')
+      .eq('id', data.activityId)
+      .single()
+
+    const activityName = activity?.name || 'Your Activity'
+    const venueName = activity?.venues?.name || ''
+    const venueAddress = activity?.venues?.address || ''
+    const venueCity = activity?.venues?.city || ''
+    const venueState = activity?.venues?.state || ''
+
+    // Format date for display
+    const formattedDate = new Date(data.bookingDate).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+
+    // Build email HTML
+    const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Confirmation</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">Booking Confirmed! 🎉</h1>
+  </div>
+  
+  <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 12px 12px;">
+    <p style="font-size: 18px; margin-bottom: 20px;">Hi ${data.customerName || 'there'},</p>
+    
+    <p>Your booking has been confirmed. Here are your details:</p>
+    
+    <div style="background: white; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea;">
+      <h2 style="margin: 0 0 15px 0; color: #667eea; font-size: 20px;">${activityName}</h2>
+      
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: #666;">Booking Reference</td>
+          <td style="padding: 8px 0; font-weight: bold; text-align: right;">${data.bookingNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #666;">Date</td>
+          <td style="padding: 8px 0; font-weight: bold; text-align: right;">${formattedDate}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #666;">Time</td>
+          <td style="padding: 8px 0; font-weight: bold; text-align: right;">${data.bookingTime}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #666;">Party Size</td>
+          <td style="padding: 8px 0; font-weight: bold; text-align: right;">${data.partySize} ${data.partySize === 1 ? 'person' : 'people'}</td>
+        </tr>
+        <tr style="border-top: 1px solid #eee;">
+          <td style="padding: 12px 0 8px 0; color: #666; font-size: 18px;">Total Paid</td>
+          <td style="padding: 12px 0 8px 0; font-weight: bold; text-align: right; font-size: 18px; color: #667eea;">$${data.totalAmount.toFixed(2)}</td>
+        </tr>
+      </table>
+    </div>
+    
+    ${venueName ? `
+    <div style="background: white; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <h3 style="margin: 0 0 10px 0; color: #333;">📍 Location</h3>
+      <p style="margin: 0; color: #666;">
+        <strong>${venueName}</strong><br>
+        ${venueAddress}${venueCity ? `, ${venueCity}` : ''}${venueState ? `, ${venueState}` : ''}
+      </p>
+    </div>
+    ` : ''}
+    
+    <div style="background: #fff3cd; border-radius: 8px; padding: 15px; margin: 20px 0;">
+      <p style="margin: 0; color: #856404;">
+        <strong>⏰ Please arrive 10-15 minutes early</strong> to check in and complete any required waivers.
+      </p>
+    </div>
+    
+    <p style="color: #666; font-size: 14px; margin-top: 30px;">
+      Need to make changes? Contact us or visit your booking portal with your reference number.
+    </p>
+    
+    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+    
+    <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">
+      This email was sent to ${data.customerEmail}.<br>
+      Thank you for your booking!
+    </p>
+  </div>
+</body>
+</html>
+    `.trim()
+
+    // Call send-email edge function
+    const emailResponse = await fetch(
+      `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+        },
+        body: JSON.stringify({
+          to: data.customerEmail,
+          subject: `Booking Confirmed - ${activityName} on ${formattedDate}`,
+          html: emailHtml,
+          recipientName: data.customerName
+        })
+      }
+    )
+
+    if (emailResponse.ok) {
+      console.log('Confirmation email sent to:', data.customerEmail)
+    } else {
+      const errorData = await emailResponse.json()
+      console.error('Failed to send confirmation email:', errorData)
+    }
+  } catch (error) {
+    console.error('Error sending confirmation email:', error)
+    // Don't throw - email failure shouldn't fail the webhook
+  }
 }

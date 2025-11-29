@@ -302,15 +302,17 @@
 ## Real Booking Implementation (v0.1.53+)
 
 > **Goal**: Enable production-ready booking flow with real payments, customers, and confirmations.
+> **Architecture Doc**: `/docs/REAL_ORDER_CUSTOMER_ARCHITECTURE.md`
+> **Supabase Project**: `qftjyjpitnoapqxlrvfs` (Embed PRO | Booking TMS Beta V 0.17)
 
 ### Phase 1: Critical (Must-Have for Real Bookings)
 
 | Status | Task | Priority | Effort |
 |--------|------|----------|--------|
 | [x] | **1.1 Fix Customers Page** - Remove dead mock data, verify real DB integration ✅ | 🔴 High | Done |
-| [ ] | **1.2 Verify Stripe Webhook** - Ensure webhook is registered in Stripe Dashboard | 🔴 High | 30 min |
+| [x] | **1.2 Verify Stripe Webhook** - Enhanced & deployed with checkout.session handler ✅ | 🔴 High | Done |
 | [ ] | **1.3 Test E2E Booking Flow** - Widget → Checkout → Payment → Confirmation | 🔴 High | 1 hr |
-| [ ] | **1.4 Email Confirmation** - Integrate Resend for booking confirmations | 🔴 High | 2-3 hrs |
+| [x] | **1.4 Email Confirmation** - Integrated Resend via stripe-webhook ✅ | 🔴 High | Done |
 | [ ] | **1.5 Enable RLS Policies** - Secure `bookings`, `customers`, `embed_configs` | 🔴 High | 1 hr |
 
 #### Task 1.1: Fix Customers Page ✅ COMPLETED (Nov 29, 2025)
@@ -321,33 +323,40 @@
   - Added documentation comment to component
 - **Files Modified**: `src/pages/Customers.tsx`
 
-#### Task 1.2: Verify Stripe Webhook ⏳ IN PROGRESS
-- **Edge Function**: `stripe-webhook` (deployed, enhanced for checkout.session)
+#### Task 1.2: Verify Stripe Webhook ✅ COMPLETED (Nov 29, 2025)
+- **Edge Function**: `stripe-webhook` (deployed to Supabase)
 - **Webhook URL**: `https://qftjyjpitnoapqxlrvfs.supabase.co/functions/v1/stripe-webhook`
-- **Events to register**:
+- **Events handled**:
   - `checkout.session.completed` (primary - widget bookings)
   - `payment_intent.succeeded` (direct payments)
   - `payment_intent.payment_failed`
   - `payment_intent.canceled`
-- **Setup Steps**:
+- **⚠️ ACTION REQUIRED**: Register webhook in Stripe Dashboard
   1. Go to Stripe Dashboard → Developers → Webhooks
   2. Click "Add endpoint"
   3. Enter webhook URL above
   4. Select events listed above
-  5. Copy webhook signing secret to `STRIPE_WEBHOOK_SECRET` env var
-- **Edge Function Updates** (Nov 29, 2025):
+  5. Copy webhook signing secret to Supabase Edge Function secrets as `STRIPE_WEBHOOK_SECRET`
+- **Code Updates**:
   - Added `handleCheckoutCompleted()` for Stripe Checkout flow
   - Creates customer record if not exists
-  - Creates booking with proper metadata
+  - Creates booking with proper metadata from session
 
 #### Task 1.3: End-to-End Booking Test
 - **Flow**: Embed Widget → Select Activity/Date/Time → Checkout → Stripe Payment → Webhook → Database → Success Page
 - **Test Cards**: `4242 4242 4242 4242` (success), `4000 0000 0000 0002` (decline)
 
-#### Task 1.4: Email Confirmation
-- **Service**: Resend (recommended) or Supabase Edge Function
-- **Templates**: Booking confirmation, Cancellation, Reminder
-- **Edge Function**: `send-email` (exists but needs Resend integration)
+#### Task 1.4: Email Confirmation ✅ COMPLETED (Nov 29, 2025)
+- **Service**: Resend via `send-email` Edge Function
+- **Trigger**: `stripe-webhook` → `handleCheckoutCompleted()` → `sendBookingConfirmationEmail()`
+- **Email Template**: Professional HTML with booking details, venue info, arrival reminder
+- **Features**:
+  - Activity name and details fetched from database
+  - Venue address and location
+  - Formatted date/time
+  - Party size and total paid
+  - Arrival reminder (10-15 min early)
+- **Files Modified**: `supabase/functions/stripe-webhook/index.ts`
 
 #### Task 1.5: RLS Policies
 - **Tables needing RLS**: `bookings`, `customers`, `embed_configs`, `organizations`

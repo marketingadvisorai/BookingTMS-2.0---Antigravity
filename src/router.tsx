@@ -172,6 +172,32 @@ export const router = createBrowserRouter([
     element: <App />,
   },
 
+  // ============================================================================
+  // PUBLIC ROUTES (must be before /:slug to avoid being caught as venue slugs)
+  // ============================================================================
+  
+  // Customer Portal - Public booking management (no admin auth required)
+  {
+    path: '/my-bookings',
+    element: <App />,
+  },
+  {
+    path: '/customer-portal',
+    element: <App />,
+  },
+  
+  // Beta Login Route
+  {
+    path: '/beta-login',
+    element: <App />,
+  },
+  
+  // Org Login Route
+  {
+    path: '/org-login',
+    element: <App />,
+  },
+
   // Slug-based Public Venue Profile Routes
   {
     path: '/:slug',

@@ -313,7 +313,7 @@
 | [x] | **1.2 Verify Stripe Webhook** - Enhanced & deployed with checkout.session handler ✅ | 🔴 High | Done |
 | [x] | **1.3 Fix Customer Portal** - Fixed DB field mismatch, added test customer ✅ | 🔴 High | Done |
 | [x] | **1.4 Email Confirmation** - Integrated Resend via stripe-webhook ✅ | 🔴 High | Done |
-| [ ] | **1.5 Enable RLS Policies** - Secure `bookings`, `customers`, `embed_configs` | 🔴 High | 1 hr |
+| [x] | **1.5 Enable RLS Policies** - Secure all core tables with RLS ✅ | 🔴 High | Done |
 | [ ] | **1.6 Test E2E Booking Flow** - Widget → Checkout → Payment → Confirmation | 🔴 High | 1 hr |
 
 #### Task 1.1: Fix Customers Page ✅ COMPLETED (Nov 29, 2025)
@@ -344,9 +344,13 @@
   - Creates booking with proper metadata from session
 
 #### Task 1.3: Fix Customer Portal ✅ COMPLETED (Nov 29, 2025)
-- **Problem**: Customer Portal showed "venue not found" - database field mismatch
-- **Root Cause**: Service used `booking_reference` but database has `booking_number`
+- **Problem 1**: Customer Portal showed "venue not found" - routing issue
+- **Root Cause 1**: `/my-bookings` was caught by `/:slug` route in router.tsx
+- **Fix 1**: Added explicit routes for `/my-bookings`, `/customer-portal`, `/beta-login`, `/org-login` before `/:slug` catch-all
+- **Problem 2**: Database field mismatch
+- **Root Cause 2**: Service used `booking_reference` but database has `booking_number`
 - **Actions Taken**:
+  - Fixed `router.tsx` - added public routes before `/:slug` catch-all
   - Fixed `customerBooking.service.ts` - changed `booking_reference` to `booking_number`
   - Fixed `customerAuth.service.ts` - lookup by `booking_number` with `confirmation_code` fallback
   - Added `players` field support for legacy bookings
@@ -371,9 +375,14 @@
   - Arrival reminder (10-15 min early)
 - **Files Modified**: `supabase/functions/stripe-webhook/index.ts`
 
-#### Task 1.5: RLS Policies
-- **Tables needing RLS**: `bookings`, `customers`, `embed_configs`, `organizations`
-- **Policies**: Tenant isolation, public widget read access
+#### Task 1.5: RLS Policies ✅ COMPLETED (Nov 29, 2025)
+- **Tables with RLS enabled**: `bookings`, `customers`, `activities`, `venues`, `activity_sessions`, `organizations`, `embed_configs`
+- **Policies Applied**:
+  - Authenticated users: Full access (application-level org filtering)
+  - Anonymous users: Read access for widgets and customer portal
+  - Service role: Full bypass (for webhooks and edge functions)
+- **Migration**: `20251129_enable_rls_core_tables.sql`
+- **Verification**: All 7 tables confirmed with `rowsecurity = true`
 
 ### Phase 2: Important (Better UX/Operations)
 

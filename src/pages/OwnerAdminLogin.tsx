@@ -101,7 +101,8 @@ export default function OwnerAdminLogin() {
   };
 
   const handleForgotPassword = () => {
-    navigate(`/${slug}/admin/forgot-password`);
+    // Navigate to organization-specific forgot password page
+    navigate(`/owner/${slug}/forgot-password`);
   };
 
   if (venueNotFound) {

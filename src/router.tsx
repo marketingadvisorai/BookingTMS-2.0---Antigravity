@@ -3,6 +3,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import App from './App';
 import VenueProfile from './pages/VenueProfile';
 import OwnerAdminLogin from './pages/OwnerAdminLogin';
+import OwnerForgotPassword from './pages/OwnerForgotPassword';
 import WaiverForm from './pages/WaiverForm';
 import { Embed } from './pages/Embed';
 import { ThemeProvider } from './components/layout/ThemeContext';
@@ -232,6 +233,30 @@ export const router = createBrowserRouter([
       <HelmetProvider>
         <ThemeProvider>
           <OwnerAdminLogin />
+        </ThemeProvider>
+      </HelmetProvider>
+    ),
+  },
+  
+  // Alternative Owner Admin Login Route
+  {
+    path: '/:slug/admin/login',
+    element: (
+      <HelmetProvider>
+        <ThemeProvider>
+          <OwnerAdminLogin />
+        </ThemeProvider>
+      </HelmetProvider>
+    ),
+  },
+  
+  // Owner Forgot Password (validates email belongs to organization)
+  {
+    path: '/owner/:slug/forgot-password',
+    element: (
+      <HelmetProvider>
+        <ThemeProvider>
+          <OwnerForgotPassword />
         </ThemeProvider>
       </HelmetProvider>
     ),

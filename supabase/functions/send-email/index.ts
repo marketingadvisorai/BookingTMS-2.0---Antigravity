@@ -45,7 +45,7 @@ serve(async (req) => {
     }
 
     // Default from address (use Resend's onboarding domain for testing)
-    const fromEmail = emailData.from || 'onboarding@resend.dev'
+    const fromEmail = emailData.from || 'BookingFlow AI <onboarding@resend.dev>'
 
     // Send email via Resend
     const resendResponse = await fetch('https://api.resend.com/emails', {

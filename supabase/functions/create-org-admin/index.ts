@@ -214,7 +214,7 @@ async function sendWelcomeEmail(params: { to: string; name: string; orgName: str
     <body>
       <div class="container">
         <div class="header">
-          <h1>Welcome to BookingTMS</h1>
+          <h1>Welcome to BookingFlow AI</h1>
         </div>
         <div class="content">
           <p>Hello ${params.name},</p>
@@ -238,7 +238,7 @@ async function sendWelcomeEmail(params: { to: string; name: string; orgName: str
           <p style="word-break: break-all; color: #4f46e5;">${params.resetLink}</p>
         </div>
         <div class="footer">
-          <p>© ${new Date().getFullYear()} BookingTMS. All rights reserved.</p>
+          <p>© ${new Date().getFullYear()} BookingFlow AI. All rights reserved.</p>
         </div>
       </div>
     </body>
@@ -252,9 +252,9 @@ async function sendWelcomeEmail(params: { to: string; name: string; orgName: str
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      from: 'BookingTMS <onboarding@resend.dev>', // Update this when domain is verified
+      from: 'BookingFlow AI <onboarding@resend.dev>',
       to: params.to,
-      subject: `Welcome to BookingTMS - ${params.orgName}`,
+      subject: `Welcome to BookingFlow AI - ${params.orgName}`,
       html
     })
   });

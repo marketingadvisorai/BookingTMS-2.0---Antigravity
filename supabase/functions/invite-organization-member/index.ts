@@ -249,9 +249,9 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'BookingTMS <onboarding@resend.dev>',
+            from: 'BookingFlow AI <onboarding@resend.dev>',
             to: [email],
-            subject: `Welcome to ${org.name} - BookingTMS`,
+            subject: `Welcome to ${org.name} - BookingFlow AI`,
             html: emailHtml,
           }),
         })
@@ -378,7 +378,7 @@ function generateWelcomeEmail(params: {
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; padding: 20px;">
     <tr>
       <td style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
-        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Welcome to BookingTMS</h1>
+        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Welcome to BookingFlow AI</h1>
         <p style="color: #e0e7ff; margin: 10px 0 0 0; font-size: 14px;">${params.orgName}</p>
       </td>
     </tr>
@@ -387,7 +387,7 @@ function generateWelcomeEmail(params: {
         <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">Hello ${params.userName}!</h2>
         
         <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-          Your account has been created for <strong>${params.orgName}</strong> on BookingTMS.
+          Your account has been created for <strong>${params.orgName}</strong> on BookingFlow AI.
         </p>
         
         <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;">
@@ -424,7 +424,7 @@ function generateWelcomeEmail(params: {
     <tr>
       <td style="padding: 20px; text-align: center;">
         <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-          © 2025 BookingTMS. All rights reserved.
+          © 2025 BookingFlow AI. All rights reserved.
         </p>
       </td>
     </tr>

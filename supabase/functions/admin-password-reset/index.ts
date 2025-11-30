@@ -234,9 +234,9 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'BookingTMS <onboarding@resend.dev>', // Use Resend default sender for testing
+            from: 'BookingFlow AI <onboarding@resend.dev>',
             to: [email],
-            subject: 'Reset Your Password - BookingTMS',
+            subject: 'Reset Your Password - BookingFlow AI',
             html: emailHtml,
           }),
         })
@@ -333,8 +333,8 @@ function generatePasswordResetEmail(userName: string, resetLink: string): string
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; padding: 20px;">
     <tr>
       <td style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
-        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">BookingTMS</h1>
-        <p style="color: #e0e7ff; margin: 10px 0 0 0; font-size: 14px;">Booking Management System</p>
+        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">BookingFlow AI</h1>
+        <p style="color: #e0e7ff; margin: 10px 0 0 0; font-size: 14px;">Smart Booking Management</p>
       </td>
     </tr>
     <tr>
@@ -370,7 +370,7 @@ function generatePasswordResetEmail(userName: string, resetLink: string): string
     <tr>
       <td style="padding: 20px; text-align: center;">
         <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-          © 2025 BookingTMS. All rights reserved.
+          © 2025 BookingFlow AI. All rights reserved.
         </p>
       </td>
     </tr>

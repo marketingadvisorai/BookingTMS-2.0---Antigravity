@@ -5,10 +5,8 @@
  * Uses real Supabase authentication.
  */
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase/client';
-import { useAuth } from '../lib/auth/AuthContext';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
@@ -18,17 +16,33 @@ import { toast } from 'sonner';
 type AdminRole = 'system-admin' | 'super-admin' | 'admin';
 
 const SystemAdminLogin: React.FC = () => {
-  const navigate = useNavigate();
-  const { refreshUsers } = useAuth();
-  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   // Allowed roles for this login portal
   const allowedRoles: AdminRole[] = ['system-admin', 'super-admin', 'admin'];
+
+  // Check if already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // Already logged in, redirect to dashboard
+          window.location.href = '/dashboard';
+          return;
+        }
+      } catch (err) {
+        console.error('Session check error:', err);
+      }
+      setCheckingSession(false);
+    };
+    checkSession();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,43 +109,51 @@ const SystemAdminLogin: React.FC = () => {
         return;
       }
 
-      // Success
-      if (refreshUsers) {
-        await refreshUsers();
-      }
-
+      // Success - use window.location for full page reload to ensure auth state is fresh
       toast.success(`Welcome back, ${userProfile.full_name || email}!`);
-      navigate('/dashboard');
+      
+      // Small delay to show toast, then redirect with full page reload
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 500);
       
     } catch (err: any) {
       console.error('[SystemAdminLogin] Exception:', err);
       setError('An unexpected error occurred');
-    } finally {
       setLoading(false);
     }
   };
 
+  // Show loading while checking session
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-[#f8f9fa] flex flex-col items-center justify-center p-4">
       {/* Icon */}
-      <div className="w-14 h-14 bg-indigo-600 rounded-xl flex items-center justify-center mb-6 shadow-lg">
-        <Shield className="w-7 h-7 text-white" />
+      <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mb-6">
+        <Shield className="w-6 h-6 text-white" />
       </div>
 
       {/* Title */}
-      <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+      <h1 className="text-[28px] font-semibold text-gray-900 mb-2">
         System Admin Login
       </h1>
-      <p className="text-gray-500 text-sm mb-8">
+      <p className="text-gray-500 text-[15px] mb-8">
         Sign in to manage your platform and settings
       </p>
 
       {/* Login Card */}
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+      <div className="w-full max-w-[400px] bg-white rounded-2xl shadow-sm border border-gray-200/60 p-8">
         <form onSubmit={handleLogin} className="space-y-5">
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+            <div className="bg-red-50 border border-red-100 rounded-lg p-3 flex items-start gap-2">
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-600">{error}</p>
             </div>
@@ -139,7 +161,7 @@ const SystemAdminLogin: React.FC = () => {
 
           {/* Email Field */}
           <div className="space-y-2">
-            <Label className="text-gray-700 font-medium">Email Address</Label>
+            <Label className="text-gray-700 font-medium text-[14px]">Email Address</Label>
             <Input
               type="email"
               value={email}
@@ -148,7 +170,7 @@ const SystemAdminLogin: React.FC = () => {
                 setError(null);
               }}
               placeholder="name@organization.com"
-              className="h-11 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg"
+              className="h-[46px] bg-[#f8f9fa] border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg text-[15px]"
               disabled={loading}
               autoComplete="email"
             />
@@ -157,14 +179,13 @@ const SystemAdminLogin: React.FC = () => {
           {/* Password Field */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-gray-700 font-medium">Password</Label>
-              <button
-                type="button"
-                onClick={() => navigate('/forgot-password')}
-                className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+              <Label className="text-gray-700 font-medium text-[14px]">Password</Label>
+              <a
+                href="/forgot-password"
+                className="text-[14px] text-indigo-600 hover:text-indigo-700 font-medium"
               >
                 Forgot password?
-              </button>
+              </a>
             </div>
             <div className="relative">
               <Input
@@ -175,7 +196,7 @@ const SystemAdminLogin: React.FC = () => {
                   setError(null);
                 }}
                 placeholder="Enter your password"
-                className="h-11 pr-10 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg"
+                className="h-[46px] pr-10 bg-[#f8f9fa] border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg text-[15px]"
                 disabled={loading}
                 autoComplete="current-password"
               />
@@ -193,7 +214,7 @@ const SystemAdminLogin: React.FC = () => {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors"
+            className="w-full h-[46px] bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors text-[15px] mt-2"
           >
             {loading ? (
               <>
@@ -208,7 +229,7 @@ const SystemAdminLogin: React.FC = () => {
       </div>
 
       {/* Help Link */}
-      <p className="text-gray-500 text-sm mt-8">
+      <p className="text-gray-500 text-[14px] mt-8">
         Need help?{' '}
         <a 
           href="mailto:support@bookingtms.com" 

@@ -35,11 +35,13 @@ import { AccountSettings } from './pages/AccountSettings';
 import { PaymentHistory } from './pages/PaymentHistory';
 import Notifications from './pages/Notifications';
 import Login from './pages/Login';
+import DemoLogin from './pages/DemoLogin';
 import BetaLogin from './pages/BetaLogin';
 import OrgLogin from './pages/OrgLogin';
 import SystemAdminLogin from './pages/SystemAdminLogin';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import { supabase } from './lib/supabase/client';
 import BackendDashboard from './pages/BackendDashboard';
 import GiftVouchers from './pages/GiftVouchers';
 import SystemAdminDashboard from './pages/SystemAdminDashboard';
@@ -62,11 +64,27 @@ function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser, isLoading, login } = useAuth();
+  const [checkingSupabaseSession, setCheckingSupabaseSession] = useState(true);
+  const [hasSupabaseSession, setHasSupabaseSession] = useState(false);
+
+  // Check for existing Supabase session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setHasSupabaseSession(!!session);
+      } catch (err) {
+        console.error('Session check error:', err);
+      }
+      setCheckingSupabaseSession(false);
+    };
+    checkSession();
+  }, []);
 
   // Auto-login in DEV_MODE
   useEffect(() => {
     const autoLogin = async () => {
-      if (DEV_MODE && !currentUser && !isLoading) {
+      if (DEV_MODE && !currentUser && !isLoading && !hasSupabaseSession) {
         try {
           console.log('🔧 DEV MODE: Auto-logging in as Super Admin');
           await login('superadmin', 'demo123', 'super-admin');
@@ -76,7 +94,7 @@ function AppContent() {
       }
     };
     autoLogin();
-  }, [currentUser, isLoading, login]);
+  }, [currentUser, isLoading, login, hasSupabaseSession]);
 
   // Derive current page from URL path
   const getPageFromPath = (path: string) => {
@@ -175,7 +193,7 @@ function AppContent() {
   };
 
   // Show loading screen while checking authentication
-  if (isLoading) {
+  if (isLoading || checkingSupabaseSession) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-[#0a0a0a]">
         <div className="text-center">
@@ -186,8 +204,9 @@ function AppContent() {
     );
   }
 
-  // Show login if not authenticated (unless DEV_MODE is enabled)
-  if (!currentUser) {
+  // Show login if not authenticated AND no Supabase session
+  // If there's a Supabase session, wait for AuthContext to load the user
+  if (!currentUser && !hasSupabaseSession) {
     // In DEV_MODE, show loading screen while auto-login is in progress
     if (DEV_MODE) {
       return (
@@ -199,7 +218,28 @@ function AppContent() {
         </div>
       );
     }
-    return <Login />;
+    // Redirect to system-admin-login instead of showing demo login modal
+    window.location.href = '/system-admin-login';
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-[#0a0a0a]">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#4f46e5] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If Supabase session exists but currentUser not loaded yet, show loading
+  if (!currentUser && hasSupabaseSession) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-[#0a0a0a]">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#4f46e5] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading your profile...</p>
+        </div>
+      </div>
+    );
   }
 
   // Show protected content
@@ -228,6 +268,9 @@ export default function App() {
   // Check if we're in system-admin-login mode
   const isSystemAdminLogin = path === '/system-admin-login' || path === '/system-admin-login/' || path === '/admin-login' || path === '/admin-login/';
 
+  // Check if we're in demo-login mode
+  const isDemoLogin = path === '/demo-login' || path === '/demo-login/';
+
   // Check if we're in forgot-password mode
   const isForgotPassword = path === '/forgot-password' || path === '/forgot-password/';
 
@@ -251,10 +294,10 @@ export default function App() {
 
   // Skip loading screen for special modes
   useEffect(() => {
-    if (isEmbedMode || isBetaLogin || isOrgLogin || isSystemAdminLogin || isForgotPassword || isResetPassword || isCustomerPortalMode) {
+    if (isEmbedMode || isBetaLogin || isOrgLogin || isSystemAdminLogin || isDemoLogin || isForgotPassword || isResetPassword || isCustomerPortalMode) {
       setShowLoadingScreen(false);
     }
-  }, [isEmbedMode, isBetaLogin, isOrgLogin, isSystemAdminLogin, isForgotPassword, isResetPassword, isCustomerPortalMode]);
+  }, [isEmbedMode, isBetaLogin, isOrgLogin, isSystemAdminLogin, isDemoLogin, isForgotPassword, isResetPassword, isCustomerPortalMode]);
 
   // Show loading screen on initial load
   if (showLoadingScreen && !isEmbedMode && !isBetaLogin) {
@@ -293,6 +336,18 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <SystemAdminLogin />
+          <Toaster />
+        </AuthProvider>
+      </ThemeProvider>
+    );
+  }
+
+  // Render demo login page (for testing different roles)
+  if (isDemoLogin) {
+    return (
+      <ThemeProvider>
+        <AuthProvider>
+          <DemoLogin />
           <Toaster />
         </AuthProvider>
       </ThemeProvider>

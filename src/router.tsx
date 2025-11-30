@@ -231,6 +231,12 @@ export const router = createBrowserRouter([
     path: '/admin-login',
     element: <App />,
   },
+  
+  // Demo Login Route (for testing different roles)
+  {
+    path: '/demo-login',
+    element: <App />,
+  },
 
   // Slug-based Public Venue Profile Routes
   {

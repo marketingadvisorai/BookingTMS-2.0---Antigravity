@@ -181,6 +181,14 @@ export const router = createBrowserRouter([
   // ============================================================================
   // PUBLIC ROUTES (must be before /:slug to avoid being caught as venue slugs)
   // ============================================================================
+  // 
+  // ⚠️ IMPORTANT: All new routes MUST be added ABOVE the /:slug route!
+  // The /:slug route is a catch-all for venue public pages.
+  // If you add a new route AFTER /:slug, it will be treated as a venue slug
+  // and show "Venue Not Found" error.
+  //
+  // When adding new pages, add them here in this section.
+  // ============================================================================
   
   // Customer Portal - Public booking management (no admin auth required)
   {
@@ -211,6 +219,16 @@ export const router = createBrowserRouter([
   },
   {
     path: '/reset-password',
+    element: <App />,
+  },
+  
+  // System Admin Login Routes (MUST be before /:slug)
+  {
+    path: '/system-admin-login',
+    element: <App />,
+  },
+  {
+    path: '/admin-login',
     element: <App />,
   },
 

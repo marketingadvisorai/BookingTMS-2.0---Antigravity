@@ -237,9 +237,12 @@ export const OrganizationModal: React.FC<OrganizationModalProps> = ({
                       id="website"
                       value={formData.website}
                       onChange={(e) => handleChange('website', e.target.value)}
-                      placeholder="https://example.com"
+                      placeholder="example.com"
                       className="bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-[#2a2a2a]"
                     />
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Just the domain name (e.g., example.com) - https:// will be added automatically
+                    </p>
                   </div>
                 </div>
               </div>

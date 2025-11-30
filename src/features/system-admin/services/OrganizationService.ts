@@ -7,6 +7,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { StripeService } from './StripeService';
+import { normalizeUrl } from '../utils/validators';
 import type {
   Organization,
   CreateOrganizationDTO,
@@ -176,7 +177,7 @@ export class OrganizationService {
         p_slug: slug,
         p_owner_name: dto.owner_name,
         p_owner_email: dto.owner_email,
-        p_website: dto.website || null,
+        p_website: dto.website ? normalizeUrl(dto.website) : null,
         p_phone: dto.phone || null,
         p_address: dto.address || null,
         p_city: dto.city || null,
@@ -422,7 +423,7 @@ export class OrganizationService {
         p_name: dto.name || null,
         p_owner_name: dto.owner_name || null,
         p_owner_email: dto.owner_email || null,
-        p_website: dto.website || null,
+        p_website: dto.website ? normalizeUrl(dto.website) : null,
         p_phone: dto.phone || null,
         p_address: dto.address || null,
         p_city: dto.city || null,

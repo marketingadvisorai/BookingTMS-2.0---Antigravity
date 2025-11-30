@@ -13,15 +13,45 @@ export const isValidEmail = (email: string): boolean => {
 };
 
 /**
- * Validate URL
+ * Validate URL - accepts simple formats like "example.com"
+ * Also accepts full URLs with http:// or https://
  */
 export const isValidUrl = (url: string): boolean => {
-  try {
-    new URL(url);
+  if (!url || url.trim().length === 0) return false;
+  
+  // Domain pattern: allows domain.tld or subdomain.domain.tld
+  // Examples: example.com, www.example.com, sub.example.co.uk
+  const domainPattern = /^([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(\/.*)?$/;
+  
+  // Check if it's a simple domain (like example.com)
+  if (domainPattern.test(url.trim())) {
     return true;
+  }
+  
+  // Try as full URL (with http:// or https://)
+  try {
+    const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+    return urlObj.hostname.includes('.');
   } catch {
     return false;
   }
+};
+
+/**
+ * Normalize URL - ensures URL has https:// prefix
+ */
+export const normalizeUrl = (url: string): string => {
+  if (!url || url.trim().length === 0) return '';
+  
+  const trimmed = url.trim();
+  
+  // If already has protocol, return as-is
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  
+  // Add https:// prefix
+  return `https://${trimmed}`;
 };
 
 /**

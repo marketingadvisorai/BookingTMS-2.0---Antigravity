@@ -37,6 +37,7 @@ import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import BetaLogin from './pages/BetaLogin';
 import OrgLogin from './pages/OrgLogin';
+import SystemAdminLogin from './pages/SystemAdminLogin';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import BackendDashboard from './pages/BackendDashboard';
@@ -224,6 +225,9 @@ export default function App() {
   // Check if we're in org-login mode
   const isOrgLogin = path === '/org-login' || path === '/org-login/';
 
+  // Check if we're in system-admin-login mode
+  const isSystemAdminLogin = path === '/system-admin-login' || path === '/system-admin-login/' || path === '/admin-login' || path === '/admin-login/';
+
   // Check if we're in forgot-password mode
   const isForgotPassword = path === '/forgot-password' || path === '/forgot-password/';
 
@@ -247,10 +251,10 @@ export default function App() {
 
   // Skip loading screen for special modes
   useEffect(() => {
-    if (isEmbedMode || isBetaLogin || isOrgLogin || isForgotPassword || isResetPassword || isCustomerPortalMode) {
+    if (isEmbedMode || isBetaLogin || isOrgLogin || isSystemAdminLogin || isForgotPassword || isResetPassword || isCustomerPortalMode) {
       setShowLoadingScreen(false);
     }
-  }, [isEmbedMode, isBetaLogin, isOrgLogin, isForgotPassword, isResetPassword, isCustomerPortalMode]);
+  }, [isEmbedMode, isBetaLogin, isOrgLogin, isSystemAdminLogin, isForgotPassword, isResetPassword, isCustomerPortalMode]);
 
   // Show loading screen on initial load
   if (showLoadingScreen && !isEmbedMode && !isBetaLogin) {
@@ -277,6 +281,18 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <OrgLogin />
+          <Toaster />
+        </AuthProvider>
+      </ThemeProvider>
+    );
+  }
+
+  // Render system admin login page
+  if (isSystemAdminLogin) {
+    return (
+      <ThemeProvider>
+        <AuthProvider>
+          <SystemAdminLogin />
           <Toaster />
         </AuthProvider>
       </ThemeProvider>

@@ -1,19 +1,22 @@
 'use client';
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../components/layout/ThemeContext';
 import { useAuth } from '../lib/auth/AuthContext';
+import { supabase } from '../lib/supabase/client';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
-import { X, Shield, UserCog, Users, User, Building2, Crown } from 'lucide-react';
+import { X, Shield, UserCog, Users, User, Building2, Crown, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type UserRole = 'system-admin' | 'super-admin' | 'admin' | 'beta-owner' | 'manager' | 'staff' | 'customer' | null;
 
 const Login = () => {
   const { theme } = useTheme();
-  const { login } = useAuth();
+  const { login, refreshUsers } = useAuth();
+  const navigate = useNavigate();
   const isDark = theme === 'dark';
 
   // State
@@ -21,6 +24,7 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
 
   // Styling
@@ -111,7 +115,7 @@ const Login = () => {
     setErrors({});
   };
 
-  // Handle login
+  // Handle login with real Supabase authentication
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -121,25 +125,86 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Call the AuthContext login method
-      await login(username, password, selectedRole);
-
-      toast.success(`Successfully logged in as ${roles.find(r => r.id === selectedRole)?.label}`);
+      // Determine if input is email or username
+      let email = username;
       
-      // No need to redirect - App component will automatically show dashboard
-      // when currentUser is set
+      // If not an email format, try to look up by username
+      if (!username.includes('@')) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('email')
+          .or(`email.ilike.${username}%,full_name.ilike.%${username}%`)
+          .limit(1)
+          .single();
+        
+        if (userData) {
+          email = (userData as { email: string }).email;
+        }
+      }
+
+      // Attempt Supabase auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        console.error('[Login] Auth error:', authError);
+        if (authError.message.includes('Invalid login credentials')) {
+          toast.error('Invalid email or password');
+        } else {
+          toast.error(authError.message);
+        }
+        setLoading(false);
+        return;
+      }
+
+      if (!authData.user) {
+        toast.error('Login failed. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      // Verify user role matches selected role
+      const { data: userProfileData } = await supabase
+        .from('users')
+        .select('role, full_name, is_active')
+        .eq('id', authData.user.id)
+        .single();
+
+      const userProfile = userProfileData as { role: string; full_name: string | null; is_active: boolean } | null;
+
+      if (!userProfile) {
+        toast.error('User profile not found');
+        await supabase.auth.signOut();
+        setLoading(false);
+        return;
+      }
+
+      if (!userProfile.is_active) {
+        toast.error('Your account has been deactivated');
+        await supabase.auth.signOut();
+        setLoading(false);
+        return;
+      }
+
+      // Refresh auth context
+      if (refreshUsers) {
+        await refreshUsers();
+      }
+
+      toast.success(`Welcome back, ${userProfile.full_name || email}!`);
+      navigate('/dashboard');
+      
     } catch (error) {
       console.error('Login error:', error);
-      toast.error('Invalid username or password');
+      toast.error('An unexpected error occurred');
     } finally {
       setLoading(false);
     }
   };
 
-  // Demo login removed for security - use proper authentication in production
+  // Navigate to forgot password
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -203,10 +268,10 @@ const Login = () => {
           ) : (
             // Login Form View
             <form onSubmit={handleLogin} className="space-y-4">
-              {/* Username Field */}
+              {/* Email/Username Field */}
               <div className="space-y-2">
                 <Label className={isDark ? 'text-gray-300' : 'text-gray-700'}>
-                  Username
+                  Email or Username
                 </Label>
                 <Input
                   type="text"
@@ -215,9 +280,10 @@ const Login = () => {
                     setUsername(e.target.value);
                     if (errors.username) setErrors({ ...errors, username: undefined });
                   }}
-                  placeholder="Enter your username"
+                  placeholder="Enter your email or username"
                   className={`h-12 ${inputBg} ${inputBorder} ${isDark ? 'text-white placeholder:text-gray-500' : 'text-gray-900 placeholder:text-gray-500'}`}
                   disabled={loading}
+                  autoComplete="username"
                 />
                 {errors.username && (
                   <p className="text-sm text-red-500">{errors.username}</p>
@@ -229,17 +295,27 @@ const Login = () => {
                 <Label className={isDark ? 'text-gray-300' : 'text-gray-700'}>
                   Password
                 </Label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errors.password) setErrors({ ...errors, password: undefined });
-                  }}
-                  placeholder="Enter your password"
-                  className={`h-12 ${inputBg} ${inputBorder} ${isDark ? 'text-white placeholder:text-gray-500' : 'text-gray-900 placeholder:text-gray-500'}`}
-                  disabled={loading}
-                />
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (errors.password) setErrors({ ...errors, password: undefined });
+                    }}
+                    placeholder="Enter your password"
+                    className={`h-12 pr-10 ${inputBg} ${inputBorder} ${isDark ? 'text-white placeholder:text-gray-500' : 'text-gray-900 placeholder:text-gray-500'}`}
+                    disabled={loading}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 ${textSecondary} hover:${textPrimary}`}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
                 {errors.password && (
                   <p className="text-sm text-red-500">{errors.password}</p>
                 )}
@@ -252,7 +328,14 @@ const Login = () => {
                   disabled={loading}
                   className="w-full h-12 bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Signing in...' : 'Sign In'}
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      Signing in...
+                    </>
+                  ) : (
+                    'Sign In'
+                  )}
                 </Button>
 
                 <Button
@@ -271,9 +354,21 @@ const Login = () => {
                 <button
                   type="button"
                   className={`text-sm ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'} transition-colors`}
-                  onClick={() => toast.info('Password reset feature coming soon')}
+                  onClick={() => navigate('/forgot-password')}
                 >
                   Forgot your password?
+                </button>
+              </div>
+
+              {/* Admin Login Link */}
+              <div className="text-center pt-2 border-t border-gray-200 dark:border-gray-700 mt-4 pt-4">
+                <button
+                  type="button"
+                  className={`text-sm ${isDark ? 'text-purple-400 hover:text-purple-300' : 'text-purple-600 hover:text-purple-700'} transition-colors flex items-center justify-center gap-2 mx-auto`}
+                  onClick={() => navigate('/system-admin-login')}
+                >
+                  <Shield className="w-4 h-4" />
+                  System Admin Portal
                 </button>
               </div>
             </form>

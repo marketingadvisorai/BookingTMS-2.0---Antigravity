@@ -454,21 +454,77 @@ export class OrganizationService {
   }
 
   /**
-   * Delete organization
+   * Delete organization and all related data
+   * Handles cascading deletes for all child tables
    */
   static async delete(id: string): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('organizations')
+      // Delete in proper order to respect foreign key constraints
+      // Order: Most dependent first → Least dependent last
+
+      console.log('[OrganizationService] Starting cascading delete for org:', id);
+
+      // 1. Delete marketing data
+      await (supabase.from('reviews') as any).delete().eq('organization_id', id);
+      await (supabase.from('affiliate_referrals') as any).delete().eq('organization_id', id);
+      await (supabase.from('affiliates') as any).delete().eq('organization_id', id);
+      await (supabase.from('email_workflows') as any).delete().eq('organization_id', id);
+      await (supabase.from('email_templates') as any).delete().eq('organization_id', id);
+      await (supabase.from('email_campaigns') as any).delete().eq('organization_id', id);
+      await (supabase.from('gift_card_transactions') as any).delete().eq('organization_id', id);
+      await (supabase.from('gift_cards') as any).delete().eq('organization_id', id);
+      await (supabase.from('promotions') as any).delete().eq('organization_id', id);
+      await (supabase.from('marketing_settings') as any).delete().eq('organization_id', id);
+
+      // 2. Delete embed configs
+      await (supabase.from('embed_configs') as any).delete().eq('organization_id', id);
+
+      // 3. Delete notifications
+      await (supabase.from('notifications') as any).delete().eq('organization_id', id);
+
+      // 4. Delete subscription history
+      await (supabase.from('subscription_history') as any).delete().eq('organization_id', id);
+
+      // 5. Delete usage records
+      await (supabase.from('organization_usage') as any).delete().eq('organization_id', id);
+
+      // 6. Delete bookings first (depends on activity_sessions)
+      await (supabase.from('bookings') as any).delete().eq('organization_id', id);
+
+      // 7. Delete activity sessions
+      await (supabase.from('activity_sessions') as any).delete().eq('organization_id', id);
+
+      // 8. Delete activities
+      await (supabase.from('activities') as any).delete().eq('organization_id', id);
+
+      // 9. Delete customers
+      await (supabase.from('customers') as any).delete().eq('organization_id', id);
+
+      // 10. Delete venues
+      await (supabase.from('venues') as any).delete().eq('organization_id', id);
+
+      // 11. Clear organization_id from users (don't delete users, just unlink)
+      await (supabase.from('users') as any)
+        .update({ organization_id: null })
+        .eq('organization_id', id);
+
+      // 12. Delete organization members
+      await (supabase.from('organization_members') as any).delete().eq('organization_id', id);
+
+      // 13. Finally delete the organization itself
+      const { error } = await (supabase.from('organizations') as any)
         .delete()
         .eq('id', id);
 
       if (error) {
+        console.error('[OrganizationService] delete organization error:', error);
         throw new Error(`Failed to delete organization: ${error.message}`);
       }
+
+      console.log('[OrganizationService] Organization deleted successfully:', id);
     } catch (error: any) {
-      console.warn('[OrganizationService] delete failed:', error?.message);
-      throw error;
+      console.error('[OrganizationService] delete failed:', error?.message);
+      throw new Error(`Failed to delete organization: ${error?.message || 'Unknown error'}`);
     }
   }
 

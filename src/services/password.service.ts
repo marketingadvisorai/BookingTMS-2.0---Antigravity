@@ -96,10 +96,39 @@ class PasswordService {
    */
   async adminSetPassword(userId: string, newPassword: string): Promise<SetPasswordResult> {
     try {
+      // Validate inputs
+      if (!userId || !userId.trim()) {
+        console.error('[PasswordService] Invalid userId');
+        return {
+          success: false,
+          message: 'User ID is required',
+          error: 'Missing userId',
+        };
+      }
+
+      if (!newPassword || newPassword.length < 8) {
+        console.error('[PasswordService] Invalid password');
+        return {
+          success: false,
+          message: 'Password must be at least 8 characters',
+          error: 'Invalid password',
+        };
+      }
+
       // Get current session for authorization
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('[PasswordService] Session error:', sessionError);
+        return {
+          success: false,
+          message: 'Authentication error',
+          error: sessionError.message,
+        };
+      }
       
       if (!session) {
+        console.error('[PasswordService] No active session');
         return {
           success: false,
           message: 'You must be logged in to perform this action',
@@ -107,9 +136,13 @@ class PasswordService {
         };
       }
 
+      console.log('[PasswordService] Setting password for user:', userId);
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://qftjyjpitnoapqxlrvfs.supabase.co';
+      
       // Call the edge function with service role
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL || 'https://qftjyjpitnoapqxlrvfs.supabase.co'}/functions/v1/admin-password-reset`,
+        `${supabaseUrl}/functions/v1/admin-password-reset`,
         {
           method: 'POST',
           headers: {
@@ -125,9 +158,10 @@ class PasswordService {
       );
 
       const data = await response.json();
+      console.log('[PasswordService] Response:', { status: response.status, data });
 
       if (!response.ok) {
-        console.error('Admin password set error:', data);
+        console.error('[PasswordService] Error response:', data);
         return {
           success: false,
           message: data.error || 'Failed to set password',
@@ -140,7 +174,7 @@ class PasswordService {
         message: data.message || 'Password set successfully',
       };
     } catch (error: any) {
-      console.error('Admin password set error:', error);
+      console.error('[PasswordService] Exception:', error);
       return {
         success: false,
         message: 'An unexpected error occurred',
@@ -156,9 +190,19 @@ class PasswordService {
   async adminSendResetEmail(email: string, userName?: string): Promise<PasswordResetResult> {
     try {
       // Get current session for authorization
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('[PasswordService] Session error:', sessionError);
+        return {
+          success: false,
+          message: 'Authentication error',
+          error: sessionError.message,
+        };
+      }
       
       if (!session) {
+        console.error('[PasswordService] No active session');
         return {
           success: false,
           message: 'You must be logged in to perform this action',
@@ -166,9 +210,13 @@ class PasswordService {
         };
       }
 
-      // Call the edge function with service role
+      console.log('[PasswordService] Sending reset email for:', email);
+      
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://qftjyjpitnoapqxlrvfs.supabase.co';
+      
+      // Call the edge function with explicit action
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL || 'https://qftjyjpitnoapqxlrvfs.supabase.co'}/functions/v1/admin-password-reset`,
+        `${supabaseUrl}/functions/v1/admin-password-reset`,
         {
           method: 'POST',
           headers: {
@@ -176,6 +224,7 @@ class PasswordService {
             'Authorization': `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
+            action: 'send_reset', // Explicitly set action
             email,
             userName,
             redirectUrl: window.location.origin,
@@ -184,9 +233,10 @@ class PasswordService {
       );
 
       const data = await response.json();
+      console.log('[PasswordService] Response:', { status: response.status, data });
 
       if (!response.ok) {
-        console.error('Admin reset email error:', data);
+        console.error('[PasswordService] Error response:', data);
         return {
           success: false,
           message: data.error || 'Failed to send reset email',
@@ -201,7 +251,7 @@ class PasswordService {
         resetLink: data.resetLink,
       };
     } catch (error: any) {
-      console.error('Admin reset email error:', error);
+      console.error('[PasswordService] Exception:', error);
       return {
         success: false,
         message: 'An unexpected error occurred',

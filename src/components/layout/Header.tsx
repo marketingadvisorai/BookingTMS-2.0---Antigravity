@@ -32,8 +32,18 @@ export function Header({ onNavigate, onMobileMenuToggle }: HeaderProps) {
 
   const handleLogout = async () => {
     try {
+      // Capture role before logging out
+      const role = currentUser?.role;
+
       await logout();
       toast.success('Logged out successfully');
+
+      // Redirect similar to major SaaS apps: full reload to login page
+      if (role === 'org-admin' || role === 'admin' || role === 'super-admin') {
+        window.location.href = '/org-login';
+      } else {
+        window.location.href = '/system-admin-login';
+      }
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('Failed to logout');

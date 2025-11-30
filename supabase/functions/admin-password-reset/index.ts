@@ -117,17 +117,20 @@ serve(async (req) => {
         )
       }
 
-      // Log the action
-      await supabaseAdmin
-        .from('audit_logs')
-        .insert({
-          action: 'admin_set_password',
-          entity_type: 'user',
-          entity_id: userId,
-          user_id: requester.id,
-          details: { initiated_by: requester.email },
-        })
-        .catch((err: any) => console.warn('Audit log failed:', err))
+      // Log the action (fire and forget)
+      try {
+        await supabaseAdmin
+          .from('audit_logs')
+          .insert({
+            action: 'admin_set_password',
+            entity_type: 'user',
+            entity_id: userId,
+            user_id: requester.id,
+            details: { initiated_by: requester.email },
+          })
+      } catch (err) {
+        console.warn('Audit log failed:', err)
+      }
 
       return new Response(
         JSON.stringify({ success: true, message: 'Password set successfully' }),
@@ -175,17 +178,20 @@ serve(async (req) => {
     if (!supabaseEmailError) {
       console.log('Password reset email sent via Supabase SMTP')
       
-      // Log the password reset action
-      await supabaseAdmin
-        .from('audit_logs')
-        .insert({
-          action: 'admin_password_reset',
-          entity_type: 'user',
-          entity_id: targetUser.id,
-          user_id: requester.id,
-          details: { target_email: email, initiated_by: requester.email, method: 'supabase_smtp' },
-        })
-        .catch((err: any) => console.warn('Audit log failed:', err))
+      // Log the password reset action (fire and forget)
+      try {
+        await supabaseAdmin
+          .from('audit_logs')
+          .insert({
+            action: 'admin_password_reset',
+            entity_type: 'user',
+            entity_id: targetUser.id,
+            user_id: requester.id,
+            details: { target_email: email, initiated_by: requester.email, method: 'supabase_smtp' },
+          })
+      } catch (err) {
+        console.warn('Audit log failed:', err)
+      }
 
       return new Response(
         JSON.stringify({ 
@@ -197,9 +203,11 @@ serve(async (req) => {
       )
     }
     
-    console.warn('Supabase SMTP failed, trying fallback methods...', supabaseEmailError.message)
+    // Supabase SMTP failed - generate link and return it directly
+    // NOTE: Resend is disabled - using Supabase Auth SMTP only
+    console.warn('Supabase SMTP failed:', supabaseEmailError.message)
     
-    // Strategy 2: Generate link manually and try Resend (if configured)
+    // Generate link manually as fallback
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
       email: email,
@@ -219,91 +227,33 @@ serve(async (req) => {
     // Extract the token from the link
     const resetLink = linkData.properties?.action_link || ''
     
-    // Check if Resend is configured
-    if (RESEND_API_KEY && RESEND_API_KEY.length > 10) {
-      console.log('Attempting to send email via Resend...')
-      
-      // Send branded email via Resend
-      const emailHtml = generatePasswordResetEmail(userName || email.split('@')[0], resetLink)
-      
-      try {
-        const resendResponse = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
+    // Log the action with fallback method (fire and forget)
+    try {
+      await supabaseAdmin
+        .from('audit_logs')
+        .insert({
+          action: 'admin_password_reset',
+          entity_type: 'user',
+          entity_id: targetUser.id,
+          user_id: requester.id,
+          details: { 
+            target_email: email, 
+            initiated_by: requester.email, 
+            method: 'fallback_link',
+            note: 'Supabase SMTP failed, returning link directly'
           },
-          body: JSON.stringify({
-            from: 'BookingFlow AI <onboarding@resend.dev>',
-            to: [email],
-            subject: 'Reset Your Password - BookingFlow AI',
-            html: emailHtml,
-          }),
         })
-
-        const resendData = await resendResponse.json()
-
-        if (resendResponse.ok) {
-          console.log('Password reset email sent via Resend:', resendData.id)
-          
-          // Log the action
-          await supabaseAdmin
-            .from('audit_logs')
-            .insert({
-              action: 'admin_password_reset',
-              entity_type: 'user',
-              entity_id: targetUser.id,
-              user_id: requester.id,
-              details: { target_email: email, initiated_by: requester.email, method: 'resend' },
-            })
-            .catch((err: any) => console.warn('Audit log failed:', err))
-
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              message: `Password reset email sent to ${email}`,
-              messageId: resendData.id,
-              method: 'resend',
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-        
-        console.warn('Resend failed:', resendData)
-      } catch (resendErr) {
-        console.error('Resend API error:', resendErr)
-      }
-    } else {
-      console.log('Resend API key not configured, skipping...')
+    } catch (err) {
+      console.warn('Audit log failed:', err)
     }
-    
-    // Strategy 3: Return the link directly (for development/testing)
-    console.log('All email methods failed, returning link directly')
-    
-    // Log the action with fallback method
-    await supabaseAdmin
-      .from('audit_logs')
-      .insert({
-        action: 'admin_password_reset',
-        entity_type: 'user',
-        entity_id: targetUser.id,
-        user_id: requester.id,
-        details: { 
-          target_email: email, 
-          initiated_by: requester.email, 
-          method: 'fallback_link',
-          note: 'Email delivery failed, link returned directly'
-        },
-      })
-      .catch((err: any) => console.warn('Audit log failed:', err))
 
     // Return the reset link directly for admin to share with the user
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Password reset link generated. Email delivery failed - please share this link with the user manually.`,
+        message: `Password reset link generated. Please share this link with the user.`,
         method: 'fallback_link',
-        resetLink: resetLink, // Admin can copy and share this with the user
+        resetLink: resetLink,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

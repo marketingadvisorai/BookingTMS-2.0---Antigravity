@@ -63,11 +63,15 @@ const DEV_MODE = false; // Changed to false for testing
 function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentUser, isLoading, login } = useAuth();
+  const authContext = useAuth();
+  const { currentUser, isLoading, login } = authContext;
+  // Access profileError with type assertion since we added it to the context
+  const profileError = (authContext as any).profileError as string | null;
   const [checkingSupabaseSession, setCheckingSupabaseSession] = useState(true);
   const [hasSupabaseSession, setHasSupabaseSession] = useState(false);
+  const [profileLoadFailed, setProfileLoadFailed] = useState(false);
 
-  // Check for existing Supabase session on mount
+  // Check for existing Supabase session on mount and keep it in sync
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -78,7 +82,17 @@ function AppContent() {
       }
       setCheckingSupabaseSession(false);
     };
+
     checkSession();
+
+    // Keep hasSupabaseSession in sync with auth state (handles logout correctly)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setHasSupabaseSession(!!session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Auto-login in DEV_MODE
@@ -95,6 +109,28 @@ function AppContent() {
     };
     autoLogin();
   }, [currentUser, isLoading, login, hasSupabaseSession]);
+
+  // Route system-admin to appropriate dashboard
+  useEffect(() => {
+    if (currentUser && !isLoading) {
+      const currentPath = location.pathname;
+      
+      // System admin should be redirected to /system-admin dashboard if on root/dashboard
+      if (currentUser.role === 'system-admin') {
+        if (currentPath === '/' || currentPath === '/dashboard') {
+          console.log('🔄 Redirecting system-admin to /system-admin dashboard');
+          navigate('/system-admin');
+        }
+      }
+      // Super-admin with no org should also go to system-admin
+      else if (currentUser.role === 'super-admin' && !currentUser.organizationId) {
+        if (currentPath === '/' || currentPath === '/dashboard') {
+          console.log('🔄 Redirecting super-admin (no org) to /system-admin');
+          navigate('/system-admin');
+        }
+      }
+    }
+  }, [currentUser, isLoading, location.pathname, navigate]);
 
   // Derive current page from URL path
   const getPageFromPath = (path: string) => {
@@ -230,13 +266,67 @@ function AppContent() {
     );
   }
 
-  // If Supabase session exists but currentUser not loaded yet, show loading
+  // If Supabase session exists but currentUser not loaded yet
   if (!currentUser && hasSupabaseSession) {
+    // Check if profile loading failed
+    if (profileError) {
+      const handleLogout = async () => {
+        try {
+          await supabase.auth.signOut();
+          window.location.href = '/system-admin-login';
+        } catch (err) {
+          console.error('Logout error:', err);
+          window.location.href = '/system-admin-login';
+        }
+      };
+
+      const handleRetry = () => {
+        window.location.reload();
+      };
+
+      return (
+        <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-[#0a0a0a]">
+          <div className="max-w-md mx-auto p-6 text-center">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Profile Loading Failed
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              {profileError}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
+              If you're a system admin, please ensure migration 053 has been applied to the database.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={handleRetry}
+                className="px-4 py-2 bg-[#4f46e5] text-white rounded-lg hover:bg-[#4338ca] transition-colors"
+              >
+                Retry
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                Back to Login
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Still loading (no error yet)
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-[#0a0a0a]">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#4f46e5] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Loading your profile...</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">This may take a few seconds</p>
         </div>
       </div>
     );

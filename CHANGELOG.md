@@ -1,3 +1,15 @@
+# Multi-Tenant Org Onboarding v0.1.68 — Release Notes
+
+Date: 2025-11-30 12:20 UTC+6
+
+## Highlights
+- Multi-tenant organization admin creation via Supabase Auth
+- System and org admin password reset using Supabase SMTP (Resend disabled for now)
+- Improved system-admin / super-admin routing and profile loading
+- Updated multi-tenant architecture and tenant onboarding documentation
+
+---
+
 # Venue Update 1.0 — Release Notes
 
 Date: 2025-11-08

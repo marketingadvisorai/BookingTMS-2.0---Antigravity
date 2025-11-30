@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 
 const OrgLogin = () => {
   const { theme } = useTheme();
-  const { login } = useAuth();
+  const { login, isLoading: authLoading } = useAuth();
   const isDark = theme === 'dark';
 
   // State
@@ -20,6 +20,8 @@ const OrgLogin = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [showPassword, setShowPassword] = useState(false);
+
+  const isBusy = loading || authLoading;
 
   // Styling
   const bgPage = isDark ? 'bg-[#161616]' : 'bg-gray-50';
@@ -33,9 +35,13 @@ const OrgLogin = () => {
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
 
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
+    const identifier = email.trim();
+
+    // Allow either email OR username
+    if (!identifier) {
+      newErrors.email = 'Email or username is required';
+    } else if (identifier.includes('@') && !/\S+@\S+\.\S+/.test(identifier)) {
+      // Only enforce email format if there is an '@'
       newErrors.email = 'Invalid email address';
     }
 
@@ -50,6 +56,9 @@ const OrgLogin = () => {
   // Handle login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Avoid logging in before AuthContext has initialized Supabase client
+    if (authLoading) return;
 
     if (!validateForm()) return;
 
@@ -94,18 +103,18 @@ const OrgLogin = () => {
             {/* Email Field */}
             <div className="space-y-2">
               <Label className={isDark ? 'text-gray-300' : 'text-gray-700'}>
-                Email Address
+                Email or Username
               </Label>
               <Input
-                type="email"
+                type="text"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
                   if (errors.email) setErrors({ ...errors, email: undefined });
                 }}
-                placeholder="name@organization.com"
+                placeholder="email or username"
                 className={`h-12 ${inputBg} ${inputBorder} ${isDark ? 'text-white placeholder:text-gray-500' : 'text-gray-900 placeholder:text-gray-500'}`}
-                disabled={loading}
+                disabled={isBusy}
               />
               {errors.email && (
                 <p className="text-sm text-red-500">{errors.email}</p>
@@ -136,7 +145,7 @@ const OrgLogin = () => {
                   }}
                   placeholder="Enter your password"
                   className={`h-12 pr-12 ${inputBg} ${inputBorder} ${isDark ? 'text-white placeholder:text-gray-500' : 'text-gray-900 placeholder:text-gray-500'}`}
-                  disabled={loading}
+                  disabled={isBusy}
                 />
                 <button
                   type="button"

@@ -36,7 +36,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ currentPage, onNavigate = () => { }, isMobileOpen = false, onMobileClose }: SidebarProps) {
-  const { hasPermission, isRole, logout } = useAuth();
+  const { hasPermission, isRole, logout, currentUser } = useAuth();
 
   // Check admin roles
   const isSystemAdmin = isRole('system-admin');
@@ -192,8 +192,14 @@ export function Sidebar({ currentPage, onNavigate = () => { }, isMobileOpen = fa
             className="w-full justify-start text-gray-600 dark:text-[#737373] hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#161616] h-11"
             onClick={async () => {
               try {
+                const role = currentUser?.role;
                 await logout();
-                onNavigate('login');
+
+                if (role === 'org-admin' || role === 'admin' || role === 'super-admin') {
+                  window.location.href = '/org-login';
+                } else {
+                  window.location.href = '/system-admin-login';
+                }
               } catch (error) {
                 console.error('Logout failed:', error);
               }

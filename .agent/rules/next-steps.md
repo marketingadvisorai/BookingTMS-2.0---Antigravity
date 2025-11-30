@@ -1,7 +1,7 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
-> Last Updated: 2025-11-30 07:10 UTC+6
-> Version: v0.1.67-password-reset-enhanced
+> Last Updated: 2025-11-30 12:20 UTC+6
+> Version: v0.1.68-multi-tenant-onboarding-2025-11-30
 
 ---
 
@@ -623,9 +623,14 @@ Admin copies & shares link with user
 - `src/services/password.service.ts`
 - `src/components/admin/UserPasswordResetModal.tsx`
 
-**Edge Function Deployed**: v2 (Nov 30, 2025)
+**Edge Function Deployed**: v2.1.0 (Nov 30, 2025)
 
-**Optional Configuration** (for full email delivery):
+**Current Email Strategy (2025-11-30 12:20)**
+- Primary: Supabase Auth `resetPasswordForEmail` (SMTP)
+- Fallback: generate a password reset link and return it to the admin for manual sharing
+- Resend API fallback is **temporarily disabled** due to deliverability issues.
+
+**Optional Future Configuration** (when re-enabling Resend):
 ```bash
 # Set Resend API key for branded email fallback
 supabase secrets set RESEND_API_KEY=re_xxxx

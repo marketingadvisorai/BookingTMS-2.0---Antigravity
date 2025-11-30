@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 type AdminRole = 'system-admin' | 'super-admin' | 'admin';
 
 const SystemAdminLogin: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(''); // used as identifier: email or username
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -50,15 +50,40 @@ const SystemAdminLogin: React.FC = () => {
     setLoading(true);
 
     try {
-      if (!email.trim() || !password) {
-        setError('Email and password are required');
+      const identifier = email.trim();
+
+      if (!identifier || !password) {
+        setError('Email or username and password are required');
         setLoading(false);
         return;
       }
 
-      // Attempt Supabase auth
+      // Resolve identifier to email (support username or email)
+      let loginEmail = identifier;
+
+      if (!identifier.includes('@')) {
+        try {
+          console.log('[SystemAdminLogin] Looking up email for username:', identifier);
+          const { data: emailFromUsername, error: lookupError } = await (supabase as any)
+            .rpc('get_email_by_username', { lookup_username: identifier.toLowerCase() });
+
+          if (!lookupError && emailFromUsername) {
+            loginEmail = emailFromUsername as string;
+            console.log('[SystemAdminLogin] Found email for username:', loginEmail);
+          } else {
+            // Fallback: try username@bookingtms.com
+            loginEmail = `${identifier}@bookingtms.com`;
+            console.log('[SystemAdminLogin] Username not found, trying email:', loginEmail);
+          }
+        } catch (lookupErr) {
+          console.warn('[SystemAdminLogin] Username lookup failed, falling back to direct email:', lookupErr);
+          loginEmail = identifier.includes('@') ? identifier : `${identifier}@bookingtms.com`;
+        }
+      }
+
+      // Attempt Supabase auth with resolved email
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        email: loginEmail,
         password,
       });
 
@@ -161,18 +186,18 @@ const SystemAdminLogin: React.FC = () => {
 
           {/* Email Field */}
           <div className="space-y-2">
-            <Label className="text-gray-700 font-medium text-[14px]">Email Address</Label>
+            <Label className="text-gray-700 font-medium text-[14px]">Email or Username</Label>
             <Input
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
                 setError(null);
               }}
-              placeholder="name@organization.com"
+              placeholder="email or username"
               className="h-[46px] bg-[#f8f9fa] border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg text-[15px]"
               disabled={loading}
-              autoComplete="email"
+              autoComplete="username"
             />
           </div>
 

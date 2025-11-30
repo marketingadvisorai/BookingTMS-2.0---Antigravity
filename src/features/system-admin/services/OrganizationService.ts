@@ -485,7 +485,7 @@ export class OrganizationService {
 
   /**
    * Create org admin user via Edge Function
-   * Returns user credentials and reset link
+   * Returns user credentials, reset link, and email status
    */
   static async createOrgAdmin(params: {
     organization_id: string;
@@ -494,22 +494,41 @@ export class OrganizationService {
     phone?: string;
     set_password?: string;
     send_welcome_email?: boolean;
+    organization_name?: string;
   }): Promise<{
     success: boolean;
     user_id?: string;
     temp_password?: string;
     reset_link?: string;
+    login_url?: string;
+    organization_id?: string;
+    email_sent?: boolean;
+    email_error?: string;
     message?: string;
     error?: string;
   }> {
     try {
+      console.log('[OrganizationService] Creating org admin via Edge Function:', {
+        organization_id: params.organization_id,
+        email: params.email,
+        name: params.name,
+      });
+
       const { data, error } = await supabase.functions.invoke('create-org-admin', {
         body: params,
       });
 
       if (error) {
+        console.error('[OrganizationService] Edge function error:', error);
         throw new Error(error.message);
       }
+
+      console.log('[OrganizationService] createOrgAdmin result:', {
+        success: data?.success,
+        email_sent: data?.email_sent,
+        has_temp_password: !!data?.temp_password,
+        has_reset_link: !!data?.reset_link,
+      });
 
       return data;
     } catch (error: any) {
@@ -522,7 +541,76 @@ export class OrganizationService {
   }
 
   /**
+   * Resend welcome email to organization owner
+   * Uses the password service to send a reset email
+   */
+  static async resendWelcomeEmail(organizationId: string): Promise<{
+    success: boolean;
+    message?: string;
+    error?: string;
+  }> {
+    try {
+      // Get organization details
+      const { data: org, error: fetchError } = await (supabase
+        .from('organizations') as any)
+        .select('owner_email, owner_name, name')
+        .eq('id', organizationId)
+        .single();
+
+      if (fetchError || !org) {
+        throw new Error('Organization not found');
+      }
+
+      if (!org.owner_email) {
+        throw new Error('No owner email configured for this organization');
+      }
+
+      // Send password reset email via the edge function
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Authentication required');
+      }
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://qftjyjpitnoapqxlrvfs.supabase.co';
+      
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/admin-password-reset`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            action: 'send_reset',
+            email: org.owner_email,
+            userName: org.owner_name || org.name,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send email');
+      }
+
+      return {
+        success: true,
+        message: data.message || 'Password reset email sent successfully',
+      };
+    } catch (error: any) {
+      console.error('[OrganizationService] resendWelcomeEmail failed:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to send email',
+      };
+    }
+  }
+
+  /**
    * Create organization with org admin user in one transaction
+   * Returns organization, admin credentials, and email status
    */
   static async createComplete(
     dto: CreateOrganizationDTO,
@@ -533,13 +621,24 @@ export class OrganizationService {
       email: string;
       temp_password?: string;
       reset_link?: string;
+      login_url?: string;
+      email_sent?: boolean;
+      email_error?: string;
     };
+    message?: string;
   }> {
     try {
+      console.log('[OrganizationService] Creating complete organization setup:', {
+        name: dto.name,
+        owner_email: dto.owner_email,
+        has_password: !!adminPassword,
+      });
+
       // Step 1: Create the organization
       const org = await this.create(dto);
+      console.log('[OrganizationService] Organization created:', org.id);
 
-      // Step 2: Create org admin user
+      // Step 2: Create org admin user with welcome email
       const adminResult = await this.createOrgAdmin({
         organization_id: org.id,
         email: dto.owner_email,
@@ -547,6 +646,25 @@ export class OrganizationService {
         phone: dto.phone,
         set_password: adminPassword,
         send_welcome_email: true,
+        organization_name: dto.name,
+      });
+
+      // Build response message
+      let message = 'Organization created successfully.';
+      if (adminResult.success) {
+        if (adminResult.email_sent) {
+          message = 'Organization created! Welcome email with credentials sent to owner.';
+        } else {
+          message = 'Organization created! Email sending failed - share credentials manually.';
+        }
+      } else {
+        message = `Organization created but admin user creation failed: ${adminResult.error}`;
+      }
+
+      console.log('[OrganizationService] createComplete finished:', {
+        org_id: org.id,
+        admin_success: adminResult.success,
+        email_sent: adminResult.email_sent,
       });
 
       return {
@@ -555,7 +673,11 @@ export class OrganizationService {
           email: dto.owner_email,
           temp_password: adminResult.temp_password,
           reset_link: adminResult.reset_link,
+          login_url: adminResult.login_url,
+          email_sent: adminResult.email_sent,
+          email_error: adminResult.email_error,
         } : undefined,
+        message,
       };
     } catch (error: any) {
       console.error('[OrganizationService] createComplete failed:', error);

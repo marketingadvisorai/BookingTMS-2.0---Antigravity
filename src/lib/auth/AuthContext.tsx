@@ -29,57 +29,38 @@ import {
 } from '../../types/auth';
 import { ROLES, getRolePermissions, getRoutePermission } from './permissions';
 
-// Supabase client (lazy loaded to avoid errors if not configured)
+// Supabase client (lazy loaded so we share the same config as lib/supabase/client)
 let supabaseClient: any = null;
 let getCurrentUserFn: any = null;
 let signOutFn: any = null;
 
-// Safe environment variable access for client-side
-const getEnvVar = (key: string): string | undefined => {
-  if (typeof window !== 'undefined') {
-    // Client-side: Check window object or use import.meta if available
-    return (window as any)[key] || undefined;
-  }
-  // This fallback won't work in browser but prevents error
-  return undefined;
-};
-
+/**
+ * Load the shared Supabase client used across the app.
+ *
+ * IMPORTANT:
+ * - We no longer gate this behind NEXT_PUBLIC_SUPABASE_* env vars.
+ * - The actual URL/key resolution is centralized in ../supabase/client
+ *   which already falls back to projectId/publicAnonKey.
+ *
+ * This ensures:
+ * - SystemAdminLogin (which imports supabase directly) and AuthContext
+ *   always talk to the SAME Supabase project.
+ * - We avoid the bug where SystemAdminLogin logs in via Supabase, but
+ *   AuthContext thinks Supabase is "not configured" and falls back to
+ *   mock auth, leaving currentUser null while a Supabase session exists.
+ */
 const loadSupabase = async () => {
   if (typeof window === 'undefined') return null;
-
-  // Access environment variables safely in client-side code
-  // Next.js should replace these at build time, but we add extra safety
-  let supabaseUrl: string | undefined;
-  let supabaseKey: string | undefined;
-
-  try {
-    // Try to access via process.env (works if Next.js replaced at build time)
-    supabaseUrl = (typeof process !== 'undefined' && process.env)
-      ? process.env.NEXT_PUBLIC_SUPABASE_URL
-      : getEnvVar('NEXT_PUBLIC_SUPABASE_URL');
-
-    supabaseKey = (typeof process !== 'undefined' && process.env)
-      ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      : getEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY');
-  } catch (error) {
-    console.log('📦 Cannot access environment variables - using mock data');
-    return null;
-  }
-
-  if (!supabaseUrl || !supabaseKey) {
-    console.log('📦 Supabase not configured - using mock data');
-    return null;
-  }
 
   try {
     const { supabase, getCurrentUser, signOut } = await import('../supabase/client');
     supabaseClient = supabase;
     getCurrentUserFn = getCurrentUser;
     signOutFn = signOut;
-    console.log('✅ Supabase connected');
+    console.log('✅ Supabase connected (AuthContext)');
     return supabase;
   } catch (error) {
-    console.warn('⚠️ Supabase connection failed - using mock data:', error);
+    console.warn('⚠️ Supabase dynamic import failed - falling back to mock auth:', error);
     return null;
   }
 };
@@ -171,6 +152,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [useSupabase, setUseSupabase] = useState(false);
   const [authUser, setAuthUser] = useState<SupabaseUser | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileLoadAttempts, setProfileLoadAttempts] = useState(0);
+  const MAX_PROFILE_LOAD_ATTEMPTS = 2; // Reduced for faster failure
+  const PROFILE_LOAD_TIMEOUT_MS = 5000; // 5 seconds max
 
   // ============================================================================
   // INITIALIZATION
@@ -261,48 +246,146 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const loadUserProfile = async (userId: string) => {
-    if (!supabaseClient) return;
+  const loadUserProfile = async (userId: string, attempt: number = 1): Promise<boolean> => {
+    if (!supabaseClient) {
+      console.warn('⚠️ Supabase client not available for profile load');
+      return false;
+    }
+
+    console.log(`🔄 Loading user profile (attempt ${attempt}/${MAX_PROFILE_LOAD_ATTEMPTS})...`);
+    setProfileError(null);
+
+    // Helper: build a minimal User from Supabase auth user as a safe fallback
+    const fallbackFromAuthUser = async (): Promise<boolean> => {
+      try {
+        if (!getCurrentUserFn) return false;
+        const authUser = await getCurrentUserFn();
+        if (!authUser || authUser.id !== userId) return false;
+
+        const email: string = (authUser as any).email || '';
+        const fullName: string | undefined = (authUser as any).user_metadata?.full_name;
+
+        // Temporary role mapping: for now we only care about platform owner vs others
+        let role: UserRole = 'admin';
+        if (email === 'marketingadvisorai@gmail.com') {
+          role = 'system-admin';
+        }
+
+        const user: User = {
+          id: authUser.id,
+          email,
+          name: fullName || email.split('@')[0] || 'User',
+          role,
+          status: 'active',
+          avatar: undefined,
+          phone: undefined,
+          createdAt: (authUser as any).created_at || new Date().toISOString(),
+          lastLogin: (authUser as any).last_sign_in_at || undefined,
+          organizationId: undefined,
+        };
+
+        console.log('✅ Fallback profile built from Supabase auth user');
+        setCurrentUser(user);
+        setProfileError(null);
+        return true;
+      } catch (err) {
+        console.error('⚠️ Failed to build fallback profile from auth user:', err);
+        return false;
+      }
+    };
 
     try {
-      const { data: profile, error } = await supabaseClient
+      // FAST QUERY: Load user profile only (no heavy JOINs)
+      // Organization data can be loaded lazily later if needed
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Profile load timeout')), PROFILE_LOAD_TIMEOUT_MS);
+      });
+
+      const queryPromise = supabaseClient
         .from('users')
-        .select(`
-          *,
-          organization:organizations(*)
-        `)
+        .select('id, email, full_name, username, role, organization_id, is_active, is_platform_team, avatar_url, phone, created_at, last_login_at')
         .eq('id', userId)
         .single();
 
+      const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]);
+
       if (error) {
-        console.error('Error loading user profile:', error);
-        return;
+        console.error('❌ Error loading user profile from users table:', error.message, error.code);
+
+        // For our current phase we don't want this to block the whole app.
+        // Immediately try to build a profile from auth user and continue.
+        const fallbackSuccess = await fallbackFromAuthUser();
+        if (fallbackSuccess) {
+          return true;
+        }
+
+        // If fallback also fails, surface a clear error
+        if (error.code === 'PGRST116' || error.message.includes('row-level security')) {
+          setProfileError('Profile access denied. Database permissions may need updating.');
+        } else if (error.code === 'PGRST301') {
+          setProfileError('User profile not found. Please contact support.');
+        } else {
+          setProfileError(`Failed to load profile: ${error.message}`);
+        }
+
+        return false;
       }
 
-      if (profile) {
-        const user: User = {
-          id: profile.id,
-          email: profile.email,
-          name: profile.full_name,
-          role: profile.role,
-          status: profile.is_active ? 'active' : 'inactive',
-          avatar: profile.avatar_url || undefined,
-          phone: profile.phone || undefined,
-          createdAt: profile.created_at,
-          lastLogin: profile.last_login_at || undefined,
-          organizationId: profile.organization_id,
-        };
+      if (!profile) {
+        console.error('❌ No profile data returned for user from users table:', userId);
 
-        setCurrentUser(user);
+        const fallbackSuccess = await fallbackFromAuthUser();
+        if (fallbackSuccess) {
+          return true;
+        }
 
-        // Update last login
-        await supabaseClient
-          .from('users')
-          .update({ last_login_at: new Date().toISOString() })
-          .eq('id', userId);
+        setProfileError('User profile not found in database. Admin may need to create your profile.');
+        return false;
       }
-    } catch (error) {
-      console.error('Failed to load user profile:', error);
+
+      // Successfully loaded profile from users table
+      console.log('✅ Profile loaded from users table:', profile.email, profile.role);
+
+      const user: User = {
+        id: profile.id,
+        email: profile.email,
+        name: profile.full_name || profile.email?.split('@')[0] || 'User',
+        role: profile.role || 'staff',
+        status: profile.is_active ? 'active' : 'inactive',
+        avatar: profile.avatar_url || undefined,
+        phone: profile.phone || undefined,
+        createdAt: profile.created_at,
+        lastLogin: profile.last_login_at || undefined,
+        organizationId: profile.organization_id,
+      };
+
+      setCurrentUser(user);
+      setProfileError(null);
+
+      // Update last login (non-blocking)
+      supabaseClient
+        .from('users')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('id', userId)
+        .then(() => console.log('📝 Last login updated'))
+        .catch((err: Error) => console.warn('⚠️ Failed to update last login:', err.message));
+
+      return true;
+    } catch (error: any) {
+      console.error('❌ Failed to load user profile:', error.message || error);
+
+      // On timeout, still try to fall back to auth user
+      if (error.message === 'Profile load timeout') {
+        const fallbackSuccess = await fallbackFromAuthUser();
+        if (fallbackSuccess) {
+          return true;
+        }
+        setProfileError('Profile loading timed out. Please check your connection and try again.');
+      } else {
+        setProfileError(`Unexpected error: ${error.message || 'Unknown error'}`);
+      }
+
+      return false;
     }
   };
 
@@ -312,20 +395,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (usernameOrEmail: string, password: string, role?: UserRole): Promise<void> => {
     if (useSupabase && supabaseClient) {
-      // Supabase login
+      // Supabase login - support both username and email
       try {
+        let loginEmail = usernameOrEmail;
+        
+        // If input doesn't look like email, try to find user by username
+        if (!usernameOrEmail.includes('@')) {
+          console.log('🔍 Looking up user by username:', usernameOrEmail);
+          
+          // Use secure RPC function to lookup username (bypasses RLS)
+          const { data: email, error: lookupError } = await supabaseClient
+            .rpc('get_email_by_username', { lookup_username: usernameOrEmail.toLowerCase() });
+          
+          if (lookupError || !email) {
+            // Also try direct email format
+            loginEmail = `${usernameOrEmail}@bookingtms.com`;
+            console.log('📧 Username not found, trying email:', loginEmail);
+          } else {
+            loginEmail = email;
+            console.log('✅ Found user email:', loginEmail);
+          }
+        }
+
+        console.log('🔐 Attempting Supabase login with:', loginEmail);
         const { data, error } = await supabaseClient.auth.signInWithPassword({
-          email: usernameOrEmail,
+          email: loginEmail,
           password,
         });
 
         if (error) {
+          console.error('❌ Supabase login error:', error.message);
           throw new Error(error.message);
         }
 
         if (data.user) {
+          console.log('✅ Supabase auth successful, loading profile...');
           setAuthUser(data.user);
-          await loadUserProfile(data.user.id);
+          const success = await loadUserProfile(data.user.id);
+          if (!success) {
+            console.warn('⚠️ Profile load returned false but continuing with session');
+          }
         }
       } catch (error) {
         console.error('Login error:', error);
@@ -725,7 +834,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // CONTEXT VALUE
   // ============================================================================
 
-  const value: AuthContextType = {
+  const value: AuthContextType & { profileError: string | null } = {
     currentUser,
     users,
     roles: ROLES,
@@ -742,6 +851,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateUser,
     deleteUser,
     refreshUsers: loadUsers,
+    profileError, // Expose error for UI display
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

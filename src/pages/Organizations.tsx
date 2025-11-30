@@ -219,17 +219,25 @@ export function Organizations() {
         // Create new organization with org admin user
         const result = await OrganizationService.createComplete(data, data.initial_password);
         
-        // Show success with credentials info
-        if (result.admin_credentials?.temp_password) {
-          toast.success(
-            `Organization created! Temp password: ${result.admin_credentials.temp_password}`,
-            { duration: 10000 }
-          );
-        } else if (result.admin_credentials?.reset_link) {
-          toast.success(
-            'Organization created! Password reset email sent to owner.',
-            { duration: 5000 }
-          );
+        // Show detailed success message based on email status
+        if (result.admin_credentials) {
+          if (result.admin_credentials.email_sent) {
+            // Email sent successfully
+            toast.success(
+              `✅ Organization "${data.name}" created!\n` +
+              `Welcome email sent to ${data.owner_email}`,
+              { duration: 6000 }
+            );
+          } else {
+            // Email failed - show credentials for manual sharing
+            toast.warning(
+              `Organization created but email failed.\n` +
+              `📧 Email: ${data.owner_email}\n` +
+              `🔑 Password: ${result.admin_credentials.temp_password}\n` +
+              `Please share these credentials manually.`,
+              { duration: 15000 }
+            );
+          }
         } else {
           toast.success('Organization created successfully');
         }
@@ -241,6 +249,34 @@ export function Organizations() {
       console.error('Organization operation failed:', error);
       toast.error(error.message || 'Operation failed');
       throw error;
+    }
+  };
+
+  // Handle resend welcome email
+  const handleResendWelcomeEmail = async (org: Organization) => {
+    if (!org.owner_email) {
+      toast.error('No owner email configured for this organization');
+      return;
+    }
+
+    try {
+      toast.loading('Sending welcome email...', { id: 'resend-email' });
+      
+      const result = await OrganizationService.resendWelcomeEmail(org.id);
+      
+      if (result.success) {
+        toast.success(
+          `Password reset email sent to ${org.owner_email}`,
+          { id: 'resend-email', duration: 5000 }
+        );
+      } else {
+        toast.error(
+          result.error || 'Failed to send email',
+          { id: 'resend-email' }
+        );
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send email', { id: 'resend-email' });
     }
   };
 
@@ -412,6 +448,7 @@ export function Organizations() {
             onSettings={handleSettings}
             onDelete={handleDelete}
             onResetPassword={handleResetPassword}
+            onResendEmail={handleResendWelcomeEmail}
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -423,6 +460,7 @@ export function Organizations() {
                 onSettings={handleSettings}
                 onDelete={handleDelete}
                 onResetPassword={handleResetPassword}
+                onResendEmail={handleResendWelcomeEmail}
               />
             ))}
           </div>
@@ -528,13 +566,15 @@ function OrganizationCard({
   onEdit, 
   onSettings, 
   onDelete,
-  onResetPassword 
+  onResetPassword,
+  onResendEmail,
 }: {
   organization: Organization;
   onEdit: (org: Organization) => void;
   onSettings: (org: Organization) => void;
   onDelete: (org: Organization) => void;
   onResetPassword: (org: Organization) => void;
+  onResendEmail: (org: Organization) => void;
 }) {
   const statusInfo = statusConfig[organization.status] || statusConfig.pending;
 
@@ -571,6 +611,10 @@ function OrganizationCard({
                 Edit
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onResendEmail(organization)}>
+                <Mail className="mr-2 h-4 w-4" />
+                Resend Welcome Email
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onResetPassword(organization)}>
                 <KeyRound className="mr-2 h-4 w-4" />
                 Reset Password
@@ -648,13 +692,15 @@ function OrganizationsTable({
   onEdit, 
   onSettings, 
   onDelete,
-  onResetPassword 
+  onResetPassword,
+  onResendEmail,
 }: {
   organizations: Organization[];
   onEdit: (org: Organization) => void;
   onSettings: (org: Organization) => void;
   onDelete: (org: Organization) => void;
   onResetPassword: (org: Organization) => void;
+  onResendEmail: (org: Organization) => void;
 }) {
   return (
     <Card>
@@ -749,6 +795,10 @@ function OrganizationsTable({
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => onResendEmail(org)}>
+                            <Mail className="mr-2 h-4 w-4" />
+                            Resend Welcome Email
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => onResetPassword(org)}>
                             <KeyRound className="mr-2 h-4 w-4" />
                             Reset Password

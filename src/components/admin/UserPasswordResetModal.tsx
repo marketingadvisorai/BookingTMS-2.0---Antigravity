@@ -20,7 +20,7 @@ interface UserPasswordResetModalProps {
   open: boolean;
   onClose: () => void;
   user: {
-    id: string;
+    id: string; // Can be empty if user not found - "Set Password" will be disabled
     email: string;
     name: string;
   } | null;
@@ -230,6 +230,22 @@ export const UserPasswordResetModal: React.FC<UserPasswordResetModalProps> = ({
 
             {/* Set Password Manually Tab */}
             <TabsContent value="manual" className="space-y-4 pt-4">
+              {!user.id ? (
+                <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                  <div className="flex gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                        User Not Found
+                      </p>
+                      <p className="text-sm text-red-600 dark:text-red-300 mt-1">
+                        No user account exists for this email. Use the "Send Email" option instead, or create a user account first.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
               <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
                 <div className="flex gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
@@ -314,6 +330,8 @@ export const UserPasswordResetModal: React.FC<UserPasswordResetModalProps> = ({
                   )}
                 </Button>
               </div>
+                </>
+              )}
             </TabsContent>
           </Tabs>
         )}

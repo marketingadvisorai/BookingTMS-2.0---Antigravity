@@ -113,10 +113,30 @@ export default function OrganizationSettingsModal({
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      await OrganizationService.update(organization.id, formData as UpdateOrganizationDTO);
+      // Clean up form data - convert empty strings to undefined so they're not sent
+      const cleanedData: UpdateOrganizationDTO = {};
+      
+      if (formData.name?.trim()) cleanedData.name = formData.name.trim();
+      if (formData.owner_name?.trim()) cleanedData.owner_name = formData.owner_name.trim();
+      if (formData.owner_email?.trim()) cleanedData.owner_email = formData.owner_email.trim();
+      if (formData.website?.trim()) cleanedData.website = formData.website.trim();
+      if (formData.phone?.trim()) cleanedData.phone = formData.phone.trim();
+      if (formData.address?.trim()) cleanedData.address = formData.address.trim();
+      if (formData.city?.trim()) cleanedData.city = formData.city.trim();
+      if (formData.state?.trim()) cleanedData.state = formData.state.trim();
+      if (formData.zip?.trim()) cleanedData.zip = formData.zip.trim();
+      if (formData.country?.trim()) cleanedData.country = formData.country.trim();
+      if (formData.plan_id) cleanedData.plan_id = formData.plan_id;
+      if (formData.status) cleanedData.status = formData.status as 'active' | 'inactive' | 'suspended';
+      if (typeof formData.application_fee_percentage === 'number') {
+        cleanedData.application_fee_percentage = formData.application_fee_percentage;
+      }
+
+      await OrganizationService.update(organization.id, cleanedData);
       toast.success('Organization settings updated successfully');
       onUpdate();
     } catch (error: any) {
+      console.error('[OrganizationSettingsModal] Update error:', error);
       toast.error(error.message || 'Failed to update organization');
     } finally {
       setIsLoading(false);

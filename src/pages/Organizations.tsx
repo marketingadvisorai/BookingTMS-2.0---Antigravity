@@ -72,6 +72,7 @@ import { OrganizationModal } from '../features/system-admin/components/organizat
 import { OrganizationSettingsModal } from '../components/organizations';
 import { UserPasswordResetModal } from '../components/admin';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 import { formatDate, formatCurrency } from '../features/system-admin/utils';
 import type { Organization, CreateOrganizationDTO } from '../features/system-admin/types';
 
@@ -160,17 +161,32 @@ export function Organizations() {
     setIsSettingsModalOpen(true);
   };
 
-  const handleResetPassword = (org: Organization) => {
-    if (org.owner_email) {
-      setResetUser({
-        id: (org as any).owner_user_id || org.id, // Use owner_user_id if available
-        email: org.owner_email,
-        name: org.owner_name || org.name,
-      });
-      setIsPasswordResetOpen(true);
-    } else {
+  const handleResetPassword = async (org: Organization) => {
+    if (!org.owner_email) {
       toast.error('No owner email configured for this organization');
+      return;
     }
+
+    // Try to look up the user ID by email for "Set Password" feature
+    let userId: string | null = null;
+    try {
+      const { data: userData } = await (supabase
+        .from('users') as any)
+        .select('id')
+        .eq('email', org.owner_email)
+        .maybeSingle();
+      
+      userId = (userData as any)?.id || null;
+    } catch (error) {
+      console.warn('[Organizations] Could not find user by email:', org.owner_email);
+    }
+
+    setResetUser({
+      id: userId || '', // Empty string if no user found - "Send Email" will still work
+      email: org.owner_email,
+      name: org.owner_name || org.name,
+    });
+    setIsPasswordResetOpen(true);
   };
 
   const handleDelete = async (org: Organization) => {

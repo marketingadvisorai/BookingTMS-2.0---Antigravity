@@ -403,38 +403,52 @@ export class OrganizationService {
 
   /**
    * Update organization
+   * Only updates fields that are explicitly provided (not undefined)
    */
   static async update(id: string, dto: UpdateOrganizationDTO): Promise<Organization> {
     try {
+      // Build update object with only defined values
+      const updateData: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+
+      // Only include fields that are explicitly provided
+      if (dto.name !== undefined) updateData.name = dto.name;
+      if (dto.owner_name !== undefined) updateData.owner_name = dto.owner_name;
+      if (dto.owner_email !== undefined) updateData.owner_email = dto.owner_email;
+      if (dto.website !== undefined) updateData.website = dto.website;
+      if (dto.phone !== undefined) updateData.phone = dto.phone;
+      if (dto.address !== undefined) updateData.address = dto.address;
+      if (dto.city !== undefined) updateData.city = dto.city;
+      if (dto.state !== undefined) updateData.state = dto.state;
+      if (dto.zip !== undefined) updateData.zip = dto.zip;
+      if (dto.country !== undefined) updateData.country = dto.country;
+      if (dto.plan_id !== undefined) updateData.plan_id = dto.plan_id || null;
+      if (dto.status !== undefined) updateData.status = dto.status;
+      if (dto.application_fee_percentage !== undefined) {
+        updateData.application_fee_percentage = dto.application_fee_percentage;
+      }
+
+      // Perform update without .single() to avoid "Cannot coerce" error
       const { data, error } = await (supabase
         .from('organizations') as any)
-        .update({
-          name: dto.name,
-          owner_name: dto.owner_name,
-          owner_email: dto.owner_email,
-          website: dto.website,
-          phone: dto.phone,
-          address: dto.address,
-          city: dto.city,
-          state: dto.state,
-          zip: dto.zip,
-          country: dto.country,
-          plan_id: dto.plan_id,
-          status: dto.status,
-          application_fee_percentage: dto.application_fee_percentage,
-          updated_at: new Date().toISOString(),
-        } as any)
+        .update(updateData)
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
+        console.error('[OrganizationService] update error:', error);
         throw new Error(`Failed to update organization: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('Organization not found or update failed');
       }
 
       return data;
     } catch (error: any) {
-      console.warn('[OrganizationService] update failed:', error?.message);
+      console.error('[OrganizationService] update failed:', error?.message);
       throw error;
     }
   }

@@ -7,7 +7,7 @@
  * @module services/password
  */
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase/client';
 
 export interface PasswordResetResult {
   success: boolean;
@@ -127,12 +127,14 @@ class PasswordService {
         };
       }
       
+      // If no session, try to get user to check for mock auth
       if (!session) {
-        console.error('[PasswordService] No active session');
+        console.warn('[PasswordService] No Supabase session found. User may be in demo/mock mode.');
+        console.log('[PasswordService] Tip: Log in with real Supabase credentials to use admin password features.');
         return {
           success: false,
-          message: 'You must be logged in to perform this action',
-          error: 'No active session',
+          message: 'No active Supabase session. Please log in with your email to use this feature.',
+          error: 'Supabase authentication required. Demo mode does not support password management.',
         };
       }
 
@@ -189,6 +191,15 @@ class PasswordService {
    */
   async adminSendResetEmail(email: string, userName?: string): Promise<PasswordResetResult> {
     try {
+      // Validate email
+      if (!email || !email.includes('@')) {
+        return {
+          success: false,
+          message: 'Valid email address is required',
+          error: 'Invalid email',
+        };
+      }
+
       // Get current session for authorization
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
@@ -201,12 +212,14 @@ class PasswordService {
         };
       }
       
+      // If no session, user might be in demo/mock mode
       if (!session) {
-        console.error('[PasswordService] No active session');
+        console.warn('[PasswordService] No Supabase session found. User may be in demo/mock mode.');
+        console.log('[PasswordService] Tip: Log in with real Supabase credentials to use admin password features.');
         return {
           success: false,
-          message: 'You must be logged in to perform this action',
-          error: 'No active session',
+          message: 'No active Supabase session. Please log in with your email to use this feature.',
+          error: 'Supabase authentication required. Demo mode does not support password management.',
         };
       }
 

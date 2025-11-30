@@ -6,15 +6,16 @@
  * 2. Set a new password directly
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Mail, Key, Loader2, Check, Eye, EyeOff, AlertCircle, Copy, Link as LinkIcon } from 'lucide-react';
+import { Mail, Key, Loader2, Check, Eye, EyeOff, AlertCircle, Copy, Link as LinkIcon, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { passwordService } from '../../services/password.service';
+import { supabase } from '../../lib/supabase/client';
 
 interface UserPasswordResetModalProps {
   open: boolean;
@@ -38,6 +39,24 @@ export const UserPasswordResetModal: React.FC<UserPasswordResetModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
   const [fallbackLink, setFallbackLink] = useState<string | null>(null);
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
+
+  // Check for active Supabase session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setHasSession(!!session);
+      } catch (error) {
+        console.error('[UserPasswordResetModal] Session check failed:', error);
+        setHasSession(false);
+      }
+    };
+    
+    if (open) {
+      checkSession();
+    }
+  }, [open]);
 
   // Password validation
   const passwordChecks = {
@@ -134,6 +153,23 @@ export const UserPasswordResetModal: React.FC<UserPasswordResetModalProps> = ({
             Reset password for {user.name} ({user.email})
           </DialogDescription>
         </DialogHeader>
+
+        {/* Session Warning */}
+        {hasSession === false && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-lg">
+            <div className="flex gap-3">
+              <ShieldAlert className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                  Authentication Required
+                </p>
+                <p className="text-sm text-amber-600 dark:text-amber-300 mt-1">
+                  You are currently in demo mode. To reset passwords, please log in with a real Supabase account (email/password) instead of demo credentials.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {success ? (
           <div className="py-6 text-center">

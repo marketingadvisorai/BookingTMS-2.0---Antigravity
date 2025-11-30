@@ -12,6 +12,11 @@ import { PromoCodeInput } from '../../PromoCodeInput';
 import { GiftCardInput } from '../../GiftCardInput';
 import { BookingSidebarProps } from './types';
 
+// Extended props for sidebar with organizationId
+interface ExtendedBookingSidebarProps extends BookingSidebarProps {
+  organizationId?: string;
+}
+
 export function BookingSidebar({
   gameData,
   selectedDate,
@@ -27,8 +32,9 @@ export function BookingSidebar({
   onApplyGiftCard,
   onRemovePromoCode,
   onRemoveGiftCard,
-  stripePrices
-}: BookingSidebarProps) {
+  stripePrices,
+  organizationId
+}: ExtendedBookingSidebarProps) {
   const [showPromoInput, setShowPromoInput] = useState(false);
   const [showGiftCardInput, setShowGiftCardInput] = useState(false);
 
@@ -269,10 +275,14 @@ export function BookingSidebar({
             </button>
           )}
           {showPromoInput && !appliedPromoCode && (
-            <PromoCodeInput onApply={(code, discount, type) => {
-              onApplyPromoCode({ code, discount, type });
-              setShowPromoInput(false);
-            }} />
+            <PromoCodeInput 
+              organizationId={organizationId}
+              subtotal={pricing.subtotal}
+              onApply={(code, discount, type) => {
+                onApplyPromoCode({ code, discount, type });
+                setShowPromoInput(false);
+              }} 
+            />
           )}
 
           {/* Gift Card Toggle */}
@@ -286,10 +296,14 @@ export function BookingSidebar({
             </button>
           )}
           {showGiftCardInput && !appliedGiftCard && (
-            <GiftCardInput onApply={(code, amount) => {
-              onApplyGiftCard({ code, amount });
-              setShowGiftCardInput(false);
-            }} />
+            <GiftCardInput 
+              organizationId={organizationId}
+              subtotal={pricing.subtotal - pricing.promoDiscount}
+              onApply={(code, amount) => {
+                onApplyGiftCard({ code, amount });
+                setShowGiftCardInput(false);
+              }} 
+            />
           )}
 
           {/* Continue Button */}

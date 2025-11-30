@@ -106,6 +106,14 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, supabas
   const customerName = metadata.customer_name || session.customer_details?.name || ''
   const customerEmail = session.customer_email || session.customer_details?.email || ''
   const customerPhone = metadata.customer_phone || session.customer_details?.phone || ''
+  
+  // Promo and gift card metadata
+  const promoCode = metadata.promo_code || null
+  const promoDiscount = parseFloat(metadata.promo_discount || '0')
+  const giftCardId = metadata.gift_card_id || null
+  const giftCardAmount = parseFloat(metadata.gift_card_amount || '0')
+  const subtotal = parseFloat(metadata.subtotal || '0')
+  const organizationId = metadata.organization_id || null
 
   // Check if booking already exists for this session
   const { data: existingBooking } = await supabase
@@ -169,8 +177,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, supabas
     }
   }
 
-  // Create booking record
-  const { error: bookingError } = await supabase
+  // Create booking record with promo/gift card fields
+  const { data: bookingData, error: bookingError } = await supabase
     .from('bookings')
     .insert({
       booking_number: bookingNumber,
@@ -180,6 +188,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, supabas
       start_time: bookingTime,
       party_size: partySize,
       total_amount: (session.amount_total || 0) / 100,
+      subtotal: subtotal || (session.amount_total || 0) / 100,
       status: 'confirmed',
       payment_status: 'paid',
       stripe_checkout_session_id: session.id,
@@ -187,17 +196,108 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, supabas
         ? session.payment_intent 
         : session.payment_intent?.id,
       source: 'widget',
-      promo_code: metadata.promo_code || null,
+      promo_code: promoCode,
+      promo_discount: promoDiscount,
+      gift_card_id: giftCardId,
+      gift_card_amount: giftCardAmount,
+      discount_total: promoDiscount + giftCardAmount,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     })
+    .select('id')
+    .single()
 
   if (bookingError) {
     console.error('Failed to create booking:', bookingError)
     throw bookingError
   }
 
+  const bookingId = bookingData?.id
   console.log('Booking created from checkout session:', bookingNumber)
+
+  // ============================================================================
+  // FINALIZE PROMO CODE USAGE
+  // ============================================================================
+  if (promoCode && organizationId) {
+    try {
+      // Increment the usage count
+      const { error: promoError } = await supabase.rpc('increment_promo_usage', {
+        p_promo_code: promoCode,
+        p_organization_id: organizationId
+      })
+      
+      if (promoError) {
+        // Fallback: manual increment
+        await supabase
+          .from('promotions')
+          .update({ 
+            current_uses: supabase.sql`current_uses + 1`,
+            updated_at: new Date().toISOString() 
+          })
+          .eq('code', promoCode)
+          .eq('organization_id', organizationId)
+      }
+      
+      console.log('Promo code usage incremented:', promoCode)
+    } catch (err) {
+      console.error('Failed to increment promo usage:', err)
+      // Don't throw - this shouldn't fail the booking
+    }
+  }
+
+  // ============================================================================
+  // FINALIZE GIFT CARD DEDUCTION
+  // ============================================================================
+  if (giftCardId && giftCardAmount > 0) {
+    try {
+      // Get current gift card balance
+      const { data: giftCard, error: gcFetchError } = await supabase
+        .from('gift_cards')
+        .select('id, current_balance')
+        .eq('id', giftCardId)
+        .single()
+
+      if (!gcFetchError && giftCard) {
+        const newBalance = Math.max(0, giftCard.current_balance - giftCardAmount)
+        
+        // Update gift card balance
+        await supabase
+          .from('gift_cards')
+          .update({
+            current_balance: newBalance,
+            redeemed_at: newBalance === 0 ? new Date().toISOString() : null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', giftCardId)
+
+        // Record the transaction
+        await supabase.from('gift_card_transactions').insert({
+          gift_card_id: giftCardId,
+          booking_id: bookingId,
+          amount: -giftCardAmount,
+          balance_after: newBalance,
+          transaction_type: 'redemption',
+          notes: `Booking ${bookingNumber}`,
+          created_at: new Date().toISOString()
+        })
+
+        console.log('Gift card balance deducted:', giftCardId, 'Amount:', giftCardAmount)
+
+        // Send gift card redemption notification
+        await sendGiftCardRedemptionEmail({
+          giftCardId,
+          amount: giftCardAmount,
+          newBalance,
+          bookingNumber,
+          customerEmail,
+          customerName
+        }, supabase)
+      }
+    } catch (err) {
+      console.error('Failed to deduct gift card balance:', err)
+      // Don't throw - this shouldn't fail the booking
+    }
+  }
 
   // Send admin notification
   await sendAdminNotification({
@@ -542,5 +642,132 @@ async function sendAdminNotification(data: BookingEmailData, supabase: any) {
   } catch (error) {
     console.error('Error sending admin notification:', error)
     // Don't throw - notification failure shouldn't fail the webhook
+  }
+}
+
+/**
+ * Send gift card redemption notification email
+ */
+interface GiftCardRedemptionEmailData {
+  giftCardId: string;
+  amount: number;
+  newBalance: number;
+  bookingNumber: string;
+  customerEmail: string;
+  customerName: string;
+}
+
+async function sendGiftCardRedemptionEmail(data: GiftCardRedemptionEmailData, supabase: any) {
+  try {
+    // Fetch gift card details including recipient email
+    const { data: giftCard } = await supabase
+      .from('gift_cards')
+      .select('code, initial_value, recipient_email, recipient_name, purchaser_email')
+      .eq('id', data.giftCardId)
+      .single()
+
+    if (!giftCard) return
+
+    const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0;">🎁 Gift Card Used</h1>
+  </div>
+  <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 12px 12px;">
+    <p style="font-size: 16px; margin-bottom: 20px;">Your gift card was used for a booking!</p>
+    
+    <div style="background: white; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #8b5cf6;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: #666;">Gift Card Code</td>
+          <td style="padding: 8px 0; font-weight: bold; text-align: right;">${giftCard.code}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #666;">Amount Used</td>
+          <td style="padding: 8px 0; font-weight: bold; text-align: right; color: #ef4444;">-$${data.amount.toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #666;">Remaining Balance</td>
+          <td style="padding: 8px 0; font-weight: bold; text-align: right; color: #22c55e;">$${data.newBalance.toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #666;">Booking Reference</td>
+          <td style="padding: 8px 0; font-weight: bold; text-align: right;">${data.bookingNumber}</td>
+        </tr>
+      </table>
+    </div>
+    
+    ${data.newBalance > 0 ? `
+    <div style="background: #ecfdf5; border-radius: 8px; padding: 15px; margin: 20px 0;">
+      <p style="margin: 0; color: #065f46;">
+        <strong>💰 You still have $${data.newBalance.toFixed(2)} remaining!</strong><br>
+        Use it on your next booking.
+      </p>
+    </div>
+    ` : `
+    <div style="background: #fef2f2; border-radius: 8px; padding: 15px; margin: 20px 0;">
+      <p style="margin: 0; color: #991b1b;">
+        <strong>Your gift card balance has been fully used.</strong>
+      </p>
+    </div>
+    `}
+    
+    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+    
+    <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">
+      If you didn't make this purchase, please contact us immediately.
+    </p>
+  </div>
+</body>
+</html>`.trim()
+
+    // Send to the customer who made the booking
+    if (data.customerEmail) {
+      await fetch(
+        `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+          },
+          body: JSON.stringify({
+            to: data.customerEmail,
+            subject: `Gift Card Used - $${data.amount.toFixed(2)} for Booking ${data.bookingNumber}`,
+            html: emailHtml,
+            recipientName: data.customerName
+          })
+        }
+      )
+      console.log('Gift card redemption email sent to:', data.customerEmail)
+    }
+
+    // Also notify the gift card recipient/purchaser if different
+    const recipientEmail = giftCard.recipient_email || giftCard.purchaser_email
+    if (recipientEmail && recipientEmail !== data.customerEmail) {
+      await fetch(
+        `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+          },
+          body: JSON.stringify({
+            to: recipientEmail,
+            subject: `Gift Card Balance Update - ${giftCard.code}`,
+            html: emailHtml,
+            recipientName: giftCard.recipient_name
+          })
+        }
+      )
+      console.log('Gift card balance update sent to recipient:', recipientEmail)
+    }
+  } catch (error) {
+    console.error('Error sending gift card redemption email:', error)
+    // Don't throw - email failure shouldn't fail the webhook
   }
 }

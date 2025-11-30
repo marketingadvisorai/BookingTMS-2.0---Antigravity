@@ -16,3 +16,4 @@ export { BookingTimeSlots } from './BookingTimeSlots';
 export { BookingSidebar } from './BookingSidebar';
 export { BookingCheckout } from './BookingCheckout';
 export { BookingSuccess } from './BookingSuccess';
+export { PromoGiftCardInput } from './PromoGiftCardInput';

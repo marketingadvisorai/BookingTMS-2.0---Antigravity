@@ -5,15 +5,18 @@
  * - Single prices or multi-tier pricing (adult, child, custom)
  * - Stripe Connect with application fees for platform revenue
  * - Session-specific metadata for booking creation
+ * - Promo codes (synced to Stripe coupons)
+ * - Gift card balance deduction before Stripe payment
  * 
  * @metadata Session info stored in checkout.metadata and payment_intent.metadata:
  * - booking_id, activity_id, venue_id, organization_id
  * - session_id (activity_session DB row)
  * - booking_date, start_time, end_time
  * - party_size, customer_name, customer_phone
+ * - promo_code, promo_discount, gift_card_id, gift_card_amount
  * 
- * @version 2.0.0 - Added Stripe Connect support
- * @date 2025-11-27
+ * @version 2.1.0 - Added promo codes and gift cards support
+ * @date 2025-11-30
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -73,6 +76,11 @@ serve(async (req) => {
       // Stripe Connect - for direct charges to connected accounts
       connectedAccountId,
       organizationId,
+      // Promo codes and gift cards
+      promoCode,
+      giftCardCode,
+      giftCardAmount = 0, // Pre-calculated amount to deduct
+      subtotal = 0, // Original subtotal before discounts
     } = body;
 
     // Build line items from multi-tier pricing or single price
@@ -120,15 +128,87 @@ serve(async (req) => {
     if (organizationId && !stripeConnectedAccountId) {
       const { data: org } = await supabase
         .from('organizations')
-        .select('stripe_account_id, platform_fee_percent')
+        .select('stripe_account_id, application_fee_percentage')
         .eq('id', organizationId)
         .single();
 
       if (org) {
         stripeConnectedAccountId = org.stripe_account_id;
-        platformFeePercent = org.platform_fee_percent || DEFAULT_PLATFORM_FEE_PERCENT;
+        platformFeePercent = org.application_fee_percentage || DEFAULT_PLATFORM_FEE_PERCENT;
       }
     }
+
+    // ============================================================================
+    // PROMO CODE VALIDATION
+    // ============================================================================
+    let stripeCouponId: string | undefined;
+    let promoDiscount = 0;
+    let validatedPromoCode: string | undefined;
+
+    if (promoCode && organizationId) {
+      // Look up the promo code in our database
+      const { data: promo, error: promoError } = await supabase
+        .from('promotions')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .eq('code', promoCode.toUpperCase())
+        .eq('is_active', true)
+        .single();
+
+      if (!promoError && promo) {
+        // Validate expiry
+        const now = new Date();
+        const isExpired = promo.valid_until && new Date(promo.valid_until) < now;
+        const notStarted = promo.valid_from && new Date(promo.valid_from) > now;
+        const maxUsesReached = promo.max_uses && promo.current_uses >= promo.max_uses;
+
+        if (!isExpired && !notStarted && !maxUsesReached) {
+          validatedPromoCode = promo.code;
+          
+          // If synced to Stripe, use the Stripe coupon
+          if (promo.stripe_promo_code_id) {
+            stripeCouponId = promo.stripe_promo_code_id;
+          } else {
+            // Calculate discount manually for internal-only codes
+            if (promo.discount_type === 'percentage') {
+              promoDiscount = (subtotal * promo.discount_value) / 100;
+            } else {
+              promoDiscount = promo.discount_value;
+            }
+          }
+        }
+      }
+    }
+
+    // ============================================================================
+    // GIFT CARD VALIDATION
+    // ============================================================================
+    let validatedGiftCard: any = null;
+    let giftCardDeduction = 0;
+
+    if (giftCardCode && organizationId) {
+      const { data: gc, error: gcError } = await supabase
+        .from('gift_cards')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .eq('code', giftCardCode.toUpperCase())
+        .eq('is_active', true)
+        .single();
+
+      if (!gcError && gc) {
+        const isExpired = gc.expires_at && new Date(gc.expires_at) < new Date();
+        
+        if (!isExpired && gc.current_balance > 0) {
+          validatedGiftCard = gc;
+          // Calculate how much of the gift card to use
+          const amountAfterPromo = subtotal - promoDiscount;
+          giftCardDeduction = Math.min(gc.current_balance, amountAfterPromo, giftCardAmount || gc.current_balance);
+        }
+      }
+    }
+
+    // Calculate final amount for Stripe
+    const finalPayableAmount = Math.max(0, subtotal - promoDiscount - giftCardDeduction);
 
     // Build comprehensive metadata for webhook processing
     const bookingMetadata: Record<string, string> = {
@@ -147,6 +227,21 @@ serve(async (req) => {
     if (startTime) bookingMetadata.start_time = startTime;
     if (endTime) bookingMetadata.end_time = endTime;
     if (organizationId) bookingMetadata.organization_id = organizationId;
+
+    // Add promo code and gift card data to metadata
+    if (validatedPromoCode) {
+      bookingMetadata.promo_code = validatedPromoCode;
+      bookingMetadata.promo_discount = String(promoDiscount);
+    }
+    if (validatedGiftCard) {
+      bookingMetadata.gift_card_id = validatedGiftCard.id;
+      bookingMetadata.gift_card_code = validatedGiftCard.code;
+      bookingMetadata.gift_card_amount = String(giftCardDeduction);
+    }
+    if (subtotal > 0) {
+      bookingMetadata.subtotal = String(subtotal);
+      bookingMetadata.final_amount = String(finalPayableAmount);
+    }
 
     // Calculate application fee for Stripe Connect
     // This charges a platform fee that goes to us after Stripe fees
@@ -168,7 +263,10 @@ serve(async (req) => {
       expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 min expiry
       metadata: bookingMetadata,
       payment_method_types: ['card'],
-      allow_promotion_codes: true,
+      // Apply Stripe coupon if promo code was synced, otherwise allow manual entry
+      ...(stripeCouponId 
+        ? { discounts: [{ promotion_code: stripeCouponId }] } 
+        : { allow_promotion_codes: true }),
       billing_address_collection: 'auto',
       phone_number_collection: {
         enabled: true,
@@ -209,12 +307,42 @@ serve(async (req) => {
       session = await stripe.checkout.sessions.create(sessionConfig);
     }
 
+    // ============================================================================
+    // POST-CHECKOUT ACTIONS
+    // ============================================================================
+    
+    // Increment promo code usage (we'll finalize in webhook on successful payment)
+    if (validatedPromoCode && organizationId) {
+      // Store pending usage - will be confirmed in webhook
+      await supabase
+        .from('promotions')
+        .update({ 
+          current_uses: supabase.rpc ? undefined : undefined, // Will increment in webhook
+          updated_at: new Date().toISOString() 
+        })
+        .eq('code', validatedPromoCode)
+        .eq('organization_id', organizationId);
+    }
+
+    // Reserve gift card balance (will be deducted in webhook on successful payment)
+    // For now, we just validate - actual deduction happens in webhook
+    // to prevent double-deduction if customer abandons checkout
+
     return new Response(
       JSON.stringify({
         sessionId: session.id,
         url: session.url,
         clientSecret: session.client_secret,
         expiresAt: session.expires_at,
+        // Include discount info for client display
+        discounts: {
+          promoCode: validatedPromoCode || null,
+          promoDiscount: promoDiscount,
+          giftCardCode: validatedGiftCard?.code || null,
+          giftCardAmount: giftCardDeduction,
+          subtotal: subtotal,
+          finalAmount: finalPayableAmount,
+        },
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

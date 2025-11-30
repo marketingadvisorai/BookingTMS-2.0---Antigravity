@@ -67,7 +67,7 @@ export function Sidebar({ currentPage, onNavigate = () => { }, isMobileOpen = fa
     ...(!isOrgLevelUser ? [
       { id: 'inbox', label: 'Inbox', icon: Inbox, permission: 'dashboard.view' as Permission },
       { id: 'campaigns', label: 'Campaigns', icon: Megaphone, permission: 'campaigns.view' as Permission },
-      { id: 'marketing', label: 'Marketing', icon: Tag, permission: 'marketing.view' as Permission },
+      { id: 'marketing-pro', label: 'MarketingPro 1.1', icon: Tag, permission: 'marketing.view' as Permission },
       { id: 'aiagents', label: 'AI Agents', icon: Bot, permission: 'ai-agents.view' as Permission },
       { id: 'media', label: 'Media / Photos', icon: Image, permission: 'media.view' as Permission },
     ] : []),

@@ -13,6 +13,8 @@ export interface PasswordResetResult {
   success: boolean;
   message: string;
   error?: string;
+  method?: 'supabase_smtp' | 'resend' | 'fallback_link';
+  resetLink?: string;
 }
 
 export interface SetPasswordResult {
@@ -195,6 +197,8 @@ class PasswordService {
       return {
         success: true,
         message: data.message || 'Password reset email sent successfully',
+        method: data.method,
+        resetLink: data.resetLink,
       };
     } catch (error: any) {
       console.error('Admin reset email error:', error);

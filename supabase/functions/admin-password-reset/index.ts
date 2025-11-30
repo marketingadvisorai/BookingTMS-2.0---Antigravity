@@ -6,13 +6,18 @@
  * - action: 'set_password' - Directly set new password
  * - action: 'check_user' - Check if user exists
  * 
+ * Email Delivery Strategy:
+ * 1. Primary: Use Supabase Auth resetPasswordForEmail (built-in SMTP)
+ * 2. Fallback: Try Resend API if configured
+ * 3. Last resort: Return reset link directly (for development/testing)
+ * 
  * @module supabase/functions/admin-password-reset
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
@@ -158,8 +163,43 @@ serve(async (req) => {
       )
     }
 
-    // Generate password reset link
+    // Generate password reset - Strategy: Try Supabase built-in first, then Resend, then fallback link
     const baseUrl = redirectUrl || 'https://booking-tms-antigravity.netlify.app'
+    
+    // Strategy 1: Try Supabase's built-in password reset email (uses Supabase SMTP)
+    console.log('Attempting Supabase built-in password reset email...')
+    const { error: supabaseEmailError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+      redirectTo: `${baseUrl}/reset-password`,
+    })
+    
+    if (!supabaseEmailError) {
+      console.log('Password reset email sent via Supabase SMTP')
+      
+      // Log the password reset action
+      await supabaseAdmin
+        .from('audit_logs')
+        .insert({
+          action: 'admin_password_reset',
+          entity_type: 'user',
+          entity_id: targetUser.id,
+          user_id: requester.id,
+          details: { target_email: email, initiated_by: requester.email, method: 'supabase_smtp' },
+        })
+        .catch((err: any) => console.warn('Audit log failed:', err))
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Password reset email sent to ${email}`,
+          method: 'supabase_smtp',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    console.warn('Supabase SMTP failed, trying fallback methods...', supabaseEmailError.message)
+    
+    // Strategy 2: Generate link manually and try Resend (if configured)
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
       email: email,
@@ -179,40 +219,68 @@ serve(async (req) => {
     // Extract the token from the link
     const resetLink = linkData.properties?.action_link || ''
     
-    // Send branded email via Resend
-    const emailHtml = generatePasswordResetEmail(userName || email.split('@')[0], resetLink)
-    
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'BookingTMS <noreply@bookingtms.com>',
-        to: [email],
-        subject: 'Reset Your Password - BookingTMS',
-        html: emailHtml,
-      }),
-    })
-
-    const resendData = await resendResponse.json()
-
-    if (!resendResponse.ok) {
-      console.error('Resend error:', resendData)
+    // Check if Resend is configured
+    if (RESEND_API_KEY && RESEND_API_KEY.length > 10) {
+      console.log('Attempting to send email via Resend...')
       
-      // Fallback: Return the link directly (for testing)
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Reset link generated (email delivery pending)',
-          fallbackLink: resetLink, // Remove in production
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+      // Send branded email via Resend
+      const emailHtml = generatePasswordResetEmail(userName || email.split('@')[0], resetLink)
+      
+      try {
+        const resendResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'BookingTMS <onboarding@resend.dev>', // Use Resend default sender for testing
+            to: [email],
+            subject: 'Reset Your Password - BookingTMS',
+            html: emailHtml,
+          }),
+        })
 
-    // Log the password reset action
+        const resendData = await resendResponse.json()
+
+        if (resendResponse.ok) {
+          console.log('Password reset email sent via Resend:', resendData.id)
+          
+          // Log the action
+          await supabaseAdmin
+            .from('audit_logs')
+            .insert({
+              action: 'admin_password_reset',
+              entity_type: 'user',
+              entity_id: targetUser.id,
+              user_id: requester.id,
+              details: { target_email: email, initiated_by: requester.email, method: 'resend' },
+            })
+            .catch((err: any) => console.warn('Audit log failed:', err))
+
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: `Password reset email sent to ${email}`,
+              messageId: resendData.id,
+              method: 'resend',
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        
+        console.warn('Resend failed:', resendData)
+      } catch (resendErr) {
+        console.error('Resend API error:', resendErr)
+      }
+    } else {
+      console.log('Resend API key not configured, skipping...')
+    }
+    
+    // Strategy 3: Return the link directly (for development/testing)
+    console.log('All email methods failed, returning link directly')
+    
+    // Log the action with fallback method
     await supabaseAdmin
       .from('audit_logs')
       .insert({
@@ -220,23 +288,30 @@ serve(async (req) => {
         entity_type: 'user',
         entity_id: targetUser.id,
         user_id: requester.id,
-        details: { target_email: email, initiated_by: requester.email },
+        details: { 
+          target_email: email, 
+          initiated_by: requester.email, 
+          method: 'fallback_link',
+          note: 'Email delivery failed, link returned directly'
+        },
       })
-      .catch(err => console.warn('Audit log failed:', err))
+      .catch((err: any) => console.warn('Audit log failed:', err))
 
+    // Return the reset link directly for admin to share with the user
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Password reset email sent to ${email}`,
-        messageId: resendData.id,
+        message: `Password reset link generated. Email delivery failed - please share this link with the user manually.`,
+        method: 'fallback_link',
+        resetLink: resetLink, // Admin can copy and share this with the user
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Admin password reset error:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error', message: error.message }),
+      JSON.stringify({ error: 'Internal server error', message: error?.message || 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

@@ -1,7 +1,44 @@
 # BookingTMS 2.0 - Next Steps & Task List
 
-> Last Updated: 2025-11-30 04:55 UTC+6
-> Version: v0.1.65-auth-password-reset-fix
+> Last Updated: 2025-11-30 07:10 UTC+6
+> Version: v0.1.67-password-reset-enhanced
+
+---
+
+## MarketingPro Integration ✅ COMPLETED (Nov 30, 2025)
+
+### Promo Code & Gift Card Complete Flow
+| Task | Status |
+|------|--------|
+| Promo code UI in booking widget | ✅ Complete |
+| Gift card UI in booking widget | ✅ Complete |
+| Backend validation for promo codes | ✅ Complete |
+| Backend validation for gift cards | ✅ Complete |
+| Stripe webhook promo usage increment | ✅ Complete |
+| Stripe webhook gift card deduction | ✅ Complete |
+| Gift card redemption email notification | ✅ Complete |
+| Email campaigns with promo codes | ✅ Complete |
+| Campaign promo code tracking | ✅ Complete |
+
+### Database Migrations Applied
+- `add_promo_giftcard_rpc_functions` - RPC functions for atomic operations
+- `add_promo_code_to_email_campaigns` - Link campaigns to promo codes
+
+### New RPC Functions
+- `increment_promo_usage(p_promo_code, p_organization_id)` - Atomically increment usage
+- `decrement_gift_card_balance(p_gift_card_id, p_amount, p_booking_id)` - Atomic deduction with transaction
+
+### Services Created
+- `emailCampaignPromo.service.ts` - Send promo codes via email campaigns
+- `giftCardNotifications.service.ts` - Gift card email notifications
+
+### Google My Business Reviews → v2.0
+**Decision**: Deferred to v2.0 due to complexity
+- Requires OAuth 2.0 flow setup
+- Google Cloud Console configuration needed
+- API quota management required
+- AI response generation complexity
+- **Architecture Doc**: `/docs/GOOGLE_MY_BUSINESS_REVIEWS_ARCHITECTURE.md`
 
 ---
 
@@ -528,7 +565,7 @@
 - `src/modules/embed-pro/services/embedProData.service.ts` - Explicit schedule column selection
 - `src/modules/inventory/services/activity.service.ts` - Dual-save for schedule data
 
-### Fix: Admin Password Reset "User not allowed" Error ✅ COMPLETED (Nov 30, 2025)
+### Fix: Admin Password Reset "User not allowed" Error ✅ ENHANCED (Nov 30, 2025)
 **Issue**: Admin-initiated password resets showed "User not allowed" error.
 
 **Root Cause**: 
@@ -536,27 +573,44 @@
 - Client-side code only has the **anon key**
 - The anon key cannot call admin auth APIs
 
-**Solution - Authentication Architecture**:
-| Flow | Method | Email Provider |
-|------|--------|----------------|
-| User Forgot Password | `supabase.auth.resetPasswordForEmail()` | Supabase built-in |
-| Admin Reset User | Edge Function with service role | Resend |
-| Admin Set Password | Edge Function with service role | N/A |
+**Solution - 3-Tier Email Delivery Strategy**:
+| Strategy | Priority | Provider | When Used |
+|----------|----------|----------|-----------|
+| 1. Supabase SMTP | Primary | Supabase built-in | First attempt (most reliable) |
+| 2. Resend API | Fallback | Resend | If Supabase SMTP fails and API key configured |
+| 3. Direct Link | Last Resort | None | Returns link for admin to share manually |
+
+**Email Delivery Flow**:
+```
+Send Reset Email clicked
+        ↓
+Try Supabase auth.resetPasswordForEmail()
+        ↓ (if fails)
+Generate link via auth.admin.generateLink()
+        ↓
+Try Resend API (if RESEND_API_KEY configured)
+        ↓ (if fails or not configured)
+Return reset link directly to admin
+        ↓
+Admin copies & shares link with user
+```
 
 **Implementation**:
-1. Created `supabase/functions/admin-password-reset/index.ts` edge function
+1. **Edge Function** `supabase/functions/admin-password-reset/index.ts` (v2)
    - Uses service role key (secure server-side)
+   - 3-tier email delivery strategy
    - Handles `send_reset` and `set_password` actions
-   - Sends branded emails via Resend
    - Validates admin permissions before action
+   - Logs all actions to `audit_logs` table
    
-2. Updated `src/services/password.service.ts`
-   - `adminSendResetEmail()` now calls edge function
-   - `adminSetPassword()` now calls edge function
-   - Removed direct `supabase.auth.admin.*` calls
+2. **Password Service** `src/services/password.service.ts`
+   - Returns `method` and `resetLink` from API response
+   - Supports fallback link display in UI
 
-3. Updated `src/components/admin/UserPasswordResetModal.tsx`
-   - Passes user name for personalized emails
+3. **Reset Modal** `src/components/admin/UserPasswordResetModal.tsx`
+   - Shows fallback link with copy button when email fails
+   - 24-hour expiry notice
+   - Success state shows appropriate message
 
 **Tenant Isolation**:
 - Org admins only see data for their organization
@@ -565,16 +619,15 @@
 - RLS policies enforce database-level isolation
 
 **Files Modified/Created**:
-- `supabase/functions/admin-password-reset/index.ts` (NEW)
+- `supabase/functions/admin-password-reset/index.ts` (ENHANCED v2)
 - `src/services/password.service.ts`
 - `src/components/admin/UserPasswordResetModal.tsx`
 
-**Deployment Requirement**:
-```bash
-# Deploy the edge function
-supabase functions deploy admin-password-reset
+**Edge Function Deployed**: v2 (Nov 30, 2025)
 
-# Set secrets (if not already)
+**Optional Configuration** (for full email delivery):
+```bash
+# Set Resend API key for branded email fallback
 supabase secrets set RESEND_API_KEY=re_xxxx
 ```
 

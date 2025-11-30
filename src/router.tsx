@@ -97,6 +97,11 @@ export const router = createBrowserRouter([
     path: '/marketing',
     element: <App />,
   },
+  // MarketingPro 1.1 - Advanced marketing features
+  {
+    path: '/marketing-pro',
+    element: <App />,
+  },
   {
     path: '/aiagents',
     element: <App />,

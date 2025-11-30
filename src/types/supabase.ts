@@ -1,9 +1,5 @@
-/**
- * Supabase Database Types
- * 
- * Auto-generated types for TypeScript support
- * Matches the database schema defined in the PRD
- */
+// Generated Supabase types - regenerated 2025-11-30
+// Run: npx supabase gen types typescript --project-id qftjyjpitnoapqxlrvfs > src/types/supabase.ts
 
 export type Json =
   | string
@@ -13,1104 +9,296 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
-      organizations: {
-        Row: {
-          id: string
-          name: string
-          slug: string
-          plan: 'free' | 'starter' | 'pro' | 'enterprise'
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
-          settings: Json | null
-          logo_url: string | null
-          is_active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          slug: string
-          plan?: 'free' | 'starter' | 'pro' | 'enterprise'
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          settings?: Json | null
-          logo_url?: string | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          slug?: string
-          plan?: 'free' | 'starter' | 'pro' | 'enterprise'
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          settings?: Json | null
-          logo_url?: string | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      organization_members: {
+      promotions: {
         Row: {
           id: string
           organization_id: string
-          user_id: string
-          role: string
-          status: string
-          invited_by: string | null
-          joined_at: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          organization_id: string
-          user_id: string
-          role?: string
-          status?: string
-          invited_by?: string | null
-          joined_at?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          organization_id?: string
-          user_id?: string
-          role?: string
-          status?: string
-          invited_by?: string | null
-          joined_at?: string | null
-          created_at?: string
-        }
-      }
-      plans: {
-        Row: {
-          id: string
-          name: string
-          slug: string
-          description: string | null
-          price_monthly: number
-          price_yearly: number | null
-          max_venues: number | null
-          max_staff: number | null
-          max_bookings_per_month: number | null
-          features: Json | null
-          is_active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          slug: string
-          description?: string | null
-          price_monthly: number
-          price_yearly?: number | null
-          max_venues?: number | null
-          max_staff?: number | null
-          max_bookings_per_month?: number | null
-          features?: Json | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          slug?: string
-          description?: string | null
-          price_monthly?: number
-          price_yearly?: number | null
-          max_venues?: number | null
-          max_staff?: number | null
-          max_bookings_per_month?: number | null
-          features?: Json | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      users: {
-        Row: {
-          id: string
-          email: string
-          full_name: string
-          role: 'super-admin' | 'admin' | 'manager' | 'staff'
-          organization_id: string
-          phone: string | null
-          avatar_url: string | null
-          is_active: boolean
-          last_login_at: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id: string
-          email: string
-          full_name: string
-          role?: 'super-admin' | 'admin' | 'manager' | 'staff'
-          organization_id: string
-          phone?: string | null
-          avatar_url?: string | null
-          is_active?: boolean
-          last_login_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          email?: string
-          full_name?: string
-          role?: 'super-admin' | 'admin' | 'manager' | 'staff'
-          organization_id?: string
-          phone?: string | null
-          avatar_url?: string | null
-          is_active?: boolean
-          last_login_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      venues: {
-        Row: {
-          id: string
-          organization_id: string
-          name: string
-          address: string | null
-          timezone: string
-          capacity: number
-          images: string[] | null
-          operating_hours: Json | null
-          status: 'active' | 'inactive' | 'maintenance'
-          is_default: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          organization_id: string
-          name: string
-          address?: string | null
-          timezone?: string
-          capacity?: number
-          images?: string[] | null
-          operating_hours?: Json | null
-          status?: 'active' | 'inactive' | 'maintenance'
-          is_default?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          organization_id?: string
-          name?: string
-          address?: string | null
-          timezone?: string
-          capacity?: number
-          images?: string[] | null
-          operating_hours?: Json | null
-          status?: 'active' | 'inactive' | 'maintenance'
-          is_default?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      activity_sessions: {
-        Row: {
-          id: string
-          activity_id: string
-          venue_id: string
-          organization_id: string
-          start_time: string
-          end_time: string
-          capacity_total: number
-          capacity_remaining: number
-          price_at_generation: number | null
-          is_closed: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          activity_id: string
-          venue_id: string
-          organization_id: string
-          start_time: string
-          end_time: string
-          capacity_total: number
-          capacity_remaining: number
-          price_at_generation?: number | null
-          is_closed?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          activity_id?: string
-          venue_id?: string
-          organization_id?: string
-          start_time?: string
-          end_time?: string
-          capacity_total?: number
-          capacity_remaining?: number
-          price_at_generation?: number | null
-          is_closed?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      activities: {
-        Row: {
-          id: string
-          organization_id: string
-          venue_id: string
+          code: string
           name: string
           description: string | null
-          difficulty: string | null
-          duration: number
-          min_players: number | null
-          max_players: number | null
-          price: number | null
-          image_url: string | null
-          is_active: boolean
-          created_at: string
-          updated_at: string
+          discount_type: 'percentage' | 'fixed' | 'free_add_on'
+          discount_value: number
+          min_purchase: number | null
+          minimum_order_value: number | null
+          max_uses: number | null
+          current_uses: number | null
+          valid_from: string | null
+          valid_until: string | null
+          applicable_activities: string[] | null
+          applicable_venues: string[] | null
+          is_active: boolean | null
           created_by: string | null
-          settings: Json | null
-          setup_time: number | null
-          cleanup_time: number | null
-          booking_cutoff_minutes: number | null
-          cancellation_policy: string | null
-          stripe_product_id: string | null
-          stripe_price_id: string | null
-          stripe_checkout_url: string | null
+          created_at: string | null
+          updated_at: string | null
+          stripe_coupon_id: string | null
+          stripe_promo_code_id: string | null
           stripe_sync_status: string | null
           stripe_last_sync: string | null
-          stripe_metadata: Json | null
-          price_lookup_key: string | null
-          active_price_id: string | null
-          venue_name: string | null
-          organization_name: string | null
-          schedule: Json | null
         }
         Insert: {
           id?: string
           organization_id: string
-          venue_id: string
-          name: string
-          description?: string | null
-          difficulty?: string | null
-          duration: number
-          min_players?: number | null
-          max_players?: number | null
-          price?: number | null
-          image_url?: string | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-          created_by?: string | null
-          settings?: Json | null
-          setup_time?: number | null
-          cleanup_time?: number | null
-          booking_cutoff_minutes?: number | null
-          cancellation_policy?: string | null
-          stripe_product_id?: string | null
-          stripe_price_id?: string | null
-          stripe_checkout_url?: string | null
-          stripe_sync_status?: string | null
-          stripe_last_sync?: string | null
-          stripe_metadata?: Json | null
-          price_lookup_key?: string | null
-          active_price_id?: string | null
-          venue_name?: string | null
-          organization_name?: string | null
-          schedule?: Json | null
-        }
-        Update: {
-          id?: string
-          organization_id?: string
-          venue_id?: string
-          name?: string
-          description?: string | null
-          difficulty?: string | null
-          duration?: number
-          min_players?: number | null
-          max_players?: number | null
-          price?: number | null
-          image_url?: string | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-          created_by?: string | null
-          settings?: Json | null
-          setup_time?: number | null
-          cleanup_time?: number | null
-          booking_cutoff_minutes?: number | null
-          cancellation_policy?: string | null
-          stripe_product_id?: string | null
-          stripe_price_id?: string | null
-          stripe_checkout_url?: string | null
-          stripe_sync_status?: string | null
-          stripe_last_sync?: string | null
-          stripe_metadata?: Json | null
-          price_lookup_key?: string | null
-          active_price_id?: string | null
-          venue_name?: string | null
-          organization_name?: string | null
-          schedule?: Json | null
-        }
-      }
-      customers: {
-        Row: {
-          id: string
-          organization_id: string
-          email: string
-          full_name: string
-          phone: string | null
-          stripe_customer_id: string | null
-          total_bookings: number
-          total_spent: number
-          segment: 'vip' | 'regular' | 'new' | 'inactive'
-          notes: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          organization_id: string
-          email: string
-          full_name: string
-          phone?: string | null
-          stripe_customer_id?: string | null
-          total_bookings?: number
-          total_spent?: number
-          segment?: 'vip' | 'regular' | 'new' | 'inactive'
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          organization_id?: string
-          email?: string
-          full_name?: string
-          phone?: string | null
-          stripe_customer_id?: string | null
-          total_bookings?: number
-          total_spent?: number
-          segment?: 'vip' | 'regular' | 'new' | 'inactive'
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      bookings: {
-        Row: {
-          id: string
-          organization_id: string
-          booking_number: string
-          customer_id: string
-          activity_id: string
-          venue_id: string
-          booking_date: string
-          start_time: string
-          end_time: string
-          party_size: number
-          status: 'pending' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled'
-          total_amount: number
-          discount_amount: number
-          final_amount: number
-          payment_status: 'pending' | 'paid' | 'refunded' | 'failed'
-          payment_intent_id: string | null
-          notes: string | null
-          ticket_types: Json | null
-          created_at: string
-          updated_at: string
-          created_by: string
-          updated_by: string | null
-        }
-        Insert: {
-          id?: string
-          organization_id: string
-          booking_number: string
-          customer_id: string
-          activity_id: string
-          venue_id: string
-          booking_date: string
-          start_time: string
-          end_time: string
-          party_size: number
-          status?: 'pending' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled'
-          total_amount: number
-          discount_amount?: number
-          final_amount: number
-          payment_status?: 'pending' | 'paid' | 'refunded' | 'failed'
-          payment_intent_id?: string | null
-          notes?: string | null
-          ticket_types?: Json | null
-          created_at?: string
-          updated_at?: string
-          created_by: string
-          updated_by?: string | null
-        }
-        Update: {
-          id?: string
-          organization_id?: string
-          booking_number?: string
-          customer_id?: string
-          activity_id?: string
-          venue_id?: string
-          booking_date?: string
-          start_time?: string
-          end_time?: string
-          party_size?: number
-          status?: 'pending' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled'
-          total_amount?: number
-          discount_amount?: number
-          final_amount?: number
-          payment_status?: 'pending' | 'paid' | 'refunded' | 'failed'
-          payment_intent_id?: string | null
-          notes?: string | null
-          ticket_types?: Json | null
-          created_at?: string
-          updated_at?: string
-          created_by?: string
-          updated_by?: string | null
-        }
-      }
-      payments: {
-        Row: {
-          id: string
-          booking_id: string
-          stripe_payment_intent_id: string
-          stripe_charge_id: string | null
-          amount: number
-          currency: string
-          status: 'pending' | 'succeeded' | 'failed' | 'refunded' | 'disputed'
-          payment_method_type: string | null
-          last_4: string | null
-          card_brand: string | null
-          receipt_url: string | null
-          refund_amount: number
-          refund_reason: string | null
-          failure_code: string | null
-          failure_message: string | null
-          metadata: Json | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          booking_id: string
-          stripe_payment_intent_id: string
-          stripe_charge_id?: string | null
-          amount: number
-          currency?: string
-          status?: 'pending' | 'succeeded' | 'failed' | 'refunded' | 'disputed'
-          payment_method_type?: string | null
-          last_4?: string | null
-          card_brand?: string | null
-          receipt_url?: string | null
-          refund_amount?: number
-          refund_reason?: string | null
-          failure_code?: string | null
-          failure_message?: string | null
-          metadata?: Json | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          booking_id?: string
-          stripe_payment_intent_id?: string
-          stripe_charge_id?: string | null
-          amount?: number
-          currency?: string
-          status?: 'pending' | 'succeeded' | 'failed' | 'refunded' | 'disputed'
-          payment_method_type?: string | null
-          last_4?: string | null
-          card_brand?: string | null
-          receipt_url?: string | null
-          refund_amount?: number
-          refund_reason?: string | null
-          failure_code?: string | null
-          failure_message?: string | null
-          metadata?: Json | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      notifications: {
-        Row: {
-          id: string
-          user_id: string
-          organization_id: string
-          type: 'booking' | 'payment' | 'cancellation' | 'message' | 'staff' | 'system'
-          priority: 'low' | 'medium' | 'high'
-          title: string
-          message: string
-          action_url: string | null
-          action_label: string | null
-          metadata: Json | null
-          is_read: boolean
-          read_at: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          organization_id: string
-          type: 'booking' | 'payment' | 'cancellation' | 'message' | 'staff' | 'system'
-          priority?: 'low' | 'medium' | 'high'
-          title: string
-          message: string
-          action_url?: string | null
-          action_label?: string | null
-          metadata?: Json | null
-          is_read?: boolean
-          read_at?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          organization_id?: string
-          type?: 'booking' | 'payment' | 'cancellation' | 'message' | 'staff' | 'system'
-          priority?: 'low' | 'medium' | 'high'
-          title?: string
-          message?: string
-          action_url?: string | null
-          action_label?: string | null
-          metadata?: Json | null
-          is_read?: boolean
-          read_at?: string | null
-          created_at?: string
-        }
-      }
-      notification_settings: {
-        Row: {
-          user_id: string
-          sound_enabled: boolean
-          sound_volume: number
-          sound_for_bookings: boolean
-          sound_for_payments: boolean
-          sound_for_cancellations: boolean
-          sound_for_messages: boolean
-          desktop_enabled: boolean
-          desktop_for_bookings: boolean
-          desktop_for_payments: boolean
-          desktop_for_cancellations: boolean
-          desktop_for_messages: boolean
-          email_enabled: boolean
-          sms_enabled: boolean
-          sms_phone_number: string | null
-          quiet_hours_enabled: boolean
-          quiet_hours_start: string
-          quiet_hours_end: string
-          show_in_app_notifications: boolean
-          updated_at: string
-        }
-        Insert: {
-          user_id: string
-          sound_enabled?: boolean
-          sound_volume?: number
-          sound_for_bookings?: boolean
-          sound_for_payments?: boolean
-          sound_for_cancellations?: boolean
-          sound_for_messages?: boolean
-          desktop_enabled?: boolean
-          desktop_for_bookings?: boolean
-          desktop_for_payments?: boolean
-          desktop_for_cancellations?: boolean
-          desktop_for_messages?: boolean
-          email_enabled?: boolean
-          sms_enabled?: boolean
-          sms_phone_number?: string | null
-          quiet_hours_enabled?: boolean
-          quiet_hours_start?: string
-          quiet_hours_end?: string
-          show_in_app_notifications?: boolean
-          updated_at?: string
-        }
-        Update: {
-          user_id?: string
-          sound_enabled?: boolean
-          sound_volume?: number
-          sound_for_bookings?: boolean
-          sound_for_payments?: boolean
-          sound_for_cancellations?: boolean
-          sound_for_messages?: boolean
-          desktop_enabled?: boolean
-          desktop_for_bookings?: boolean
-          desktop_for_payments?: boolean
-          desktop_for_cancellations?: boolean
-          desktop_for_messages?: boolean
-          email_enabled?: boolean
-          sms_enabled?: boolean
-          sms_phone_number?: string | null
-          quiet_hours_enabled?: boolean
-          quiet_hours_start?: string
-          quiet_hours_end?: string
-          show_in_app_notifications?: boolean
-          updated_at?: string
-        }
-      }
-      stripe_webhook_events: {
-        Row: {
-          id: string
-          event_id: string
-          event_type: string
-          payload: Json
-          processed: boolean
-          processing_error: string | null
-          created_at: string
-          processed_at: string | null
-        }
-        Insert: {
-          id?: string
-          event_id: string
-          event_type: string
-          payload: Json
-          processed?: boolean
-          processing_error?: string | null
-          created_at?: string
-          processed_at?: string | null
-        }
-        Update: {
-          id?: string
-          event_id?: string
-          event_type?: string
-          payload?: Json
-          processed?: boolean
-          processing_error?: string | null
-          created_at?: string
-          processed_at?: string | null
-        }
-      }
-      waiver_templates: {
-        Row: {
-          id: string
-          organization_id: string
-          name: string
-          description: string | null
-          type: string
-          content: string
-          status: 'active' | 'inactive' | 'draft'
-          usage_count: number
-          assigned_activities: string[] | null
-          required_fields: string[] | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          organization_id: string
-          name: string
-          description?: string | null
-          type: string
-          content: string
-          status?: 'active' | 'inactive' | 'draft'
-          usage_count?: number
-          assigned_activities?: string[] | null
-          required_fields?: string[] | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          organization_id?: string
-          name?: string
-          description?: string | null
-          type?: string
-          content?: string
-          status?: 'active' | 'inactive' | 'draft'
-          usage_count?: number
-          assigned_activities?: string[] | null
-          required_fields?: string[] | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      waiver_records: {
-        Row: {
-          id: string
-          organization_id: string
-          guest_name: string
-          guest_email: string
-          activity: string | null
-          booking_id: string | null
-          template_id: string | null
-          signed_at: string
-          status: 'valid' | 'expired' | 'revoked'
-          pdf_url: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          organization_id: string
-          guest_name: string
-          guest_email: string
-          activity?: string | null
-          booking_id?: string | null
-          template_id?: string | null
-          signed_at?: string
-          status?: 'valid' | 'expired' | 'revoked'
-          pdf_url?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          organization_id?: string
-          guest_name?: string
-          guest_email?: string
-          activity?: string | null
-          booking_id?: string | null
-          template_id?: string | null
-          signed_at?: string
-          status?: 'valid' | 'expired' | 'revoked'
-          pdf_url?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      promo_codes: {
-        Row: {
-          id: string
           code: string
-          description: string | null
-          discount_type: 'percentage' | 'fixed'
-          discount_value: number
-          min_purchase_amount: number | null
-          max_uses: number | null
-          uses_count: number
-          starts_at: string | null
-          expires_at: string | null
-          is_active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          code: string
+          name: string
           description?: string | null
-          discount_type: 'percentage' | 'fixed'
+          discount_type: 'percentage' | 'fixed' | 'free_add_on'
           discount_value: number
-          min_purchase_amount?: number | null
+          min_purchase?: number | null
+          minimum_order_value?: number | null
           max_uses?: number | null
-          uses_count?: number
-          starts_at?: string | null
-          expires_at?: string | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
+          current_uses?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+          applicable_activities?: string[] | null
+          applicable_venues?: string[] | null
+          is_active?: boolean | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          stripe_coupon_id?: string | null
+          stripe_promo_code_id?: string | null
+          stripe_sync_status?: string | null
+          stripe_last_sync?: string | null
         }
         Update: {
           id?: string
+          organization_id?: string
           code?: string
+          name?: string
           description?: string | null
-          discount_type?: 'percentage' | 'fixed'
+          discount_type?: 'percentage' | 'fixed' | 'free_add_on'
           discount_value?: number
-          min_purchase_amount?: number | null
+          min_purchase?: number | null
+          minimum_order_value?: number | null
           max_uses?: number | null
-          uses_count?: number
-          starts_at?: string | null
-          expires_at?: string | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
+          current_uses?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+          applicable_activities?: string[] | null
+          applicable_venues?: string[] | null
+          is_active?: boolean | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          stripe_coupon_id?: string | null
+          stripe_promo_code_id?: string | null
+          stripe_sync_status?: string | null
+          stripe_last_sync?: string | null
         }
       }
       gift_cards: {
         Row: {
           id: string
+          organization_id: string
           code: string
-          initial_balance: number
-          balance: number
-          currency: string
-          status: 'active' | 'used' | 'expired' | 'void'
-          expires_at: string | null
-          purchased_by: string | null
+          initial_value: number
+          current_balance: number
+          purchaser_email: string | null
+          purchaser_name: string | null
           recipient_email: string | null
-          message: string | null
-          created_at: string
-          updated_at: string
+          recipient_name: string | null
+          recipient_message: string | null
+          is_active: boolean | null
+          purchased_at: string | null
+          expires_at: string | null
+          redeemed_at: string | null
+          created_at: string | null
+          updated_at: string | null
         }
         Insert: {
           id?: string
+          organization_id: string
           code: string
-          initial_balance: number
-          balance: number
-          currency?: string
-          status?: 'active' | 'used' | 'expired' | 'void'
-          expires_at?: string | null
-          purchased_by?: string | null
+          initial_value: number
+          current_balance: number
+          purchaser_email?: string | null
+          purchaser_name?: string | null
           recipient_email?: string | null
-          message?: string | null
-          created_at?: string
-          updated_at?: string
+          recipient_name?: string | null
+          recipient_message?: string | null
+          is_active?: boolean | null
+          purchased_at?: string | null
+          expires_at?: string | null
+          redeemed_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Update: {
           id?: string
+          organization_id?: string
           code?: string
-          initial_balance?: number
-          balance?: number
-          currency?: string
-          status?: 'active' | 'used' | 'expired' | 'void'
-          expires_at?: string | null
-          purchased_by?: string | null
+          initial_value?: number
+          current_balance?: number
+          purchaser_email?: string | null
+          purchaser_name?: string | null
           recipient_email?: string | null
-          message?: string | null
-          created_at?: string
-          updated_at?: string
+          recipient_name?: string | null
+          recipient_message?: string | null
+          is_active?: boolean | null
+          purchased_at?: string | null
+          expires_at?: string | null
+          redeemed_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
         }
       }
-      promo_code_usage: {
-        Row: {
-          id: string
-          promo_code_id: string
-          booking_id: string
-          user_id: string | null
-          used_at: string
-        }
-        Insert: {
-          id?: string
-          promo_code_id: string
-          booking_id: string
-          user_id?: string | null
-          used_at?: string
-        }
-        Update: {
-          id?: string
-          promo_code_id?: string
-          booking_id?: string
-          user_id?: string | null
-          used_at?: string
-        }
-      }
-      gift_card_usage: {
+      gift_card_transactions: {
         Row: {
           id: string
           gift_card_id: string
-          booking_id: string
-          amount_used: number
-          used_at: string
+          booking_id: string | null
+          amount: number
+          balance_after: number
+          transaction_type: string
+          notes: string | null
+          created_at: string | null
         }
         Insert: {
           id?: string
           gift_card_id: string
-          booking_id: string
-          amount_used: number
-          used_at?: string
+          booking_id?: string | null
+          amount: number
+          balance_after: number
+          transaction_type: string
+          notes?: string | null
+          created_at?: string | null
         }
         Update: {
           id?: string
           gift_card_id?: string
-          booking_id?: string
-          amount_used?: number
-          used_at?: string
+          booking_id?: string | null
+          amount?: number
+          balance_after?: number
+          transaction_type?: string
+          notes?: string | null
+          created_at?: string | null
         }
       }
-    }
-    Views: {
-      [_ in never]: never
+      email_campaigns: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          subject: string
+          preheader: string | null
+          content: string
+          template_id: string | null
+          status: string | null
+          target_audience: Json | null
+          scheduled_at: string | null
+          sent_at: string | null
+          recipients_count: number | null
+          delivered_count: number | null
+          opened_count: number | null
+          clicked_count: number | null
+          unsubscribed_count: number | null
+          bounced_count: number | null
+          created_by: string | null
+          created_at: string | null
+          updated_at: string | null
+          promo_code_id: string | null
+          campaign_type: string | null
+          auto_generate_codes: boolean | null
+          promo_code_prefix: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+          subject: string
+          preheader?: string | null
+          content: string
+          template_id?: string | null
+          status?: string | null
+          target_audience?: Json | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          recipients_count?: number | null
+          delivered_count?: number | null
+          opened_count?: number | null
+          clicked_count?: number | null
+          unsubscribed_count?: number | null
+          bounced_count?: number | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          promo_code_id?: string | null
+          campaign_type?: string | null
+          auto_generate_codes?: boolean | null
+          promo_code_prefix?: string | null
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          name?: string
+          subject?: string
+          preheader?: string | null
+          content?: string
+          template_id?: string | null
+          status?: string | null
+          target_audience?: Json | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          recipients_count?: number | null
+          delivered_count?: number | null
+          opened_count?: number | null
+          clicked_count?: number | null
+          unsubscribed_count?: number | null
+          bounced_count?: number | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          promo_code_id?: string | null
+          campaign_type?: string | null
+          auto_generate_codes?: boolean | null
+          promo_code_prefix?: string | null
+        }
+      }
+      campaign_promo_codes: {
+        Row: {
+          id: string
+          campaign_id: string
+          promo_code_id: string
+          recipient_email: string
+          sent_at: string | null
+          redeemed_at: string | null
+          redemption_booking_id: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          campaign_id: string
+          promo_code_id: string
+          recipient_email: string
+          sent_at?: string | null
+          redeemed_at?: string | null
+          redemption_booking_id?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          campaign_id?: string
+          promo_code_id?: string
+          recipient_email?: string
+          sent_at?: string | null
+          redeemed_at?: string | null
+          redemption_booking_id?: string | null
+          created_at?: string | null
+        }
+      }
     }
     Functions: {
-      create_booking_transaction: {
-        Args: {
-          p_session_id: string
-          p_customer_id: string
-          p_organization_id: string
-          p_party_size: number
-        }
-        Returns: string
-      }
-      get_organization_metrics: {
-        Args: {
-          org_id: string
-        }
-        Returns: {
-          organization_id: string
-          total_venues: number
-          active_venues: number
-          total_games: number
-          active_games: number
-          total_bookings: number
-          total_revenue: number
-          mrr: number
-          venue_ids: string[]
-          game_ids: string[]
-          venue_names: string[]
-          game_names: string[]
-        }[]
-      }
-      get_bookings_with_details: {
-        Args: {
-          p_venue_id: string | null
-          p_status: string | null
-          p_from_date: string | null
-          p_to_date: string | null
-        }
-        Returns: {
-          id: string
-          venue_id: string
-          activity_id: string
-          customer_id: string
-          booking_date: string
-          booking_time: string
-          end_time: string
-          players: number
-          status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no-show'
-          total_amount: number
-          deposit_amount: number
-          payment_status: 'pending' | 'paid' | 'partial' | 'refunded' | 'failed'
-          payment_method?: string
-          transaction_id?: string
-          notes?: string
-          customer_notes?: string
-          internal_notes?: string
-          confirmation_code: string
-          metadata: Json
-          created_by: string
-          created_at: string
-          updated_at: string
-          venue_name: string
-          venue_city: string
-          activity_name: string
-          activity_difficulty: string
-          customer_name: string
-          customer_email: string
-          customer_phone: string
-        }[]
-      }
-      create_booking: {
-        Args: {
-          p_venue_id: string
-          p_activity_id: string
-          p_customer_id: string
-          p_booking_date: string
-          p_booking_time: string
-          p_players: number
-          p_total_amount: number
-          p_notes?: string | null
-        }
-        Returns: string
-      }
-      get_available_slots: {
-        Args: {
-          p_activity_id: string
-          p_date: string
-        }
-        Returns: {
-          time: string
-          available: boolean
-          capacity: number
-          booked: number
-        }[]
-      }
-      cancel_booking: {
-        Args: {
-          p_booking_id: string
-          p_reason?: string | null
-          p_issue_refund?: boolean
-        }
-        Returns: boolean
-      }
-      get_venue_by_embed_key: {
-        Args: {
-          p_embed_key: string
-        }
-        Returns: {
-          id: string
-          name: string
-          slug: string
-          embed_key: string
-          primary_color: string
-          base_url: string
-          timezone: string
-          settings: Json
-        }[]
-      }
-      get_dashboard_stats: {
-        Args: Record<string, never>
-        Returns: {
-          total_bookings: number
-          confirmed_bookings: number
-          total_revenue: number
-          average_order_value: number
-          avg_group_size: number
-          total_customers: number
-          active_customers: number
-        }[]
-      }
-      get_weekly_bookings_trend: {
-        Args: Record<string, never>
-        Returns: {
-          week_start: string
-          week_label: string
-          bookings_count: number
-        }[]
-      }
-      get_upcoming_bookings: {
-        Args: {
-          limit_count: number
-        }
-        Returns: {
-          booking_id: string
-          customer_name: string
-          activity_name: string
-          venue_name: string
-          booking_date: string
-          start_time: string
-          status: string
-          total_amount: number
-        }[]
-      }
-      get_todays_bookings_by_hour: {
-        Args: Record<string, never>
-        Returns: {
-          hour_slot: string
-          bookings_count: number
-        }[]
-      }
-      get_recent_booking_activity: {
-        Args: {
-          limit_count: number
-        }
-        Returns: {
-          booking_id: string
-          customer_name: string
-          activity_name: string
-          venue_name: string
-          booking_date: string
-          booking_time: string
-          status: string
-          total_amount: number
-          created_at: string
-          is_future_booking: boolean
-        }[]
-      }
       increment_promo_usage: {
-        Args: {
-          code_id: string
-        }
-        Returns: void
+        Args: { p_organization_id: string; p_promo_code: string }
+        Returns: undefined
       }
-    }
-    Enums: {
-      user_role: 'super-admin' | 'admin' | 'manager' | 'staff'
-      booking_status: 'pending' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled'
-      payment_status: 'pending' | 'paid' | 'refunded' | 'failed'
-      customer_segment: 'vip' | 'regular' | 'new' | 'inactive'
-      difficulty_level: 'easy' | 'medium' | 'hard' | 'expert'
-      organization_plan: 'free' | 'starter' | 'pro' | 'enterprise'
+      decrement_gift_card_balance: {
+        Args: { p_gift_card_id: string; p_amount: number; p_booking_id?: string }
+        Returns: { new_balance: number; success: boolean }[]
+      }
     }
   }
 }

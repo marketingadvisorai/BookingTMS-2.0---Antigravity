@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
-import { Gift, Check, X } from 'lucide-react';
+import { Gift, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 interface GiftCardInputProps {
   onApply: (code: string, amount: number) => void;
@@ -10,10 +11,12 @@ interface GiftCardInputProps {
   appliedCode?: string;
   appliedAmount?: number;
   className?: string;
+  organizationId?: string;
+  subtotal?: number;
 }
 
-// Mock gift cards for demo
-const GIFT_CARDS: Record<string, { amount: number; balance: number }> = {
+// Fallback mock gift cards for demo (when no organizationId provided)
+const DEMO_GIFT_CARDS: Record<string, { amount: number; balance: number }> = {
   'GIFT50': { amount: 50, balance: 50 },
   'GIFT100': { amount: 100, balance: 100 },
   'HOLIDAY25': { amount: 25, balance: 25 },
@@ -21,33 +24,102 @@ const GIFT_CARDS: Record<string, { amount: number; balance: number }> = {
   'THANKYOU150': { amount: 150, balance: 150 },
 };
 
-export function GiftCardInput({ onApply, onRemove, appliedCode, appliedAmount, className = '' }: GiftCardInputProps) {
+/**
+ * Validate gift card against Supabase database
+ */
+async function validateGiftCard(
+  organizationId: string,
+  code: string,
+  subtotal: number
+): Promise<{ valid: boolean; balance?: number; amount?: number; message?: string }> {
+  try {
+    const { data: giftCard, error } = await supabase
+      .from('gift_cards')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .eq('code', code.toUpperCase())
+      .eq('is_active', true)
+      .single();
+
+    if (error || !giftCard) {
+      return { valid: false, message: 'Invalid gift card code' };
+    }
+
+    // Check expiration
+    if (giftCard.expires_at && new Date(giftCard.expires_at) < new Date()) {
+      return { valid: false, message: 'This gift card has expired' };
+    }
+    
+    // Check balance
+    if (giftCard.current_balance <= 0) {
+      return { valid: false, message: 'This gift card has no remaining balance' };
+    }
+
+    // Calculate amount to apply (min of balance and subtotal)
+    const amountToApply = Math.min(giftCard.current_balance, subtotal);
+
+    return {
+      valid: true,
+      balance: giftCard.current_balance,
+      amount: amountToApply,
+    };
+  } catch (err) {
+    console.error('Error validating gift card:', err);
+    return { valid: false, message: 'Failed to validate gift card' };
+  }
+}
+
+export function GiftCardInput({ 
+  onApply, 
+  onRemove, 
+  appliedCode, 
+  appliedAmount, 
+  className = '',
+  organizationId,
+  subtotal = 0,
+}: GiftCardInputProps) {
   const [giftCardInput, setGiftCardInput] = useState('');
   const [isApplying, setIsApplying] = useState(false);
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (!giftCardInput.trim()) {
       toast.error('Please enter a gift card code');
       return;
     }
 
     setIsApplying(true);
+    const code = giftCardInput.toUpperCase();
     
-    // Simulate API call
-    setTimeout(() => {
-      const code = giftCardInput.toUpperCase();
-      const giftCardData = GIFT_CARDS[code];
-      
-      if (giftCardData) {
-        onApply(code, giftCardData.balance);
-        toast.success(`Gift card applied! $${giftCardData.balance.toFixed(2)} available`);
-        setGiftCardInput('');
+    try {
+      // If organizationId is provided, validate against database
+      if (organizationId) {
+        const result = await validateGiftCard(organizationId, code, subtotal);
+        
+        if (result.valid && result.amount) {
+          onApply(code, result.amount);
+          toast.success(`Gift card applied! $${result.balance?.toFixed(2)} balance (using $${result.amount.toFixed(2)})`);
+          setGiftCardInput('');
+        } else {
+          toast.error(result.message || 'Invalid gift card');
+        }
       } else {
-        toast.error('Invalid gift card code');
+        // Fallback to demo cards
+        const giftCardData = DEMO_GIFT_CARDS[code];
+        
+        if (giftCardData) {
+          const amount = Math.min(giftCardData.balance, subtotal || giftCardData.balance);
+          onApply(code, amount);
+          toast.success(`Gift card applied! $${giftCardData.balance.toFixed(2)} available`);
+          setGiftCardInput('');
+        } else {
+          toast.error('Invalid gift card code');
+        }
       }
-      
+    } catch (err) {
+      toast.error('Failed to validate gift card');
+    } finally {
       setIsApplying(false);
-    }, 500);
+    }
   };
 
   const handleRemove = () => {

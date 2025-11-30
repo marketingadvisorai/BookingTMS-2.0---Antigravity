@@ -12,7 +12,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Mail, Key, Loader2, Check, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Mail, Key, Loader2, Check, Eye, EyeOff, AlertCircle, Copy, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { passwordService } from '../../services/password.service';
 
@@ -37,6 +37,7 @@ export const UserPasswordResetModal: React.FC<UserPasswordResetModalProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [fallbackLink, setFallbackLink] = useState<string | null>(null);
 
   // Password validation
   const passwordChecks = {
@@ -51,12 +52,19 @@ export const UserPasswordResetModal: React.FC<UserPasswordResetModalProps> = ({
   const handleSendResetEmail = async () => {
     if (!user) return;
     setLoading(true);
+    setFallbackLink(null);
 
     try {
       const result = await passwordService.adminSendResetEmail(user.email, user.name);
 
       if (result.success) {
-        toast.success(`Password reset email sent to ${user.email}`);
+        // Check if we got a fallback link (email delivery failed)
+        if (result.method === 'fallback_link' && result.resetLink) {
+          setFallbackLink(result.resetLink);
+          toast.info('Email delivery unavailable. Reset link generated - please share it with the user.');
+        } else {
+          toast.success(`Password reset email sent to ${user.email}`);
+        }
         setSuccess(true);
       } else {
         toast.error(result.error || 'Failed to send reset email');
@@ -65,6 +73,13 @@ export const UserPasswordResetModal: React.FC<UserPasswordResetModalProps> = ({
       toast.error(error.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (fallbackLink) {
+      navigator.clipboard.writeText(fallbackLink);
+      toast.success('Reset link copied to clipboard!');
     }
   };
 
@@ -103,6 +118,7 @@ export const UserPasswordResetModal: React.FC<UserPasswordResetModalProps> = ({
     setNewPassword('');
     setConfirmPassword('');
     setSuccess(false);
+    setFallbackLink(null);
     setActiveTab('email');
     onClose();
   };
@@ -120,15 +136,48 @@ export const UserPasswordResetModal: React.FC<UserPasswordResetModalProps> = ({
         </DialogHeader>
 
         {success ? (
-          <div className="py-8 text-center">
+          <div className="py-6 text-center">
             <div className="mx-auto w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-4">
               <Check className="w-6 h-6 text-green-600" />
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               {activeTab === 'email'
-                ? 'Password reset email has been sent successfully.'
+                ? fallbackLink
+                  ? 'Password reset link generated. Share it with the user:'
+                  : 'Password reset email has been sent successfully.'
                 : 'Password has been updated successfully.'}
             </p>
+            
+            {/* Show fallback link with copy button */}
+            {fallbackLink && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg mb-4 text-left">
+                <div className="flex items-start gap-2 mb-2">
+                  <LinkIcon className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-xs font-medium text-amber-800 dark:text-amber-200">
+                    Reset Link (copy and share with user)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={fallbackLink}
+                    readOnly
+                    className="text-xs font-mono bg-white dark:bg-gray-800"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyLink}
+                    className="flex-shrink-0"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                  This link will expire in 24 hours.
+                </p>
+              </div>
+            )}
+            
             <Button onClick={handleClose}>Close</Button>
           </div>
         ) : (

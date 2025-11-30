@@ -12,6 +12,7 @@ import { Events } from './pages/Events';
 import Customers from './pages/Customers';
 import { Campaigns } from './pages/Campaigns';
 import { Marketing } from './pages/Marketing';
+import { MarketingProPage } from './modules/marketing-pro';
 import { AIAgents } from './pages/AIAgents';
 import { Staff } from './pages/Staff';
 import { Reports } from './pages/Reports';
@@ -117,6 +118,8 @@ function AppContent() {
         return <Campaigns />;
       case 'marketing':
         return <Marketing />;
+      case 'marketing-pro':
+        return <MarketingProPage />;
       case 'aiagents':
         return <AIAgents />;
       case 'staff':

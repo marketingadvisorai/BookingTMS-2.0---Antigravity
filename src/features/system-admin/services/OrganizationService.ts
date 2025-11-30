@@ -168,37 +168,44 @@ export class OrganizationService {
    */
   static async create(dto: CreateOrganizationDTO): Promise<Organization> {
     try {
-      // Step 1: Create organization in Supabase (UUID auto-generated)
+      // Step 1: Create organization using RPC function (bypasses RLS issues)
       const slug = generateSlug(dto.name);
-      const { data: org, error: orgError } = await (supabase
-        .from('organizations') as any)
-        .insert([{
-          name: dto.name,
-          slug: slug,
-          owner_name: dto.owner_name,
-          owner_email: dto.owner_email,
-          website: dto.website,
-          phone: dto.phone,
-          address: dto.address,
-          city: dto.city,
-          state: dto.state,
-          zip: dto.zip,
-          country: dto.country,
-          plan_id: dto.plan_id,
-          status: dto.status || 'pending',
-          stripe_charges_enabled: false,
-          stripe_payouts_enabled: false,
-          application_fee_percentage: 0.75,
-        } as any])
-        .select()
-        .single();
+      
+      const { data: orgId, error: rpcError } = await (supabase.rpc as any)('admin_create_organization', {
+        p_name: dto.name,
+        p_slug: slug,
+        p_owner_name: dto.owner_name,
+        p_owner_email: dto.owner_email,
+        p_website: dto.website || null,
+        p_phone: dto.phone || null,
+        p_address: dto.address || null,
+        p_city: dto.city || null,
+        p_state: dto.state || null,
+        p_zip: dto.zip || null,
+        p_country: dto.country || 'United States',
+        p_plan_id: dto.plan_id || null,
+        p_status: dto.status || 'pending',
+      });
 
-      if (orgError) {
-        throw new Error(`Failed to create organization: ${orgError.message}`);
+      if (rpcError) {
+        console.error('[OrganizationService] RPC create error:', rpcError);
+        throw new Error(`Failed to create organization: ${rpcError.message}`);
       }
 
-      if (!org) {
-        throw new Error('Organization created but no data returned');
+      if (!orgId) {
+        throw new Error('Organization created but no ID returned');
+      }
+
+      // Fetch the created organization
+      const { data: org, error: fetchError } = await (supabase
+        .from('organizations') as any)
+        .select('*')
+        .eq('id', orgId)
+        .single();
+
+      if (fetchError || !org) {
+        console.error('[OrganizationService] Fetch after create error:', fetchError);
+        throw new Error('Organization created but failed to fetch details');
       }
 
       // Step 2: Create Stripe customer
@@ -403,47 +410,45 @@ export class OrganizationService {
 
   /**
    * Update organization
-   * Only updates fields that are explicitly provided (not undefined)
+   * Uses RPC function to bypass RLS issues
    */
   static async update(id: string, dto: UpdateOrganizationDTO): Promise<Organization> {
     try {
-      // Build update object with only defined values
-      const updateData: Record<string, any> = {
-        updated_at: new Date().toISOString(),
-      };
+      console.log('[OrganizationService] Updating organization via RPC:', id);
 
-      // Only include fields that are explicitly provided
-      if (dto.name !== undefined) updateData.name = dto.name;
-      if (dto.owner_name !== undefined) updateData.owner_name = dto.owner_name;
-      if (dto.owner_email !== undefined) updateData.owner_email = dto.owner_email;
-      if (dto.website !== undefined) updateData.website = dto.website;
-      if (dto.phone !== undefined) updateData.phone = dto.phone;
-      if (dto.address !== undefined) updateData.address = dto.address;
-      if (dto.city !== undefined) updateData.city = dto.city;
-      if (dto.state !== undefined) updateData.state = dto.state;
-      if (dto.zip !== undefined) updateData.zip = dto.zip;
-      if (dto.country !== undefined) updateData.country = dto.country;
-      if (dto.plan_id !== undefined) updateData.plan_id = dto.plan_id || null;
-      if (dto.status !== undefined) updateData.status = dto.status;
-      if (dto.application_fee_percentage !== undefined) {
-        updateData.application_fee_percentage = dto.application_fee_percentage;
+      // Call RPC function to update
+      const { error: rpcError } = await (supabase.rpc as any)('admin_update_organization', {
+        p_org_id: id,
+        p_name: dto.name || null,
+        p_owner_name: dto.owner_name || null,
+        p_owner_email: dto.owner_email || null,
+        p_website: dto.website || null,
+        p_phone: dto.phone || null,
+        p_address: dto.address || null,
+        p_city: dto.city || null,
+        p_state: dto.state || null,
+        p_zip: dto.zip || null,
+        p_country: dto.country || null,
+        p_plan_id: dto.plan_id || null,
+        p_status: dto.status || null,
+        p_application_fee_percentage: dto.application_fee_percentage ?? null,
+      });
+
+      if (rpcError) {
+        console.error('[OrganizationService] RPC update error:', rpcError);
+        throw new Error(`Failed to update organization: ${rpcError.message}`);
       }
 
-      // Perform update without .single() to avoid "Cannot coerce" error
-      const { data, error } = await (supabase
+      // Fetch updated organization
+      const { data, error: fetchError } = await (supabase
         .from('organizations') as any)
-        .update(updateData)
+        .select('*')
         .eq('id', id)
-        .select()
-        .maybeSingle();
+        .single();
 
-      if (error) {
-        console.error('[OrganizationService] update error:', error);
-        throw new Error(`Failed to update organization: ${error.message}`);
-      }
-
-      if (!data) {
-        throw new Error('Organization not found or update failed');
+      if (fetchError || !data) {
+        console.error('[OrganizationService] fetch after update error:', fetchError);
+        throw new Error('Organization updated but failed to fetch details');
       }
 
       return data;
@@ -455,69 +460,18 @@ export class OrganizationService {
 
   /**
    * Delete organization and all related data
-   * Handles cascading deletes for all child tables
+   * Uses RPC function to bypass RLS and handle cascading deletes
    */
   static async delete(id: string): Promise<void> {
     try {
-      // Delete in proper order to respect foreign key constraints
-      // Order: Most dependent first → Least dependent last
+      console.log('[OrganizationService] Deleting organization via RPC:', id);
 
-      console.log('[OrganizationService] Starting cascading delete for org:', id);
-
-      // 1. Delete marketing data
-      await (supabase.from('reviews') as any).delete().eq('organization_id', id);
-      await (supabase.from('affiliate_referrals') as any).delete().eq('organization_id', id);
-      await (supabase.from('affiliates') as any).delete().eq('organization_id', id);
-      await (supabase.from('email_workflows') as any).delete().eq('organization_id', id);
-      await (supabase.from('email_templates') as any).delete().eq('organization_id', id);
-      await (supabase.from('email_campaigns') as any).delete().eq('organization_id', id);
-      await (supabase.from('gift_card_transactions') as any).delete().eq('organization_id', id);
-      await (supabase.from('gift_cards') as any).delete().eq('organization_id', id);
-      await (supabase.from('promotions') as any).delete().eq('organization_id', id);
-      await (supabase.from('marketing_settings') as any).delete().eq('organization_id', id);
-
-      // 2. Delete embed configs
-      await (supabase.from('embed_configs') as any).delete().eq('organization_id', id);
-
-      // 3. Delete notifications
-      await (supabase.from('notifications') as any).delete().eq('organization_id', id);
-
-      // 4. Delete subscription history
-      await (supabase.from('subscription_history') as any).delete().eq('organization_id', id);
-
-      // 5. Delete usage records
-      await (supabase.from('organization_usage') as any).delete().eq('organization_id', id);
-
-      // 6. Delete bookings first (depends on activity_sessions)
-      await (supabase.from('bookings') as any).delete().eq('organization_id', id);
-
-      // 7. Delete activity sessions
-      await (supabase.from('activity_sessions') as any).delete().eq('organization_id', id);
-
-      // 8. Delete activities
-      await (supabase.from('activities') as any).delete().eq('organization_id', id);
-
-      // 9. Delete customers
-      await (supabase.from('customers') as any).delete().eq('organization_id', id);
-
-      // 10. Delete venues
-      await (supabase.from('venues') as any).delete().eq('organization_id', id);
-
-      // 11. Clear organization_id from users (don't delete users, just unlink)
-      await (supabase.from('users') as any)
-        .update({ organization_id: null })
-        .eq('organization_id', id);
-
-      // 12. Delete organization members
-      await (supabase.from('organization_members') as any).delete().eq('organization_id', id);
-
-      // 13. Finally delete the organization itself
-      const { error } = await (supabase.from('organizations') as any)
-        .delete()
-        .eq('id', id);
+      const { data, error } = await (supabase.rpc as any)('admin_delete_organization', {
+        p_org_id: id,
+      });
 
       if (error) {
-        console.error('[OrganizationService] delete organization error:', error);
+        console.error('[OrganizationService] RPC delete error:', error);
         throw new Error(`Failed to delete organization: ${error.message}`);
       }
 

@@ -12,7 +12,63 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
-import { Redis } from 'https://deno.land/x/upstash_redis@v1.19.3/mod.ts'
+
+// Upstash Redis REST API client (no external dependencies)
+class UpstashRedis {
+  private url: string
+  private token: string
+
+  constructor(url: string, token: string) {
+    this.url = url
+    this.token = token
+  }
+
+  private async command(...args: (string | number)[]): Promise<any> {
+    const response = await fetch(`${this.url}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(args),
+    })
+    const data = await response.json()
+    if (data.error) throw new Error(data.error)
+    return data.result
+  }
+
+  async get(key: string): Promise<string | null> {
+    return this.command('GET', key)
+  }
+
+  async set(key: string, value: string, options?: { ex?: number }): Promise<void> {
+    if (options?.ex) {
+      await this.command('SET', key, value, 'EX', options.ex)
+    } else {
+      await this.command('SET', key, value)
+    }
+  }
+
+  async del(...keys: string[]): Promise<number> {
+    return this.command('DEL', ...keys)
+  }
+
+  async zadd(key: string, score: number, member: string): Promise<number> {
+    return this.command('ZADD', key, score, member)
+  }
+
+  async zremrangebyscore(key: string, min: number, max: number): Promise<number> {
+    return this.command('ZREMRANGEBYSCORE', key, min, max)
+  }
+
+  async zcard(key: string): Promise<number> {
+    return this.command('ZCARD', key)
+  }
+
+  async expire(key: string, seconds: number): Promise<number> {
+    return this.command('EXPIRE', key, seconds)
+  }
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,13 +90,13 @@ const RATE_LIMITS = {
 }
 
 // Initialize Redis (lazy)
-let redis: Redis | null = null
-function getRedis(): Redis | null {
+let redis: UpstashRedis | null = null
+function getRedis(): UpstashRedis | null {
   if (redis) return redis
   const url = Deno.env.get('UPSTASH_REDIS_REST_URL')
   const token = Deno.env.get('UPSTASH_REDIS_REST_TOKEN')
   if (!url || !token) return null
-  redis = new Redis({ url, token })
+  redis = new UpstashRedis(url, token)
   return redis
 }
 
@@ -322,7 +378,7 @@ async function checkRateLimit(
     }
 
     // Add current request
-    await redis.zadd(rateLimitKey, { score: now, member: `${now}:${Math.random()}` })
+    await redis.zadd(rateLimitKey, now, `${now}:${Math.random()}`)
     await redis.expire(rateLimitKey, limits.window)
 
     return { allowed: true, remaining: limits.limit - count - 1, reset: limits.window }

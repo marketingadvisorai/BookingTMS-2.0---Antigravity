@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useTheme } from '../components/layout/ThemeContext';
 import { supabase } from '../lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { AnalyticsDashboard } from '../features/booking-analytics';
+import { BarChart2, LineChart as LineChartIcon } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { PageHeader } from '../components/layout/PageHeader';
 import { PermissionGuard } from '../components/auth/PermissionGuard';
@@ -76,6 +79,7 @@ export function Reports() {
   const tooltipBg = isDark ? '#1e1e1e' : 'white';
   const tooltipBorder = isDark ? '#2a2a2a' : '#e5e7eb';
 
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics'>('overview');
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportFormat, setExportFormat] = useState('csv');
   const [isExporting, setIsExporting] = useState(false);
@@ -467,8 +471,23 @@ export function Reports() {
         }
       />
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Tab Navigation */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'overview' | 'analytics')} className="w-full">
+        <TabsList className={`grid w-full max-w-md grid-cols-2 ${isDark ? 'bg-[#1e1e1e]' : 'bg-gray-100'}`}>
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <BarChart2 className="w-4 h-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <LineChartIcon className="w-4 h-4" />
+            Advanced Analytics
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab - Existing Reports */}
+        <TabsContent value="overview" className="mt-6 space-y-6">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className={`${cardBgClass} border ${borderClass} shadow-sm hover:shadow-md transition-all`}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
@@ -751,7 +770,14 @@ export function Reports() {
             )}
           </CardContent>
         </Card>
-      </div>
+        </div>
+        </TabsContent>
+
+        {/* Advanced Analytics Tab */}
+        <TabsContent value="analytics" className="mt-6">
+          <AnalyticsDashboard />
+        </TabsContent>
+      </Tabs>
 
       {/* Export Dialog */}
       <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>

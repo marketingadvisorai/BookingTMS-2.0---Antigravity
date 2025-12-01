@@ -630,9 +630,9 @@ export const options = {
 |-------|-------|-----------|----------|
 | Foundation | 4 | 4 | 100% ✅ |
 | Performance | 4 | 4 | 100% ✅ |
-| Security | 2 | 1 | 50% |
+| Security | 2 | 2 | 100% ✅ |
 | Scale | 3 | 1 | 33% |
-| **Total** | **13** | **10** | **77%** |
+| **Total** | **13** | **11** | **85%** |
 
 ### MVP Tasks Status (Dec 1, 2025)
 - [x] Task 1.1: Optimistic Locking - `070_add_optimistic_locking.sql` applied
@@ -651,7 +651,13 @@ export const options = {
   - Triggers on: bookings, activities, venues, organizations, users
   - 90-day retention policy with cron cleanup
   - RLS policies for org-scoped access
-- [ ] Task 3.2: API Key Scoping - Pending
+- [x] Task 3.2: API Key Scoping - `074_add_api_keys.sql` applied
+  - `api_keys` table with scoping support (11 scope types)
+  - `api_key_usage_logs` table for analytics
+  - Functions: `generate_api_key`, `validate_api_key`, `revoke_api_key`, `get_api_key_stats`
+  - Service: `/src/services/apiKey.service.ts`
+  - UI: `/src/pages/APIKeys.tsx` with create/revoke/stats
+  - Edge function auth: `/supabase/functions/_shared/apiKeyAuth.ts`
 
 ### Phase 4 Tasks Status (Dec 2, 2025)
 - [x] Task 4.2: Health Checks - `health` edge function deployed
@@ -671,4 +677,4 @@ export const options = {
 
 ---
 
-*Last Updated: December 1, 2025*
+*Last Updated: December 2, 2025*

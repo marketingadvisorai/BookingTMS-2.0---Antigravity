@@ -51,6 +51,7 @@ import StripeOAuthCallback from './pages/StripeOAuthCallback';
 import { Toaster } from './components/ui/sonner';
 import { FeatureFlagProvider } from './lib/featureflags/FeatureFlagContext';
 import BookingEngineTest from './pages/BookingEngineTest';
+import APIKeysPage from './pages/APIKeys';
 
 // ============================================================================
 // DEVELOPMENT MODE CONFIGURATION
@@ -223,6 +224,8 @@ function AppContent() {
         return <GiftVouchers />;
       case 'booking-test':
         return <BookingEngineTest />;
+      case 'api-keys':
+        return <APIKeysPage />;
       default:
         return <Dashboard onNavigate={handleNavigate} />;
     }

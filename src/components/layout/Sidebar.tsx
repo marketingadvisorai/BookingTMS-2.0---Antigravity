@@ -23,6 +23,7 @@ import {
   Building2,
   Crown,
   Layers,
+  Key,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useAuth } from '../../lib/auth/AuthContext';
@@ -101,6 +102,13 @@ export function Sidebar({ currentPage, onNavigate = () => { }, isMobileOpen = fa
       label: 'Backend Dashboard',
       icon: Server,
       permission: 'accounts.view' as Permission
+    });
+    // API Keys - Enterprise feature for managing integrations
+    navItems.push({
+      id: 'api-keys',
+      label: 'API Keys',
+      icon: Key,
+      permission: 'settings.view' as Permission
     });
   }
 

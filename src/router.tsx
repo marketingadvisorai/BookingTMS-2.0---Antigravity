@@ -237,6 +237,12 @@ export const router = createBrowserRouter([
     path: '/demo-login',
     element: <App />,
   },
+  
+  // API Keys Management (enterprise feature)
+  {
+    path: '/api-keys',
+    element: <App />,
+  },
 
   // Slug-based Public Venue Profile Routes
   {

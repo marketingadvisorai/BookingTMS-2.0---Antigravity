@@ -20,6 +20,38 @@ import type {
   TopPerformer,
 } from '../types';
 
+// ============================================================================
+// Database Types (for Supabase query type safety)
+// ============================================================================
+
+/** Booking row from database */
+interface DBBooking {
+  id: string;
+  total_amount: number;
+  status: string;
+  created_at: string;
+  booking_date: string;
+  organization_id: string;
+  activity_id: string;
+  venue_id: string;
+  customer_id: string;
+  activities?: { name: string };
+  venues?: { name: string };
+}
+
+/** Widget config row from database */
+interface DBWidgetConfig {
+  view_count: number;
+  booking_count: number;
+}
+
+/** Customer row from database */
+interface DBCustomer {
+  id: string;
+  total_bookings: number;
+  created_at: string;
+}
+
 // Status colors for charts
 const STATUS_COLORS: Record<string, string> = {
   confirmed: '#22c55e',
@@ -155,8 +187,9 @@ class BookingAnalyticsService {
       query = query.eq('activity_id', filters.activityId);
     }
     
-    const { data: current, error } = await query;
+    const { data, error } = await query;
     if (error) throw error;
+    const current = data as Pick<DBBooking, 'total_amount'>[] | null;
     
     // Previous period
     let prevQuery = supabase
@@ -170,7 +203,8 @@ class BookingAnalyticsService {
       prevQuery = prevQuery.eq('organization_id', filters.organizationId);
     }
     
-    const { data: previous } = await prevQuery;
+    const { data: prevData } = await prevQuery;
+    const previous = prevData as Pick<DBBooking, 'total_amount'>[] | null;
     
     const totalRevenue = current?.reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0;
     const prevRevenue = previous?.reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0;

@@ -645,6 +645,34 @@ supabase secrets set RESEND_API_KEY=re_xxxx
 | [x] | **3.3 Webhook Retry** - Handle failed webhook deliveries ✅ | 🟢 Low | 1 hr |
 | [x] | **3.4 Stripe Connect UX** - Better org onboarding flow ✅ | 🟢 Low | 3-4 hrs |
 
+#### Multi-Tenant Access Fixes ✅ COMPLETED (Dec 2, 2025)
+**Issues Fixed:**
+1. Tenant accounts getting "venue not found" errors
+2. Org members not synced to `organization_members` table
+3. Default venue not marked for organizations
+4. Embed Pro access issues for org admins
+
+**Database Migrations Applied (via Supabase MCP):**
+- `fix_audit_trigger_and_tenant_access` - Fixed audit trigger, added `is_default` to venues
+- `sync_org_members_and_default_venues` - Synced org members, created auto-sync trigger
+- `fix_rls_for_tenant_access` - Fixed RLS policies for embed_configs
+
+**New Database Functions:**
+- `get_my_organization_id_safe()` - Gets user's org from users or org_members
+- `sync_organization_members()` - Syncs users to org_members table
+- `trigger_sync_org_member()` - Auto-syncs on user insert/update
+- `create_org_default_venue()` - Creates default venue for an org
+- `get_org_default_venue()` - Gets org's default venue ID
+- `is_platform_admin()` - Checks if user is system/super admin
+- `can_access_organization()` - Checks if user can access an org
+
+**New Hook:**
+- `useOrgDefaultVenue` - Hook for org-admins to get their default venue
+
+**Code Changes:**
+- `OrganizationService.ts` - Added `is_default: true` to venue creation
+- `organization.service.ts` - Added slug and proper venue fields
+
 #### Task 3.2: SMS Confirmation ✅ COMPLETED (Dec 2, 2025)
 - **Edge Function**: `/supabase/functions/send-sms/index.ts`
 - **Migration**: `/supabase/migrations/076_add_sms_logs.sql`

@@ -140,7 +140,8 @@ export interface SendSMSRequest {
   phoneNumber: string;
   message: string;
   bookingId?: string;
-  type?: SMSReminderType;
+  organizationId?: string;
+  type?: SMSReminderType | 'notification';
 }
 
 export interface SendSMSResponse {

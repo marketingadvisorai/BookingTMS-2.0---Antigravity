@@ -2,12 +2,13 @@
  * Embed Pro 2.0 - SMS Reminder Service
  * @module embed-pro/services/sms-reminder.service
  * 
- * Service for sending SMS reminders via Twilio (or other providers).
+ * Service for sending SMS reminders via Twilio.
  * Handles template rendering, scheduling, and sending.
  * 
- * NOTE: Uses demo mode for now. Connect to Twilio/Supabase Edge Function for production.
+ * Uses Supabase Edge Function: /functions/v1/send-sms
  */
 
+import { supabase } from '@/lib/supabase';
 import type {
   SMSReminder,
   SMSReminderType,
@@ -34,7 +35,7 @@ class SMSReminderService {
   };
 
   /**
-   * Send SMS immediately
+   * Send SMS immediately via Twilio Edge Function
    */
   async sendSMS(request: SendSMSRequest): Promise<SendSMSResponse> {
     try {
@@ -44,18 +45,34 @@ class SMSReminderService {
         return { success: false, error: 'Invalid phone number' };
       }
 
-      // In production, call Twilio API via Supabase Edge Function
-      console.log('[SMSService] Sending SMS:', {
-        to: cleanPhone,
-        message: request.message.substring(0, 50) + '...',
+      console.log('[SMSService] Sending SMS via Twilio:', {
+        to: cleanPhone.slice(-4),
+        type: request.type || 'notification',
       });
 
-      // Demo mode - simulate success
-      const messageId = `sms_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+      // Call Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('send-sms', {
+        body: {
+          to: cleanPhone,
+          message: request.message,
+          type: request.type || 'notification',
+          bookingId: request.bookingId,
+          organizationId: request.organizationId,
+        },
+      });
+
+      if (error) {
+        console.error('[SMSService] Edge function error:', error);
+        return { success: false, error: error.message || 'SMS service error' };
+      }
+
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Failed to send SMS' };
+      }
+
       return {
         success: true,
-        messageId,
+        messageId: data.messageId,
       };
     } catch (err) {
       console.error('[SMSService] Error sending SMS:', err);

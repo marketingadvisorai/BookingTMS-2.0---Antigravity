@@ -641,9 +641,28 @@ supabase secrets set RESEND_API_KEY=re_xxxx
 | Status | Task | Priority | Effort |
 |--------|------|----------|--------|
 | [x] | **3.1 Booking Analytics** - Revenue, conversion rates dashboard ✅ | 🟢 Low | 3-4 hrs |
-| [ ] | **3.2 SMS Confirmation** - Connect Twilio to existing SMS module | 🟢 Low | 2 hrs |
+| [x] | **3.2 SMS Confirmation** - Connect Twilio to existing SMS module ✅ | 🟢 Low | 2 hrs |
 | [x] | **3.3 Webhook Retry** - Handle failed webhook deliveries ✅ | 🟢 Low | 1 hr |
 | [x] | **3.4 Stripe Connect UX** - Better org onboarding flow ✅ | 🟢 Low | 3-4 hrs |
+
+#### Task 3.2: SMS Confirmation ✅ COMPLETED (Dec 2, 2025)
+- **Edge Function**: `/supabase/functions/send-sms/index.ts`
+- **Migration**: `/supabase/migrations/076_add_sms_logs.sql`
+- **Service Updated**: `/src/modules/embed-pro/services/sms-reminder.service.ts`
+- **Types Updated**: `/src/modules/embed-pro/types/sms-reminder.types.ts`
+- **Features**:
+  - Twilio REST API integration
+  - E.164 phone number formatting
+  - SMS logging to database
+  - Booking confirmation templates
+  - 24h/1h reminder templates
+  - Cancellation/reschedule templates
+- **Required Env Vars**:
+  ```bash
+  supabase secrets set TWILIO_ACCOUNT_SID=xxx
+  supabase secrets set TWILIO_AUTH_TOKEN=xxx
+  supabase secrets set TWILIO_PHONE_NUMBER=+1xxxxxxxxxx
+  ```
 
 #### Task 3.4: Stripe Connect UX ✅ COMPLETED (Dec 2, 2025)
 - **Module**: `/src/features/stripe-connect/`

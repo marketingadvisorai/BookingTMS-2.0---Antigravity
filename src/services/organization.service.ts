@@ -51,13 +51,19 @@ export class OrganizationService {
         }
 
         // 3. Create Default Venue
+        const venueName = `${org.name} - Main Venue`;
+        const venueSlug = venueName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now().toString(36);
         const { error: venueError } = await (supabase
             .from('venues') as any)
             .insert([{
                 organization_id: org.id,
-                name: `${org.name} - Main Venue`,
+                name: venueName,
+                slug: venueSlug,
                 is_default: true,
-                timezone: 'UTC' // Default to UTC, user can update later
+                timezone: 'America/New_York',
+                status: 'active',
+                primary_color: '#2563eb',
+                settings: { type: 'escape-room' }
             }]);
 
         if (venueError) {

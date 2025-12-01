@@ -283,6 +283,7 @@ export class OrganizationService {
               organization_id: org.id,
               name: venueName,
               slug: venueSlug,
+              is_default: true, // Mark as default venue
               timezone: 'America/New_York',
               status: 'active',
               primary_color: '#2563eb',
@@ -354,8 +355,10 @@ export class OrganizationService {
           organization_id: org.id,
           name: defaultVenueName,
           slug: defaultVenueSlug,
-          timezone: 'UTC',
+          is_default: true, // Mark as default venue
+          timezone: 'America/New_York',
           status: 'active',
+          primary_color: '#2563eb',
           address: dto.address || '',
           city: dto.city || '',
           state: dto.state || '',

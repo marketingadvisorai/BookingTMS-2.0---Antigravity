@@ -643,7 +643,24 @@ supabase secrets set RESEND_API_KEY=re_xxxx
 | [x] | **3.1 Booking Analytics** - Revenue, conversion rates dashboard ✅ | 🟢 Low | 3-4 hrs |
 | [ ] | **3.2 SMS Confirmation** - Connect Twilio to existing SMS module | 🟢 Low | 2 hrs |
 | [x] | **3.3 Webhook Retry** - Handle failed webhook deliveries ✅ | 🟢 Low | 1 hr |
-| [ ] | **3.4 Stripe Connect UX** - Better org onboarding flow | 🟢 Low | 3-4 hrs |
+| [x] | **3.4 Stripe Connect UX** - Better org onboarding flow ✅ | 🟢 Low | 3-4 hrs |
+
+#### Task 3.4: Stripe Connect UX ✅ COMPLETED (Dec 2, 2025)
+- **Module**: `/src/features/stripe-connect/`
+- **Edge Function**: `/supabase/functions/stripe-connect-org/index.ts`
+- **Types**: OnboardingStatus, StripeConnectAccount, OrganizationStripeStatus
+- **Service**: `stripeConnectOrgService` - Organization-focused Connect API
+- **Hook**: `useStripeConnect` - State management with actions
+- **Components**:
+  - `StripeConnectOnboarding` - Full onboarding wizard
+  - `StripeConnectStatusCard` - Compact status display
+- **Features**:
+  - Express account creation
+  - Step-by-step onboarding wizard
+  - Status indicators (not_started, pending, in_progress, action_required, complete)
+  - Dashboard access link
+  - Multi-country support (US, CA, UK, AU, DE, FR, NL, IE, SG, JP)
+  - Organization database sync
 
 #### Task 3.3: Webhook Retry ✅ COMPLETED (Dec 2, 2025)
 - **Migration**: `/supabase/migrations/075_add_webhook_retry.sql`

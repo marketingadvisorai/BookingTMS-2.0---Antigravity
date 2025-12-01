@@ -642,8 +642,25 @@ supabase secrets set RESEND_API_KEY=re_xxxx
 |--------|------|----------|--------|
 | [x] | **3.1 Booking Analytics** - Revenue, conversion rates dashboard ✅ | 🟢 Low | 3-4 hrs |
 | [ ] | **3.2 SMS Confirmation** - Connect Twilio to existing SMS module | 🟢 Low | 2 hrs |
-| [ ] | **3.3 Webhook Retry** - Handle failed webhook deliveries | 🟢 Low | 1 hr |
+| [x] | **3.3 Webhook Retry** - Handle failed webhook deliveries ✅ | 🟢 Low | 1 hr |
 | [ ] | **3.4 Stripe Connect UX** - Better org onboarding flow | 🟢 Low | 3-4 hrs |
+
+#### Task 3.3: Webhook Retry ✅ COMPLETED (Dec 2, 2025)
+- **Migration**: `/supabase/migrations/075_add_webhook_retry.sql`
+- **Edge Function**: `/supabase/functions/process-webhook-retries/index.ts`
+- **Database Table**: `webhook_failed_events`
+- **Functions**:
+  - `log_failed_webhook()` - Logs failed event for retry
+  - `get_webhook_events_for_retry()` - Gets events due for retry (with row locking)
+  - `mark_webhook_succeeded()` - Marks retry as successful
+  - `mark_webhook_retry_failed()` - Increments retry count with exponential backoff
+  - `get_webhook_retry_stats()` - Returns retry statistics
+  - `cleanup_old_webhook_events()` - Removes events older than 30 days
+- **Features**:
+  - Exponential backoff: 1min → 5min → 15min → 1hr → 4hr
+  - Max 5 retries before marking as exhausted
+  - Row-level locking for concurrent processing
+  - RLS policies for org-scoped visibility
 
 #### Task 3.1: Booking Analytics ✅ COMPLETED (Dec 2, 2025)
 - **Module**: `/src/features/booking-analytics/`

@@ -640,10 +640,25 @@ supabase secrets set RESEND_API_KEY=re_xxxx
 
 | Status | Task | Priority | Effort |
 |--------|------|----------|--------|
-| [ ] | **3.1 Booking Analytics** - Revenue, conversion rates dashboard | 🟢 Low | 3-4 hrs |
+| [x] | **3.1 Booking Analytics** - Revenue, conversion rates dashboard ✅ | 🟢 Low | 3-4 hrs |
 | [ ] | **3.2 SMS Confirmation** - Connect Twilio to existing SMS module | 🟢 Low | 2 hrs |
 | [ ] | **3.3 Webhook Retry** - Handle failed webhook deliveries | 🟢 Low | 1 hr |
 | [ ] | **3.4 Stripe Connect UX** - Better org onboarding flow | 🟢 Low | 3-4 hrs |
+
+#### Task 3.1: Booking Analytics ✅ COMPLETED (Dec 2, 2025)
+- **Module**: `/src/features/booking-analytics/`
+- **Types**: DateRange, RevenueMetrics, BookingMetrics, ConversionMetrics, CustomerMetrics
+- **Service**: `bookingAnalyticsService` - Fetches all analytics data
+- **Hook**: `useBookingAnalytics` - React hook with state management
+- **Component**: `AnalyticsDashboard` - Full dashboard with charts
+- **Features**:
+  - Revenue metrics with period comparison
+  - Booking status breakdown
+  - Customer acquisition/repeat rate
+  - Top activities by revenue
+  - Peak booking hours chart
+  - Bookings by day of week
+  - Date range filter (7d/30d/90d/12m/all)
 
 ---
 

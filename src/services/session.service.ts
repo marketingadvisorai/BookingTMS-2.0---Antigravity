@@ -240,4 +240,160 @@ export class SessionService {
         }
         return data;
     }
+
+    // =========================================================================
+    // OPTIMISTIC LOCKING METHODS (MVP Task 1.1)
+    // =========================================================================
+
+    /**
+     * Get a session by ID with version info (for optimistic locking)
+     */
+    static async getSessionById(sessionId: string): Promise<SessionWithVersion | null> {
+        const { data, error } = await supabase
+            .from('activity_sessions')
+            .select('*, version')
+            .eq('id', sessionId)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null;
+            throw error;
+        }
+        return data as SessionWithVersion;
+    }
+
+    /**
+     * Find session by activity and start time, including version
+     */
+    static async getSessionWithVersion(activityId: string, startTime: string): Promise<SessionWithVersion | null> {
+        const { data, error } = await supabase
+            .from('activity_sessions')
+            .select('*, version')
+            .eq('activity_id', activityId)
+            .eq('start_time', startTime)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null;
+            throw error;
+        }
+        return data as SessionWithVersion;
+    }
+
+    /**
+     * Check if a session has enough capacity for a given party size
+     */
+    static async checkCapacity(sessionId: string, partySize: number): Promise<CapacityCheckResult> {
+        const session = await this.getSessionById(sessionId);
+        
+        if (!session) {
+            return { available: false, reason: 'SESSION_NOT_FOUND', remaining: 0 };
+        }
+
+        if (session.is_closed) {
+            return { available: false, reason: 'SESSION_CLOSED', remaining: session.capacity_remaining };
+        }
+
+        if (session.capacity_remaining < partySize) {
+            return { 
+                available: false, 
+                reason: 'INSUFFICIENT_CAPACITY', 
+                remaining: session.capacity_remaining 
+            };
+        }
+
+        return { 
+            available: true, 
+            remaining: session.capacity_remaining,
+            version: session.version 
+        };
+    }
+
+    /**
+     * Decrement capacity for a session (legacy method, prefer reservationService)
+     * Uses optimistic locking to prevent race conditions.
+     */
+    static async decrementCapacity(
+        sessionId: string, 
+        spots: number, 
+        expectedVersion?: number
+    ): Promise<DecrementResult> {
+        // If no version provided, get current version first
+        let version = expectedVersion;
+        if (version === undefined) {
+            const session = await this.getSessionById(sessionId);
+            if (!session) {
+                return { success: false, errorCode: 'SESSION_NOT_FOUND' };
+            }
+            version = session.version || 1;
+        }
+
+        // Call the RPC function with optimistic locking
+        const { data, error } = await supabase.rpc('reserve_session_capacity' as never, {
+            p_session_id: sessionId,
+            p_spots: spots,
+            p_expected_version: version,
+        } as never);
+
+        if (error) {
+            console.error('[SessionService] decrementCapacity error:', error);
+            return { success: false, errorCode: 'DATABASE_ERROR' };
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = (Array.isArray(data) ? data[0] : data) as any;
+
+        return {
+            success: result?.success ?? false,
+            newVersion: result?.new_version,
+            remaining: result?.remaining,
+            errorCode: result?.error_code || undefined,
+        };
+    }
+
+    /**
+     * Increment capacity for a session (for cancellations)
+     */
+    static async incrementCapacity(sessionId: string, spots: number): Promise<DecrementResult> {
+        const { data, error } = await supabase.rpc('release_session_capacity' as never, {
+            p_session_id: sessionId,
+            p_spots: spots,
+        } as never);
+
+        if (error) {
+            console.error('[SessionService] incrementCapacity error:', error);
+            return { success: false, errorCode: 'DATABASE_ERROR' };
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = (Array.isArray(data) ? data[0] : data) as any;
+
+        return {
+            success: result?.success ?? false,
+            newVersion: result?.new_version,
+            remaining: result?.remaining,
+        };
+    }
+}
+
+// =========================================================================
+// ADDITIONAL TYPES FOR OPTIMISTIC LOCKING
+// =========================================================================
+
+export interface SessionWithVersion extends Session {
+    version: number;
+}
+
+export interface CapacityCheckResult {
+    available: boolean;
+    reason?: 'SESSION_NOT_FOUND' | 'SESSION_CLOSED' | 'INSUFFICIENT_CAPACITY';
+    remaining: number;
+    version?: number;
+}
+
+export interface DecrementResult {
+    success: boolean;
+    newVersion?: number;
+    remaining?: number;
+    errorCode?: string;
 }

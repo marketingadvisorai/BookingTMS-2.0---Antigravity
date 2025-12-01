@@ -101,7 +101,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, supabas
   const metadata = session.metadata || {}
   const activityId = metadata.activity_id
   const bookingDate = metadata.booking_date
-  const bookingTime = metadata.booking_time
+  const bookingTime = metadata.booking_time || metadata.start_time // Support both formats
   const partySize = parseInt(metadata.party_size || '1')
   const customerName = metadata.customer_name || session.customer_details?.name || ''
   const customerEmail = session.customer_email || session.customer_details?.email || ''
@@ -114,6 +114,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, supabas
   const giftCardAmount = parseFloat(metadata.gift_card_amount || '0')
   const subtotal = parseFloat(metadata.subtotal || '0')
   const organizationId = metadata.organization_id || null
+
+  // MVP Task 1.4: Slot reservation tracking
+  const reservationId = metadata.reservation_id || null
+  const sessionId = metadata.session_id || null
 
   // Check if booking already exists for this session
   const { data: existingBooking } = await supabase
@@ -214,6 +218,34 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, supabas
 
   const bookingId = bookingData?.id
   console.log('Booking created from checkout session:', bookingNumber)
+
+  // ============================================================================
+  // MVP TASK 1.4: CONVERT SLOT RESERVATION TO BOOKING
+  // ============================================================================
+  if (reservationId && bookingId) {
+    try {
+      // Convert the reservation to a confirmed booking
+      const { data: convertResult, error: convertError } = await supabase.rpc(
+        'convert_reservation_to_booking',
+        {
+          p_reservation_id: reservationId,
+          p_booking_id: bookingId
+        }
+      )
+
+      if (convertError) {
+        console.error('Failed to convert reservation:', convertError)
+        // Don't throw - booking is still valid, reservation will expire naturally
+      } else if (convertResult) {
+        console.log('Reservation converted to booking:', reservationId, '->', bookingId)
+      } else {
+        console.warn('Reservation conversion returned false (may be expired):', reservationId)
+      }
+    } catch (err) {
+      console.error('Error converting reservation:', err)
+      // Don't throw - this shouldn't fail the booking
+    }
+  }
 
   // ============================================================================
   // FINALIZE PROMO CODE USAGE

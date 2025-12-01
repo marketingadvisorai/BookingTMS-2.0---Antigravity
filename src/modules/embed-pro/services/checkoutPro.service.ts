@@ -3,9 +3,11 @@
  * @module embed-pro/services/checkoutPro
  * 
  * Handles Stripe checkout session creation for the booking widget.
+ * Now includes slot reservation to prevent double bookings (MVP Task 1.4)
  */
 
 import { supabase } from '../../../lib/supabase';
+import { reservationService } from '../../../services/reservation.service';
 import type { WidgetActivity, CustomerInfo } from '../types/widget.types';
 
 // =====================================================
@@ -21,11 +23,19 @@ interface CreateCheckoutParams {
   customerInfo: CustomerInfo;
   organizationId?: string;
   embedKey?: string;
+  sessionId?: string; // Activity session ID for reservation
 }
 
 interface CheckoutResult {
   sessionId: string;
   url: string;
+  reservationId?: string; // Slot reservation ID for tracking
+}
+
+interface ReservationResult {
+  success: boolean;
+  reservationId?: string;
+  errorCode?: string;
 }
 
 // =====================================================
@@ -36,7 +46,39 @@ class CheckoutProService {
   private readonly functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`;
 
   /**
+   * Create a slot reservation before checkout (prevents double bookings)
+   * @private
+   */
+  private async createReservation(params: {
+    sessionId: string;
+    organizationId: string;
+    partySize: number;
+    customerEmail: string;
+  }): Promise<ReservationResult> {
+    try {
+      const result = await reservationService.createReservation({
+        sessionId: params.sessionId,
+        organizationId: params.organizationId,
+        spots: params.partySize,
+        customerEmail: params.customerEmail,
+        ttlMinutes: 10, // 10-minute reservation window for checkout
+      });
+
+      if (!result.success) {
+        console.warn('[CheckoutProService] Reservation failed:', result.errorCode);
+        return { success: false, errorCode: result.errorCode };
+      }
+
+      return { success: true, reservationId: result.reservationId };
+    } catch (error) {
+      console.error('[CheckoutProService] Reservation error:', error);
+      return { success: false, errorCode: 'RESERVATION_ERROR' };
+    }
+  }
+
+  /**
    * Create a Stripe checkout session for the booking
+   * Now includes slot reservation to prevent double bookings (MVP Task 1.4)
    */
   async createCheckoutSession(params: CreateCheckoutParams): Promise<CheckoutResult> {
     const {
@@ -48,7 +90,32 @@ class CheckoutProService {
       customerInfo,
       organizationId,
       embedKey,
+      sessionId,
     } = params;
+
+    const orgId = organizationId || activity.organizationId;
+    const totalPartySize = partySize + childCount;
+
+    // Step 1: Create a slot reservation (if sessionId provided)
+    let reservationId: string | undefined;
+    if (sessionId && orgId) {
+      const reservationResult = await this.createReservation({
+        sessionId,
+        organizationId: orgId,
+        partySize: totalPartySize,
+        customerEmail: customerInfo.email,
+      });
+
+      if (!reservationResult.success) {
+        // Reservation failed - slot may be taken
+        throw new Error(
+          reservationResult.errorCode === 'INSUFFICIENT_CAPACITY'
+            ? 'This time slot is no longer available. Please select another time.'
+            : 'Unable to reserve this slot. Please try again.'
+        );
+      }
+      reservationId = reservationResult.reservationId;
+    }
 
     // Format date for display and storage
     const bookingDate = date.toISOString().split('T')[0];
@@ -103,6 +170,9 @@ class CheckoutProService {
         customer_notes: customerInfo.notes || '',
         embed_key: embedKey || '',
         source: 'embed-pro-widget',
+        // MVP Task 1.4: Slot reservation tracking
+        session_id: sessionId || '',
+        reservation_id: reservationId || '',
       },
     };
 
@@ -153,7 +223,20 @@ class CheckoutProService {
     return {
       sessionId: result.sessionId,
       url: result.url,
+      reservationId, // Include reservation ID for tracking
     };
+  }
+
+  /**
+   * Cancel a reservation (if user abandons checkout)
+   */
+  async cancelReservation(reservationId: string): Promise<boolean> {
+    try {
+      return await reservationService.cancelReservation(reservationId);
+    } catch (error) {
+      console.error('[CheckoutProService] Cancel reservation error:', error);
+      return false;
+    }
   }
 
   /**

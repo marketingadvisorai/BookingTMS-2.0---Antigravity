@@ -14,11 +14,15 @@ This document contains the prioritized task list for implementing enterprise-sca
 - Architecture: `.agent/rules/ENTERPRISE_ARCHITECTURE.md`
 - PRD: `.agent/rules/PRD_ENTERPRISE_SCALE.md`
 
+**MVP legend:**
+- `[MVP]` = required before first external customers use real bookings
+- `[Post-MVP]` = can be implemented after initial launch once core flows are stable
+
 ---
 
-## Phase 1: Critical Foundation (P0)
+## Phase 1: Critical Foundation (P0, MVP)
 
-### Task 1.1: Fix Optimistic Locking for Sessions
+### [MVP] Task 1.1: Fix Optimistic Locking for Sessions
 **Priority:** P0 - Critical  
 **Effort:** 4 hours  
 **Impact:** Prevents double bookings
@@ -79,7 +83,7 @@ $$ LANGUAGE plpgsql;
 
 ---
 
-### Task 1.2: Add Critical Database Indexes
+### [MVP] Task 1.2: Add Critical Database Indexes
 **Priority:** P0 - Critical  
 **Effort:** 2 hours  
 **Impact:** 10x query performance improvement
@@ -127,7 +131,7 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_venues_embed_key
 
 ---
 
-### Task 1.3: Fix RLS Helper Functions
+### [MVP] Task 1.3: Fix RLS Helper Functions
 **Priority:** P0 - Critical  
 **Effort:** 3 hours  
 **Impact:** Prevents auth failures and infinite loops
@@ -186,7 +190,7 @@ CREATE POLICY "org_users_view_bookings" ON bookings
 
 ---
 
-### Task 1.4: Add Slot Reservation System
+### [MVP] Task 1.4: Add Slot Reservation System
 **Priority:** P0 - Critical  
 **Effort:** 6 hours  
 **Impact:** Prevents abandoned checkout overbooking
@@ -246,9 +250,9 @@ $$ LANGUAGE plpgsql;
 
 ---
 
-## Phase 2: Performance (P1)
+## Phase 2: Performance (P1, Post-MVP)
 
-### Task 2.1: Implement Redis Caching Layer
+### [Post-MVP] Task 2.1: Implement Redis Caching Layer
 **Priority:** P1 - High  
 **Effort:** 8 hours  
 **Impact:** 50% reduction in database load
@@ -286,7 +290,7 @@ class CacheService {
 
 ---
 
-### Task 2.2: Add Rate Limiting
+### [Post-MVP] Task 2.2: Add Rate Limiting
 **Priority:** P1 - High  
 **Effort:** 4 hours  
 **Impact:** Prevents API abuse
@@ -317,7 +321,7 @@ async function checkRateLimit(
 
 ---
 
-### Task 2.3: Optimize Slow Queries
+### [Post-MVP] Task 2.3: Optimize Slow Queries
 **Priority:** P1 - High  
 **Effort:** 4 hours  
 **Impact:** 5x improvement on dashboard queries
@@ -363,7 +367,7 @@ $$ LANGUAGE plpgsql;
 
 ---
 
-### Task 2.4: Connection Pooling Configuration
+### [Post-MVP] Task 2.4: Connection Pooling Configuration
 **Priority:** P1 - High  
 **Effort:** 2 hours  
 **Impact:** Prevents connection exhaustion
@@ -401,9 +405,9 @@ const supabase = createClient(url, key, {
 
 ---
 
-## Phase 3: Security (P1)
+## Phase 3: Security (P1, Post-MVP)
 
-### Task 3.1: Add Audit Logging
+### [Post-MVP] Task 3.1: Add Audit Logging
 **Priority:** P1 - High  
 **Effort:** 6 hours  
 **Impact:** Compliance and security monitoring
@@ -460,7 +464,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 ---
 
-### Task 3.2: Implement API Key Scoping
+### [Post-MVP] Task 3.2: Implement API Key Scoping
 **Priority:** P1 - High  
 **Effort:** 4 hours  
 **Impact:** Better API security
@@ -498,9 +502,9 @@ CREATE INDEX idx_api_keys_org ON api_keys(organization_id);
 
 ---
 
-## Phase 4: Scale Preparation (P2)
+## Phase 4: Scale Preparation (P2, Post-MVP)
 
-### Task 4.1: Add Read Replica Support
+### [Post-MVP] Task 4.1: Add Read Replica Support
 **Priority:** P2 - Medium  
 **Effort:** 8 hours  
 **Impact:** Horizontal read scaling
@@ -527,7 +531,7 @@ export function getClient(operation: 'read' | 'write') {
 
 ---
 
-### Task 4.2: Implement Health Checks
+### [Post-MVP] Task 4.2: Implement Health Checks
 **Priority:** P2 - Medium  
 **Effort:** 2 hours  
 **Impact:** Better monitoring and alerting
@@ -557,7 +561,7 @@ interface HealthCheck {
 
 ---
 
-### Task 4.3: Load Testing Suite
+### [Post-MVP] Task 4.3: Load Testing Suite
 **Priority:** P2 - Medium  
 **Effort:** 8 hours  
 **Impact:** Confidence in scale readiness
@@ -597,23 +601,23 @@ export const options = {
 
 ## Task Execution Order
 
-### Week 1-2: Critical Foundation
+### Week 1-2: Critical Foundation (MVP)
 1. [ ] Task 1.1: Optimistic Locking (4h)
 2. [ ] Task 1.2: Database Indexes (2h)
 3. [ ] Task 1.3: RLS Helper Functions (3h)
 4. [ ] Task 1.4: Slot Reservations (6h)
 
-### Week 3-4: Performance
+### Week 3-4: Performance (Post-MVP)
 5. [ ] Task 2.1: Redis Caching (8h)
 6. [ ] Task 2.2: Rate Limiting (4h)
 7. [ ] Task 2.3: Query Optimization (4h)
 8. [ ] Task 2.4: Connection Pooling (2h)
 
-### Week 5-6: Security
+### Week 5-6: Security (Post-MVP)
 9. [ ] Task 3.1: Audit Logging (6h)
 10. [ ] Task 3.2: API Key Scoping (4h)
 
-### Week 7-8: Scale Preparation
+### Week 7-8: Scale Preparation (Post-MVP)
 11. [ ] Task 4.1: Read Replicas (8h)
 12. [ ] Task 4.2: Health Checks (2h)
 13. [ ] Task 4.3: Load Testing (8h)
@@ -624,11 +628,17 @@ export const options = {
 
 | Phase | Tasks | Completed | Progress |
 |-------|-------|-----------|----------|
-| Foundation | 4 | 0 | 0% |
+| Foundation | 4 | 4 | 100% ✅ |
 | Performance | 4 | 0 | 0% |
 | Security | 2 | 0 | 0% |
 | Scale | 3 | 0 | 0% |
-| **Total** | **13** | **0** | **0%** |
+| **Total** | **13** | **4** | **31%** |
+
+### MVP Tasks Status (Dec 1, 2025)
+- [x] Task 1.1: Optimistic Locking - `070_add_optimistic_locking.sql` created
+- [x] Task 1.2: Database Indexes - `071_add_enterprise_indexes.sql` created
+- [x] Task 1.3: RLS Helper Functions - `072_fix_rls_helper_functions.sql` created
+- [x] Task 1.4: Slot Reservations - `slot_reservations` table + `reservation.service.ts` created
 
 ---
 

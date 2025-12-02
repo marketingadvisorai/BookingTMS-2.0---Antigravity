@@ -188,6 +188,7 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
     state,
     currentStep,
     canGoBack,
+    selectActivity,
     selectDate,
     selectTime,
     setPartySize,
@@ -226,7 +227,9 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
   // Handle activity selection for venue mode
   const handleActivitySelect = useCallback((selected: WidgetActivity) => {
     setSelectedActivity(selected);
-  }, []);
+    // Use booking flow's selectActivity to properly advance to date selection step
+    selectActivity(selected);
+  }, [selectActivity]);
 
   // Smooth scroll to top on step change
   useEffect(() => {
@@ -402,8 +405,9 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
           <button
             onClick={() => {
               if (currentStep === 'select-date' && hasMultipleActivities) {
-                // Go back to activity selection
+                // Go back to activity selection - reset both local state and booking flow
                 setSelectedActivity(null);
+                reset();
               } else if (canGoBack) {
                 handleStepChange(goBack);
               }

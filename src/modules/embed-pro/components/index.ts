@@ -14,3 +14,6 @@ export { AdvancedCustomizationPanel } from './AdvancedCustomizationPanel';
 
 // Venue layout panel
 export { VenueLayoutPanel } from './VenueLayoutPanel';
+
+// Edit embed modal
+export { EditEmbedModal } from './EditEmbedModal';

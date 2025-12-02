@@ -132,7 +132,23 @@ export const CreateEmbedModal: React.FC<CreateEmbedModalProps> = ({
 
   const handleNext = () => {
     if (step === 'type') setStep('target');
-    else if (step === 'target') setStep('details');
+    else if (step === 'target') {
+      // Auto-populate name from selected target
+      if (!formData.name) {
+        let autoName = '';
+        if (formData.target_type === 'activity' && formData.target_id) {
+          const activity = activities.find(a => a.id === formData.target_id);
+          if (activity) autoName = `${activity.name} Booking Widget`;
+        } else if (formData.target_type === 'venue' && formData.target_id) {
+          const venue = venues.find(v => v.id === formData.target_id);
+          if (venue) autoName = `${venue.name} Booking Widget`;
+        }
+        if (autoName) {
+          setFormData(prev => ({ ...prev, name: autoName }));
+        }
+      }
+      setStep('details');
+    }
     else if (step === 'details') setStep('style');
   };
 

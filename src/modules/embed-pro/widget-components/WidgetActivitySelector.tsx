@@ -131,8 +131,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
               )}
             </div>
             
-            <div className="flex items-center justify-between mt-2">
-              <div className="flex items-center gap-3 text-xs text-gray-500">
+            <div className="flex items-center gap-3 text-xs text-gray-500 mt-2">
                 {showDuration && (
                   <div className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" />
@@ -146,11 +145,19 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
                   </div>
                 )}
               </div>
-              <ChevronRight 
-                className={`w-5 h-5 transition-transform ${isHovered ? 'translate-x-1' : ''}`}
-                style={{ color: style.primaryColor }}
-              />
-            </div>
+              
+              {/* Book Now Button for Horizontal */}
+              <div 
+                className="mt-3 py-2 px-4 rounded-xl text-center font-semibold text-white text-sm
+                           transition-all duration-300 flex items-center justify-center gap-2"
+                style={{ 
+                  background: `linear-gradient(135deg, ${style.primaryColor} 0%, ${style.primaryColor}dd 100%)`,
+                  boxShadow: isHovered ? `0 4px 15px ${style.primaryColor}40` : 'none',
+                }}
+              >
+                <span>Book Now</span>
+                <ChevronRight className={`w-4 h-4 transition-transform ${isHovered ? 'translate-x-1' : ''}`} />
+              </div>
           </div>
         </div>
       </button>
@@ -233,7 +240,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
           
           {/* Stats Row */}
           {(showDuration || showCapacity) && (
-            <div className="flex items-center gap-4 text-xs text-gray-500">
+            <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
               {showDuration && (
                 <div className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" />
@@ -249,18 +256,18 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
             </div>
           )}
 
-          {/* Select Arrow */}
+          {/* Book Now Button - Always Visible */}
           <div 
-            className={`
-              absolute bottom-4 right-4 w-8 h-8 rounded-xl flex items-center justify-center
-              transition-all duration-300
-              ${isHovered ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0'}
-            `}
+            className="w-full py-2.5 px-4 rounded-xl text-center font-semibold text-white text-sm
+                       transition-all duration-300 flex items-center justify-center gap-2
+                       hover:shadow-lg"
             style={{ 
               background: `linear-gradient(135deg, ${style.primaryColor} 0%, ${style.primaryColor}dd 100%)`,
+              boxShadow: isHovered ? `0 4px 15px ${style.primaryColor}40` : 'none',
             }}
           >
-            <ChevronRight className="w-4 h-4 text-white" />
+            <span>Book Now</span>
+            <ChevronRight className={`w-4 h-4 transition-transform ${isHovered ? 'translate-x-1' : ''}`} />
           </div>
         </div>
       </div>

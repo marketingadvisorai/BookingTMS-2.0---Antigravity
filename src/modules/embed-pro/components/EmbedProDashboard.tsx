@@ -45,8 +45,9 @@ import { EmbedConfigCard } from './EmbedConfigCard';
 import { EmbedCodeDisplay } from './EmbedCodeDisplay';
 import { EmbedPreviewPanel } from './EmbedPreviewPanel';
 import { CreateEmbedModal } from './CreateEmbedModal';
+import { EditEmbedModal } from './EditEmbedModal';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
-import type { EmbedConfigWithRelations, EmbedType } from '../types';
+import type { EmbedConfigWithRelations, EmbedType, UpdateEmbedConfigInput } from '../types';
 import { toast } from 'sonner';
 
 interface EmbedProDashboardProps {
@@ -152,9 +153,9 @@ export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
   };
 
   // Handle Update from Edit Modal
-  const handleUpdate = async (id: string, name: string) => {
+  const handleUpdateEmbed = async (id: string, updates: UpdateEmbedConfigInput) => {
     try {
-      await update(id, { name });
+      await update(id, updates);
       toast.success('Embed updated successfully');
       setShowEditModal(false);
       setEditingConfig(null);
@@ -425,24 +426,16 @@ export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
         venues={venues}
       />
 
-      {/* Edit Modal */}
-      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Embed</DialogTitle>
-          </DialogHeader>
-          {editingConfig && (
-            <EditEmbedForm
-              config={editingConfig}
-              onSave={handleUpdate}
-              onCancel={() => {
-                setShowEditModal(false);
-                setEditingConfig(null);
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Edit Modal - Full Customization */}
+      <EditEmbedModal
+        open={showEditModal}
+        config={editingConfig}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingConfig(null);
+        }}
+        onSave={handleUpdateEmbed}
+      />
 
       {/* Analytics Modal */}
       <Dialog open={showAnalyticsModal} onOpenChange={setShowAnalyticsModal}>

@@ -21,7 +21,13 @@ export type TargetType =
 
 export type EmbedTheme = 'light' | 'dark' | 'auto';
 
+// Widget visual themes
+export type WidgetTheme = 'liquid-glass' | 'bookingmars' | 'classic' | 'minimal';
+
 export type ButtonStyle = 'filled' | 'outline' | 'ghost';
+
+// Layout orientation
+export type LayoutOrientation = 'vertical' | 'horizontal';
 
 export type ShadowSize = 'none' | 'sm' | 'md' | 'lg' | 'xl';
 
@@ -136,6 +142,9 @@ export interface EmbedStyle {
   theme: EmbedTheme;
   shadow: ShadowSize;
   padding: string;
+  // New theme options
+  widgetTheme?: WidgetTheme;
+  layoutOrientation?: LayoutOrientation;
 }
 
 // =====================================================

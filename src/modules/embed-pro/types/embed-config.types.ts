@@ -25,6 +25,8 @@ export type ButtonStyle = 'filled' | 'outline' | 'ghost';
 
 export type ShadowSize = 'none' | 'sm' | 'md' | 'lg' | 'xl';
 
+export type CustomFieldType = 'text' | 'email' | 'phone' | 'number' | 'select' | 'checkbox' | 'textarea';
+
 // =====================================================
 // CONFIGURATION INTERFACES
 // =====================================================
@@ -40,6 +42,64 @@ export interface EmbedConfig {
   timezone: string;
   buttonText: string;
   successMessage: string;
+}
+
+// Social media links configuration
+export interface SocialLinks {
+  facebook?: string;
+  instagram?: string;
+  twitter?: string;
+  linkedin?: string;
+  youtube?: string;
+  tiktok?: string;
+  website?: string;
+}
+
+// Custom form field configuration
+export interface CustomField {
+  id: string;
+  name: string;
+  label: string;
+  type: CustomFieldType;
+  required: boolean;
+  placeholder?: string;
+  options?: string[]; // For select type
+  validation?: {
+    minLength?: number;
+    maxLength?: number;
+    pattern?: string;
+  };
+}
+
+// Scheduling rules configuration
+export interface SchedulingConfig {
+  minAdvanceDays?: number;      // Minimum days in advance to book
+  maxAdvanceDays?: number;      // Maximum days in advance to book
+  blockedDates?: string[];      // Specific dates that are blocked
+  bufferMinutes?: number;       // Buffer time between bookings
+  allowSameDay?: boolean;       // Allow same-day bookings
+  cutoffHours?: number;         // Hours before start time cutoff
+}
+
+// Display options configuration
+export interface DisplayOptions {
+  showCapacityWarning?: boolean;      // Show "Only X spots left"
+  capacityWarningThreshold?: number;  // When to show warning (e.g., 3)
+  showWaitlist?: boolean;             // Allow waitlist signup
+  showPromoField?: boolean;           // Show promo code input
+  showSocialProof?: boolean;          // Show "X people booked today"
+  showActivityImages?: boolean;       // Show activity images in widget
+  compactMode?: boolean;              // Compact layout for small spaces
+  autoSelectTime?: boolean;           // Auto-select first available time
+  showPoweredBy?: boolean;            // Show "Powered by BookingTMS"
+}
+
+// Conversion tracking configuration
+export interface ConversionTracking {
+  googleAnalyticsId?: string;
+  facebookPixelId?: string;
+  googleTagManagerId?: string;
+  customScripts?: string[];      // Custom tracking scripts
 }
 
 export interface EmbedStyle {
@@ -79,6 +139,19 @@ export interface EmbedConfigEntity {
   created_at: string;
   updated_at: string;
   created_by: string | null;
+  // Advanced customization fields
+  custom_css?: string | null;
+  custom_logo_url?: string | null;
+  custom_header?: string | null;
+  custom_footer?: string | null;
+  terms_conditions?: string | null;
+  terms_required?: boolean;
+  social_links?: SocialLinks;
+  custom_fields?: CustomField[];
+  scheduling_config?: SchedulingConfig;
+  display_options?: DisplayOptions;
+  allowed_domains?: string[];
+  conversion_tracking?: ConversionTracking;
 }
 
 // UI-friendly version with resolved relationships
@@ -127,6 +200,19 @@ export interface UpdateEmbedConfigInput {
   style?: Partial<EmbedStyle>;
   is_active?: boolean;
   analytics_enabled?: boolean;
+  // Advanced customization updates
+  custom_css?: string | null;
+  custom_logo_url?: string | null;
+  custom_header?: string | null;
+  custom_footer?: string | null;
+  terms_conditions?: string | null;
+  terms_required?: boolean;
+  social_links?: Partial<SocialLinks>;
+  custom_fields?: CustomField[];
+  scheduling_config?: Partial<SchedulingConfig>;
+  display_options?: Partial<DisplayOptions>;
+  allowed_domains?: string[];
+  conversion_tracking?: Partial<ConversionTracking>;
 }
 
 // =====================================================

@@ -187,8 +187,8 @@ class PreviewService {
   }
 
   /**
-   * Generate preview URL using the new Embed Pro 2.0 page
-   * Route: /embed-pro?key={embedKey}&theme={theme}&preview=true
+   * Generate preview URL using the new Embed Pro Widget page
+   * Route: /embed-pro-widget?key={embedKey}&theme={theme}&preview=true
    */
   getPreviewUrl(embedKey: string, config?: EmbedConfigEntity): string {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
@@ -205,8 +205,25 @@ class PreviewService {
       }
     }
     
-    // Use new Embed Pro 2.0 route
-    return `${baseUrl}/embed-pro?${params.toString()}`;
+    // Use the public embed-pro-widget route
+    return `${baseUrl}/embed-pro-widget?${params.toString()}`;
+  }
+
+  /**
+   * Generate live booking URL (no preview flag)
+   * Route: /embed-pro-widget?key={embedKey}&theme={theme}
+   */
+  getLiveBookingUrl(embedKey: string, config?: EmbedConfigEntity): string {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const params = new URLSearchParams();
+    
+    params.set('key', embedKey);
+    
+    if (config?.style?.theme && config.style.theme !== 'auto') {
+      params.set('theme', config.style.theme);
+    }
+    
+    return `${baseUrl}/embed-pro-widget?${params.toString()}`;
   }
 
   /**

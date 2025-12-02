@@ -6,6 +6,7 @@ import OwnerAdminLogin from './pages/OwnerAdminLogin';
 import OwnerForgotPassword from './pages/OwnerForgotPassword';
 import WaiverForm from './pages/WaiverForm';
 import { Embed } from './pages/Embed';
+import EmbedProWidgetPage from './pages/EmbedProWidgetPage';
 import { ThemeProvider } from './components/layout/ThemeContext';
 import { WidgetThemeProvider } from './components/widgets/WidgetThemeContext';
 import { Toaster } from 'sonner';
@@ -176,6 +177,18 @@ export const router = createBrowserRouter([
   {
     path: '/embed-pro',
     element: <App />,
+  },
+  // Embed Pro Widget - Public customer-facing booking widget (must be before /:slug)
+  {
+    path: '/embed-pro-widget',
+    element: (
+      <ThemeProvider>
+        <WidgetThemeProvider>
+          <EmbedProWidgetPage />
+        </WidgetThemeProvider>
+        <Toaster />
+      </ThemeProvider>
+    ),
   },
 
   // ============================================================================

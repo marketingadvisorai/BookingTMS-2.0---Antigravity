@@ -12,11 +12,13 @@ import {
   Monitor, 
   Tablet,
   Eye,
-  Loader2
+  Loader2,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '../../../components/ui/utils';
 import { Button } from '../../../components/ui/button';
 import { useEmbedPreview } from '../hooks';
+import { previewService } from '../services';
 
 interface EmbedPreviewPanelProps {
   configId: string | null;
@@ -112,21 +114,39 @@ export const EmbedPreviewPanel: React.FC<EmbedPreviewPanelProps> = ({
             size="sm"
             onClick={refresh}
             disabled={loading}
-            className="gap-2"
+            className="gap-1.5"
           >
-            <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
-            Refresh
+            <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
           {previewUrl && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.open(previewUrl, '_blank')}
-              className="gap-2"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Open
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(previewUrl, '_blank')}
+                className="gap-1.5"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Preview</span>
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (previewData?.embedConfig?.embed_key) {
+                    const liveUrl = previewService.getLiveBookingUrl(
+                      previewData.embedConfig.embed_key,
+                      previewData.embedConfig
+                    );
+                    window.open(liveUrl, '_blank');
+                  }
+                }}
+                className="gap-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Test Booking</span>
+              </Button>
+            </>
           )}
         </div>
       </div>

@@ -12,6 +12,7 @@ import type {
   WidgetStyle,
   WidgetConfig,
   ActivitySchedule,
+  VenueLayoutConfig,
 } from '../types/widget.types';
 
 // =====================================================
@@ -144,6 +145,7 @@ class WidgetDataNormalizer {
   /**
    * Extract schedule configuration from schedule column AND settings JSONB
    * Priority: schedule column > settings > defaults
+   * Note: Empty arrays [] should fallback to settings/defaults
    */
   extractSchedule(
     settings: Record<string, any> | null,
@@ -152,8 +154,22 @@ class WidgetDataNormalizer {
     const sched = schedule || {};
     const sets = settings || {};
 
+    // Helper to check if value is valid (not empty array, not null/undefined)
+    const hasValue = (val: any): boolean => {
+      if (val === null || val === undefined) return false;
+      if (Array.isArray(val) && val.length === 0) return false;
+      return true;
+    };
+
+    // Get operating days - check for empty arrays
+    const operatingDays = hasValue(sched.operatingDays) 
+      ? sched.operatingDays 
+      : hasValue(sets.operatingDays) 
+        ? sets.operatingDays 
+        : DEFAULT_SCHEDULE.operatingDays;
+
     return {
-      operatingDays: sched.operatingDays || sets.operatingDays || DEFAULT_SCHEDULE.operatingDays,
+      operatingDays,
       startTime: sched.startTime || sets.startTime || DEFAULT_SCHEDULE.startTime,
       endTime: sched.endTime || sets.endTime || DEFAULT_SCHEDULE.endTime,
       slotInterval: sched.slotInterval || sets.slotInterval || sets.slotDuration || DEFAULT_SCHEDULE.slotInterval,
@@ -218,6 +234,47 @@ class WidgetDataNormalizer {
       successMessage: config?.successMessage || DEFAULT_CONFIG.successMessage,
       redirectUrl: config?.redirectAfterBooking || null,
       timezone: config?.timezone || DEFAULT_CONFIG.timezone,
+    };
+  }
+
+  /**
+   * Normalize venue layout configuration
+   */
+  normalizeVenueLayout(layout: any): VenueLayoutConfig {
+    const defaultLayout: VenueLayoutConfig = {
+      displayMode: 'grid',
+      gridColumns: 2,
+      cardStyle: 'default',
+      showActivityImage: true,
+      showActivityPrice: true,
+      showActivityDuration: true,
+      showActivityCapacity: true,
+      showActivityDescription: false,
+      sortBy: 'name',
+      sortOrder: 'asc',
+      maxActivities: 0,
+      enableSearch: false,
+      enableFilters: false,
+      compactOnMobile: true,
+    };
+
+    if (!layout) return defaultLayout;
+
+    return {
+      displayMode: layout.displayMode || defaultLayout.displayMode,
+      gridColumns: layout.gridColumns || defaultLayout.gridColumns,
+      cardStyle: layout.cardStyle || defaultLayout.cardStyle,
+      showActivityImage: layout.showActivityImage ?? defaultLayout.showActivityImage,
+      showActivityPrice: layout.showActivityPrice ?? defaultLayout.showActivityPrice,
+      showActivityDuration: layout.showActivityDuration ?? defaultLayout.showActivityDuration,
+      showActivityCapacity: layout.showActivityCapacity ?? defaultLayout.showActivityCapacity,
+      showActivityDescription: layout.showActivityDescription ?? defaultLayout.showActivityDescription,
+      sortBy: layout.sortBy || defaultLayout.sortBy,
+      sortOrder: layout.sortOrder || defaultLayout.sortOrder,
+      maxActivities: layout.maxActivities ?? defaultLayout.maxActivities,
+      enableSearch: layout.enableSearch ?? defaultLayout.enableSearch,
+      enableFilters: layout.enableFilters ?? defaultLayout.enableFilters,
+      compactOnMobile: layout.compactOnMobile ?? defaultLayout.compactOnMobile,
     };
   }
 }

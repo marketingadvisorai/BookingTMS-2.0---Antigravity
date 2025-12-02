@@ -6,6 +6,12 @@
  * Kept separate from embed-config.types.ts for clarity.
  */
 
+// Import shared types from embed-config.types
+import type { VenueLayoutConfig as VenueLayoutConfigImport } from './embed-config.types';
+
+// Re-export for convenience
+export type VenueLayoutConfig = VenueLayoutConfigImport;
+
 // =====================================================
 // ACTIVITY DATA TYPES
 // =====================================================
@@ -83,6 +89,7 @@ export interface WidgetData {
   venue: WidgetVenue | null;
   style: WidgetStyle;
   config: WidgetConfig;
+  venueLayout?: VenueLayoutConfig;
   isPreview: boolean;
 }
 

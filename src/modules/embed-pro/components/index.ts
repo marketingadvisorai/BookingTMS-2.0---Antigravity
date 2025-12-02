@@ -11,3 +11,6 @@ export { EmbedPreviewPanel } from './EmbedPreviewPanel';
 export { EmbedTypeSelector } from './EmbedTypeSelector';
 export { AnalyticsDashboard } from './AnalyticsDashboard';
 export { AdvancedCustomizationPanel } from './AdvancedCustomizationPanel';
+
+// Venue layout panel
+export { VenueLayoutPanel } from './VenueLayoutPanel';

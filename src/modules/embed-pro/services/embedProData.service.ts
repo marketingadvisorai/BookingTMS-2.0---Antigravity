@@ -62,6 +62,7 @@ class EmbedProDataService {
     // Step 3: Normalize style and config
     const style = widgetDataNormalizer.normalizeStyle(config.style);
     const widgetConfig = widgetDataNormalizer.normalizeConfig(config.config);
+    const venueLayout = widgetDataNormalizer.normalizeVenueLayout((config as any).venue_layout);
 
     return {
       embedKey,
@@ -72,6 +73,7 @@ class EmbedProDataService {
       venue,
       style,
       config: widgetConfig,
+      venueLayout,
       isPreview,
     };
   }

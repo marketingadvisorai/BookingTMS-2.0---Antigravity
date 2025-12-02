@@ -26,6 +26,7 @@ import {
   WidgetActivitySelector,
   WidgetBookingSummary,
   WidgetDiscounts,
+  WidgetPreviewCheckout,
 } from '../widget-components';
 import { checkoutProService } from '../services';
 import type { WidgetData, CustomerInfo, WidgetActivity } from '../types/widget.types';
@@ -166,9 +167,11 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
   data,
   onBookingComplete,
 }) => {
-  const { venue, style, config, isPreview, activities } = data;
+  const { venue, style, config, isPreview, activities, venueLayout } = data;
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [showPreviewCheckout, setShowPreviewCheckout] = useState(false);
+  const [previewCustomerName, setPreviewCustomerName] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
   
   // Track selected activity - for venues with multiple activities
@@ -246,13 +249,10 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
       return;
     }
 
-    // Preview mode - simulate success
+    // Preview mode - show simulated Stripe checkout
     if (isPreview) {
-      setIsCheckoutLoading(true);
-      setTimeout(() => {
-        setBookingId('PREVIEW-' + Date.now());
-        setIsCheckoutLoading(false);
-      }, 800);
+      setPreviewCustomerName(`${customerInfo.firstName} ${customerInfo.lastName}`);
+      setShowPreviewCheckout(true);
       return;
     }
 
@@ -308,6 +308,7 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
             venue={venue}
             style={style}
             onSelect={handleActivitySelect}
+            layout={venueLayout}
           />
         </div>
       </>
@@ -473,41 +474,61 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
 
         {currentStep === 'checkout' && (
           <>
-            {/* Discounts Section */}
-            <WidgetDiscounts
-              // Promo Code
-              promoCode={promo.code}
-              onPromoCodeChange={promo.setCode}
-              isPromoValidating={promo.isValidating}
-              appliedPromo={promo.appliedPromo}
-              promoDiscountAmount={promo.discountAmount}
-              promoError={promo.error}
-              onApplyPromo={promo.applyPromo}
-              onRemovePromo={promo.removePromo}
-              onClearPromoError={promo.clearError}
-              // Gift Card
-              giftCardCode={giftCard.code}
-              onGiftCardCodeChange={giftCard.setCode}
-              isGiftCardValidating={giftCard.isValidating}
-              appliedGiftCard={giftCard.appliedGiftCard}
-              giftCardAmountApplied={giftCard.amountApplied}
-              giftCardRemainingAfter={giftCard.remainingAfter}
-              giftCardError={giftCard.error}
-              onApplyGiftCard={giftCard.applyGiftCard}
-              onRemoveGiftCard={giftCard.removeGiftCard}
-              onClearGiftCardError={giftCard.clearError}
-              // Common
-              style={style}
-              subtotal={subtotal}
-              formatAmount={promo.formatAmount}
-            />
-            <WidgetCheckout
-              onSubmit={handleCheckoutSubmit}
-              onBack={() => handleStepChange(goBack)}
-              style={style}
-              isLoading={isCheckoutLoading}
-              buttonText={isPreview ? 'Complete (Preview)' : 'Continue to Payment'}
-            />
+            {/* Preview Mode: Show simulated Stripe checkout */}
+            {showPreviewCheckout && state.selectedDate && state.selectedTime ? (
+              <WidgetPreviewCheckout
+                activity={activity}
+                selectedDate={state.selectedDate}
+                selectedTime={state.selectedTime}
+                partySize={state.partySize}
+                childCount={state.childCount}
+                customerName={previewCustomerName}
+                style={style}
+                onComplete={() => {
+                  setShowPreviewCheckout(false);
+                  setBookingId('PREVIEW-' + Date.now());
+                }}
+                onBack={() => setShowPreviewCheckout(false)}
+              />
+            ) : (
+              <>
+                {/* Discounts Section */}
+                <WidgetDiscounts
+                  // Promo Code
+                  promoCode={promo.code}
+                  onPromoCodeChange={promo.setCode}
+                  isPromoValidating={promo.isValidating}
+                  appliedPromo={promo.appliedPromo}
+                  promoDiscountAmount={promo.discountAmount}
+                  promoError={promo.error}
+                  onApplyPromo={promo.applyPromo}
+                  onRemovePromo={promo.removePromo}
+                  onClearPromoError={promo.clearError}
+                  // Gift Card
+                  giftCardCode={giftCard.code}
+                  onGiftCardCodeChange={giftCard.setCode}
+                  isGiftCardValidating={giftCard.isValidating}
+                  appliedGiftCard={giftCard.appliedGiftCard}
+                  giftCardAmountApplied={giftCard.amountApplied}
+                  giftCardRemainingAfter={giftCard.remainingAfter}
+                  giftCardError={giftCard.error}
+                  onApplyGiftCard={giftCard.applyGiftCard}
+                  onRemoveGiftCard={giftCard.removeGiftCard}
+                  onClearGiftCardError={giftCard.clearError}
+                  // Common
+                  style={style}
+                  subtotal={subtotal}
+                  formatAmount={promo.formatAmount}
+                />
+                <WidgetCheckout
+                  onSubmit={handleCheckoutSubmit}
+                  onBack={() => handleStepChange(goBack)}
+                  style={style}
+                  isLoading={isCheckoutLoading}
+                  buttonText={isPreview ? 'Continue to Payment (Preview)' : 'Continue to Payment'}
+                />
+              </>
+            )}
           </>
         )}
 

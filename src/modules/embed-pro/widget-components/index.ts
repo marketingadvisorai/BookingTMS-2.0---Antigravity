@@ -23,3 +23,4 @@ export { WidgetGroupCart } from './WidgetGroupCart';
 export { WidgetAddToCalendar } from './WidgetAddToCalendar';
 export { WidgetSMSOptIn } from './WidgetSMSOptIn';
 export { WidgetDiscounts } from './WidgetDiscounts';
+export { WidgetPreviewCheckout } from './WidgetPreviewCheckout';

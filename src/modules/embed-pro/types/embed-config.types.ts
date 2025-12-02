@@ -102,6 +102,29 @@ export interface ConversionTracking {
   customScripts?: string[];      // Custom tracking scripts
 }
 
+// Venue layout configuration
+export type VenueDisplayMode = 'grid' | 'list' | 'carousel';
+export type VenueCardStyle = 'default' | 'compact' | 'detailed' | 'horizontal';
+export type VenueSortBy = 'name' | 'price' | 'duration' | 'popularity';
+
+export interface VenueLayoutConfig {
+  displayMode?: VenueDisplayMode;        // grid, list, or carousel
+  gridColumns?: 1 | 2 | 3 | 4;           // Number of columns for grid mode
+  cardStyle?: VenueCardStyle;            // Card appearance style
+  showActivityImage?: boolean;           // Show activity cover images
+  showActivityPrice?: boolean;           // Show price on cards
+  showActivityDuration?: boolean;        // Show duration on cards
+  showActivityCapacity?: boolean;        // Show min-max players
+  showActivityDescription?: boolean;     // Show description snippet
+  sortBy?: VenueSortBy;                  // Sort activities by
+  sortOrder?: 'asc' | 'desc';            // Sort direction
+  maxActivities?: number;                // Limit number shown (0 = all)
+  filterCategories?: string[];           // Filter by category tags
+  enableSearch?: boolean;                // Show search box
+  enableFilters?: boolean;               // Show filter dropdowns
+  compactOnMobile?: boolean;             // Use compact style on mobile
+}
+
 export interface EmbedStyle {
   primaryColor: string;
   secondaryColor: string;
@@ -152,6 +175,8 @@ export interface EmbedConfigEntity {
   display_options?: DisplayOptions;
   allowed_domains?: string[];
   conversion_tracking?: ConversionTracking;
+  // Venue layout configuration
+  venue_layout?: VenueLayoutConfig;
 }
 
 // UI-friendly version with resolved relationships
@@ -213,6 +238,8 @@ export interface UpdateEmbedConfigInput {
   display_options?: Partial<DisplayOptions>;
   allowed_domains?: string[];
   conversion_tracking?: Partial<ConversionTracking>;
+  // Venue layout updates
+  venue_layout?: Partial<VenueLayoutConfig>;
 }
 
 // =====================================================

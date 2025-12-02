@@ -70,6 +70,55 @@ serve(async (req) => {
     // Generate booking number
     const bookingNumber = `BK-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
+    // Create or update customer record in database
+    let customerId: string | null = null;
+    
+    if (customerEmail) {
+      // Try to find existing customer by email and organization
+      const { data: existingCustomer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('email', customerEmail)
+        .eq('organization_id', metadata.organization_id)
+        .single();
+
+      if (existingCustomer) {
+        customerId = existingCustomer.id;
+        // Update customer record with latest info
+        await supabase
+          .from('customers')
+          .update({
+            name: customerName || existingCustomer.name,
+            phone: customerPhone || existingCustomer.phone,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', customerId);
+        console.log('✅ Updated existing customer:', customerId);
+      } else if (metadata.organization_id) {
+        // Create new customer record
+        const { data: newCustomer, error: customerError } = await supabase
+          .from('customers')
+          .insert({
+            organization_id: metadata.organization_id,
+            name: customerName,
+            email: customerEmail,
+            phone: customerPhone,
+            source: 'booking_widget',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+
+        if (!customerError && newCustomer) {
+          customerId = newCustomer.id;
+          console.log('✅ Created new customer:', customerId);
+        } else {
+          console.warn('Failed to create customer record:', customerError);
+        }
+      }
+    }
+
     // Create or update booking record in database
     let bookingRecord = null;
     
@@ -102,12 +151,14 @@ serve(async (req) => {
           .insert({
             booking_number: bookingNumber,
             activity_id: activityId,
+            customer_id: customerId, // Link to customer record
             customer_name: customerName,
             customer_email: customerEmail,
             customer_phone: customerPhone,
+            organization_id: metadata.organization_id || null,
             party_size: parseInt(metadata.party_size || '1'),
             booking_date: metadata.booking_date,
-            booking_time: metadata.booking_time,
+            booking_time: metadata.booking_time || metadata.start_time,
             total_amount: session.amount_total ? session.amount_total / 100 : 0,
             status: 'confirmed',
             payment_status: 'paid',
@@ -116,7 +167,7 @@ serve(async (req) => {
               ? session.payment_intent 
               : session.payment_intent?.id,
             promo_code: metadata.promo_code || null,
-            gift_card_code: metadata.gift_card || null,
+            gift_card_code: metadata.gift_card_code || null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })

@@ -1,22 +1,26 @@
 /**
  * Embed Pro 1.1 - Embed Preview Panel Component
  * @module embed-pro/components/EmbedPreviewPanel
+ * 
+ * Shows live preview of the booking widget with device emulation.
+ * Includes cache-busting to ensure proper reload on config change.
  */
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ExternalLink, 
   RefreshCw, 
   Smartphone, 
   Monitor, 
   Tablet,
   Eye,
   Loader2,
-  Sparkles
+  Sparkles,
+  ExternalLink
 } from 'lucide-react';
 import { cn } from '../../../components/ui/utils';
 import { Button } from '../../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../../components/ui/tooltip';
 import { useEmbedPreview } from '../hooks';
 import { previewService } from '../services';
 
@@ -38,6 +42,7 @@ export const EmbedPreviewPanel: React.FC<EmbedPreviewPanelProps> = ({
   className,
 }) => {
   const [deviceMode, setDeviceMode] = React.useState<DeviceMode>('desktop');
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   
   const {
     previewData,
@@ -48,7 +53,15 @@ export const EmbedPreviewPanel: React.FC<EmbedPreviewPanelProps> = ({
     refresh,
     isLivePreview,
     setIsLivePreview,
+    cacheKey,
   } = useEmbedPreview({ configId });
+  
+  // Force iframe reload when cacheKey changes
+  useEffect(() => {
+    if (iframeRef.current && previewUrl) {
+      iframeRef.current.src = previewUrl;
+    }
+  }, [cacheKey, previewUrl]);
 
   if (!configId) {
     return (
@@ -108,47 +121,66 @@ export const EmbedPreviewPanel: React.FC<EmbedPreviewPanelProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refresh}
-            disabled={loading}
-            className="gap-1.5"
-          >
-            <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
-            <span className="hidden sm:inline">Refresh</span>
-          </Button>
-          {previewUrl && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(previewUrl, '_blank')}
-                className="gap-1.5"
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Preview</span>
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  if (previewData?.embedConfig?.embed_key) {
-                    const liveUrl = previewService.getLiveBookingUrl(
-                      previewData.embedConfig.embed_key,
-                      previewData.embedConfig
-                    );
-                    window.open(liveUrl, '_blank');
-                  }
-                }}
-                className="gap-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Test Booking</span>
-              </Button>
-            </>
-          )}
-        </div>
+        <TooltipProvider>
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={refresh}
+                  disabled={loading}
+                  className="gap-1.5 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
+                  <span className="hidden sm:inline font-medium">Refresh</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Reload the preview</TooltipContent>
+            </Tooltip>
+            
+            {previewUrl && (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(previewUrl, '_blank')}
+                      className="gap-1.5 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span className="hidden sm:inline font-medium">Preview</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Open preview in new tab</TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (previewData?.embedConfig?.embed_key) {
+                          const liveUrl = previewService.getLiveBookingUrl(
+                            previewData.embedConfig.embed_key,
+                            previewData.embedConfig
+                          );
+                          window.open(liveUrl, '_blank');
+                        }
+                      }}
+                      className="gap-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span className="hidden sm:inline font-medium">Test Booking</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Test live booking flow</TooltipContent>
+                </Tooltip>
+              </>
+            )}
+          </div>
+        </TooltipProvider>
       </div>
 
       {/* Preview Frame */}
@@ -179,6 +211,8 @@ export const EmbedPreviewPanel: React.FC<EmbedPreviewPanelProps> = ({
             </div>
           ) : previewUrl ? (
             <iframe
+              key={cacheKey}
+              ref={iframeRef}
               src={previewUrl}
               className="w-full h-full border-0"
               title="Widget Preview"

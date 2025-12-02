@@ -36,6 +36,7 @@ import type { WidgetData, CustomerInfo, WidgetActivity } from '../types/widget.t
 // =====================================================
 
 const liquidGlassStyles = `
+  /* Light Mode Styles */
   .liquid-glass {
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(20px) saturate(180%);
@@ -44,6 +45,17 @@ const liquidGlassStyles = `
     box-shadow: 
       0 8px 32px rgba(31, 38, 135, 0.15),
       inset 0 2px 20px rgba(255, 255, 255, 0.4);
+  }
+  
+  /* Dark Mode Styles */
+  .liquid-glass-dark {
+    background: rgba(30, 30, 35, 0.85);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(75, 75, 85, 0.4);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 2px 20px rgba(75, 75, 85, 0.2);
   }
   
   .liquid-glass-button {
@@ -57,14 +69,37 @@ const liquidGlassStyles = `
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
-  .liquid-glass-button:hover {
+  .liquid-glass-button-dark {
+    position: relative;
+    background: linear-gradient(135deg, rgba(55, 55, 65, 0.9) 0%, rgba(40, 40, 50, 0.8) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(100, 100, 110, 0.4);
+    color: rgba(255, 255, 255, 0.9);
+    box-shadow: 
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 2px 8px rgba(100, 100, 110, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .liquid-glass-button:hover,
+  .liquid-glass-button-dark:hover {
     transform: translateY(-2px) scale(1.02);
+  }
+  
+  .liquid-glass-button:hover {
     box-shadow: 
       0 8px 24px rgba(0, 0, 0, 0.15),
       inset 0 2px 12px rgba(255, 255, 255, 0.8);
   }
   
-  .liquid-glass-button:active {
+  .liquid-glass-button-dark:hover {
+    box-shadow: 
+      0 8px 24px rgba(0, 0, 0, 0.4),
+      inset 0 2px 12px rgba(120, 120, 130, 0.3);
+  }
+  
+  .liquid-glass-button:active,
+  .liquid-glass-button-dark:active {
     transform: translateY(0) scale(0.98);
   }
   
@@ -74,6 +109,15 @@ const liquidGlassStyles = `
     inset: 0;
     border-radius: inherit;
     background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  
+  .liquid-glass-button-dark::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(150,150,160,0.15) 0%, transparent 50%);
     pointer-events: none;
   }
   
@@ -121,6 +165,13 @@ const liquidGlassStyles = `
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
   
+  .step-indicator-glass-dark {
+    background: rgba(45, 45, 55, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(80, 80, 90, 0.4);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  
   .step-dot {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -137,6 +188,12 @@ const liquidGlassStyles = `
   
   .shimmer-effect {
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+  
+  .shimmer-effect-dark {
+    background: linear-gradient(90deg, transparent, rgba(150,150,160,0.2), transparent);
     background-size: 200% 100%;
     animation: shimmer 2s infinite;
   }
@@ -173,6 +230,9 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
   const [showPreviewCheckout, setShowPreviewCheckout] = useState(false);
   const [previewCustomerName, setPreviewCustomerName] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
+  
+  // Detect dark mode from style theme
+  const isDarkMode = style.theme === 'dark';
   
   // Track selected activity - for venues with multiple activities
   const [selectedActivity, setSelectedActivity] = useState<WidgetActivity | null>(
@@ -303,7 +363,7 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
       <>
         <style>{liquidGlassStyles}</style>
         <div
-          className="w-full max-w-md mx-auto liquid-glass rounded-3xl overflow-hidden"
+          className={`w-full max-w-md mx-auto rounded-3xl overflow-hidden ${isDarkMode ? 'liquid-glass-dark' : 'liquid-glass'}`}
           style={{ fontFamily: style.fontFamily }}
         >
           <WidgetActivitySelector
@@ -342,7 +402,7 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
       >
         {/* Main Booking Panel */}
         <div
-          className="w-full lg:flex-1 max-w-md mx-auto lg:max-w-none liquid-glass rounded-3xl overflow-hidden"
+          className={`w-full lg:flex-1 max-w-md mx-auto lg:max-w-none rounded-3xl overflow-hidden ${isDarkMode ? 'liquid-glass-dark' : 'liquid-glass'}`}
         >
         {/* Compact Header - Always visible */}
         {currentStep !== 'success' && (
@@ -351,7 +411,7 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
 
         {/* Step Indicator - Liquid Glass Style */}
         {currentStep !== 'success' && (
-          <div className="px-4 py-3 step-indicator-glass mx-3 my-2 rounded-2xl">
+          <div className={`px-4 py-3 mx-3 my-2 rounded-2xl ${isDarkMode ? 'step-indicator-glass-dark' : 'step-indicator-glass'}`}>
             <div className="flex items-center justify-between">
               {STEPS.map((step, idx) => {
                 const Icon = step.icon;
@@ -368,17 +428,17 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
                         style={{
                           background: isActive || isComplete 
                             ? `linear-gradient(135deg, ${style.primaryColor} 0%, ${style.primaryColor}dd 100%)`
-                            : 'rgba(229, 231, 235, 0.8)',
-                          color: isActive || isComplete ? '#fff' : '#9ca3af',
+                            : isDarkMode ? 'rgba(75, 75, 85, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                          color: isActive || isComplete ? '#fff' : isDarkMode ? '#9ca3af' : '#9ca3af',
                           boxShadow: isActive 
                             ? `0 4px 15px ${style.primaryColor}40` 
-                            : '0 2px 8px rgba(0,0,0,0.05)',
+                            : isDarkMode ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.05)',
                         }}
                       >
                         {isComplete ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                       </div>
                       <span className={`text-[10px] mt-1.5 font-semibold tracking-wide ${
-                        isActive ? 'text-gray-900' : 'text-gray-400'
+                        isActive ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : 'text-gray-400'
                       }`}>
                         {step.label}
                       </span>
@@ -389,7 +449,7 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
                         style={{ 
                           background: idx < currentStepIndex 
                             ? `linear-gradient(90deg, ${style.primaryColor}, ${style.primaryColor}aa)`
-                            : 'rgba(229, 231, 235, 0.6)'
+                            : isDarkMode ? 'rgba(75, 75, 85, 0.5)' : 'rgba(229, 231, 235, 0.6)'
                         }}
                       />
                     )}
@@ -413,7 +473,9 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
               }
             }}
             className={`
-              liquid-glass-button flex items-center gap-1 mx-4 mb-2 px-3 py-1.5 rounded-xl text-sm text-gray-600 hover:text-gray-900
+              ${isDarkMode ? 'liquid-glass-button-dark' : 'liquid-glass-button'} 
+              flex items-center gap-1 mx-4 mb-2 px-3 py-1.5 rounded-xl text-sm 
+              ${isDarkMode ? 'text-gray-300 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900'}
               ${currentStep === 'select-date' && !hasMultipleActivities ? 'hidden' : ''}
             `}
           >
@@ -437,6 +499,7 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
               handleStepChange(goNext);
             }}
             style={style}
+            isDarkMode={isDarkMode}
           />
         )}
 
@@ -530,6 +593,7 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
                   style={style}
                   isLoading={isCheckoutLoading}
                   buttonText={isPreview ? 'Continue to Payment (Preview)' : 'Continue to Payment'}
+                  isDarkMode={isDarkMode}
                 />
               </>
             )}

@@ -5,7 +5,7 @@
  * Manages embed configurations with real-time updates
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { embedConfigService } from '../services';
 import type {
@@ -37,24 +37,63 @@ export function useEmbedConfigs(options: UseEmbedConfigsOptions = {}): UseEmbedC
   const [configs, setConfigs] = useState<EmbedConfigWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  
+  // Refs to prevent race conditions
+  const isFetchingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch configs
+  // Cleanup on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Fetch configs with debounce protection
   const fetchConfigs = useCallback(async () => {
+    // Prevent duplicate fetches
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    
     try {
-      setLoading(true);
-      setError(null);
+      if (mountedRef.current) {
+        setLoading(true);
+        setError(null);
+      }
       
       const data = organizationId
         ? await embedConfigService.getByOrganization(organizationId)
         : await embedConfigService.getAll();
       
-      setConfigs(data);
+      if (mountedRef.current) {
+        setConfigs(data);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch configs'));
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch configs'));
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+      isFetchingRef.current = false;
     }
   }, [organizationId]);
+
+  // Debounced fetch for real-time updates
+  const debouncedFetch = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      fetchConfigs();
+    }, 500); // 500ms debounce
+  }, [fetchConfigs]);
 
   // Create config
   const create = useCallback(async (input: CreateEmbedConfigInput) => {
@@ -63,11 +102,30 @@ export function useEmbedConfigs(options: UseEmbedConfigsOptions = {}): UseEmbedC
     return newConfig as EmbedConfigWithRelations;
   }, [fetchConfigs]);
 
-  // Update config
+  // Update config - optimistic update + background refresh
   const update = useCallback(async (id: string, input: UpdateEmbedConfigInput) => {
-    await embedConfigService.update(id, input);
-    await fetchConfigs();
-  }, [fetchConfigs]);
+    // Optimistic update - merge updates while preserving existing config/style
+    setConfigs(prev => prev.map(c => {
+      if (c.id !== id) return c;
+      return {
+        ...c,
+        ...input,
+        config: { ...c.config, ...(input.config || {}) },
+        style: { ...c.style, ...(input.style || {}) },
+        updated_at: new Date().toISOString(),
+      } as EmbedConfigWithRelations;
+    }));
+    
+    try {
+      await embedConfigService.update(id, input);
+      // Background refresh to get full updated data
+      debouncedFetch();
+    } catch (err) {
+      // Revert on error by re-fetching
+      await fetchConfigs();
+      throw err;
+    }
+  }, [fetchConfigs, debouncedFetch]);
 
   // Delete config
   const remove = useCallback(async (id: string) => {
@@ -82,12 +140,22 @@ export function useEmbedConfigs(options: UseEmbedConfigsOptions = {}): UseEmbedC
     return newConfig as EmbedConfigWithRelations;
   }, [fetchConfigs]);
 
-  // Toggle active status
+  // Toggle active status - optimistic update
   const toggleActive = useCallback(async (id: string, isActive: boolean) => {
-    await embedConfigService.toggleActive(id, isActive);
+    // Optimistic update
     setConfigs(prev => prev.map(c => 
       c.id === id ? { ...c, is_active: isActive } : c
     ));
+    
+    try {
+      await embedConfigService.toggleActive(id, isActive);
+    } catch (err) {
+      // Revert on error
+      setConfigs(prev => prev.map(c => 
+        c.id === id ? { ...c, is_active: !isActive } : c
+      ));
+      throw err;
+    }
   }, []);
 
   // Initial fetch
@@ -97,7 +165,7 @@ export function useEmbedConfigs(options: UseEmbedConfigsOptions = {}): UseEmbedC
     }
   }, [autoFetch, fetchConfigs]);
 
-  // Real-time subscription
+  // Real-time subscription with debounce
   useEffect(() => {
     const channel = supabase
       .channel('embed_configs_changes')
@@ -105,7 +173,8 @@ export function useEmbedConfigs(options: UseEmbedConfigsOptions = {}): UseEmbedC
         'postgres_changes',
         { event: '*', schema: 'public', table: 'embed_configs' },
         () => {
-          fetchConfigs();
+          // Use debounced fetch to prevent rapid successive calls
+          debouncedFetch();
         }
       )
       .subscribe();
@@ -113,7 +182,7 @@ export function useEmbedConfigs(options: UseEmbedConfigsOptions = {}): UseEmbedC
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchConfigs]);
+  }, [debouncedFetch]);
 
   return {
     configs,

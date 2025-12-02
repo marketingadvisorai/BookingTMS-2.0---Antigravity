@@ -20,6 +20,7 @@ interface WidgetCalendarProps {
   onDateSelect: (date: Date) => void;
   style: WidgetStyle;
   timezone?: string;
+  isDarkMode?: boolean;
 }
 
 // =====================================================
@@ -44,7 +45,10 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
   selectedDate,
   onDateSelect,
   style,
+  isDarkMode = false,
 }) => {
+  // Detect dark mode from theme or style
+  const dark = isDarkMode || style.theme === 'dark';
   const today = useMemo(() => new Date(), []);
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -143,7 +147,9 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
         <button
           onClick={prevMonth}
           disabled={!canGoPrev}
-          className="w-11 h-11 md:w-12 md:h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all duration-150 touch-manipulation focus:outline-none focus:ring-2 focus:ring-offset-2"
+          className={`w-11 h-11 md:w-12 md:h-12 flex items-center justify-center rounded-xl 
+            ${dark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}
+            disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all duration-150 touch-manipulation focus:outline-none focus:ring-2 focus:ring-offset-2`}
           style={{ ['--tw-ring-color' as any]: style.primaryColor }}
           aria-label={`Go to previous month, ${MONTHS[currentMonth === 0 ? 11 : currentMonth - 1]}`}
         >
@@ -151,7 +157,7 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
         </button>
         
         <h2 
-          className="text-base sm:text-lg md:text-xl font-semibold" 
+          className={`text-base sm:text-lg md:text-xl font-semibold ${dark ? 'text-gray-100' : 'text-gray-900'}`}
           style={{ color: style.textColor }}
           aria-live="polite"
           aria-atomic="true"
@@ -161,7 +167,9 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
         
         <button
           onClick={nextMonth}
-          className="w-11 h-11 md:w-12 md:h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 active:scale-95 transition-all duration-150 touch-manipulation focus:outline-none focus:ring-2 focus:ring-offset-2"
+          className={`w-11 h-11 md:w-12 md:h-12 flex items-center justify-center rounded-xl 
+            ${dark ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}
+            active:scale-95 transition-all duration-150 touch-manipulation focus:outline-none focus:ring-2 focus:ring-offset-2`}
           style={{ ['--tw-ring-color' as any]: style.primaryColor }}
           aria-label={`Go to next month, ${MONTHS[currentMonth === 11 ? 0 : currentMonth + 1]}`}
         >
@@ -178,7 +186,8 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
         {DAYS.map(day => (
           <div
             key={day}
-            className="text-center text-[10px] sm:text-xs md:text-sm font-medium text-gray-500 py-1 sm:py-2"
+            className={`text-center text-[10px] sm:text-xs md:text-sm font-medium py-1 sm:py-2
+              ${dark ? 'text-gray-400' : 'text-gray-500'}`}
             role="columnheader"
           >
             {day.slice(0, 2)}
@@ -218,8 +227,12 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
                 ${selected
                   ? 'text-white shadow-lg'
                   : available
-                    ? 'text-gray-800 bg-green-50 hover:bg-green-100 active:bg-green-200'
-                    : 'text-gray-300 bg-gray-50 cursor-not-allowed'
+                    ? dark
+                      ? 'text-green-300 bg-green-900/40 hover:bg-green-800/60 active:bg-green-700/60 border border-green-700/50'
+                      : 'text-gray-800 bg-green-50 hover:bg-green-100 active:bg-green-200'
+                    : dark
+                      ? 'text-gray-600 bg-gray-800/50 cursor-not-allowed'
+                      : 'text-gray-300 bg-gray-50 cursor-not-allowed'
                 }
                 ${isToday && !selected ? 'ring-2 ring-offset-1' : ''}
               `}
@@ -236,7 +249,8 @@ export const WidgetCalendar: React.FC<WidgetCalendarProps> = ({
       </div>
 
       {/* Hint Text */}
-      <p className="text-center text-[10px] sm:text-xs text-gray-400 mt-3 sm:mt-4" aria-live="polite">
+      <p className={`text-center text-[10px] sm:text-xs mt-3 sm:mt-4
+        ${dark ? 'text-gray-500' : 'text-gray-400'}`} aria-live="polite">
         Tap a green date to continue
       </p>
     </div>

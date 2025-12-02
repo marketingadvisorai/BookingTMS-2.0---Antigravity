@@ -1,6 +1,6 @@
 # Embed Pro 2.0 - Enterprise Architecture
 
-> **Last Updated:** Nov 27, 2025 | **Version:** v2.1.0
+> **Last Updated:** Dec 02, 2025 | **Version:** v2.2.0
 
 ## Overview
 
@@ -9,38 +9,50 @@ Embed Pro 2.0 is an independent, modular widget embedding system that allows org
 ## Entity Relationship Diagram (ERD)
 
 ```
-┌─────────────────────┐       ┌─────────────────────┐
-│   embed_configs     │       │    organizations    │
-├─────────────────────┤       ├─────────────────────┤
-│ id (PK)             │───────│ id (PK)             │
-│ organization_id (FK)│       │ name                │
-│ embed_key (unique)  │       │ slug                │
-│ name                │       └─────────────────────┘
-│ type                │
-│ target_type         │       ┌─────────────────────┐
-│ target_id (FK)      │───┬───│    activities       │
-│ target_ids[]        │   │   ├─────────────────────┤
-│ config (JSONB)      │   │   │ id (PK)             │
-│ style (JSONB)       │   │   │ venue_id (FK)       │
-│ is_active           │   │   │ name                │
-│ created_at          │   │   │ description         │
-│ updated_at          │   │   │ price               │
-└─────────────────────┘   │   │ duration            │
-                          │   │ schedule (JSONB)    │
-                          │   │ stripe_product_id   │
-                          │   └─────────────────────┘
-                          │
-                          │   ┌─────────────────────┐
-                          └───│      venues         │
-                              ├─────────────────────┤
-                              │ id (PK)             │
-                              │ organization_id (FK)│
-                              │ name                │
-                              │ address, city, state│
-                              │ primary_color       │
-                              │ timezone            │
-                              └─────────────────────┘
+┌─────────────────────────────┐       ┌─────────────────────┐
+│      embed_configs          │       │    organizations    │
+├─────────────────────────────┤       ├─────────────────────┤
+│ id (PK)                     │───────│ id (PK)             │
+│ organization_id (FK)        │       │ name                │
+│ embed_key (unique)          │       │ slug                │
+│ name                        │       └─────────────────────┘
+│ description                 │
+│ type                        │       ┌─────────────────────┐
+│ target_type                 │───┬───│    activities       │
+│ target_id (FK)              │   │   ├─────────────────────┤
+│ target_ids[]                │   │   │ id (PK)             │
+│ config (JSONB)              │   │   │ venue_id (FK)       │
+│ style (JSONB)               │   │   │ name                │
+│ venue_layout (JSONB)        │   │   │ description         │
+│ display_options (JSONB)     │   │   │ price               │
+│ scheduling_config (JSONB)   │   │   │ duration            │
+│ social_links (JSONB)        │   │   │ schedule (JSONB)    │
+│ custom_fields (JSONB)       │   │   │ stripe_product_id   │
+│ conversion_tracking (JSONB) │   │   └─────────────────────┘
+│ allowed_domains[]           │   │
+│ custom_css                  │   │   ┌─────────────────────┐
+│ custom_logo_url             │   └───│      venues         │
+│ custom_header               │       ├─────────────────────┤
+│ custom_footer               │       │ id (PK)             │
+│ terms_conditions            │       │ organization_id (FK)│
+│ terms_required              │       │ name                │
+│ is_active                   │       │ address, city, state│
+│ view_count                  │       │ primary_color       │
+│ booking_count               │       │ timezone            │
+│ created_at                  │       └─────────────────────┘
+│ updated_at                  │
+└─────────────────────────────┘
 ```
+
+## Database Migrations
+
+| Migration | Description |
+|-----------|-------------|
+| `050_embed_configs_table.sql` | Base embed_configs and embed_analytics tables |
+| `051_fix_embed_configs_rls_recursion.sql` | RLS policy fix |
+| `053_simplify_embed_configs_rls_final.sql` | Simplified RLS |
+| `054_disable_embed_configs_rls.sql` | RLS optimization |
+| `075_add_embed_pro_advanced_columns.sql` | venue_layout, display_options, etc. |
 
 ## Module Structure
 

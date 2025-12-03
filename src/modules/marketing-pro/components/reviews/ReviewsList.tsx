@@ -1,6 +1,6 @@
 /**
  * MarketingPro 1.1 - Reviews List Component
- * @description Main reviews list with filter tabs
+ * @description Main reviews list with filter tabs and Supabase integration
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,9 +10,16 @@ import { useTheme } from '@/components/layout/ThemeContext';
 import { getThemeClasses } from '../../utils/theme';
 import { ReviewCard } from './ReviewCard';
 import { toast } from 'sonner';
+import type { Review } from '../../types';
 
-// Sample review data
-const REVIEWS = [
+interface ReviewsListProps {
+  reviews?: Review[];
+  isLoading?: boolean;
+  onRespond?: (id: string, text: string) => Promise<any>;
+}
+
+// Sample review data for fallback
+const SAMPLE_REVIEWS = [
   {
     id: '1',
     customerName: 'John Doe',
@@ -51,10 +58,17 @@ const REVIEWS = [
   },
 ];
 
-export function ReviewsList() {
+export function ReviewsList({ 
+  reviews = [], 
+  isLoading,
+  onRespond,
+}: ReviewsListProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const classes = getThemeClasses(isDark);
+
+  // Use real data if available, otherwise use sample
+  const displayData = reviews.length > 0 ? reviews : SAMPLE_REVIEWS;
 
   return (
     <Card className={`${classes.cardBg} border ${classes.border} shadow-sm`}>
@@ -97,7 +111,7 @@ export function ReviewsList() {
 
           {/* Reviews */}
           <div className="space-y-4">
-            {REVIEWS.map((review) => (
+            {displayData.map((review) => (
               <ReviewCard key={review.id} {...review} />
             ))}
           </div>

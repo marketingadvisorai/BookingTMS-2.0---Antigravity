@@ -29,18 +29,28 @@ import { useTheme } from '@/components/layout/ThemeContext';
 import { getThemeClasses, getBadgeClasses } from '../../utils/theme';
 import { toast } from 'sonner';
 
+import type { GiftCard } from '../../types';
+
 interface GiftCardsTableProps {
+  giftCards?: GiftCard[];
+  isLoading?: boolean;
   onCreateGiftCard: () => void;
 }
 
-// Sample data - in production, this would come from API
-const GIFT_CARDS = [
-  { code: 'GC-ABC123XYZ', amount: 100, balance: 75, recipient: 'john.doe@example.com', status: 'active', expiry: 'Dec 31, 2025' },
-  { code: 'GC-DEF456UVW', amount: 50, balance: 50, recipient: 'sarah.smith@example.com', status: 'active', expiry: 'Mar 15, 2026' },
-  { code: 'GC-GHI789RST', amount: 25, balance: 0, recipient: 'mike.jones@example.com', status: 'redeemed', expiry: 'Jun 30, 2025' },
+// Fallback sample data when no real data available
+const SAMPLE_GIFT_CARDS = [
+  { id: '1', code: 'GC-ABC123XYZ', initial_value: 100, current_balance: 75, recipient_email: 'john.doe@example.com', status: 'active', expires_at: '2025-12-31' },
+  { id: '2', code: 'GC-DEF456UVW', initial_value: 50, current_balance: 50, recipient_email: 'sarah.smith@example.com', status: 'active', expires_at: '2026-03-15' },
+  { id: '3', code: 'GC-GHI789RST', initial_value: 25, current_balance: 0, recipient_email: 'mike.jones@example.com', status: 'redeemed', expires_at: '2025-06-30' },
 ];
 
-export function GiftCardsTable({ onCreateGiftCard }: GiftCardsTableProps) {
+export function GiftCardsTable({ 
+  giftCards = [], 
+  isLoading,
+  onCreateGiftCard,
+}: GiftCardsTableProps) {
+  // Use real data if available, otherwise use sample
+  const displayData = giftCards.length > 0 ? giftCards : SAMPLE_GIFT_CARDS;
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const classes = getThemeClasses(isDark);
@@ -107,10 +117,13 @@ export function GiftCardsTable({ onCreateGiftCard }: GiftCardsTableProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {GIFT_CARDS.map((card) => {
-                  const pct = getBalancePercentage(card.balance, card.amount);
+                {displayData.map((card) => {
+                  const amount = card.initial_value || 0;
+                  const balance = card.current_balance || 0;
+                  const pct = getBalancePercentage(balance, amount);
+                  const expiry = card.expires_at ? new Date(card.expires_at).toLocaleDateString() : 'N/A';
                   return (
-                    <TableRow key={card.code}>
+                    <TableRow key={card.code || card.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <code className={`text-sm px-2 py-1 rounded ${classes.codeBg} ${classes.text}`}>
@@ -126,11 +139,11 @@ export function GiftCardsTable({ onCreateGiftCard }: GiftCardsTableProps) {
                           </Button>
                         </div>
                       </TableCell>
-                      <TableCell className={classes.text}>${card.amount.toFixed(2)}</TableCell>
+                      <TableCell className={classes.text}>${amount.toFixed(2)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <span className={card.balance === 0 ? `line-through ${classes.textMuted}` : classes.text}>
-                            ${card.balance.toFixed(2)}
+                          <span className={balance === 0 ? `line-through ${classes.textMuted}` : classes.text}>
+                            ${balance.toFixed(2)}
                           </span>
                           <Badge variant="secondary" className={`text-xs ${
                             pct === 100 ? getBadgeClasses('active', isDark) :
@@ -141,13 +154,13 @@ export function GiftCardsTable({ onCreateGiftCard }: GiftCardsTableProps) {
                           </Badge>
                         </div>
                       </TableCell>
-                      <TableCell className={`text-sm ${classes.textMuted}`}>{card.recipient}</TableCell>
+                      <TableCell className={`text-sm ${classes.textMuted}`}>{card.recipient_email || 'N/A'}</TableCell>
                       <TableCell>
-                        <Badge className={getBadgeClasses(card.status, isDark)}>
+                        <Badge className={getBadgeClasses(card.status || 'active', isDark)}>
                           {card.status === 'active' ? 'Active' : 'Redeemed'}
                         </Badge>
                       </TableCell>
-                      <TableCell className={`text-sm ${classes.textMuted}`}>{card.expiry}</TableCell>
+                      <TableCell className={`text-sm ${classes.textMuted}`}>{expiry}</TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

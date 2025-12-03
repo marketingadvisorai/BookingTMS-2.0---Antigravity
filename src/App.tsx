@@ -17,7 +17,7 @@ import { MarketingProPage } from './modules/marketing-pro';
 import { AIAgents } from './pages/AIAgents';
 import { Staff } from './pages/Staff';
 import { Reports } from './pages/Reports';
-import { Media } from './pages/Media';
+import MediaPage from './pages/MediaPage';
 import { Waivers } from './pages/Waivers';
 import { BookingWidgets } from './pages/BookingWidgets';
 import Venues from './pages/Venues';
@@ -185,7 +185,7 @@ function AppContent() {
       case 'reports':
         return <Reports />;
       case 'media':
-        return <Media />;
+        return <MediaPage />;
       case 'waivers':
         return <Waivers />;
       case 'venues':

@@ -54,6 +54,13 @@ export function useEmbedConfigs(options: UseEmbedConfigsOptions = {}): UseEmbedC
     };
   }, []);
 
+  // Reset configs when organization changes
+  useEffect(() => {
+    // Clear configs immediately when organization changes to prevent stale data
+    setConfigs([]);
+    setLoading(true);
+  }, [organizationId]);
+
   // Fetch configs with debounce protection
   const fetchConfigs = useCallback(async () => {
     // Prevent duplicate fetches
@@ -66,14 +73,19 @@ export function useEmbedConfigs(options: UseEmbedConfigsOptions = {}): UseEmbedC
         setError(null);
       }
       
+      console.log('[useEmbedConfigs] Fetching configs for org:', organizationId);
+      
       const data = organizationId
         ? await embedConfigService.getByOrganization(organizationId)
         : await embedConfigService.getAll();
+      
+      console.log('[useEmbedConfigs] Fetched configs:', data.length);
       
       if (mountedRef.current) {
         setConfigs(data);
       }
     } catch (err) {
+      console.error('[useEmbedConfigs] Fetch error:', err);
       if (mountedRef.current) {
         setError(err instanceof Error ? err : new Error('Failed to fetch configs'));
       }

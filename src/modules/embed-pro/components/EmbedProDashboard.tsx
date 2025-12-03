@@ -52,9 +52,11 @@ import { toast } from 'sonner';
 
 interface EmbedProDashboardProps {
   organizationId: string;
+  organizationName?: string;
   activities?: { id: string; name: string }[];
   venues?: { id: string; name: string }[];
   isLoading?: boolean;
+  isSystemAdmin?: boolean;
 }
 
 type ViewMode = 'grid' | 'list';
@@ -62,9 +64,11 @@ type FilterType = 'all' | EmbedType;
 
 export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
   organizationId,
+  organizationName,
   activities = [],
   venues = [],
   isLoading: externalLoading = false,
+  isSystemAdmin = false,
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -198,13 +202,26 @@ export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
           >
             Welcome to Embed Pro 1.1
           </motion.h1>
+          {isSystemAdmin && organizationName && (
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className="text-indigo-600 dark:text-indigo-400 font-medium mb-2"
+            >
+              Managing embeds for: {organizationName}
+            </motion.p>
+          )}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
             className="text-gray-500 dark:text-gray-400 text-lg max-w-lg mx-auto"
           >
-            Create beautiful, customizable booking widgets and embed them anywhere on the web.
+            {isSystemAdmin 
+              ? `No embed widgets found for this organization. Create one to get started.`
+              : `Create beautiful, customizable booking widgets and embed them anywhere on the web.`
+            }
           </motion.p>
         </div>
 
@@ -282,7 +299,10 @@ export const EmbedProDashboard: React.FC<EmbedProDashboardProps> = ({
             Embed Pro 1.1
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Create and manage your booking widgets
+            {isSystemAdmin && organizationName 
+              ? `Managing embeds for ${organizationName}`
+              : 'Create and manage your booking widgets'
+            }
           </p>
         </div>
         <Button onClick={() => setShowCreateModal(true)} className="gap-2">

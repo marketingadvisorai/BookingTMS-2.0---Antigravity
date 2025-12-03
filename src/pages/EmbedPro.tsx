@@ -205,15 +205,21 @@ const EmbedProPage: React.FC = () => {
     );
   }
 
+  // Get selected organization name for display
+  const selectedOrgName = organizations.find(o => o.id === selectedOrgId)?.name;
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {renderOrgSelector()}
       {organizationId && (
         <EmbedProDashboard
+          key={organizationId} // Force re-mount on organization change
           organizationId={organizationId}
+          organizationName={isSystemAdmin ? selectedOrgName : undefined}
           activities={activities}
           venues={venues}
           isLoading={dataLoading}
+          isSystemAdmin={isSystemAdmin}
         />
       )}
     </div>

@@ -12,10 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Percent, Gift, Star, Mail, UserPlus } from 'lucide-react';
+import { Percent, Gift, Star, Mail, UserPlus, RefreshCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/layout/ThemeContext';
 import { getThemeClasses } from '../utils/theme';
 import { useMarketingState } from '../hooks/useMarketingState';
+import { useOrganizationMarketing } from '../hooks/useOrganizationMarketing';
 import { MARKETING_TABS } from '../constants';
 
 // Tab Components
@@ -51,15 +53,48 @@ export function MarketingProPage() {
   const isDark = theme === 'dark';
   const classes = getThemeClasses(isDark);
   
+  // Local state for UI
   const {
     activeTab,
     setActiveTab,
-    emailTemplates,
-    workflowStates,
+    emailTemplates: localTemplates,
+    workflowStates: localWorkflowStates,
     activateTemplate,
     updateTemplate,
-    toggleWorkflow,
+    toggleWorkflow: localToggleWorkflow,
   } = useMarketingState();
+
+  // Supabase data hook
+  const {
+    promotions,
+    giftCards,
+    campaigns,
+    templates: dbTemplates,
+    workflows: dbWorkflows,
+    affiliates,
+    reviews,
+    stats,
+    isLoading,
+    refresh,
+    createPromotion,
+    deletePromotion,
+    createGiftCard,
+    bulkCreateGiftCards,
+    createCampaign,
+    toggleWorkflow: dbToggleWorkflow,
+    createAffiliate,
+    approveAffiliate,
+    respondToReview,
+  } = useOrganizationMarketing();
+
+  // Use local templates for UI (DB templates have different structure)
+  const emailTemplates = localTemplates;
+  const workflowStates = dbWorkflows.length > 0 
+    ? dbWorkflows.reduce((acc, w) => ({ ...acc, [w.id]: w.is_enabled }), {} as Record<string, boolean>) 
+    : localWorkflowStates;
+  const toggleWorkflow = dbWorkflows.length > 0 
+    ? async (id: string, enabled: boolean) => { await dbToggleWorkflow(id, enabled); } 
+    : localToggleWorkflow;
 
   // Dialog states
   const [showCreatePromo, setShowCreatePromo] = useState(false);
@@ -99,11 +134,22 @@ export function MarketingProPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className={`text-2xl font-semibold mb-2 ${classes.text}`}>MarketingPro 1.1</h1>
-        <p className={classes.textMuted}>
-          Manage promotions, gift cards, reviews, emails, and affiliates
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className={`text-2xl font-semibold mb-2 ${classes.text}`}>MarketingPro 1.1</h1>
+          <p className={classes.textMuted}>
+            Manage promotions, gift cards, reviews, emails, and affiliates
+          </p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={refresh} 
+          disabled={isLoading}
+          className={isDark ? 'border-[#2a2a2a]' : ''}
+        >
+          <RefreshCcw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as MarketingTab)} className="space-y-4 sm:space-y-6">

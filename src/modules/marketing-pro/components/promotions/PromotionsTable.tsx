@@ -29,18 +29,30 @@ import { useTheme } from '@/components/layout/ThemeContext';
 import { getThemeClasses, getBadgeClasses } from '../../utils/theme';
 import { toast } from 'sonner';
 
+import type { Promotion } from '../../types';
+
 interface PromotionsTableProps {
+  promotions?: Promotion[];
+  isLoading?: boolean;
   onCreatePromo: () => void;
+  onDeletePromo?: (id: string) => Promise<void>;
 }
 
-// Sample data - in production, this would come from API
-const PROMOTIONS = [
-  { code: 'SUMMER25', type: 'percentage', discount: '25%', usage: 45, limit: 100, validUntil: 'Dec 31, 2025', status: 'active' },
-  { code: 'FIRSTTIME10', type: 'fixed', discount: '$10', usage: 12, limit: 50, validUntil: 'Jan 15, 2026', status: 'active' },
-  { code: 'BLACKFRIDAY', type: 'percentage', discount: '50%', usage: 200, limit: 200, validUntil: 'Nov 30, 2025', status: 'paused' },
+// Fallback sample data when no real data available
+const SAMPLE_PROMOTIONS = [
+  { id: '1', code: 'SUMMER25', discount_type: 'percentage', discount_value: 25, current_uses: 45, max_uses: 100, valid_until: '2025-12-31', is_active: true },
+  { id: '2', code: 'FIRSTTIME10', discount_type: 'fixed', discount_value: 10, current_uses: 12, max_uses: 50, valid_until: '2026-01-15', is_active: true },
+  { id: '3', code: 'BLACKFRIDAY', discount_type: 'percentage', discount_value: 50, current_uses: 200, max_uses: 200, valid_until: '2025-11-30', is_active: false },
 ];
 
-export function PromotionsTable({ onCreatePromo }: PromotionsTableProps) {
+export function PromotionsTable({ 
+  promotions = [], 
+  isLoading,
+  onCreatePromo,
+  onDeletePromo,
+}: PromotionsTableProps) {
+  // Use real data if available, otherwise use sample
+  const displayData = promotions.length > 0 ? promotions : SAMPLE_PROMOTIONS;
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const classes = getThemeClasses(isDark);
@@ -93,7 +105,7 @@ export function PromotionsTable({ onCreatePromo }: PromotionsTableProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {PROMOTIONS.map((promo) => (
+                {displayData.map((promo) => (
                   <TableRow key={promo.code}>
                     <TableCell>
                       <div className="flex items-center gap-2">

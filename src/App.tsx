@@ -10,6 +10,7 @@ import Inbox from './pages/Inbox';
 import { Bookings } from './pages/Bookings';
 import { Events } from './pages/Events';
 import Customers from './pages/Customers';
+import { GuestsPage } from './modules/guests';
 import { Campaigns } from './pages/Campaigns';
 import { Marketing } from './pages/Marketing';
 import { MarketingProPage } from './modules/marketing-pro';
@@ -167,7 +168,8 @@ function AppContent() {
       case 'service-items': // Alias for events
         return <Events />;
       case 'customers':
-        return <Customers />;
+      case 'guests':
+        return <GuestsPage />;
       case 'payment-history':
         return <PaymentHistory />;
       case 'campaigns':

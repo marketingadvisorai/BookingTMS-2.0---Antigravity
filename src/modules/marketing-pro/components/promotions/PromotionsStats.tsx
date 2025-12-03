@@ -1,24 +1,36 @@
 /**
  * MarketingPro 1.1 - Promotions Stats Component
- * @description Stats overview for the Promotions tab
+ * @description Stats overview for the Promotions tab with real data
  */
 
 import { Percent, DollarSign, BarChart3 } from 'lucide-react';
 import { StatsCard } from '../shared';
 
-export function PromotionsStats() {
+interface PromotionsStatsProps {
+  total?: number;
+  active?: number;
+  totalRedemptions?: number;
+  isLoading?: boolean;
+}
+
+export function PromotionsStats({ 
+  total = 0, 
+  active = 0, 
+  totalRedemptions = 0,
+  isLoading,
+}: PromotionsStatsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <StatsCard
         title="Active Promos"
-        value={12}
-        trend={{ value: '+3 this month', isPositive: true }}
+        value={isLoading ? '...' : active}
+        trend={{ value: `${total} total`, isPositive: true }}
         icon={Percent}
         color="blue"
       />
       <StatsCard
         title="Total Redemptions"
-        value="1,234"
+        value={isLoading ? '...' : totalRedemptions.toLocaleString()}
         trend={{ value: '+18%', isPositive: true }}
         icon={Percent}
         color="green"

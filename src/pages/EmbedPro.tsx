@@ -24,6 +24,7 @@ import { Label } from '../components/ui/label';
 interface Organization {
   id: string;
   name: string;
+  status?: string;
 }
 
 interface SimpleActivity {
@@ -64,10 +65,11 @@ const EmbedProPage: React.FC = () => {
       const fetchOrgs = async () => {
         setOrgsLoading(true);
         try {
+          // Include all organizations (not just active) so system admins can manage all embeds
           const { data } = await supabase
             .from('organizations')
-            .select('id, name')
-            .eq('status', 'active')
+            .select('id, name, status')
+            .in('status', ['active', 'pending', 'inactive'])
             .order('name');
           const orgData = (data as Organization[]) || [];
           setOrganizations(orgData);
@@ -165,7 +167,16 @@ const EmbedProPage: React.FC = () => {
               <SelectContent>
                 {organizations.map(org => (
                   <SelectItem key={org.id} value={org.id}>
-                    {org.name}
+                    <span className="flex items-center gap-2">
+                      {org.name}
+                      {org.status && org.status !== 'active' && (
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${
+                          org.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {org.status}
+                        </span>
+                      )}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>

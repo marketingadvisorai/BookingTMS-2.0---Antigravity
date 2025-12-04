@@ -5,3 +5,4 @@
  */
 
 export { SystemAdminDashboard } from './SystemAdminDashboard';
+export { SystemAdminDashboardPage } from './SystemAdminDashboardPage';

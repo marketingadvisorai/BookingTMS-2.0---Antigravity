@@ -15,14 +15,14 @@ import { Campaigns } from './pages/Campaigns';
 import { Marketing } from './pages/Marketing';
 import { MarketingProPage } from './modules/marketing-pro';
 import { AIAgents } from './pages/AIAgents';
-import { Staff } from './pages/Staff';
+import { StaffPage } from './modules/staff';
 import { Reports } from './pages/Reports';
 import MediaPage from './pages/MediaPage';
 import { WaiversPage } from './modules/waivers';
 import { BookingWidgets } from './pages/BookingWidgets';
 import Venues from './pages/Venues';
 import { Organizations } from './pages/Organizations';
-import { Settings } from './pages/Settings';
+import { SettingsPage } from './modules/settings';
 import { MyAccount } from './pages/MyAccount';
 import { ProfileSettings } from './pages/ProfileSettings';
 import { Account } from './pages/Account';
@@ -181,7 +181,7 @@ function AppContent() {
       case 'aiagents':
         return <AIAgents />;
       case 'staff':
-        return <Staff />;
+        return <StaffPage />;
       case 'reports':
         return <Reports />;
       case 'media':
@@ -199,7 +199,7 @@ function AppContent() {
       case 'notifications':
         return <Notifications />;
       case 'settings':
-        return <Settings />;
+        return <SettingsPage />;
       case 'myaccount':
         return <MyAccount onNavigate={handleNavigate} />;
       case 'account':

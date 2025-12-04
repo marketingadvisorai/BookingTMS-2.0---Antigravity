@@ -61,14 +61,32 @@ export interface TimeSlot {
 }
 
 export interface PromoCode {
+  id?: string;
   code: string;
   discount: number;
   type: 'percentage' | 'fixed';
+  // Database fields for validation
+  discount_type?: 'percentage' | 'fixed';
+  discount_value?: number;
+  valid_from?: string | null;
+  valid_until?: string | null;
+  max_uses?: number | null;
+  current_uses?: number;
+  minimum_order_value?: number | null;
+  organization_id?: string;
+  is_active?: boolean;
 }
 
 export interface GiftCard {
+  id?: string;
   code: string;
   amount: number;
+  // Database fields for validation
+  current_balance?: number;
+  initial_balance?: number;
+  expires_at?: string | null;
+  organization_id?: string;
+  is_active?: boolean;
 }
 
 export type BookingStep = 'booking' | 'cart' | 'checkout' | 'success';

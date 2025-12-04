@@ -86,7 +86,7 @@ export const authenticate = (supabase: any) => {
         organizationId: profile.organization_id,
       };
 
-      next();
+      return next();
     } catch (error) {
       console.error('Authentication error:', error);
       return res.status(500).json({
@@ -119,7 +119,7 @@ export const requireRole = (roles: string | string[]) => {
       });
     }
 
-    next();
+    return next();
   };
 };
 
@@ -146,7 +146,7 @@ export const requirePermission = (permission: string) => {
       });
     }
 
-    next();
+    return next();
   };
 };
 
@@ -248,6 +248,6 @@ export const optionalAuth = (supabase: any) => {
       console.error('Optional auth error:', error);
     }
 
-    next();
+    return next();
   };
 };

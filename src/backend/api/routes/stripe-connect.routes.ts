@@ -21,7 +21,7 @@ const validate = (req: Request, res: Response, next: Function) => {
       errors: errors.array() 
     });
   }
-  next();
+  return next();
 };
 
 // ==================== CONNECTED ACCOUNT MANAGEMENT ====================

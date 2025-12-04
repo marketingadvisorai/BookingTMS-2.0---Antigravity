@@ -168,7 +168,7 @@ router.post('/save', [
       }
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: `${service.toUpperCase()} configuration saved successfully`,
       test: testResult,
@@ -177,7 +177,7 @@ router.post('/save', [
 
   } catch (error) {
     console.error('Config save failed:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to save configuration',
       details: error instanceof Error ? error.message : 'Unknown error',

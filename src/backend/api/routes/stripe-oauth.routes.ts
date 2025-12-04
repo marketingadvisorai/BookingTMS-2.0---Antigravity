@@ -38,7 +38,7 @@ const validate = (req: Request, res: Response, next: Function) => {
       errors: errors.array()
     });
   }
-  next();
+  return next();
 };
 
 // ============================================================================
@@ -138,7 +138,7 @@ router.post(
         }
       }
 
-      res.json({
+      return res.json({
         success: true,
         stripe_user_id: response.stripe_user_id,
         access_token: response.access_token,
@@ -159,7 +159,7 @@ router.post(
         });
       }
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: error.message || 'Failed to exchange OAuth code',
       });

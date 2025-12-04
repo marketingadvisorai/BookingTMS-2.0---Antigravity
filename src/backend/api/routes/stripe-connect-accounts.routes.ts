@@ -227,7 +227,7 @@ router.post('/:accountId/payout', async (req: Request, res: Response) => {
       { stripeAccount: accountId }
     );
 
-    res.json({
+    return res.json({
       success: true,
       payout: {
         id: payout.id,
@@ -239,7 +239,7 @@ router.post('/:accountId/payout', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error creating payout:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error.message || 'Failed to create payout',
     });

@@ -40,10 +40,10 @@ router.get('/:organizationId', async (req: Request, res: Response) => {
       });
     }
 
-    res.json(data);
+    return res.json(data);
   } catch (error: any) {
     console.error('Error fetching settings:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -68,10 +68,10 @@ router.put('/:organizationId', async (req: Request, res: Response) => {
 
     if (error) throw error;
 
-    res.json(data);
+    return res.json(data);
   } catch (error: any) {
     console.error('Error updating settings:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -109,10 +109,10 @@ router.get('/:organizationId/notifications/:userId', async (req: Request, res: R
       });
     }
 
-    res.json(data);
+    return res.json(data);
   } catch (error: any) {
     console.error('Error fetching notification preferences:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -138,10 +138,10 @@ router.put('/:organizationId/notifications/:userId', async (req: Request, res: R
 
     if (error) throw error;
 
-    res.json(data);
+    return res.json(data);
   } catch (error: any) {
     console.error('Error updating notification preferences:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 

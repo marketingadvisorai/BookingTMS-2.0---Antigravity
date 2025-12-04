@@ -31,7 +31,7 @@ const validate = (req: Request, res: Response, next: Function) => {
       errors: errors.array() 
     });
   }
-  next();
+  return next();
 };
 
 // ============================================================================
@@ -422,14 +422,14 @@ router.post(
         id: event.id,
       });
 
-      res.json({
+      return res.json({
         success: true,
         received: true,
         eventType: event.type,
       });
     } catch (error: any) {
       console.error('[payments.routes] Webhook error:', error);
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: error.message || 'Webhook processing failed',
       });

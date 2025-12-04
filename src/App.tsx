@@ -18,7 +18,7 @@ import { AIAgents } from './pages/AIAgents';
 import { Staff } from './pages/Staff';
 import { Reports } from './pages/Reports';
 import MediaPage from './pages/MediaPage';
-import { Waivers } from './pages/Waivers';
+import { WaiversPage } from './modules/waivers';
 import { BookingWidgets } from './pages/BookingWidgets';
 import Venues from './pages/Venues';
 import { Organizations } from './pages/Organizations';
@@ -187,7 +187,7 @@ function AppContent() {
       case 'media':
         return <MediaPage />;
       case 'waivers':
-        return <Waivers />;
+        return <WaiversPage />;
       case 'venues':
         return <Venues />;
       case 'organizations':

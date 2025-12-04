@@ -50,7 +50,7 @@ export function useNotifications() {
       if (fetchError) throw fetchError;
 
       setNotifications(data || []);
-      setUnreadCount((data || []).filter(n => !(n as any).read).length);
+      setUnreadCount((data || []).filter(n => !(n as any).is_read).length);
     } catch (err: any) {
       console.error('Error fetching notifications:', err);
       setError(err.message);
@@ -64,7 +64,7 @@ export function useNotifications() {
     try {
       const { error: updateError } = await (supabase as any)
         .from('notifications')
-        .update({ read: true })
+        .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('id', id);
 
       if (updateError) throw updateError;
@@ -84,9 +84,9 @@ export function useNotifications() {
 
       const { error: updateError } = await (supabase as any)
         .from('notifications')
-        .update({ read: true })
+        .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('user_id', user.id)
-        .eq('read', false);
+        .eq('is_read', false);
 
       if (updateError) throw updateError;
 

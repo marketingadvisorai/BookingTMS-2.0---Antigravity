@@ -23,9 +23,21 @@ export interface ServiceItem extends Omit<Activity, 'schedule' | 'min_players' |
     minAge?: number;
 }
 
-export const useServiceItems = (venueId?: string) => {
+interface UseServiceItemsOptions {
+    venueId?: string;
+    fetchAll?: boolean; // For system admins to fetch all activities
+}
+
+export const useServiceItems = (venueIdOrOptions?: string | UseServiceItemsOptions) => {
     const queryClient = useQueryClient();
-    const queryKey = ['service-items', venueId];
+    
+    // Support both old signature (venueId: string) and new (options object)
+    const options: UseServiceItemsOptions = typeof venueIdOrOptions === 'string' 
+        ? { venueId: venueIdOrOptions }
+        : venueIdOrOptions || {};
+    
+    const { venueId, fetchAll = false } = options;
+    const queryKey = fetchAll ? ['service-items', 'all'] : ['service-items', venueId];
 
     // Helper to flatten activity for UI
     const flattenActivity = (activity: Activity): ServiceItem => {
@@ -84,11 +96,17 @@ export const useServiceItems = (venueId?: string) => {
     const { data: serviceItems = [], isLoading, error, refetch } = useQuery({
         queryKey,
         queryFn: async () => {
+            // System admin mode: fetch ALL activities across all venues/orgs
+            if (fetchAll) {
+                const activities = await ActivityService.listAllActivities();
+                return activities.map(flattenActivity);
+            }
+            // Normal mode: fetch activities for specific venue
             if (!venueId) return [];
             const activities = await ActivityService.listActivities(venueId);
             return activities.map(flattenActivity);
         },
-        enabled: !!venueId,
+        enabled: fetchAll || !!venueId,
         staleTime: 1000 * 60 * 5, // 5 minutes
     });
 

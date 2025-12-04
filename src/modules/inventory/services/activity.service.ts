@@ -61,6 +61,66 @@ export type CreateActivityInput = Omit<Activity, 'id' | 'created_at' | 'updated_
 
 export class ActivityService {
     /**
+     * Helper to map raw activity data to Activity interface
+     */
+    private static mapActivityData(item: any): Activity & { venue_name?: string; organization_name?: string; venue_id_display?: string; organization_id_display?: string } {
+        const scheduleData = item.schedule || {};
+        const settingsData = item.settings || {};
+        
+        const schedule: ActivityScheduleRules = {
+            operatingDays: scheduleData.operatingDays || settingsData.operatingDays || [],
+            startTime: scheduleData.startTime || settingsData.startTime || '09:00',
+            endTime: scheduleData.endTime || settingsData.endTime || '17:00',
+            slotInterval: scheduleData.slotInterval || settingsData.slotInterval || 60,
+            advanceBooking: scheduleData.advanceBooking || settingsData.advanceBooking || 0,
+            customHoursEnabled: scheduleData.customHoursEnabled || settingsData.customHoursEnabled || false,
+            customHours: scheduleData.customHours || settingsData.customHours || {},
+            customDates: scheduleData.customDates || settingsData.customDates || [],
+            blockedDates: scheduleData.blockedDates || settingsData.blockedDates || []
+        };
+
+        return {
+            ...item,
+            // Include venue and organization info with IDs for display
+            venue_name: item.venue?.name || null,
+            venue_id_display: item.venue?.id || item.venue_id || null,
+            organization_name: item.organization?.name || null,
+            organization_id_display: item.organization?.id || item.organization_id || null,
+            // Map legacy fields
+            capacity: item.max_players || item.capacity || 1,
+            min_players: item.min_players || 1,
+            max_players: item.max_players || item.capacity || 10,
+            child_price: settingsData.child_price || 0,
+            min_age: settingsData.min_age || 0,
+            status: item.is_active ? 'active' : 'inactive',
+            schedule
+        };
+    }
+
+    /**
+     * Fetch ALL activities across all venues/orgs (for system admins)
+     */
+    static async listAllActivities(): Promise<Activity[]> {
+        try {
+            const { data, error } = await (supabase
+                .from('activities') as any)
+                .select(`
+                    *,
+                    venue:venues(id, name, organization_id),
+                    organization:organizations(id, name)
+                `)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            return (data || []).map(this.mapActivityData);
+        } catch (error: any) {
+            console.error('Error fetching all activities:', error);
+            throw new Error(error.message || 'Failed to fetch activities');
+        }
+    }
+
+    /**
      * Fetch all activities for a specific venue with venue/org info
      */
     static async listActivities(venueId: string): Promise<Activity[]> {
@@ -77,38 +137,7 @@ export class ActivityService {
 
             if (error) throw error;
 
-            return (data || []).map((item: any) => {
-                // Extract schedule from BOTH schedule column and settings (fallback)
-                const scheduleData = item.schedule || {};
-                const settingsData = item.settings || {};
-                
-                const schedule: ActivityScheduleRules = {
-                    operatingDays: scheduleData.operatingDays || settingsData.operatingDays || [],
-                    startTime: scheduleData.startTime || settingsData.startTime || '09:00',
-                    endTime: scheduleData.endTime || settingsData.endTime || '17:00',
-                    slotInterval: scheduleData.slotInterval || settingsData.slotInterval || 60,
-                    advanceBooking: scheduleData.advanceBooking || settingsData.advanceBooking || 0,
-                    customHoursEnabled: scheduleData.customHoursEnabled || settingsData.customHoursEnabled || false,
-                    customHours: scheduleData.customHours || settingsData.customHours || {},
-                    customDates: scheduleData.customDates || settingsData.customDates || [],
-                    blockedDates: scheduleData.blockedDates || settingsData.blockedDates || []
-                };
-
-                return {
-                    ...item,
-                    // Include venue and organization info
-                    venue_name: item.venue?.name || null,
-                    organization_name: item.organization?.name || null,
-                    // Map legacy fields
-                    capacity: item.max_players || item.capacity || 1,
-                    min_players: item.min_players || 1,
-                    max_players: item.max_players || item.capacity || 10,
-                    child_price: settingsData.child_price || 0,
-                    min_age: settingsData.min_age || 0,
-                    status: item.is_active ? 'active' : 'inactive',
-                    schedule
-                };
-            });
+            return (data || []).map(this.mapActivityData);
         } catch (error: any) {
             console.error('Error fetching activities:', error);
             throw new Error(error.message || 'Failed to fetch activities');

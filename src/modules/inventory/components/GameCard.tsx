@@ -13,7 +13,8 @@ import {
     Calendar,
     Power,
     Trophy,
-    MapPin
+    MapPin,
+    Building2
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -26,12 +27,19 @@ import {
 import { Game } from '../types';
 
 interface GameCardProps {
-    game: Game;
+    game: Game & {
+        venue_name?: string | null;
+        venue_id_display?: string | null;
+        organization_name?: string | null;
+        organization_id_display?: string | null;
+    };
     onEdit: (game: Game) => void;
     onViewBookings: (game: Game) => void;
     onDuplicate: (game: Game) => void;
     onDelete: (game: Game) => void;
     onToggleStatus: (id: string, currentStatus: boolean) => void;
+    /** Show extended info for system admins */
+    showOrgInfo?: boolean;
     /** Terminology object for dynamic labels */
     terminology?: {
         singular: string;
@@ -46,6 +54,7 @@ export function GameCard({
     onDuplicate,
     onDelete,
     onToggleStatus,
+    showOrgInfo = false,
     terminology = { singular: 'Activity', plural: 'Activities' }
 }: GameCardProps) {
     return (
@@ -78,10 +87,24 @@ export function GameCard({
                         <h3 className="font-semibold text-lg line-clamp-1 text-gray-900 dark:text-white">
                             {game.name}
                         </h3>
+                        {/* Organization info (for system admins) */}
+                        {showOrgInfo && game.organization_name && (
+                            <div className="flex items-center gap-1 mt-0.5 text-xs text-blue-600 dark:text-blue-400">
+                                <Building2 className="w-3 h-3" />
+                                <span className="truncate">{game.organization_name}</span>
+                                {game.organization_id_display && (
+                                    <span className="text-gray-400 font-mono">({game.organization_id_display.slice(0, 8)}...)</span>
+                                )}
+                            </div>
+                        )}
+                        {/* Venue info */}
                         {game.venue_name && (
                             <div className="flex items-center gap-1 mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                                 <MapPin className="w-3 h-3" />
                                 <span className="truncate">{game.venue_name}</span>
+                                {showOrgInfo && game.venue_id_display && (
+                                    <span className="text-gray-400 font-mono">({game.venue_id_display.slice(0, 8)}...)</span>
+                                )}
                             </div>
                         )}
                         <div className="flex items-center gap-2 mt-1">

@@ -41,8 +41,11 @@ export function Events() {
 
   const activeVenue = useMemo(() => venues.find(v => v.id === activeVenueId), [venues, activeVenueId]);
 
-  // Use the new hook with the active venue ID
-  const { serviceItems, loading: itemsLoading, createServiceItem, updateServiceItem, deleteServiceItem, refreshServiceItems } = useServiceItems(activeVenueId);
+  // Use the new hook - System admins fetch ALL activities, org users fetch by venue
+  const { serviceItems, loading: itemsLoading, createServiceItem, updateServiceItem, deleteServiceItem, refreshServiceItems } = useServiceItems({
+    venueId: isSystemAdmin ? undefined : activeVenueId,
+    fetchAll: isSystemAdmin, // System admins see all activities from all venues/orgs
+  });
 
   // Debug: Expose createServiceItem to window
   React.useEffect(() => {
@@ -78,9 +81,11 @@ export function Events() {
       is_active: item.status === 'active',
       created_at: item.created_at,
       updated_at: item.updated_at,
-      // Include venue and organization names from joined data
+      // Include venue and organization names/IDs from joined data (for system admin display)
       venue_name: item.venue_name || activeVenue?.name || null,
-      organization_name: item.organization_name || organization?.name || null
+      venue_id_display: item.venue_id_display || item.venue_id || null,
+      organization_name: item.organization_name || organization?.name || null,
+      organization_id_display: item.organization_id_display || item.organization_id || null,
     }));
   }, [serviceItems, activeVenue, organization]);
 
@@ -299,11 +304,12 @@ export function Events() {
         games={games}
         isLoading={loading}
         onEdit={handleEdit}
-        onViewBookings={handleViewBookings} // Implemented onViewBookings
+        onViewBookings={handleViewBookings}
         onDuplicate={handleDuplicate}
         onDelete={(game) => setDeletingItem(game)}
         onToggleStatus={handleToggleStatus}
         onAddGame={() => setIsAddWizardOpen(true)}
+        showOrgInfo={isSystemAdmin}
         terminology={{ singular: t.singular, plural: t.plural }}
       />
 

@@ -4,7 +4,7 @@ import { GameCard } from './GameCard';
 import { Game } from '../types';
 
 interface GameGridProps {
-  games: Game[];
+  games: (Game & { venue_name?: string | null; venue_id_display?: string | null; organization_name?: string | null; organization_id_display?: string | null })[];
   isLoading: boolean;
   onEdit: (game: Game) => void;
   onViewBookings: (game: Game) => void;
@@ -12,6 +12,8 @@ interface GameGridProps {
   onDelete: (game: Game) => void;
   onToggleStatus: (id: string, currentStatus: boolean) => void;
   onAddGame: () => void;
+  /** Show extended info for system admins */
+  showOrgInfo?: boolean;
   /** Terminology object for dynamic labels */
   terminology?: {
     singular: string;
@@ -28,6 +30,7 @@ export function GameGrid({
   onDelete, 
   onToggleStatus,
   onAddGame,
+  showOrgInfo = false,
   terminology = { singular: 'Activity', plural: 'Activities' }
 }: GameGridProps) {
   
@@ -64,6 +67,7 @@ export function GameGrid({
           onDuplicate={onDuplicate}
           onDelete={onDelete}
           onToggleStatus={onToggleStatus}
+          showOrgInfo={showOrgInfo}
           terminology={terminology}
         />
       ))}

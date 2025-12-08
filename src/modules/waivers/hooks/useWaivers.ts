@@ -225,7 +225,7 @@ export function useWaivers(options: UseWaiversOptions = {}): UseWaiversReturn {
           if (mountedRef.current) refreshTemplates();
         }, 500);
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'waivers' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'signed_waivers' }, () => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => {
           if (mountedRef.current) refreshWaivers();

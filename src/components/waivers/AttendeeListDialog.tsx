@@ -132,7 +132,7 @@ export default function AttendeeListDialog({ booking, isOpen, onClose }: Attende
 
       // Query waivers table for attendees
       const { data, error } = await supabase
-        .from('waivers')
+        .from('signed_waivers')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -199,7 +199,7 @@ export default function AttendeeListDialog({ booking, isOpen, onClose }: Attende
         if (attendee.waiverId) {
           // First get current count
           const { data: currentData } = await supabase
-            .from('waivers')
+            .from('signed_waivers')
             .select('reminder_sent_count')
             .eq('id', attendee.waiverId)
             .single();
@@ -208,7 +208,7 @@ export default function AttendeeListDialog({ booking, isOpen, onClose }: Attende
 
           // Then update with incremented value
           const { error } = await (supabase
-            .from('waivers')
+            .from('signed_waivers')
             .update as any)({
               reminder_sent_count: currentCount + 1,
               last_reminder_sent_at: new Date().toISOString()

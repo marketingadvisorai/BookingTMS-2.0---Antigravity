@@ -12,16 +12,26 @@ import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
 import { Shield, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTheme } from '../components/layout/ThemeContext';
 
 type AdminRole = 'system-admin' | 'super-admin' | 'admin';
 
 const SystemAdminLogin: React.FC = () => {
+  const { theme } = useTheme();
   const [email, setEmail] = useState(''); // used as identifier: email or username
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
+
+  const isDark = theme === 'dark';
+  const bgPage = isDark ? 'bg-[#161616]' : 'bg-gray-50';
+  const bgCard = isDark ? 'bg-[#1e1e1e]' : 'bg-white';
+  const textPrimary = isDark ? 'text-white' : 'text-gray-900';
+  const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
+  const inputBg = isDark ? 'bg-[#161616]' : 'bg-gray-100';
+  const inputBorder = isDark ? 'border-gray-700' : 'border-gray-300';
 
   // Allowed roles for this login portal
   const allowedRoles: AdminRole[] = ['system-admin', 'super-admin', 'admin'];
@@ -152,119 +162,126 @@ const SystemAdminLogin: React.FC = () => {
   // Show loading while checking session
   if (checkingSession) {
     return (
-      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center">
+      <div className={`min-h-screen ${bgPage} flex items-center justify-center`}>
         <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] flex flex-col items-center justify-center p-4">
-      {/* Icon */}
-      <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mb-6">
-        <Shield className="w-6 h-6 text-white" />
-      </div>
-
-      {/* Title */}
-      <h1 className="text-[28px] font-semibold text-gray-900 mb-2">
-        System Admin Login
-      </h1>
-      <p className="text-gray-500 text-[15px] mb-8">
-        Sign in to manage your platform and settings
-      </p>
-
-      {/* Login Card */}
-      <div className="w-full max-w-[400px] bg-white rounded-2xl shadow-sm border border-gray-200/60 p-8">
-        <form onSubmit={handleLogin} className="space-y-5">
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-100 rounded-lg p-3 flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-
-          {/* Email Field */}
-          <div className="space-y-2">
-            <Label className="text-gray-700 font-medium text-[14px]">Email or Username</Label>
-            <Input
-              type="text"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setError(null);
-              }}
-              placeholder="email or username"
-              className="h-[46px] bg-[#f8f9fa] border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg text-[15px]"
-              disabled={loading}
-              autoComplete="username"
-            />
+    <div className={`min-h-screen ${bgPage} flex flex-col items-center justify-center p-4`}>
+      <div className="w-full max-w-md space-y-8">
+        {/* Logo/Header */}
+        <div className="text-center">
+          <div className="mx-auto h-12 w-12 bg-indigo-600 rounded-xl flex items-center justify-center mb-4">
+            <Shield className="h-6 w-6 text-white" />
           </div>
+          <h2 className={`text-3xl font-bold ${textPrimary}`}>
+            System Admin Login
+          </h2>
+          <p className={`mt-2 text-sm ${textSecondary}`}>
+            Sign in to manage your platform and settings
+          </p>
+        </div>
 
-          {/* Password Field */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-gray-700 font-medium text-[14px]">Password</Label>
+        {/* Login Card */}
+        <div className={`${bgCard} rounded-2xl shadow-xl p-8 border ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
+          <form onSubmit={handleLogin} className="space-y-5">
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-100 rounded-lg p-3 flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            {/* Email Field */}
+            <div className="space-y-2">
+              <Label className={isDark ? 'text-gray-300' : 'text-gray-700'}>
+                Email or Username
+              </Label>
+              <Input
+                type="text"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError(null);
+                }}
+                placeholder="email or username"
+                className={`h-12 ${inputBg} ${inputBorder} ${isDark ? 'text-white placeholder:text-gray-500' : 'text-gray-900 placeholder:text-gray-500'}`}
+                disabled={loading}
+                autoComplete="username"
+              />
+            </div>
+
+            {/* Password Field */}
+            <div className="space-y-2">
+              <Label className={isDark ? 'text-gray-300' : 'text-gray-700'}>
+                Password
+              </Label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder="Enter your password"
+                  className={`h-12 pr-12 ${inputBg} ${inputBorder} ${isDark ? 'text-white placeholder:text-gray-500' : 'text-gray-900 placeholder:text-gray-500'}`}
+                  disabled={loading}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${textSecondary} hover:text-gray-700 dark:hover:text-gray-300 transition-colors`}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors text-base font-medium"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  Signing in...
+                </>
+              ) : (
+                'Sign In'
+              )}
+            </Button>
+
+            <div className="text-right">
               <a
                 href="/forgot-password"
-                className="text-[14px] text-indigo-600 hover:text-indigo-700 font-medium"
+                className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
               >
                 Forgot password?
               </a>
             </div>
-            <div className="relative">
-              <Input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setError(null);
-                }}
-                placeholder="Enter your password"
-                className="h-[46px] pr-10 bg-[#f8f9fa] border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg text-[15px]"
-                disabled={loading}
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
+          </form>
+        </div>
 
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full h-[46px] bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors text-[15px] mt-2"
+        {/* Footer */}
+        <p className={`text-center text-sm ${textSecondary}`}>
+          Need help?{' '}
+          <a 
+            href="mailto:support@bookingtms.com" 
+            className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
           >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                Signing in...
-              </>
-            ) : (
-              'Sign In'
-            )}
-          </Button>
-        </form>
+            Contact Support
+          </a>
+        </p>
       </div>
-
-      {/* Help Link */}
-      <p className="text-gray-500 text-[14px] mt-8">
-        Need help?{' '}
-        <a 
-          href="mailto:support@bookingtms.com" 
-          className="text-indigo-600 hover:text-indigo-700 font-medium"
-        >
-          Contact Support
-        </a>
-      </p>
     </div>
   );
-};
+}
 
 export default SystemAdminLogin;

@@ -279,8 +279,11 @@ export function Header({ onNavigate, onMobileMenuToggle }: HeaderProps) {
           <Search className="w-5 h-5 text-gray-600 dark:text-[#737373]" />
         </Button>
 
-        {/* Right side */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        {/* Spacer to push right items to the end */}
+        <div className="flex-1" />
+
+        {/* Right side - User controls */}
+        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
           {/* Theme Toggle */}
           <ThemeToggle />
 
@@ -303,22 +306,20 @@ export function Header({ onNavigate, onMobileMenuToggle }: HeaderProps) {
                 <ChevronDown className="w-4 h-4 text-gray-400 dark:text-[#737373] hidden sm:inline" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-[#2a2a2a]">
+            <DropdownMenuContent
+              align="end"
+              className="w-64 bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-[#2a2a2a] max-h-[80vh] overflow-y-auto"
+            >
               <DropdownMenuLabel className="text-gray-900 dark:text-white">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">{currentUser?.name || 'User'}</p>
                   <p className="text-xs text-gray-600 dark:text-[#737373]">{currentUser?.email || ''}</p>
-                  {currentUser?.role && (
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium w-fit ${getRoleBadgeColor(currentUser.role)}`}>
-                      {formatRole(currentUser.role)}
-                    </span>
-                  )}
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-gray-200 dark:bg-[#2a2a2a]" />
               <DropdownMenuItem 
                 onClick={() => onNavigate('myaccount')}
-                className="text-gray-700 dark:text-[#d4d4d4] hover:bg-gray-100 dark:hover:bg-[#252525] cursor-pointer focus:bg-gray-100 dark:focus:bg-[#252525]"
+                className="text-gray-700 dark:text-[#d4d4d4] hover:bg-gray-100 dark:hover=bg-[#252525] cursor-pointer focus:bg-gray-100 dark:focus:bg-[#252525]"
               >
                 My Account
               </DropdownMenuItem>

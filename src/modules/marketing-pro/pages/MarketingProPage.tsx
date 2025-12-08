@@ -4,14 +4,7 @@
  */
 
 import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Percent, Gift, Star, Mail, UserPlus, RefreshCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/layout/ThemeContext';
@@ -36,7 +29,6 @@ import {
   CreateWorkflowDialog,
 } from '../components/dialogs';
 
-import { SectionHeader } from '../components/shared';
 import { toast } from 'sonner';
 import type { EmailTemplate, MarketingTab } from '../types';
 
@@ -105,10 +97,6 @@ export function MarketingProPage() {
   const [templateToPreview, setTemplateToPreview] = useState<EmailTemplate | null>(null);
   const [templateToEdit, setTemplateToEdit] = useState<EmailTemplate | null>(null);
 
-  // Get current section info
-  const currentTab = MARKETING_TABS.find(t => t.id === activeTab) || MARKETING_TABS[0];
-  const SectionIcon = ICON_MAP[currentTab.icon as keyof typeof ICON_MAP] || Percent;
-
   // Template handlers
   const handlePreviewTemplate = (template: EmailTemplate) => {
     setTemplateToPreview(template);
@@ -152,58 +140,35 @@ export function MarketingProPage() {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as MarketingTab)} className="space-y-4 sm:space-y-6">
-        {/* Mobile: Dropdown Navigation */}
-        <div className="sm:hidden">
-          <Select value={activeTab} onValueChange={(val) => setActiveTab(val as MarketingTab)}>
-            <SelectTrigger className={`w-full h-12 font-medium ${
-              isDark ? 'bg-[#1e1e1e] border-[#2a2a2a]' : 'bg-white border-gray-200'
-            }`}>
-              <SelectValue>
-                <div className="flex items-center gap-2">
-                  <SectionIcon className={`w-4 h-4 ${classes.primary}`} />
-                  <span>{currentTab.label}</span>
-                </div>
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {MARKETING_TABS.map((tab) => {
-                const Icon = ICON_MAP[tab.icon as keyof typeof ICON_MAP];
-                return (
-                  <SelectItem key={tab.id} value={tab.id}>
-                    <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4" />
-                      <span>{tab.label}</span>
-                    </div>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Desktop: Horizontal Tabs */}
-        <TabsList className={`hidden sm:flex w-full justify-start overflow-x-auto h-auto ${
-          isDark ? 'bg-[#161616] border border-[#2a2a2a]' : ''
-        }`}>
+      {/* Tab Navigation - Always Visible */}
+      <div className={`${classes.cardBg} border ${classes.border} rounded-lg p-2 shadow-sm`}>
+        <div className="flex flex-wrap gap-2">
           {MARKETING_TABS.map((tab) => {
             const Icon = ICON_MAP[tab.icon as keyof typeof ICON_MAP];
+            const isActive = activeTab === tab.id;
             return (
-              <TabsTrigger key={tab.id} value={tab.id} className="gap-2">
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as MarketingTab)}
+                className={`
+                  flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all
+                  ${isActive 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : isDark 
+                      ? 'bg-[#1e1e1e] text-[#a3a3a3] hover:bg-[#252525] hover:text-white' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                  }
+                `}
+              >
                 <Icon className="w-4 h-4" />
-                {tab.label}
-              </TabsTrigger>
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
             );
           })}
-        </TabsList>
+        </div>
+      </div>
 
-        {/* Mobile: Section Header */}
-        <SectionHeader
-          title={currentTab.label}
-          description={currentTab.description}
-          icon={SectionIcon}
-          color={currentTab.color as any}
-        />
+      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as MarketingTab)} className="space-y-4 sm:space-y-6">
 
         {/* Tab Contents */}
         <TabsContent value="promotions">

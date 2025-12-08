@@ -5,7 +5,8 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { body, validationResult } from 'express-validator';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { body, validationResult } = require('express-validator');
 import { backendSecrets } from '../../config/secrets.config';
 import { stripeService } from '../../services/stripe.service';
 import fs from 'fs/promises';

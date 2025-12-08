@@ -14,7 +14,7 @@ import { GuestsPage } from './modules/guests';
 import { Campaigns } from './pages/Campaigns';
 import { Marketing } from './pages/Marketing';
 import { MarketingProPage } from './modules/marketing-pro';
-import { AIAgents } from './pages/AIAgents';
+import { AIAgentsWrapper as AIAgents } from './pages/AIAgentsWrapper';
 import { StaffPage } from './modules/staff';
 import { Reports } from './pages/Reports';
 import MediaPage from './pages/MediaPage';

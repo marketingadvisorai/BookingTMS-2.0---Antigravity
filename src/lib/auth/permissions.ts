@@ -297,6 +297,10 @@ const BETA_OWNER_PERMISSIONS: Permission[] = [
   'customers.edit',
   'customers.export',
 
+  // Marketing - Promotions, Gift Cards, Email Campaigns, Affiliates
+  'marketing.view',
+  'marketing.edit',
+
   // Waivers - CRITICAL for liability (escape rooms)
   'waivers.view',
   'waivers.edit',
@@ -363,6 +367,10 @@ const ORG_ADMIN_PERMISSIONS: Permission[] = [
   'customers.create',
   'customers.edit',
   'customers.export',
+
+  // Marketing - Promotions, Gift Cards, Email Campaigns, Affiliates
+  'marketing.view',
+  'marketing.edit',
 
   // Staff
   'staff.view',

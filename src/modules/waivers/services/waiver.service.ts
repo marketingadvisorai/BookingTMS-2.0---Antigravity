@@ -29,7 +29,7 @@ export interface ListWaiversOptions {
 
 class WaiverService {
   // Use 'waivers' for existing data, will work with both old and new schema
-  private tableName = 'waivers';
+  private tableName = 'signed_waivers';
 
   /**
    * List all waiver records with optional filters

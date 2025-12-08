@@ -82,6 +82,9 @@ export const ProfileDropdown = ({
             absolute right-0 top-full mt-1 w-56 
             ${bgClass} border ${borderColor} rounded-lg shadow-lg z-50
             overflow-hidden
+            max-h-[80vh] overflow-y-auto
+            after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0 after:h-4 after:bg-gradient-to-t after:from-white/90 after:to-transparent
+            ${isDark ? "after:from-[#161616]/90" : "after:from-white/90"}
           `}
         >
           {/* Dropdown Header */}
@@ -91,7 +94,7 @@ export const ProfileDropdown = ({
           </div>
 
           {/* Menu Items */}
-          <div className="py-1">
+          <div className="py-1 space-y-0.5">
             {/* View Profile */}
             <button
               onClick={handleViewProfile}

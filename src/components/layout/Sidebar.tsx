@@ -61,15 +61,21 @@ export function Sidebar({ currentPage, onNavigate = () => { }, isMobileOpen = fa
       icon: Layers,
       permission: 'system.view' as Permission,
     }] : []),
-    { id: 'widgets', label: 'Booking Widgets', icon: Code, permission: 'widgets.view' as Permission },
-    { id: 'embed-pro', label: 'Embed Pro 1.1', icon: Code2, permission: 'widgets.view' as Permission },
+    // Booking Widgets - Only for System Admin (platform-level feature)
+    ...(isSystemAdmin ? [
+      { id: 'widgets', label: 'Booking Widgets', icon: Code, permission: 'widgets.view' as Permission },
+    ] : []),
+    // Embed Pro - Available for all admin roles (org-level widget management)
+    { id: 'embed-pro', label: 'Embed Pro 2.0', icon: Code2, permission: 'widgets.view' as Permission },
     { id: 'customers', label: 'Customers / Guests', icon: UserCircle, permission: 'customers.view' as Permission },
+    // MarketingPro - Available for all admin roles (org-level marketing features)
+    { id: 'marketing-pro', label: 'MarketingPro 1.1', icon: Tag, permission: 'marketing.view' as Permission },
+    // AI Agents - Available for all admin roles
+    { id: 'aiagents', label: 'AI Agents', icon: Bot, permission: 'ai-agents.view' as Permission },
     // System-level items - hide for org-level users
     ...(!isOrgLevelUser ? [
       { id: 'inbox', label: 'Inbox', icon: Inbox, permission: 'dashboard.view' as Permission },
       { id: 'campaigns', label: 'Campaigns', icon: Megaphone, permission: 'campaigns.view' as Permission },
-      { id: 'marketing-pro', label: 'MarketingPro 1.1', icon: Tag, permission: 'marketing.view' as Permission },
-      { id: 'aiagents', label: 'AI Agents', icon: Bot, permission: 'ai-agents.view' as Permission },
       { id: 'media', label: 'Media / Photos', icon: Image, permission: 'media.view' as Permission },
     ] : []),
     // Show staff only for system/super admins (org admins manage through their org settings)

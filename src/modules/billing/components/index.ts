@@ -10,3 +10,4 @@ export { InvoiceHistory } from './InvoiceHistory';
 export { CreditPurchaseDialog } from './CreditPurchaseDialog';
 export { BillingCycleToggle } from './BillingCycleToggle';
 export { CreditInfoSection } from './CreditInfoSection';
+export { UpgradeBanner } from './UpgradeBanner';

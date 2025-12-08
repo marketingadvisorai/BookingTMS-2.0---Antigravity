@@ -4,7 +4,7 @@
  * @module billing/pages
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTheme } from '@/components/layout/ThemeContext';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -18,6 +18,7 @@ import {
   CreditPurchaseDialog,
   BillingCycleToggle,
   CreditInfoSection,
+  UpgradeBanner,
 } from '../components';
 import type { SubscriptionPlan } from '../types';
 
@@ -42,6 +43,14 @@ export function BillingPage() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [showCreditDialog, setShowCreditDialog] = useState(false);
   const [processingPlan, setProcessingPlan] = useState(false);
+  const planSectionRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Scroll to plan selection section
+   */
+  const scrollToPlans = () => {
+    planSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   // Handle URL params for success/cancel
   useEffect(() => {
@@ -128,6 +137,13 @@ export function BillingPage() {
         sticky
       />
 
+      {/* Upgrade Banner - Shows for Free tier users */}
+      <UpgradeBanner
+        currentPlanSlug={currentPlan?.slug}
+        onUpgrade={scrollToPlans}
+        isDark={isDark}
+      />
+
       {/* Current Plan */}
       <CurrentPlanCard
         subscription={subscription}
@@ -137,13 +153,16 @@ export function BillingPage() {
         isDark={isDark}
       />
 
-      {/* Billing Cycle Toggle */}
-      <BillingCycleToggle
-        value={billingCycle}
-        onChange={setBillingCycle}
-        discountPercent={20}
-        isDark={isDark}
-      />
+      {/* Plan Selection Section */}
+      <div ref={planSectionRef} className="scroll-mt-6">
+        {/* Billing Cycle Toggle */}
+        <BillingCycleToggle
+          value={billingCycle}
+          onChange={setBillingCycle}
+          discountPercent={20}
+          isDark={isDark}
+        />
+      </div>
 
       {/* Plan Selector */}
       <PlanSelector

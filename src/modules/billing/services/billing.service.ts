@@ -48,30 +48,48 @@ export const billingService = {
 
   /**
    * Get subscription plans from database
+   * Returns empty array if table doesn't exist (fallback handled in hook)
    */
   async getPlans(): Promise<SubscriptionPlan[]> {
-    const { data, error } = await supabase
-      .from('subscription_plans')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order');
+    try {
+      const { data, error } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order');
 
-    if (error) throw error;
-    return data || [];
+      if (error) {
+        console.warn('subscription_plans table may not exist:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (err) {
+      console.warn('Failed to fetch plans, using fallback:', err);
+      return [];
+    }
   },
 
   /**
    * Get credit packages from database
+   * Returns empty array if table doesn't exist (fallback handled in hook)
    */
   async getCreditPackages(): Promise<CreditPackage[]> {
-    const { data, error } = await supabase
-      .from('credit_packages')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order');
+    try {
+      const { data, error } = await supabase
+        .from('credit_packages')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order');
 
-    if (error) throw error;
-    return data || [];
+      if (error) {
+        console.warn('credit_packages table may not exist:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (err) {
+      console.warn('Failed to fetch credit packages, using fallback:', err);
+      return [];
+    }
   },
 
   /**

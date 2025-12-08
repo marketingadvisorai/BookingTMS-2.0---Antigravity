@@ -4,6 +4,7 @@
  */
 
 import { useTheme } from '@/components/layout/ThemeContext';
+import { useAuth } from '@/lib/auth/AuthContext';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useSettings } from '../hooks/useSettings';
 import {
@@ -12,10 +13,12 @@ import {
   NotificationsTab,
   SecurityTab,
   AppearanceTab,
+  StripeConnectTab,
 } from '../components';
 
 export function SettingsPage() {
   const { theme } = useTheme();
+  const { currentUser } = useAuth();
   const isDark = theme === 'dark';
 
   const {
@@ -58,12 +61,12 @@ export function SettingsPage() {
         />
       )}
 
-      {activeTab === 'payments' && (
-        <div className={`p-6 rounded-lg ${isDark ? 'bg-[#161616] border-[#2a2a2a]' : 'bg-white border-gray-200'} border`}>
-          <p className={isDark ? 'text-[#a3a3a3]' : 'text-gray-600'}>
-            Payment settings are managed through the Payments page and Stripe Connect.
-          </p>
-        </div>
+      {activeTab === 'payments' && currentUser?.organizationId && (
+        <StripeConnectTab
+          organizationId={currentUser.organizationId}
+          organizationEmail={settings?.businessEmail || currentUser?.email}
+          organizationName={settings?.businessName || ''}
+        />
       )}
 
       {activeTab === 'notifications' && (

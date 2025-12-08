@@ -26,7 +26,7 @@ import { SettingsPage } from './modules/settings';
 import { MyAccount } from './pages/MyAccount';
 import { ProfileSettings } from './pages/ProfileSettings';
 import { Account } from './pages/Account';
-import { Billing } from './pages/Billing';
+import { BillingPage } from './modules/billing';
 import { Team } from './pages/Team';
 import { Embed } from './pages/Embed';
 import EmbedProPage from './pages/EmbedPro';
@@ -208,7 +208,7 @@ function AppContent() {
       case 'profile':
         return <ProfileSettings />;
       case 'billing':
-        return <Billing />;
+        return <BillingPage />;
       case 'team':
         return <Team />;
       case 'account-settings':

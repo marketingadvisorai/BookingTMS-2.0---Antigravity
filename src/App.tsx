@@ -33,7 +33,7 @@ import EmbedProPage from './pages/EmbedPro';
 import { EmbedProPage as EmbedProWidgetPage } from './modules/embed-pro';
 import { CustomerPortalPage } from './modules/customer-portal';
 import { AccountSettings } from './pages/AccountSettings';
-import { PaymentHistory } from './pages/PaymentHistory';
+import { PaymentHistoryPage } from './modules/payment-history';
 import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import DemoLogin from './pages/DemoLogin';
@@ -172,7 +172,7 @@ function AppContent() {
       case 'guests':
         return <GuestsPage />;
       case 'payment-history':
-        return <PaymentHistory />;
+        return <PaymentHistoryPage />;
       case 'campaigns':
         return <Campaigns />;
       case 'marketing':

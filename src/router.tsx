@@ -245,6 +245,12 @@ export const router = createBrowserRouter([
     element: <App />,
   },
   
+  // Stripe OAuth Callback (for linking existing Stripe accounts)
+  {
+    path: '/stripe/oauth/callback',
+    element: <App />,
+  },
+  
   // Demo Login Route (for testing different roles)
   {
     path: '/demo-login',

@@ -8,3 +8,4 @@ export { BusinessInfoTab } from './BusinessInfoTab';
 export { NotificationsTab } from './NotificationsTab';
 export { SecurityTab } from './SecurityTab';
 export { AppearanceTab } from './AppearanceTab';
+export { StripeConnectTab } from './StripeConnectTab';

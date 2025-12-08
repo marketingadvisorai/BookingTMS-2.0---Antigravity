@@ -141,6 +141,7 @@ function AppContent() {
 
     if (cleanPath === '/' || cleanPath === '/dashboard') return 'dashboard';
     if (cleanPath.startsWith('/system-admin')) return 'system-admin';
+    if (cleanPath.startsWith('/stripe/oauth/callback')) return 'stripe-oauth-callback';
 
     // Handle specific mappings if needed, otherwise use path segment
     const segment = cleanPath.split('/')[1];

@@ -67,21 +67,21 @@ export const StripeOAuthCallback: React.FC = () => {
           setReturnUrl(stateData.return_url);
         }
 
-        // Exchange authorization code for access token
-        // This should be done on your backend for security
-        const response = await fetch('/api/stripe-connect/oauth/token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            code,
-            user_id: stateData.user_id,
-            organization_id: stateData.organization_id,
-            email: stateData.email,
-            name: stateData.name,
-          }),
-        });
+        // Exchange authorization code for access token via edge function
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-connect-oauth`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'exchange_code',
+              code,
+              state,
+            }),
+          }
+        );
 
         if (!response.ok) {
           throw new Error('Failed to exchange OAuth code');
@@ -89,13 +89,13 @@ export const StripeOAuthCallback: React.FC = () => {
 
         const data = await response.json();
 
-        if (data.success && data.stripe_user_id) {
-          setAccountId(data.stripe_user_id);
+        if (data.success && data.accountId) {
+          setAccountId(data.accountId);
           setStatus('success');
           setMessage('Successfully connected your Stripe account!');
           
           toast.success('Account linked!', {
-            description: `Stripe account ${data.stripe_user_id} connected`
+            description: `Stripe account ${data.accountId} connected`
           });
 
           // Redirect after 3 seconds

@@ -240,23 +240,49 @@ BookingTMS implements a **multi-tenant payment platform** using Stripe Connect. 
 
 ## Platform Fee Structure
 
-| Fee Type | Description | Configuration |
-|----------|-------------|---------------|
-| **Platform Fee** | % of each booking | `organizations.application_fee_percentage` (default 5%) |
-| **Fixed Fee** | Per-booking fixed amount | `organizations.application_fee_fixed` |
-| **Subscription** | Monthly SaaS fee | `plans.price_monthly` via `stripe_subscription_id` |
+| Fee Type | Rate | Description |
+|----------|------|-------------|
+| **Platform Management Fee** | 1.29% | Fixed platform fee on ticket sales |
+| **Stripe Processing** | 2.9% + $0.30 | Standard Stripe card processing |
 
-### Fee Calculation Example
+### Fee Payment Modes
+
+Organizations can choose who pays the fees:
+
+| Mode | Column | Customer Pays | Org Receives |
+|------|--------|---------------|--------------|
+| Pass to Customer | `fee_payment_mode = 'pass_to_customer'` | Ticket + Fees | 100% of ticket |
+| Absorb Fees | `fee_payment_mode = 'absorb'` | Ticket only | Ticket - Fees |
+
+### Fee Calculation Example (Pass to Customer)
 
 ```
 Booking Total: $100.00
 
-1. Stripe Processing Fee: 2.9% + $0.30 = $3.20
-2. Platform Fee: 5% = $5.00
-3. Net to Venue: $100 - $3.20 - $5.00 = $91.80
+Customer Pays:
+  Ticket Price:         $100.00
+  + Service Fee:        $  4.54  (includes platform + stripe)
+  ─────────────────────────────
+  Total:                $104.54
 
-Platform Revenue per Booking: $5.00
+Platform Receives:       $  1.29  (1.29% platform fee)
+Stripe Receives:         $  3.25  (processing)
+Organization Receives:   $100.00  (full ticket price)
 ```
+
+### Fee Calculation Example (Absorb Fees)
+
+```
+Booking Total: $100.00
+
+Customer Pays:          $100.00
+
+Platform Receives:       $  1.29  (1.29% platform fee)
+Stripe Receives:         $  3.20  (processing)
+Organization Receives:   $ 95.51  (after fees)
+```
+
+See `/docs/PLATFORM_FEE_SYSTEM.md` for complete documentation.
 
 ---
 

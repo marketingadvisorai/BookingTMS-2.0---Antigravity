@@ -160,10 +160,21 @@ This document describes the complete billing, subscription, and credit system ar
 
 | Plan | Monthly | Yearly | Free Bookings | Free AI | Credits/mo | Rooms | Staff |
 |------|---------|--------|---------------|---------|------------|-------|-------|
-| Free | $0 | $0 | Unlimited (3.9% fee) | 0 | 0 | 3 | 3 |
 | Starter | $49 | $470 | 30 | 30 | 100 | 5 | 5 |
 | Professional | $99 | $950 | 60 | 60 | 200 | 15 | 25 |
 | Enterprise | Custom | Custom | Unlimited | Unlimited | Custom | ∞ | ∞ |
+
+## Platform Fee Structure
+
+All plans include the same fee structure:
+- **Platform Management Fee**: 1.29% per ticket sale
+- **Stripe Processing Fee**: 2.9% + $0.30 per transaction
+
+Organizations can choose who pays these fees:
+1. **Pass to Customer**: Customer pays ticket + fees, org receives 100% of ticket price
+2. **Absorb Fees**: Customer pays ticket only, fees deducted from org payout
+
+See `/docs/PLATFORM_FEE_SYSTEM.md` for detailed documentation.
 
 ## Credit Pricing
 
@@ -181,6 +192,8 @@ This document describes the complete billing, subscription, and credit system ar
 | Extra Booking | 2 |
 | Waiver Signed | 2 |
 | Extra AI Conversation | 2 |
+
+> Note: Platform and Stripe fees are charged per-transaction, not via credits. See Platform Fee Structure above.
 
 ## API Endpoints (Edge Functions)
 

@@ -34,8 +34,16 @@ export interface Organization {
   stripe_onboarding_status?: 'not_started' | 'incomplete' | 'complete';
   stripe_account_type?: string;
   
-  // Application Fee
+  // Application Fee (Legacy - use platform_fee_percent instead)
   application_fee_percentage: number;
+  
+  // Platform Fee System
+  fee_payment_mode: 'absorb' | 'pass_to_customer';
+  platform_fee_percent: number;
+  stripe_fee_percent: number;
+  stripe_fee_fixed: number;
+  show_fee_breakdown: boolean;
+  fee_label: string;
   
   // Timestamps
   created_at: string;
@@ -138,6 +146,13 @@ export interface UpdateOrganizationDTO {
   plan_id?: string;
   status?: 'active' | 'inactive' | 'suspended';
   application_fee_percentage?: number;
+  // Platform Fee System
+  fee_payment_mode?: 'absorb' | 'pass_to_customer';
+  platform_fee_percent?: number;
+  stripe_fee_percent?: number;
+  stripe_fee_fixed?: number;
+  show_fee_breakdown?: boolean;
+  fee_label?: string;
 }
 
 // Filters & Queries

@@ -84,7 +84,14 @@ export default function OrganizationSettingsModal({
     country: organization.country || '',
     plan_id: organization.plan_id || '',
     status: organization.status || 'pending',
-    application_fee_percentage: organization.application_fee_percentage || 0.75,
+    application_fee_percentage: organization.application_fee_percentage || 1.29,
+    // Platform Fee System
+    fee_payment_mode: organization.fee_payment_mode || 'pass_to_customer',
+    platform_fee_percent: organization.platform_fee_percent || 1.29,
+    stripe_fee_percent: organization.stripe_fee_percent || 2.9,
+    stripe_fee_fixed: organization.stripe_fee_fixed || 0.30,
+    show_fee_breakdown: organization.show_fee_breakdown ?? true,
+    fee_label: organization.fee_label || 'Service Fee',
   });
 
   // Reset form when organization changes
@@ -102,7 +109,14 @@ export default function OrganizationSettingsModal({
       country: organization.country || '',
       plan_id: organization.plan_id || '',
       status: organization.status || 'pending',
-      application_fee_percentage: organization.application_fee_percentage || 0.75,
+      application_fee_percentage: organization.application_fee_percentage || 1.29,
+      // Platform Fee System
+      fee_payment_mode: organization.fee_payment_mode || 'pass_to_customer',
+      platform_fee_percent: organization.platform_fee_percent || 1.29,
+      stripe_fee_percent: organization.stripe_fee_percent || 2.9,
+      stripe_fee_fixed: organization.stripe_fee_fixed || 0.30,
+      show_fee_breakdown: organization.show_fee_breakdown ?? true,
+      fee_label: organization.fee_label || 'Service Fee',
     });
   }, [organization]);
 
@@ -131,6 +145,21 @@ export default function OrganizationSettingsModal({
       if (typeof formData.application_fee_percentage === 'number') {
         cleanedData.application_fee_percentage = formData.application_fee_percentage;
       }
+      // Platform Fee System
+      if (formData.fee_payment_mode) cleanedData.fee_payment_mode = formData.fee_payment_mode;
+      if (typeof formData.platform_fee_percent === 'number') {
+        cleanedData.platform_fee_percent = formData.platform_fee_percent;
+      }
+      if (typeof formData.stripe_fee_percent === 'number') {
+        cleanedData.stripe_fee_percent = formData.stripe_fee_percent;
+      }
+      if (typeof formData.stripe_fee_fixed === 'number') {
+        cleanedData.stripe_fee_fixed = formData.stripe_fee_fixed;
+      }
+      if (typeof formData.show_fee_breakdown === 'boolean') {
+        cleanedData.show_fee_breakdown = formData.show_fee_breakdown;
+      }
+      if (formData.fee_label?.trim()) cleanedData.fee_label = formData.fee_label.trim();
 
       await OrganizationService.update(organization.id, cleanedData);
       toast.success('Organization settings updated successfully');
@@ -456,64 +485,211 @@ function BillingSettingsTab({
   formData: any;
   onChange: (field: string, value: any) => void;
 }) {
+  // Calculate example fees for display
+  const exampleAmount = 100;
+  const platformFee = (exampleAmount * formData.platform_fee_percent / 100);
+  
+  let stripeFee: number;
+  let customerTotal: number;
+  let orgReceives: number;
+  
+  if (formData.fee_payment_mode === 'pass_to_customer') {
+    customerTotal = Math.round(
+      ((exampleAmount + platformFee + formData.stripe_fee_fixed) / 
+      (1 - formData.stripe_fee_percent / 100)) * 100
+    ) / 100;
+    stripeFee = Math.round((customerTotal - exampleAmount - platformFee) * 100) / 100;
+    orgReceives = exampleAmount;
+  } else {
+    customerTotal = exampleAmount;
+    stripeFee = Math.round(((exampleAmount * formData.stripe_fee_percent / 100) + formData.stripe_fee_fixed) * 100) / 100;
+    orgReceives = Math.round((exampleAmount - platformFee - stripeFee) * 100) / 100;
+  }
+  const totalFees = Math.round((platformFee + stripeFee) * 100) / 100;
+
   return (
     <div className="space-y-4">
+      {/* Fee Payment Mode Selector */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Platform Fee Settings</CardTitle>
-          <CardDescription>Configure the platform fee percentage for this organization</CardDescription>
+          <CardTitle className="text-base">Fee Payment Mode</CardTitle>
+          <CardDescription>Choose who pays the platform and payment processing fees</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="fee">Application Fee Percentage</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="fee"
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                value={formData.application_fee_percentage}
-                onChange={(e) => onChange('application_fee_percentage', parseFloat(e.target.value))}
-                className="max-w-[120px]"
-              />
-              <span className="text-gray-500">%</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Pass to Customer Option */}
+            <div
+              className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                formData.fee_payment_mode === 'pass_to_customer'
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => onChange('fee_payment_mode', 'pass_to_customer')}
+            >
+              {formData.fee_payment_mode === 'pass_to_customer' && (
+                <CheckCircle className="absolute top-3 right-3 h-5 w-5 text-indigo-600" />
+              )}
+              <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                Pass Fees to Customer
+              </h4>
+              <p className="text-sm text-gray-500 mt-1">
+                Customer pays ticket price + service fee. You receive the full ticket amount.
+              </p>
+              <div className="mt-3 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs">
+                <div className="flex justify-between">
+                  <span>Customer pays:</span>
+                  <span className="font-medium">Ticket + Fees</span>
+                </div>
+                <div className="flex justify-between text-green-600">
+                  <span>You receive:</span>
+                  <span className="font-medium">100% of ticket</span>
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-gray-500">
-              This is the percentage of each booking that goes to the platform
-            </p>
-          </div>
-
-          <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                  Fee Calculation Example
-                </p>
-                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                  For a $100 booking with {formData.application_fee_percentage}% fee: 
-                  Platform receives ${(100 * formData.application_fee_percentage / 100).toFixed(2)}, 
-                  Organization receives ${(100 - (100 * formData.application_fee_percentage / 100)).toFixed(2)}
-                </p>
+            
+            {/* Absorb Fees Option */}
+            <div
+              className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                formData.fee_payment_mode === 'absorb'
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => onChange('fee_payment_mode', 'absorb')}
+            >
+              {formData.fee_payment_mode === 'absorb' && (
+                <CheckCircle className="absolute top-3 right-3 h-5 w-5 text-indigo-600" />
+              )}
+              <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                Absorb Fees
+              </h4>
+              <p className="text-sm text-gray-500 mt-1">
+                Customer pays only the ticket price. Fees are deducted from your payout.
+              </p>
+              <div className="mt-3 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs">
+                <div className="flex justify-between">
+                  <span>Customer pays:</span>
+                  <span className="font-medium">Ticket only</span>
+                </div>
+                <div className="flex justify-between text-amber-600">
+                  <span>You receive:</span>
+                  <span className="font-medium">Ticket - Fees</span>
+                </div>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
+      {/* Fee Configuration */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Billing History</CardTitle>
-          <CardDescription>Recent invoices and payments</CardDescription>
+          <CardTitle className="text-base">Fee Configuration</CardTitle>
+          <CardDescription>Platform management fee: 1.29% per ticket • Stripe: 2.9% + $0.30</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-gray-500">
-            <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>No billing history available</p>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="platform_fee">Platform Fee (%)</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="platform_fee"
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.01"
+                  value={formData.platform_fee_percent}
+                  onChange={(e) => onChange('platform_fee_percent', parseFloat(e.target.value) || 0)}
+                  className="max-w-[120px]"
+                  disabled
+                />
+                <span className="text-gray-500">%</span>
+              </div>
+              <p className="text-xs text-gray-400">Fixed platform management fee</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fee_label">Fee Label (Customer-facing)</Label>
+              <Input
+                id="fee_label"
+                value={formData.fee_label}
+                onChange={(e) => onChange('fee_label', e.target.value)}
+                placeholder="Service Fee"
+              />
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Show Fee Breakdown</Label>
+              <p className="text-xs text-gray-500">Display itemized fees to customers during checkout</p>
+            </div>
+            <Switch
+              checked={formData.show_fee_breakdown}
+              onCheckedChange={(checked) => onChange('show_fee_breakdown', checked)}
+            />
           </div>
         </CardContent>
       </Card>
+
+      {/* Live Calculation Example */}
+      <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border-indigo-200 dark:border-indigo-800">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CreditCard className="h-5 w-5 text-indigo-600" />
+            Live Fee Calculation Example
+          </CardTitle>
+          <CardDescription>For a ${exampleAmount} ticket purchase</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Ticket Price</span>
+              <span className="font-medium">${exampleAmount.toFixed(2)}</span>
+            </div>
+            {formData.fee_payment_mode === 'pass_to_customer' && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">{formData.fee_label}</span>
+                <span className="font-medium">+${totalFees.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="border-t pt-2">
+              <div className="flex justify-between text-sm font-medium">
+                <span>Customer Pays</span>
+                <span className="text-lg">${customerTotal.toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>Platform Fee (1.29%)</span>
+                <span>-${platformFee.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>Stripe Processing</span>
+                <span>-${stripeFee.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm font-semibold text-green-600">
+                <span>You Receive</span>
+                <span>${orgReceives.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stripe Compliance Notice */}
+      <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+              Stripe Compliance
+            </p>
+            <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+              Per Stripe's guidelines, fees must be clearly disclosed to customers before checkout. 
+              When "Pass Fees to Customer" is enabled, an itemized breakdown will be shown during the booking process.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

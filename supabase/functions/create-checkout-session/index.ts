@@ -7,6 +7,13 @@
  * - Session-specific metadata for booking creation
  * - Promo codes (synced to Stripe coupons)
  * - Gift card balance deduction before Stripe payment
+ * - Platform fee system with two modes:
+ *   - absorb: Organization pays all fees
+ *   - pass_to_customer: Customer pays fees on top
+ * 
+ * Fee Structure:
+ * - Platform Management Fee: 1.29% of ticket price
+ * - Stripe Processing: 2.9% + $0.30
  * 
  * @metadata Session info stored in checkout.metadata and payment_intent.metadata:
  * - booking_id, activity_id, venue_id, organization_id
@@ -14,9 +21,10 @@
  * - booking_date, start_time, end_time
  * - party_size, customer_name, customer_phone
  * - promo_code, promo_discount, gift_card_id, gift_card_amount
+ * - platform_fee, stripe_fee, fee_payment_mode
  * 
- * @version 2.1.0 - Added promo codes and gift cards support
- * @date 2025-11-30
+ * @version 3.0.0 - Added platform fee system with fee modes
+ * @date 2025-12-09
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -28,8 +36,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Platform fee percentage (can be configured per organization)
-const DEFAULT_PLATFORM_FEE_PERCENT = 5; // 5% platform fee
+// Platform fee configuration (fixed at 1.29%)
+const DEFAULT_PLATFORM_FEE_PERCENT = 1.29; // 1.29% platform management fee
+const DEFAULT_STRIPE_FEE_PERCENT = 2.9; // Stripe standard fee
+const DEFAULT_STRIPE_FEE_FIXED = 0.30; // Stripe fixed fee per transaction
+const DEFAULT_FEE_PAYMENT_MODE = 'pass_to_customer'; // 'absorb' | 'pass_to_customer'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -123,18 +134,36 @@ serve(async (req) => {
 
     // Fetch organization settings for platform fee if organizationId provided
     let platformFeePercent = DEFAULT_PLATFORM_FEE_PERCENT;
+    let stripeFeePercent = DEFAULT_STRIPE_FEE_PERCENT;
+    let stripeFeeFixed = DEFAULT_STRIPE_FEE_FIXED;
+    let feePaymentMode = DEFAULT_FEE_PAYMENT_MODE;
+    let showFeeBreakdown = true;
+    let feeLabel = 'Service Fee';
     let stripeConnectedAccountId = connectedAccountId;
 
-    if (organizationId && !stripeConnectedAccountId) {
+    if (organizationId) {
       const { data: org } = await supabase
         .from('organizations')
-        .select('stripe_account_id, application_fee_percentage')
+        .select(`
+          stripe_account_id, 
+          platform_fee_percent, 
+          stripe_fee_percent,
+          stripe_fee_fixed,
+          fee_payment_mode,
+          show_fee_breakdown,
+          fee_label
+        `)
         .eq('id', organizationId)
         .single();
 
       if (org) {
-        stripeConnectedAccountId = org.stripe_account_id;
-        platformFeePercent = org.application_fee_percentage || DEFAULT_PLATFORM_FEE_PERCENT;
+        stripeConnectedAccountId = stripeConnectedAccountId || org.stripe_account_id;
+        platformFeePercent = org.platform_fee_percent || DEFAULT_PLATFORM_FEE_PERCENT;
+        stripeFeePercent = org.stripe_fee_percent || DEFAULT_STRIPE_FEE_PERCENT;
+        stripeFeeFixed = org.stripe_fee_fixed || DEFAULT_STRIPE_FEE_FIXED;
+        feePaymentMode = org.fee_payment_mode || DEFAULT_FEE_PAYMENT_MODE;
+        showFeeBreakdown = org.show_fee_breakdown ?? true;
+        feeLabel = org.fee_label || 'Service Fee';
       }
     }
 
@@ -242,6 +271,14 @@ serve(async (req) => {
       bookingMetadata.subtotal = String(subtotal);
       bookingMetadata.final_amount = String(finalPayableAmount);
     }
+    
+    // Add fee settings to metadata for webhook processing
+    bookingMetadata.fee_payment_mode = feePaymentMode;
+    bookingMetadata.platform_fee_percent = String(platformFeePercent);
+    bookingMetadata.stripe_fee_percent = String(stripeFeePercent);
+    bookingMetadata.stripe_fee_fixed = String(stripeFeeFixed);
+    bookingMetadata.show_fee_breakdown = String(showFeeBreakdown);
+    bookingMetadata.fee_label = feeLabel;
 
     // Calculate application fee for Stripe Connect
     // This charges a platform fee that goes to us after Stripe fees
@@ -328,6 +365,25 @@ serve(async (req) => {
     // For now, we just validate - actual deduction happens in webhook
     // to prevent double-deduction if customer abandons checkout
 
+    // Calculate actual fee amounts for response
+    const platformFeeAmount = Math.round(subtotal * (platformFeePercent / 100) * 100) / 100;
+    let stripeFeeAmount: number;
+    let customerTotal: number;
+    
+    if (feePaymentMode === 'pass_to_customer') {
+      // Customer pays fees on top - calculate total including Stripe fee
+      customerTotal = Math.round(
+        ((subtotal + platformFeeAmount + stripeFeeFixed) / 
+        (1 - stripeFeePercent / 100)) * 100
+      ) / 100;
+      stripeFeeAmount = Math.round((customerTotal - subtotal - platformFeeAmount) * 100) / 100;
+    } else {
+      // Organization absorbs fees
+      customerTotal = subtotal;
+      stripeFeeAmount = Math.round(((subtotal * (stripeFeePercent / 100)) + stripeFeeFixed) * 100) / 100;
+    }
+    const totalFees = Math.round((platformFeeAmount + stripeFeeAmount) * 100) / 100;
+
     return new Response(
       JSON.stringify({
         sessionId: session.id,
@@ -342,6 +398,16 @@ serve(async (req) => {
           giftCardAmount: giftCardDeduction,
           subtotal: subtotal,
           finalAmount: finalPayableAmount,
+        },
+        // Include fee info for client display (Stripe compliance)
+        fees: {
+          feePaymentMode: feePaymentMode,
+          platformFee: platformFeeAmount,
+          stripeFee: stripeFeeAmount,
+          totalFees: totalFees,
+          customerTotal: customerTotal,
+          showBreakdown: showFeeBreakdown,
+          feeLabel: feeLabel,
         },
       }),
       {

@@ -4,9 +4,28 @@ import { Input } from '../../../ui/input';
 import { Label } from '../../../ui/label';
 import { Button } from '../../../ui/button';
 import { Textarea } from '../../../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../ui/select';
 import { VenueService, Venue } from '../../../../services/venue.service';
 import { toast } from 'sonner';
 import { Loader2, Save } from 'lucide-react';
+
+/**
+ * USA Time Zones Only
+ * All IANA timezone identifiers for United States regions
+ */
+const USA_TIMEZONES = [
+    { value: 'America/New_York', label: 'Eastern Time (ET)' },
+    { value: 'America/Chicago', label: 'Central Time (CT)' },
+    { value: 'America/Denver', label: 'Mountain Time (MT)' },
+    { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+    { value: 'America/Phoenix', label: 'Arizona (No DST)' },
+    { value: 'America/Anchorage', label: 'Alaska Time (AKT)' },
+    { value: 'Pacific/Honolulu', label: 'Hawaii Time (HST)' },
+    { value: 'America/Adak', label: 'Hawaii-Aleutian (HST)' },
+    { value: 'America/Detroit', label: 'Eastern Time (Detroit)' },
+    { value: 'America/Indiana/Indianapolis', label: 'Eastern Time (Indiana)' },
+    { value: 'America/Boise', label: 'Mountain Time (Boise)' },
+];
 
 interface VenueSettingsTabProps {
     config: any;
@@ -119,13 +138,22 @@ export const VenueSettingsTab: React.FC<VenueSettingsTabProps> = ({ config, onCo
 
                     <div className="space-y-2">
                         <Label htmlFor="venue-timezone">Timezone</Label>
-                        <Input
-                            id="venue-timezone"
+                        <Select
                             value={formData.timezone}
-                            onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                            placeholder="e.g. America/New_York"
-                        />
-                        <p className="text-xs text-gray-500">Critical for booking availability. Use IANA timezone format.</p>
+                            onValueChange={(value) => setFormData({ ...formData, timezone: value })}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select timezone" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {USA_TIMEZONES.map((tz) => (
+                                    <SelectItem key={tz.value} value={tz.value}>
+                                        {tz.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <p className="text-xs text-gray-500">Critical for booking availability.</p>
                     </div>
 
                     <div className="space-y-2">

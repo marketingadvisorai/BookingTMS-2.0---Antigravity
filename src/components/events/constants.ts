@@ -62,18 +62,22 @@ export const CATEGORIES = [
 export const LANGUAGES = ['English', 'Spanish', 'French', 'German', 'Mandarin', 'Japanese'];
 export const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+/**
+ * USA Time Zones Only
+ * All IANA timezone identifiers for United States regions
+ */
 export const TIMEZONES = [
-    { value: 'UTC', label: 'UTC' },
     { value: 'America/New_York', label: 'Eastern Time (ET)' },
     { value: 'America/Chicago', label: 'Central Time (CT)' },
     { value: 'America/Denver', label: 'Mountain Time (MT)' },
     { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
-    { value: 'Europe/London', label: 'London (GMT)' },
-    { value: 'Europe/Paris', label: 'Paris (CET)' },
-    { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
-    { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
-    { value: 'Asia/Dubai', label: 'Dubai (GST)' },
-    { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
+    { value: 'America/Phoenix', label: 'Arizona (No DST)' },
+    { value: 'America/Anchorage', label: 'Alaska Time (AKT)' },
+    { value: 'Pacific/Honolulu', label: 'Hawaii Time (HST)' },
+    { value: 'America/Adak', label: 'Hawaii-Aleutian (HST)' },
+    { value: 'America/Detroit', label: 'Eastern Time (Detroit)' },
+    { value: 'America/Indiana/Indianapolis', label: 'Eastern Time (Indiana)' },
+    { value: 'America/Boise', label: 'Mountain Time (Boise)' },
 ];
 
 // Mock existing FAQs and Policies (in real app, these would come from API)

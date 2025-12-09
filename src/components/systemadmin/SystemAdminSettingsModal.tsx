@@ -208,11 +208,18 @@ export function SystemAdminSettingsModal({ isOpen, onClose }: SystemAdminSetting
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        {/* USA Time Zones Only */}
                         <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
                         <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
                         <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
                         <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
-                        <SelectItem value="UTC">UTC</SelectItem>
+                        <SelectItem value="America/Phoenix">Arizona (No DST)</SelectItem>
+                        <SelectItem value="America/Anchorage">Alaska Time (AKT)</SelectItem>
+                        <SelectItem value="Pacific/Honolulu">Hawaii Time (HST)</SelectItem>
+                        <SelectItem value="America/Adak">Hawaii-Aleutian (HST)</SelectItem>
+                        <SelectItem value="America/Detroit">Eastern Time (Detroit)</SelectItem>
+                        <SelectItem value="America/Indiana/Indianapolis">Eastern Time (Indiana)</SelectItem>
+                        <SelectItem value="America/Boise">Mountain Time (Boise)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

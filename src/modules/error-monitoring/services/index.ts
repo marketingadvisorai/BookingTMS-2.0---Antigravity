@@ -9,3 +9,4 @@ export { healthCheckService } from './healthCheck.service';
 export { aiAnalysisService } from './aiAnalysis.service';
 export { userReportsService } from './userReports.service';
 export { alertingService } from './alerting.service';
+export { devopsService } from './devops.service';

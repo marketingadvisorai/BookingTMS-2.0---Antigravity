@@ -49,6 +49,7 @@ import { Label } from '../components/ui/label';
 import { DatabaseTab } from '../components/backend/DatabaseTab';
 import { AuthServicesTab } from '../components/backend/AuthServicesTab';
 import { SecretsTab } from '../components/backend/SecretsTab';
+import { ErrorMonitoringTab } from '../components/backend/ErrorMonitoringTab';
 
 interface ConnectionStatus {
   name: string;
@@ -541,6 +542,11 @@ export default function BackendDashboard() {
               <span className="hidden sm:inline">LLM Connections</span>
               <span className="sm:hidden">LLM</span>
             </TabsTrigger>
+            <TabsTrigger value="errors" className="flex-shrink-0">
+              <AlertCircle className="w-4 h-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Error Monitoring</span>
+              <span className="sm:hidden">Errors</span>
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -1019,6 +1025,11 @@ export default function BackendDashboard() {
               </div>
             </div>
           </Card>
+        </TabsContent>
+
+        {/* Error Monitoring Tab */}
+        <TabsContent value="errors" className="space-y-4">
+          <ErrorMonitoringTab />
         </TabsContent>
       </Tabs>
 

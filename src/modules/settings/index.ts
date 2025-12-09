@@ -26,7 +26,9 @@ export {
   NotificationsTab,
   SecurityTab,
   AppearanceTab,
+  StripeConnectTab,
 } from './components';
+export type { StripeAccountStatus, StripeConnectTabProps } from './components';
 
 // Pages
 export { SettingsPage } from './pages/SettingsPage';

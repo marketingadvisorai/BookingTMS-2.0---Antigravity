@@ -46,6 +46,7 @@ import { supabase } from './lib/supabase/client';
 import BackendDashboard from './pages/BackendDashboard';
 import GiftVouchers from './pages/GiftVouchers';
 import SystemAdminDashboard from './pages/SystemAdminDashboard';
+import { ErrorMonitoringPage } from './modules/error-monitoring';
 import { ViewAllOrganizations } from './pages/ViewAllOrganizations';
 import UserStripeAccounts from './pages/UserStripeAccounts';
 import StripeOAuthCallback from './pages/StripeOAuthCallback';
@@ -217,6 +218,8 @@ function AppContent() {
         return <BackendDashboard />;
       case 'system-admin':
         return <SystemAdminDashboard onNavigate={handleNavigate} />;
+      case 'error-monitoring':
+        return <ErrorMonitoringPage />;
       case 'view-all-organizations':
         return <ViewAllOrganizations onBack={() => handleNavigate('system-admin')} />;
       case 'user-stripe-accounts':

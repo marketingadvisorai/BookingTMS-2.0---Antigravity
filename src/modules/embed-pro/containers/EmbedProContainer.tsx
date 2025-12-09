@@ -8,7 +8,13 @@
 
 import React from 'react';
 import { useEmbedProData } from '../hooks/useEmbedProData';
-import { BookingWidgetPro } from '../widgets';
+import { 
+  BookingWidgetPro, 
+  CalendarWidgetPro, 
+  ButtonWidgetPro, 
+  InlineWidgetPro, 
+  PopupWidgetPro 
+} from '../widgets';
 import { WidgetLoading, WidgetError } from '../widget-components';
 
 // =====================================================
@@ -76,14 +82,44 @@ export const EmbedProContainer: React.FC<EmbedProContainerProps> = ({
   };
 
   // Route to correct widget based on type
-  // For now, all types use BookingWidgetPro
-  // Future: Add CalendarWidgetPro, ButtonWidgetPro, etc.
   switch (data.type) {
-    case 'booking-widget':
-    case 'inline-widget':
-    case 'popup-widget':
     case 'calendar-widget':
+      return (
+        <CalendarWidgetPro
+          data={effectiveData}
+          onBookClick={(date) => {
+            // Could redirect or open booking modal
+            console.log('Date selected:', date);
+          }}
+        />
+      );
+
     case 'button-widget':
+      return (
+        <ButtonWidgetPro
+          widgetData={effectiveData}
+          style={effectiveData.style}
+          onBookingComplete={(booking) => onBookingComplete?.(booking.id)}
+        />
+      );
+
+    case 'inline-widget':
+      return (
+        <InlineWidgetPro
+          data={effectiveData}
+          onBookingComplete={(booking) => onBookingComplete?.(booking.id)}
+        />
+      );
+
+    case 'popup-widget':
+      return (
+        <PopupWidgetPro
+          data={effectiveData}
+          onBookingComplete={(booking) => onBookingComplete?.(booking.id)}
+        />
+      );
+
+    case 'booking-widget':
     default:
       return (
         <BookingWidgetPro

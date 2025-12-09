@@ -218,7 +218,7 @@ export const CreateEmbedModal: React.FC<CreateEmbedModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Embed</DialogTitle>
         </DialogHeader>

@@ -255,6 +255,7 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
     setChildCount,
     goBack,
     goNext,
+    goToStep,
     setBookingId,
     setError,
     reset,
@@ -496,7 +497,8 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
             selectedDate={state.selectedDate}
             onDateSelect={(date) => {
               selectDate(date);
-              handleStepChange(goNext);
+              // Use goToStep directly to avoid stale closure issues with goNext
+              handleStepChange(() => goToStep('select-time'));
             }}
             style={style}
             isDarkMode={isDarkMode}
@@ -508,9 +510,10 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
             schedule={activity.schedule}
             selectedDate={state.selectedDate}
             selectedTime={state.selectedTime}
-            onTimeSelect={(time) => {
-              selectTime(time);
-              handleStepChange(goNext);
+            onTimeSelect={(time, sessionId) => {
+              selectTime(time, sessionId);
+              // Use goToStep directly to avoid stale closure issues with goNext
+              handleStepChange(() => goToStep('select-party'));
             }}
             style={style}
             duration={activity.duration}
@@ -528,7 +531,7 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
               style={style}
             />
             <button
-              onClick={() => handleStepChange(goNext)}
+              onClick={() => handleStepChange(() => goToStep('checkout'))}
               className="liquid-primary-button w-full mt-4 py-4 rounded-2xl font-semibold text-white"
               style={{ 
                 background: `linear-gradient(135deg, ${style.primaryColor} 0%, ${style.primaryColor}dd 100%)` 

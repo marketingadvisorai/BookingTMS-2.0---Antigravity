@@ -1,20 +1,14 @@
-/**
- * Cleanup Expired Reservations Edge Function
- * 
- * This function should be called by a cron job every 1-2 minutes
- * to clean up expired slot reservations and restore capacity.
- * 
- * Cron setup in Supabase Dashboard:
- * - Go to Database > Extensions > Enable pg_cron
- * - Create a cron job: SELECT cron.schedule('cleanup-reservations', '*/2 * * * *', $$SELECT cleanup_expired_reservations()$$);
- * 
- * Or call this edge function via external cron (e.g., cron-job.org):
- * POST https://<project>.supabase.co/functions/v1/cleanup-reservations
- * 
- * @module supabase/functions/cleanup-reservations
- * @version 1.0.0
- * @date 2025-12-01
- */
+// Cleanup Expired Reservations Edge Function
+// 
+// This function should be called by a cron job every 1-2 minutes
+// to clean up expired slot reservations and restore capacity.
+// 
+// Cron setup: Use pg_cron extension in Supabase Dashboard
+// Or call this edge function via external cron service
+// POST https://<project>.supabase.co/functions/v1/cleanup-reservations
+// 
+// @module supabase/functions/cleanup-reservations
+// @version 1.0.0
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';

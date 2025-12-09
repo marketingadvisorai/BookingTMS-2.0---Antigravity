@@ -4,8 +4,8 @@
  * @module staff/pages/StaffPage
  */
 
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { useTheme } from '@/components/layout/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -36,7 +36,38 @@ export function StaffPage() {
     createStaff,
     toggleStatus,
     deleteStaff,
+    refreshStaff,
+    refreshStats,
   } = useStaff();
+
+  // Loading timeout - force recovery after 15 seconds
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (loading) {
+      timer = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 15000);
+    } else {
+      setLoadingTimeout(false);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [loading]);
+
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setLoadingTimeout(false);
+    try {
+      await Promise.all([refreshStaff(), refreshStats()]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -82,16 +113,28 @@ export function StaffPage() {
         description="Manage your team members and their roles"
         sticky
         action={
-          <PermissionGuard permissions={['staff.create']}>
+          <div className="flex items-center gap-2">
             <Button
-              style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
-              className={isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}
-              onClick={() => setIsAddDialogOpen(true)}
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className={`gap-2 ${isDark ? 'border-[#2a2a2a] text-[#a3a3a3] hover:bg-[#161616] hover:text-white' : ''}`}
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Staff Member
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
-          </PermissionGuard>
+            <PermissionGuard permissions={['staff.create']}>
+              <Button
+                style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
+                className={isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}
+                onClick={() => setIsAddDialogOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Staff Member
+              </Button>
+            </PermissionGuard>
+          </div>
         }
       />
 
@@ -107,15 +150,35 @@ export function StaffPage() {
       />
 
       {/* Staff Table */}
-      <StaffTable
-        staff={staff}
-        loading={loading}
-        isDark={isDark}
-        onView={handleView}
-        onEdit={handleEdit}
-        onDelete={handleDeleteClick}
-        onToggleStatus={handleToggleStatus}
-      />
+      {loadingTimeout ? (
+        <div className={`rounded-lg border p-8 text-center ${isDark ? 'bg-[#161616] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
+          <div className={`text-lg mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            Loading is taking longer than expected
+          </div>
+          <p className={`text-sm mb-4 ${isDark ? 'text-[#a3a3a3]' : 'text-gray-600'}`}>
+            There might be a connection issue. Click the button below to retry.
+          </p>
+          <Button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
+            className={isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Retry Loading
+          </Button>
+        </div>
+      ) : (
+        <StaffTable
+          staff={staff}
+          loading={loading}
+          isDark={isDark}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDeleteClick}
+          onToggleStatus={handleToggleStatus}
+        />
+      )}
 
       {/* Dialogs */}
       <AddStaffDialog

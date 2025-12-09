@@ -17,6 +17,7 @@ import {
   Building,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -59,10 +60,71 @@ export function StaffTable({
   if (loading) {
     return (
       <Card className={`${cardBgClass} border ${borderClass} shadow-sm`}>
-        <CardContent className="p-6">
-          <div className={`text-center py-12 ${textMutedClass}`}>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3" />
-            Loading staff members...
+        <CardHeader className="p-6">
+          <Skeleton className={`h-6 w-32 ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+        </CardHeader>
+        <CardContent className="p-6 pt-0">
+          {/* Mobile skeleton cards */}
+          <div className="sm:hidden space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className={`rounded-lg border p-4 ${borderClass}`}>
+                <div className="flex items-center gap-3 mb-3">
+                  <Skeleton className={`w-10 h-10 rounded-full ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+                  <div className="flex-1">
+                    <Skeleton className={`h-4 w-24 mb-2 ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+                    <Skeleton className={`h-3 w-16 ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+                  </div>
+                </div>
+                <Skeleton className={`h-3 w-full mb-2 ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+                <Skeleton className={`h-3 w-3/4 ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+              </div>
+            ))}
+          </div>
+          {/* Desktop skeleton table */}
+          <div className="hidden sm:block">
+            <table className="w-full">
+              <thead>
+                <tr className={`border-b ${borderClass}`}>
+                  {['Member', 'Contact', 'Role', 'Department', 'Join Date', 'Status', 'Actions'].map((h) => (
+                    <th key={h} className={`text-left py-3 px-4 text-sm ${textMutedClass}`}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <tr key={i} className={`border-b ${borderClass}`}>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className={`w-10 h-10 rounded-full ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+                        <div>
+                          <Skeleton className={`h-4 w-24 mb-2 ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+                          <Skeleton className={`h-3 w-32 ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <Skeleton className={`h-3 w-36 mb-2 ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+                      <Skeleton className={`h-3 w-24 ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+                    </td>
+                    <td className="py-4 px-4">
+                      <Skeleton className={`h-5 w-16 rounded-full ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+                    </td>
+                    <td className="py-4 px-4">
+                      <Skeleton className={`h-3 w-20 ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+                    </td>
+                    <td className="py-4 px-4">
+                      <Skeleton className={`h-3 w-24 ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+                    </td>
+                    <td className="py-4 px-4">
+                      <Skeleton className={`h-5 w-16 ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+                    </td>
+                    <td className="py-4 px-4">
+                      <Skeleton className={`h-8 w-8 rounded ${isDark ? 'bg-[#2a2a2a]' : 'bg-gray-200'}`} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>

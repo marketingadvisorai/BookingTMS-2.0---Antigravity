@@ -4,12 +4,13 @@
  * Central media library with upload, management, and external storage integration
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../lib/auth/AuthContext';
 import { MediaLibrary } from '../modules/media';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { AlertTriangle, Loader2, Building2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Building2, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { Button } from '../components/ui/button';
 import {
   Select,
   SelectContent,
@@ -32,6 +33,8 @@ const MediaPage: React.FC = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [orgsLoading, setOrgsLoading] = useState(false);
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const isSystemAdmin = isRole('system-admin');
 
@@ -41,38 +44,86 @@ const MediaPage: React.FC = () => {
     : (currentUser?.organizationId || null);
 
   // Fetch organizations for system admins
-  useEffect(() => {
-    if (isSystemAdmin) {
-      const fetchOrgs = async () => {
-        setOrgsLoading(true);
-        try {
-          const { data } = await supabase
-            .from('organizations')
-            .select('id, name, status')
-            .in('status', ['active', 'pending', 'inactive'])
-            .order('name');
-          const orgData = (data as Organization[]) || [];
-          setOrganizations(orgData);
-          if (orgData.length > 0 && !selectedOrgId) {
-            setSelectedOrgId(orgData[0].id);
-          }
-        } catch (error) {
-          console.error('Failed to fetch organizations:', error);
-        } finally {
-          setOrgsLoading(false);
-        }
-      };
-      fetchOrgs();
+  const fetchOrgs = useCallback(async () => {
+    if (!isSystemAdmin) return;
+    setOrgsLoading(true);
+    try {
+      const { data } = await supabase
+        .from('organizations')
+        .select('id, name, status')
+        .in('status', ['active', 'pending', 'inactive'])
+        .order('name');
+      const orgData = (data as Organization[]) || [];
+      setOrganizations(orgData);
+      if (orgData.length > 0 && !selectedOrgId) {
+        setSelectedOrgId(orgData[0].id);
+      }
+    } catch (error) {
+      console.error('Failed to fetch organizations:', error);
+    } finally {
+      setOrgsLoading(false);
     }
+  }, [isSystemAdmin, selectedOrgId]);
+
+  useEffect(() => {
+    fetchOrgs();
   }, [isSystemAdmin]);
 
-  // Loading state
+  // Loading timeout - force recovery after 15 seconds
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (authLoading || orgsLoading) {
+      timer = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 15000);
+    } else {
+      setLoadingTimeout(false);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [authLoading, orgsLoading]);
+
+  // Handle refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setLoadingTimeout(false);
+    try {
+      await fetchOrgs();
+      window.location.reload();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Loading state with timeout recovery
   if (authLoading || orgsLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-500 dark:text-gray-400">Loading Media Library...</p>
+          {loadingTimeout ? (
+            <>
+              <div className="text-lg mb-2 text-gray-900 dark:text-white">
+                Loading is taking longer than expected
+              </div>
+              <p className="text-sm mb-4 text-gray-500 dark:text-gray-400">
+                There might be a connection issue. Click the button below to retry.
+              </p>
+              <Button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Retry Loading
+              </Button>
+            </>
+          ) : (
+            <>
+              <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto mb-4" />
+              <p className="text-gray-500 dark:text-gray-400">Loading Media Library...</p>
+            </>
+          )}
         </div>
       </div>
     );

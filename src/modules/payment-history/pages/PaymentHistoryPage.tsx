@@ -4,11 +4,11 @@
  * @module payment-history/pages/PaymentHistoryPage
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useTheme } from '@/components/layout/ThemeContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CreditCard, RefreshCw, AlertCircle, ClipboardCheck } from 'lucide-react';
+import { CreditCard, RefreshCw, AlertCircle, ClipboardCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
@@ -37,6 +37,22 @@ export function PaymentHistoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+
+  // Loading timeout - force recovery after 15 seconds
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (loading) {
+      timer = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 15000);
+    } else {
+      setLoadingTimeout(false);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [loading]);
 
   // Filter transactions client-side
   const filteredTransactions = useMemo(() => {
@@ -71,6 +87,33 @@ export function PaymentHistoryPage() {
   // Theme classes
   const bgClass = isDark ? 'bg-[#161616] border-[#1e1e1e]' : 'bg-white border-gray-200';
   const textClass = isDark ? 'text-white' : 'text-gray-900';
+
+  // Loading timeout recovery
+  if (loading && loadingTimeout) {
+    return (
+      <>
+        <PageHeader
+          title="Payments & History"
+          description="Real-time payment data from your Stripe account"
+        />
+        <Card className={`${bgClass} border p-8 text-center`}>
+          <div className="text-lg mb-2 text-gray-900 dark:text-white">
+            Loading is taking longer than expected
+          </div>
+          <p className="text-sm mb-4 text-gray-500 dark:text-gray-400">
+            There might be a connection issue with Stripe. Click the button below to retry.
+          </p>
+          <Button
+            onClick={refresh}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Retry Loading
+          </Button>
+        </Card>
+      </>
+    );
+  }
 
   // Not connected state
   if (!isConnected && !loading) {

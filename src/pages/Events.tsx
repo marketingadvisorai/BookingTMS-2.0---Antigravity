@@ -292,8 +292,8 @@ export function Events() {
               setIsAddWizardOpen(true);
             }}
           >
-            <Plus className="w-5 h-5 sm:w-4 sm:h-4 sm:mr-2" />
-            <span className="hidden sm:inline">{t.actionAdd}</span>
+            <Plus className="w-4 h-4 mr-2" />
+            {t.actionAdd}
           </Button>
         }
       />

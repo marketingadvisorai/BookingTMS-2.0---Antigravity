@@ -7,10 +7,15 @@
  * - Child pricing (optional)
  * - Custom capacity pricing (e.g., VIP, Equipment Rental)
  * 
+ * MULTI-TENANT STRIPE CONNECT SUPPORT:
+ * - Pass stripeAccountId to create products on connected accounts
+ * - Products are created on the organization's Stripe account, not platform
+ * - Force USD currency for now
+ * 
  * Uses Stripe lookup_keys for seamless price updates without changing price IDs
  * 
- * @version 2.0.0
- * @date 2025-11-27
+ * @version 3.0.0
+ * @date 2025-12-10
  */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno';
@@ -27,6 +32,14 @@ const toCents = (amount: number): number => Math.round(amount * 100);
 const generateLookupKey = (activityId: string, tierType: string): string => {
   const cleanId = activityId.replace(/-/g, '_');
   return `activity_${cleanId}_${tierType.toLowerCase()}`;
+};
+
+// Helper: Get Stripe options for connected accounts
+const getStripeOptions = (stripeAccountId?: string): Stripe.RequestOptions => {
+  if (stripeAccountId) {
+    return { stripeAccount: stripeAccountId };
+  }
+  return {};
 };
 
 serve(async (req: Request) => {
@@ -59,14 +72,22 @@ serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    const { action, ...params } = body;
-    console.log(`Stripe action: ${action}`, JSON.stringify(params).slice(0, 200));
+    const { action, stripeAccountId, ...params } = body;
+    
+    // Log with masked account ID for security
+    console.log(`Stripe action: ${action}`, {
+      ...JSON.parse(JSON.stringify(params).slice(0, 200)),
+      stripeAccountId: stripeAccountId ? `acct_***${stripeAccountId.slice(-4)}` : 'platform',
+    });
+    
+    // Get Stripe options for connected account operations
+    const stripeOptions = getStripeOptions(stripeAccountId);
 
     let result;
 
     switch (action) {
       case 'get_product':
-        result = { product: await stripe.products.retrieve(params.productId) };
+        result = { product: await stripe.products.retrieve(params.productId, stripeOptions) };
         break;
 
       case 'get_prices':
@@ -74,7 +95,7 @@ serve(async (req: Request) => {
           product: params.productId,
           active: true,
           limit: 100,
-        });
+        }, stripeOptions);
         result = { prices: pricesList.data };
         break;
 
@@ -83,27 +104,34 @@ serve(async (req: Request) => {
           lookup_keys: [params.lookupKey],
           active: true,
           limit: 1,
-        });
+        }, stripeOptions);
         result = { price: lookupPrices.data[0] || null };
         break;
 
       case 'create_product':
+        // Create product on connected account if stripeAccountId provided
         const newProduct = await stripe.products.create({
           name: params.name,
           description: params.description || '',
-          metadata: params.metadata || {},
-        });
-        result = { productId: newProduct.id };
+          metadata: {
+            ...params.metadata,
+            created_via: 'bookingtms_platform',
+            stripe_account_id: stripeAccountId || 'platform',
+          },
+        }, stripeOptions);
+        result = { productId: newProduct.id, stripeAccountId: stripeAccountId || 'platform' };
         break;
 
       case 'create_price':
+        // Create price on connected account if stripeAccountId provided
+        // Force USD currency for now
         const newPrice = await stripe.prices.create({
           product: params.product,
           unit_amount: params.unit_amount,
-          currency: params.currency || 'usd',
+          currency: 'usd', // Force USD for now
           metadata: params.metadata || {},
           ...(params.lookup_key && { lookup_key: params.lookup_key }),
-        });
+        }, stripeOptions);
         result = { priceId: newPrice.id, lookupKey: params.lookup_key };
         break;
 

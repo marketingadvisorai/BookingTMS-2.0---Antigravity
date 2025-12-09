@@ -39,6 +39,7 @@ import {
   LinkProductForm,
   ConfiguredView,
   PaymentStatusBadge,
+  StripeConnectBanner,
 } from './payment';
 
 // ============================================================================
@@ -81,6 +82,9 @@ export default function Step6PaymentSettings({
     isConfigured,
     hasPrice,
     isCheckoutConnected,
+    canCreateProduct,
+    stripeConnectStatus,
+    isLoadingStripeStatus,
     setManualProductId,
     setManualPriceId,
     setStripeCheckoutUrl,
@@ -92,6 +96,7 @@ export default function Step6PaymentSettings({
     handleEditConfiguration,
     handleRemovePayment,
     confirmRemovePayment,
+    refreshStripeConnectStatus,
   } = usePaymentSettings({
     activityData,
     onUpdate,
@@ -102,6 +107,13 @@ export default function Step6PaymentSettings({
 
   return (
     <div className="space-y-6">
+      {/* Stripe Connect Status Banner (Multi-Tenant) */}
+      <StripeConnectBanner
+        status={stripeConnectStatus}
+        isLoading={isLoadingStripeStatus}
+        onRefresh={refreshStripeConnectStatus}
+      />
+      
       {/* Header */}
       <PaymentHeader
         isConfigured={isConfigured}
@@ -167,6 +179,7 @@ export default function Step6PaymentSettings({
                   childPrice={activityData.childPrice}
                   customFieldsCount={activityData.customCapacityFields?.filter((f: any) => f.price > 0).length || 0}
                   onCreateProduct={handleCreateStripeProduct}
+                  canCreateProduct={canCreateProduct}
                 />
               </TabsContent>
 

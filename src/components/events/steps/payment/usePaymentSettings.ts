@@ -1,9 +1,11 @@
 /**
  * Payment Settings Hook
  * Encapsulates all business logic for Stripe payment integration
+ * Supports Multi-Tenant Stripe Connect Architecture
  * 
  * @module payment/usePaymentSettings
- * @version 1.0.0
+ * @version 2.0.0
+ * @date 2025-12-10
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -12,7 +14,7 @@ import { supabase } from '../../../../lib/supabase/client';
 import { StripeProductService } from '../../../../lib/stripe/stripeProductService';
 import { PricingService } from '../../../../lib/stripe/pricingService';
 import { ActivityData } from '../../types';
-import { SyncStatus, UsePaymentSettingsReturn } from './types';
+import { SyncStatus, UsePaymentSettingsReturn, StripeConnectStatus, DEFAULT_STRIPE_CONNECT_STATUS } from './types';
 import { convertPricesToStructured } from './priceConverters';
 
 interface UsePaymentSettingsProps {
@@ -48,6 +50,10 @@ export function usePaymentSettings({
   const [editPriceId, setEditPriceId] = useState('');
   const [editCheckoutUrl, setEditCheckoutUrl] = useState('');
   const [venueMatches, setVenueMatches] = useState(true);
+  
+  // Stripe Connect Status (Multi-Tenant)
+  const [stripeConnectStatus, setStripeConnectStatus] = useState<StripeConnectStatus>(DEFAULT_STRIPE_CONNECT_STATUS);
+  const [isLoadingStripeStatus, setIsLoadingStripeStatus] = useState(true);
 
   // ============================================================================
   // SYNC STATE WITH ACTIVITY DATA
@@ -61,6 +67,51 @@ export function usePaymentSettings({
   }, [activityData.stripeProductId, activityData.stripePriceId, activityData.stripeCheckoutUrl, activityData.stripeSyncStatus]);
 
   // ============================================================================
+  // STRIPE CONNECT STATUS FETCHING
+  // ============================================================================
+  
+  const refreshStripeConnectStatus = useCallback(async () => {
+    if (!organizationId) {
+      setIsLoadingStripeStatus(false);
+      return;
+    }
+    
+    setIsLoadingStripeStatus(true);
+    try {
+      const { data: org, error } = await (supabase as any)
+        .from('organizations')
+        .select('stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_onboarding_status, stripe_account_type, name')
+        .eq('id', organizationId)
+        .single();
+      
+      if (error) throw error;
+      
+      const isConnected = !!(org?.stripe_account_id && org?.stripe_charges_enabled);
+      
+      setStripeConnectStatus({
+        isConnected,
+        accountId: org?.stripe_account_id || null,
+        accountName: org?.name || null,
+        chargesEnabled: org?.stripe_charges_enabled || false,
+        payoutsEnabled: org?.stripe_payouts_enabled || false,
+        onboardingStatus: org?.stripe_onboarding_status || 'not_started',
+        currency: 'usd', // Force USD for now
+        country: 'US',   // Force US for now
+      });
+    } catch (err) {
+      console.error('Error fetching Stripe Connect status:', err);
+      setStripeConnectStatus(DEFAULT_STRIPE_CONNECT_STATUS);
+    } finally {
+      setIsLoadingStripeStatus(false);
+    }
+  }, [organizationId]);
+  
+  // Fetch Stripe Connect status on mount and when organizationId changes
+  useEffect(() => {
+    refreshStripeConnectStatus();
+  }, [refreshStripeConnectStatus]);
+  
+  // ============================================================================
   // COMPUTED VALUES
   // ============================================================================
   
@@ -71,6 +122,8 @@ export function usePaymentSettings({
     manualPriceId &&
     (syncStatus === 'synced' || syncStatus === 'pending')
   );
+  // Can only create products if Stripe Connect is properly set up
+  const canCreateProduct = stripeConnectStatus.isConnected && stripeConnectStatus.chargesEnabled;
 
   // ============================================================================
   // ACTIONS
@@ -112,6 +165,18 @@ export function usePaymentSettings({
   }, [activityData.id]);
 
   const handleCreateStripeProduct = useCallback(async () => {
+    // Check Stripe Connect status first (Multi-Tenant Requirement)
+    if (!canCreateProduct) {
+      if (!stripeConnectStatus.isConnected) {
+        toast.error('Please connect your Stripe account first. Go to Settings → Stripe Connect to set up your account.');
+        return;
+      }
+      if (!stripeConnectStatus.chargesEnabled) {
+        toast.error('Your Stripe account is not fully set up. Please complete the onboarding process in Settings → Stripe Connect.');
+        return;
+      }
+    }
+    
     if (!hasPrice) {
       toast.error('Please set a price first');
       return;
@@ -126,18 +191,22 @@ export function usePaymentSettings({
 
       const customFields = activityData.customCapacityFields?.filter((f: any) => f.price > 0) || [];
 
+      // Pass Stripe Connect account ID for multi-tenant product creation
       const productResult = await StripeProductService.createProductAndPrice({
         name: activityData.name || `Untitled ${t.singular}`,
         description: activityData.description || '',
         price: activityData.adultPrice,
-        currency: 'usd',
+        currency: 'usd', // Force USD for now
         childPrice: activityData.childPrice > 0 ? activityData.childPrice : undefined,
         customCapacityFields: customFields.length > 0 ? customFields : undefined,
         metadata: {
           activity_id: activityData.id || '',
           venue_id: venueId || activityData.venueId || '',
           organization_id: organizationId || '',
+          stripe_account_id: stripeConnectStatus.accountId || '', // Include connected account
         },
+        // Pass connected account for Stripe Connect
+        stripeAccountId: stripeConnectStatus.accountId || undefined,
       });
 
       let multiTierPrices: ActivityData['stripePrices'] = undefined;
@@ -365,9 +434,15 @@ export function usePaymentSettings({
     editProductId,
     editPriceId,
     editCheckoutUrl,
+    // Stripe Connect (Multi-Tenant)
+    stripeConnectStatus,
+    isLoadingStripeStatus,
+    // Computed
     isConfigured,
     hasPrice,
     isCheckoutConnected,
+    canCreateProduct,
+    // Setters
     setManualProductId,
     setManualPriceId,
     setStripeCheckoutUrl,
@@ -376,6 +451,7 @@ export function usePaymentSettings({
     setEditProductId,
     setEditPriceId,
     setEditCheckoutUrl,
+    // Actions
     handleCreateStripeProduct,
     handleLinkExistingProduct,
     handleRefreshSync,
@@ -384,5 +460,6 @@ export function usePaymentSettings({
     handleSaveEdit,
     handleRemovePayment,
     confirmRemovePayment,
+    refreshStripeConnectStatus,
   };
 }

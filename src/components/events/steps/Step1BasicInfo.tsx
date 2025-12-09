@@ -200,7 +200,7 @@ export default function Step1BasicInfo({ activityData, updateActivityData, t, or
                         </Label>
                         <Input
                             id="name"
-                            placeholder={`e.g., ${t.singular === 'Game' ? 'Zombie Apocalypse' : 'Sunset Yoga'}`}
+                            placeholder="e.g., The Haunted Mansion, Prison Break, Zombie Apocalypse"
                             value={activityData.name}
                             onChange={(e) => updateActivityData('name', e.target.value)}
                             className="mt-1"
@@ -211,7 +211,7 @@ export default function Step1BasicInfo({ activityData, updateActivityData, t, or
                         <Label htmlFor="tagline">Tagline</Label>
                         <Input
                             id="tagline"
-                            placeholder={`A short catchy phrase about your ${t.singular.toLowerCase()}`}
+                            placeholder="e.g., Can you escape before time runs out?"
                             value={activityData.tagline}
                             onChange={(e) => updateActivityData('tagline', e.target.value)}
                             className="mt-1"

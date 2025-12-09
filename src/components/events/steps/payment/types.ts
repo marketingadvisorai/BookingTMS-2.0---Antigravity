@@ -1,9 +1,11 @@
 /**
  * Payment Settings Types
  * Enterprise-grade type definitions for Stripe payment integration
+ * Supports Multi-Tenant Stripe Connect Architecture
  * 
  * @module payment/types
- * @version 1.0.0
+ * @version 2.0.0
+ * @date 2025-12-10
  */
 
 import { ActivityData } from '../../types';
@@ -13,6 +15,32 @@ import { ActivityData } from '../../types';
 // ============================================================================
 
 export type SyncStatus = 'not_synced' | 'pending' | 'synced' | 'error';
+
+// ============================================================================
+// STRIPE CONNECT TYPES (Multi-Tenant)
+// ============================================================================
+
+export interface StripeConnectStatus {
+  isConnected: boolean;
+  accountId: string | null;
+  accountName: string | null;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  onboardingStatus: 'not_started' | 'incomplete' | 'complete';
+  currency: string;
+  country: string;
+}
+
+export const DEFAULT_STRIPE_CONNECT_STATUS: StripeConnectStatus = {
+  isConnected: false,
+  accountId: null,
+  accountName: null,
+  chargesEnabled: false,
+  payoutsEnabled: false,
+  onboardingStatus: 'not_started',
+  currency: 'usd',
+  country: 'US',
+};
 
 // ============================================================================
 // PRICE TIER TYPES
@@ -119,10 +147,15 @@ export interface UsePaymentSettingsReturn {
   editPriceId: string;
   editCheckoutUrl: string;
   
+  // Stripe Connect (Multi-Tenant)
+  stripeConnectStatus: StripeConnectStatus;
+  isLoadingStripeStatus: boolean;
+  
   // Computed
   isConfigured: boolean;
   hasPrice: boolean;
   isCheckoutConnected: boolean;
+  canCreateProduct: boolean; // True only if Stripe Connect is properly set up
   
   // Setters
   setManualProductId: (value: string) => void;
@@ -143,4 +176,5 @@ export interface UsePaymentSettingsReturn {
   handleSaveEdit: () => Promise<void>;
   handleRemovePayment: () => void;
   confirmRemovePayment: () => void;
+  refreshStripeConnectStatus: () => Promise<void>;
 }

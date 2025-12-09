@@ -37,8 +37,11 @@ interface CreateProductParams {
     organization_name?: string;
     company_name?: string;
     duration?: string;
+    stripe_account_id?: string;
     [key: string]: string | undefined;
   };
+  /** Stripe Connect account ID for multi-tenant product creation */
+  stripeAccountId?: string;
 }
 
 interface UpdateProductParams {
@@ -61,12 +64,18 @@ interface ProductAndPrice {
 
 export class StripeProductService {
   // Helper to invoke Edge Function with improved error handling
-  private static async invokeStripeFunction(action: string, params: any) {
-    console.log(`[Stripe] Invoking edge function: ${action}`, params);
+  // Supports Stripe Connect by passing stripeAccountId for multi-tenant operations
+  private static async invokeStripeFunction(action: string, params: any, stripeAccountId?: string) {
+    console.log(`[Stripe] Invoking edge function: ${action}`, { ...params, stripeAccountId: stripeAccountId ? '***' : undefined });
 
     try {
       const { data, error } = await supabase.functions.invoke('stripe-manage-product', {
-        body: { action, ...params }
+        body: { 
+          action, 
+          ...params,
+          // Pass Stripe Connect account ID for multi-tenant operations
+          stripeAccountId: stripeAccountId || undefined,
+        }
       });
 
       // Handle Supabase function errors
@@ -228,12 +237,19 @@ export class StripeProductService {
       ) as Record<string, string>;
 
       console.log('Enhanced Stripe metadata:', cleanMetadata);
+      
+      // Get Stripe Connect account ID for multi-tenant operations
+      const stripeAccountId = params.stripeAccountId;
+      if (stripeAccountId) {
+        console.log('🔗 Creating product on connected account:', stripeAccountId);
+      }
 
-      // Create product
+      // Create product (passes stripeAccountId for Stripe Connect)
       const productId = await this.createProduct({
         name: params.name,
         description: params.description,
         metadata: cleanMetadata,
+        stripeAccountId,
       });
 
       const createdPrices: any[] = [];
@@ -241,21 +257,21 @@ export class StripeProductService {
       // 1. Create Adult Price
       const adultPriceId = await this.createPrice(productId, {
         amount: params.price,
-        currency: params.currency || 'usd',
+        currency: 'usd', // Force USD for now
         metadata: { ...cleanMetadata, type: 'adult' },
         lookup_key: 'adult',
-      });
-      createdPrices.push({ id: adultPriceId, type: 'adult', unit_amount: params.price * 100, currency: params.currency || 'usd' });
+      }, stripeAccountId);
+      createdPrices.push({ id: adultPriceId, type: 'adult', unit_amount: params.price * 100, currency: 'usd' });
 
       // 2. Create Child Price (if exists)
       if (params.childPrice && params.childPrice > 0) {
         const childPriceId = await this.createPrice(productId, {
           amount: params.childPrice,
-          currency: params.currency || 'usd',
+          currency: 'usd', // Force USD for now
           metadata: { ...cleanMetadata, type: 'child' },
           lookup_key: 'child',
-        });
-        createdPrices.push({ id: childPriceId, type: 'child', unit_amount: params.childPrice * 100, currency: params.currency || 'usd' });
+        }, stripeAccountId);
+        createdPrices.push({ id: childPriceId, type: 'child', unit_amount: params.childPrice * 100, currency: 'usd' });
       }
 
       // 3. Create Custom Prices (if exist)
@@ -265,11 +281,11 @@ export class StripeProductService {
           if (field.price > 0) {
             const customPriceId = await this.createPrice(productId, {
               amount: field.price,
-              currency: params.currency || 'usd',
+              currency: 'usd', // Force USD for now
               metadata: { ...cleanMetadata, type: 'custom', name: field.name },
               lookup_key: `custom_${i}`,
-            });
-            createdPrices.push({ id: customPriceId, type: 'custom', name: field.name, unit_amount: field.price * 100, currency: params.currency || 'usd' });
+            }, stripeAccountId);
+            createdPrices.push({ id: customPriceId, type: 'custom', name: field.name, unit_amount: field.price * 100, currency: 'usd' });
           }
         }
       }
@@ -289,20 +305,22 @@ export class StripeProductService {
 
   /**
    * Create a Stripe product
+   * Supports Stripe Connect for multi-tenant product creation
    */
   static async createProduct(params: {
     name: string;
     description: string;
     metadata?: Record<string, string>;
+    stripeAccountId?: string;
   }): Promise<string> {
     try {
-      console.log('📦 Creating product via Edge Function:', params.name);
+      console.log('📦 Creating product via Edge Function:', params.name, params.stripeAccountId ? '(Connected Account)' : '(Platform)');
 
       const data = await this.invokeStripeFunction('create_product', {
         name: params.name,
         description: params.description,
         metadata: params.metadata || {},
-      });
+      }, params.stripeAccountId);
 
       if (!data.productId) {
         throw new Error('Stripe product creation did not return productId');
@@ -318,18 +336,20 @@ export class StripeProductService {
 
   /**
    * Create a Stripe price for a product
+   * Supports Stripe Connect for multi-tenant price creation
    */
   static async createPrice(
     productId: string,
-    params: CreatePriceParams
+    params: CreatePriceParams,
+    stripeAccountId?: string
   ): Promise<string> {
     try {
       const data = await this.invokeStripeFunction('create_price', {
         product: productId,
         unit_amount: params.amount,
-        currency: params.currency || 'usd',
+        currency: 'usd', // Force USD for now
         metadata: params.metadata || {},
-      });
+      }, stripeAccountId);
 
       if (!data.priceId) {
         throw new Error('Stripe price creation did not return priceId');

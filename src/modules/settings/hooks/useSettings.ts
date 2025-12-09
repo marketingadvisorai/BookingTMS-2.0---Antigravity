@@ -1,12 +1,15 @@
 /**
  * Settings Module - Main Hook
+ * Uses React Query for caching and smooth loading
  * @module settings/hooks/useSettings
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { toast } from 'sonner';
+import { CACHE_TIMES } from '@/lib/cache';
 import {
   OrganizationSettings,
   NotificationPreferences,
@@ -38,43 +41,43 @@ export interface UseSettingsReturn {
 export function useSettings(options: UseSettingsOptions = {}): UseSettingsReturn {
   const { autoFetch = true } = options;
   const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
   const organizationId = options.organizationId || currentUser?.organizationId;
 
-  const [settings, setSettings] = useState<OrganizationSettings | null>(null);
-  const [notifications, setNotifications] = useState<NotificationPreferences | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Local state
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<SettingsTab>('business');
 
-  const mountedRef = useRef(true);
+  // Query keys
+  const settingsKey = ['settings', 'organization', organizationId];
+  const notificationsKey = ['settings', 'notifications', organizationId, currentUser?.id];
 
-  // Fetch settings
+  // React Query for settings
+  const settingsQuery = useQuery({
+    queryKey: settingsKey,
+    queryFn: () => settingsService.getSettings(organizationId!),
+    enabled: !!organizationId && autoFetch,
+    staleTime: CACHE_TIMES.MEDIUM, // 5 minutes
+  });
+
+  // React Query for notification preferences
+  const notificationsQuery = useQuery({
+    queryKey: notificationsKey,
+    queryFn: () => settingsService.getNotificationPreferences(organizationId!, currentUser?.id),
+    enabled: !!organizationId && autoFetch,
+    staleTime: CACHE_TIMES.MEDIUM,
+  });
+
+  // Derived state
+  const settings = settingsQuery.data || null;
+  const notifications = notificationsQuery.data || null;
+  const loading = settingsQuery.isLoading || notificationsQuery.isLoading;
+  const error = settingsQuery.error?.message || notificationsQuery.error?.message || null;
+
+  // Refresh function
   const fetchSettings = useCallback(async () => {
-    if (!organizationId || !mountedRef.current) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const [settingsData, notifData] = await Promise.all([
-        settingsService.getSettings(organizationId),
-        settingsService.getNotificationPreferences(organizationId, currentUser?.id),
-      ]);
-
-      if (mountedRef.current) {
-        setSettings(settingsData);
-        setNotifications(notifData);
-      }
-    } catch (err: any) {
-      console.error('Error fetching settings:', err);
-      if (mountedRef.current) {
-        setError(err.message);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [organizationId, currentUser?.id]);
+    await queryClient.invalidateQueries({ queryKey: ['settings'] });
+  }, [queryClient]);
 
   // Update settings
   const updateSettings = useCallback(
@@ -84,7 +87,8 @@ export function useSettings(options: UseSettingsOptions = {}): UseSettingsReturn
       setSaving(true);
       try {
         const updated = await settingsService.updateSettings(organizationId, updates);
-        setSettings(updated);
+        // Update cache
+        queryClient.setQueryData(settingsKey, updated);
         toast.success('Settings saved successfully');
       } catch (err: any) {
         console.error('Error updating settings:', err);
@@ -94,7 +98,7 @@ export function useSettings(options: UseSettingsOptions = {}): UseSettingsReturn
         setSaving(false);
       }
     },
-    [organizationId]
+    [organizationId, queryClient, settingsKey]
   );
 
   // Update notifications
@@ -108,7 +112,8 @@ export function useSettings(options: UseSettingsOptions = {}): UseSettingsReturn
           notifications.id,
           updates
         );
-        setNotifications(updated);
+        // Update cache
+        queryClient.setQueryData(notificationsKey, updated);
         toast.success('Notification preferences saved');
       } catch (err: any) {
         console.error('Error updating notifications:', err);
@@ -118,7 +123,7 @@ export function useSettings(options: UseSettingsOptions = {}): UseSettingsReturn
         setSaving(false);
       }
     },
-    [notifications?.id]
+    [notifications?.id, queryClient, notificationsKey]
   );
 
   // Update password
@@ -149,36 +154,25 @@ export function useSettings(options: UseSettingsOptions = {}): UseSettingsReturn
     [currentUser?.email]
   );
 
-  // Real-time subscription
+  // Real-time subscription for live updates
   useEffect(() => {
     if (!organizationId) return;
 
     const channel = supabase.channel('settings-changes');
 
+    const handleChange = () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+    };
+
     channel
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'organization_settings' }, () => {
-        if (mountedRef.current) fetchSettings();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notification_preferences' }, () => {
-        if (mountedRef.current) fetchSettings();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'organization_settings' }, handleChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notification_preferences' }, handleChange)
       .subscribe();
 
     return () => {
       channel.unsubscribe();
     };
-  }, [organizationId, fetchSettings]);
-
-  // Initial fetch
-  useEffect(() => {
-    mountedRef.current = true;
-    if (autoFetch && organizationId) {
-      fetchSettings();
-    }
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [autoFetch, organizationId, fetchSettings]);
+  }, [organizationId, queryClient]);
 
   return {
     settings,

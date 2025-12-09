@@ -1,13 +1,16 @@
 /**
  * Staff Module - Main Hook
  * Provides unified access to staff management with real-time updates
+ * Uses React Query for caching and smooth loading
  * @module staff/hooks/useStaff
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { toast } from 'sonner';
+import { queryKeys, CACHE_TIMES } from '@/lib/cache';
 import {
   StaffMember,
   StaffStats,
@@ -50,67 +53,58 @@ export interface UseStaffReturn {
 export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
   const { autoFetch = true, enableRealTime = true } = options;
   const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
   const organizationId = options.organizationId || currentUser?.organizationId;
 
-  // State
-  const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [stats, setStats] = useState<StaffStats>({
+  // Filter state (local)
+  const [filters, setFilters] = useState<StaffFilters>(DEFAULT_STAFF_FILTERS);
+
+  // Refs for real-time debouncing
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // React Query for staff list
+  const staffQuery = useQuery({
+    queryKey: queryKeys.staff.list(organizationId || ''),
+    queryFn: () => staffService.list({ organizationId: organizationId!, filters }),
+    enabled: !!organizationId && autoFetch,
+    staleTime: CACHE_TIMES.MEDIUM, // 5 minutes
+  });
+
+  // React Query for stats
+  const statsQuery = useQuery({
+    queryKey: [...queryKeys.staff.all, 'stats', organizationId],
+    queryFn: async () => {
+      const [statsData, deptData] = await Promise.all([
+        staffService.getStats(organizationId!),
+        staffService.getDepartments(organizationId!),
+      ]);
+      return { stats: statsData, departments: deptData };
+    },
+    enabled: !!organizationId && autoFetch,
+    staleTime: CACHE_TIMES.MEDIUM,
+  });
+
+  // Derived state with defaults
+  const staff = staffQuery.data || [];
+  const stats: StaffStats = statsQuery.data?.stats || {
     total: 0,
     active: 0,
     byRole: {},
     byDepartment: {},
     avgHoursThisMonth: 0,
-  });
-  const [departments, setDepartments] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<StaffFilters>(DEFAULT_STAFF_FILTERS);
+  };
+  const departments = statsQuery.data?.departments || [];
+  const loading = staffQuery.isLoading || statsQuery.isLoading;
+  const error = staffQuery.error?.message || statsQuery.error?.message || null;
 
-  // Refs for cleanup
-  const mountedRef = useRef(true);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Fetch staff members
+  // Refresh functions (invalidate cache)
   const refreshStaff = useCallback(async () => {
-    if (!organizationId || !mountedRef.current) return;
+    await queryClient.invalidateQueries({ queryKey: queryKeys.staff.list(organizationId || '') });
+  }, [queryClient, organizationId]);
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await staffService.list({ organizationId, filters });
-      if (mountedRef.current) {
-        setStaff(data);
-      }
-    } catch (err: any) {
-      console.error('Error fetching staff:', err);
-      if (mountedRef.current) {
-        setError(err.message);
-        toast.error('Failed to load staff members');
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [organizationId, filters]);
-
-  // Fetch stats
   const refreshStats = useCallback(async () => {
-    if (!organizationId || !mountedRef.current) return;
-
-    try {
-      const [statsData, deptData] = await Promise.all([
-        staffService.getStats(organizationId),
-        staffService.getDepartments(organizationId),
-      ]);
-
-      if (mountedRef.current) {
-        setStats(statsData);
-        setDepartments(deptData);
-      }
-    } catch (err: any) {
-      console.error('Error fetching stats:', err);
-    }
-  }, [organizationId]);
+    await queryClient.invalidateQueries({ queryKey: [...queryKeys.staff.all, 'stats', organizationId] });
+  }, [queryClient, organizationId]);
 
   // Create staff
   const createStaff = useCallback(
@@ -172,50 +166,37 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
     setFilters(DEFAULT_STAFF_FILTERS);
   }, []);
 
-  // Real-time subscription
+  // Real-time subscription for live updates
   useEffect(() => {
     if (!enableRealTime || !organizationId) return;
 
     const channel = supabase.channel('staff-changes');
 
+    const handleChange = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        // Invalidate React Query cache to trigger refetch
+        queryClient.invalidateQueries({ queryKey: queryKeys.staff.all });
+      }, 500);
+    };
+
     channel
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_profiles' }, () => {
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => {
-          if (mountedRef.current) {
-            refreshStaff();
-            refreshStats();
-          }
-        }, 500);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => {
-          if (mountedRef.current) {
-            refreshStaff();
-            refreshStats();
-          }
-        }, 500);
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_profiles' }, handleChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, handleChange)
       .subscribe();
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       channel.unsubscribe();
     };
-  }, [enableRealTime, organizationId, refreshStaff, refreshStats]);
+  }, [enableRealTime, organizationId, queryClient]);
 
-  // Initial fetch
+  // Refetch when filters change
   useEffect(() => {
-    mountedRef.current = true;
-    if (autoFetch && organizationId) {
-      refreshStaff();
-      refreshStats();
+    if (organizationId) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.staff.list(organizationId) });
     }
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [autoFetch, organizationId, refreshStaff, refreshStats]);
+  }, [filters, organizationId, queryClient]);
 
   return {
     staff,

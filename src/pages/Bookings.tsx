@@ -572,7 +572,7 @@ export function Bookings() {
               disabled={isRefreshing}
               className="h-11 w-11 flex-shrink-0"
             >
-              <RefreshCcw className={`w - 4 h - 4 ${isRefreshing ? 'animate-spin' : ''} `} />
+              <RefreshCcw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
             <Button
               variant="outline"
@@ -594,12 +594,12 @@ export function Bookings() {
       />
 
       {/* Filters and Search */}
-      <Card className={`${cardBgClass} border ${borderClass} shadow - sm`}>
+      <Card className={`${cardBgClass} border ${borderClass} shadow-sm`}>
         <CardContent className="p-3 sm:p-6">
           <div className="flex flex-col gap-2.5 sm:gap-3">
             {/* Search Bar */}
             <div className="relative">
-              <Search className={`absolute left - 3 top - 1 / 2 - translate - y - 1 / 2 w - 4 h - 4 ${isDark ? 'text-[#737373]' : 'text-gray-400'} `} />
+              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-[#737373]' : 'text-gray-400'}`} />
               <Input
                 placeholder="Search by customer name, email, or booking ID..."
                 className="pl-10 h-11"
@@ -1131,7 +1131,7 @@ export function Bookings() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                 <button
                   onClick={() => setExportFormat('csv')}
-                  className={`p - 4 border - 2 rounded - lg text - left transition - all ${exportFormat === 'csv'
+                  className={`p-4 border-2 rounded-lg text-left transition-all ${exportFormat === 'csv'
                     ? 'border-[#4f46e5] dark:border-[#6366f1] bg-blue-50 dark:bg-[#4f46e5]/10'
                     : 'border-gray-200 dark:border-[#2a2a2a] hover:border-gray-300 dark:hover:border-[#404040]'
                     } `}
@@ -1141,7 +1141,7 @@ export function Bookings() {
                 </button>
                 <button
                   onClick={() => setExportFormat('pdf')}
-                  className={`p - 4 border - 2 rounded - lg text - left transition - all ${exportFormat === 'pdf'
+                  className={`p-4 border-2 rounded-lg text-left transition-all ${exportFormat === 'pdf'
                     ? 'border-[#4f46e5] dark:border-[#6366f1] bg-blue-50 dark:bg-[#4f46e5]/10'
                     : 'border-gray-200 dark:border-[#2a2a2a] hover:border-gray-300 dark:hover:border-[#404040]'
                     } `}

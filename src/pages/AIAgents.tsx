@@ -119,8 +119,11 @@ const agents: Agent[] = [
 
 export function AIAgents() {
   const { theme } = useTheme();
-  const { isRole } = useAuth();
+  const { isRole, currentUser } = useAuth();
   const isDark = theme === 'dark';
+  
+  // SECURITY: Check if user is system admin (only role with API key access)
+  const isSystemAdmin = currentUser?.role === 'system-admin';
   const isBetaOwner = isRole('beta-owner');
   
   // Semantic class variables
@@ -132,10 +135,12 @@ export function AIAgents() {
   const hoverBgClass = isDark ? 'hover:bg-[#1e1e1e]' : 'hover:bg-gray-50';
   
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  // SECURITY: API keys should NOT be loaded from localStorage
+  // They should be fetched from secure backend/Supabase Edge Functions
   const [agentStates, setAgentStates] = useState<Record<string, any>>({
     booking: {
       enabled: true,
-      apiKey: localStorage.getItem('zai_api_key') || '',
+      apiKey: '', // SECURITY: Never load API keys from localStorage
       model: 'glm-4.6',
       temperature: 0.7,
       maxTokens: 500,
@@ -172,14 +177,12 @@ export function AIAgents() {
   const [chatPosition, setChatPosition] = useState<'right' | 'left'>('right');
   const [chatGreeting, setChatGreeting] = useState('Hi! How can I help you today?');
   const [chatOpen, setChatOpen] = useState(false);
-  const [zaiApiKey, setZaiApiKey] = useState(localStorage.getItem('zai_api_key') || '');
-  const [openaiApiKey, setOpenaiApiKey] = useState(localStorage.getItem('openai_api_key') || '');
-  const [llmProvider, setLlmProvider] = useState<'openai' | 'zai'>(
-    (localStorage.getItem('llm_provider') as 'openai' | 'zai') || 'openai'
-  );
-  const [llmModel, setLlmModel] = useState(
-    localStorage.getItem('llm_model') || 'gpt-4o-mini'
-  );
+  // SECURITY: API keys should NEVER be stored in localStorage
+  // They must be managed through Supabase Edge Functions/secrets
+  const [zaiApiKey, setZaiApiKey] = useState('');
+  const [openaiApiKey, setOpenaiApiKey] = useState('');
+  const [llmProvider, setLlmProvider] = useState<'openai' | 'zai'>('openai');
+  const [llmModel, setLlmModel] = useState('gpt-4o-mini');
   const [isApiKeyDialogOpen, setIsApiKeyDialogOpen] = useState(false);
   const [isEmbedTestDialogOpen, setIsEmbedTestDialogOpen] = useState(false);
   const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
@@ -302,12 +305,9 @@ export function AIAgents() {
       return;
     }
     
-    // Save OpenAI API key
-    localStorage.setItem('openai_api_key', openaiApiKey);
-    
-    // Save provider and model preferences
-    localStorage.setItem('llm_provider', 'openai');
-    localStorage.setItem('llm_model', llmModel);
+    // SECURITY: API keys should be saved to secure backend, not localStorage
+    // In production, these would be stored in Supabase with proper encryption
+    // localStorage storage removed for security
     
     setAgentStates({
       ...agentStates,

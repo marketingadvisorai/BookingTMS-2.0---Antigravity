@@ -69,38 +69,32 @@ function AppContent() {
   const { currentUser, isLoading, login } = authContext;
   // Access profileError with type assertion since we added it to the context
   const profileError = (authContext as any).profileError as string | null;
-  const [checkingSupabaseSession, setCheckingSupabaseSession] = useState(true);
-  const [hasSupabaseSession, setHasSupabaseSession] = useState(false);
-  const [profileLoadFailed, setProfileLoadFailed] = useState(false);
-
-  // Check for existing Supabase session on mount and keep it in sync
+  
+  // Track if we've been loading too long (prevents infinite loading)
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  
+  // Single useEffect for loading timeout - prevents infinite loading states
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setHasSupabaseSession(!!session);
-      } catch (err) {
-        console.error('Session check error:', err);
+    if (!isLoading) {
+      setLoadingTimeout(false);
+      return;
+    }
+    
+    // If loading takes more than 8 seconds, trigger timeout
+    const timer = setTimeout(() => {
+      if (isLoading && !currentUser) {
+        console.warn('⚠️ Auth loading timeout - forcing redirect to login');
+        setLoadingTimeout(true);
       }
-      setCheckingSupabaseSession(false);
-    };
+    }, 8000);
+    
+    return () => clearTimeout(timer);
+  }, [isLoading, currentUser]);
 
-    checkSession();
-
-    // Keep hasSupabaseSession in sync with auth state (handles logout correctly)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setHasSupabaseSession(!!session);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  // Auto-login in DEV_MODE
+  // Auto-login in DEV_MODE (only after loading completes)
   useEffect(() => {
     const autoLogin = async () => {
-      if (DEV_MODE && !currentUser && !isLoading && !hasSupabaseSession) {
+      if (DEV_MODE && !currentUser && !isLoading) {
         try {
           console.log('🔧 DEV MODE: Auto-logging in as Super Admin');
           await login('superadmin', 'demo123', 'super-admin');
@@ -110,7 +104,7 @@ function AppContent() {
       }
     };
     autoLogin();
-  }, [currentUser, isLoading, login, hasSupabaseSession]);
+  }, [currentUser, isLoading, login]);
 
   // Route system-admin to appropriate dashboard
   useEffect(() => {
@@ -234,8 +228,8 @@ function AppContent() {
     }
   };
 
-  // Show loading screen while checking authentication
-  if (isLoading || checkingSupabaseSession) {
+  // Show loading screen while checking authentication (but not forever)
+  if (isLoading && !loadingTimeout) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-[#0a0a0a]">
         <div className="text-center">
@@ -246,11 +240,10 @@ function AppContent() {
     );
   }
 
-  // Show login if not authenticated AND no Supabase session
-  // If there's a Supabase session, wait for AuthContext to load the user
-  if (!currentUser && !hasSupabaseSession) {
+  // Show login if not authenticated (either loading timed out or no user)
+  if (!currentUser) {
     // In DEV_MODE, show loading screen while auto-login is in progress
-    if (DEV_MODE) {
+    if (DEV_MODE && !loadingTimeout) {
       return (
         <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-[#0a0a0a]">
           <div className="text-center">
@@ -260,21 +253,8 @@ function AppContent() {
         </div>
       );
     }
-    // Redirect to system-admin-login instead of showing demo login modal
-    window.location.href = '/system-admin-login';
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-[#0a0a0a]">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#4f46e5] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Redirecting to login...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If Supabase session exists but currentUser not loaded yet
-  if (!currentUser && hasSupabaseSession) {
-    // Check if profile loading failed
+    
+    // Check if profile loading failed with an error
     if (profileError) {
       const handleLogout = async () => {
         try {
@@ -326,13 +306,13 @@ function AppContent() {
       );
     }
 
-    // Still loading (no error yet)
+    // No user and no error - redirect to login
+    window.location.href = '/system-admin-login';
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-[#0a0a0a]">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#4f46e5] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading your profile...</p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">This may take a few seconds</p>
+          <p className="text-gray-600 dark:text-gray-400">Redirecting to login...</p>
         </div>
       </div>
     );

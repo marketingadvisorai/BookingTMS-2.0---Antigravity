@@ -1,15 +1,31 @@
 /**
  * Stripe Billing Edge Function
  * Handles subscription management and credit purchases
+ * 
+ * @version 2.0.0
+ * @date December 10, 2025
+ * 
+ * Cache Strategy:
+ * - GET operations (get_billing_data, get_invoices): SHORT cache (1 min)
+ * - Mutations (create_*, buy_*, sync_*): No cache
  */
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Stripe from 'npm:stripe@14.5.0';
+import { 
+  CACHE_PRESETS, 
+  withCorsHeaders 
+} from '../_shared/edgeCacheHeaders.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Cache headers for read operations (1 minute)
+const readCacheHeaders = withCorsHeaders(CACHE_PRESETS.SHORT);
+// No cache headers for mutations
+const mutationHeaders = withCorsHeaders(CACHE_PRESETS.NONE);
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2023-10-16',
@@ -116,6 +132,7 @@ async function getBillingData(supabase: any, params: { organization_id: string }
     .order('created_at', { ascending: false })
     .limit(12);
 
+  // Use read cache headers (1 min) for billing data
   return new Response(
     JSON.stringify({
       subscription,
@@ -126,7 +143,7 @@ async function getBillingData(supabase: any, params: { organization_id: string }
       creditPackages,
       invoices,
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { headers: { ...readCacheHeaders, 'Content-Type': 'application/json' } }
   );
 }
 

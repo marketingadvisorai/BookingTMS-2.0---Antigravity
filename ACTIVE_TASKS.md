@@ -16,8 +16,10 @@
 
 ### Phase 2: Performance - Add FK Indexes (30 min)
 - [x] 2.1 Create migration for unindexed foreign keys ✅
-- [x] 2.2 Apply migration to database ✅ (3 batches)
+- [x] 2.2 Apply migration to database ✅ (4 batches)
 - [x] 2.3 Verify indexes created ✅
+- [x] 2.4 Remove duplicate indexes created ✅
+- [x] 2.5 Add remaining FK indexes ✅
 
 ### Phase 3: Security - Fix Function Search Paths (1 hour)
 - [x] 3.1 List all functions needing fix ✅
@@ -65,7 +67,17 @@
 | 05:33 | Remove Upstash secrets | ✅ Done | Via CLI |
 | 05:34 | Get DB advisors | ✅ Done | Found 36 FK issues |
 | 05:35 | Create remaining work plan | ✅ Done | docs/REMAINING_WORK_PLAN.md |
-| 05:36 | Create task list | 🔄 Active | This file |
+| 05:36 | Create task list | ✅ Done | This file |
+| 05:37 | Add RLS to kv_store | ✅ Done | Via MCP |
+| 05:37 | Remove duplicate index | ✅ Done | slot_reservations |
+| 05:38 | Add FK indexes batch 1 | ✅ Done | 13 indexes |
+| 05:39 | Add FK indexes batch 2 | ✅ Done | 10 indexes |
+| 05:40 | Add FK indexes batch 3 | ✅ Done | 9 indexes |
+| 05:41 | Fix function search_paths | ✅ Done | 30 functions (3 batches) |
+| 05:42 | Fix cleanup-reservations | ✅ Done | Deploy successful |
+| 05:43 | Verify Cache-Control | ✅ Done | Headers working |
+| 05:44 | Remove duplicate indexes | ✅ Done | 6 duplicates removed |
+| 05:44 | Add remaining FK indexes | ✅ Done | 13 more indexes |
 
 ---
 

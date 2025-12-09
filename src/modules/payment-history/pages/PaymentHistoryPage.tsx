@@ -8,7 +8,7 @@ import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useTheme } from '@/components/layout/ThemeContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CreditCard, RefreshCw, AlertCircle } from 'lucide-react';
+import { CreditCard, RefreshCw, AlertCircle, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
@@ -16,6 +16,7 @@ import { useStripePayments } from '../hooks/useStripePayments';
 import { StripeRevenueMetrics } from '../components/StripeRevenueMetrics';
 import { StripeTransactionFilters } from '../components/StripeTransactionFilters';
 import { StripeTransactionsTable } from '../components/StripeTransactionsTable';
+import { ReconciliationSection } from '../components/ReconciliationSection';
 
 export function PaymentHistoryPage() {
   const { theme } = useTheme();
@@ -122,6 +123,10 @@ export function PaymentHistoryPage() {
                 <CreditCard className="w-4 h-4" />
                 Transactions
               </TabsTrigger>
+              <TabsTrigger value="reconciliation" className="gap-2">
+                <ClipboardCheck className="w-4 h-4" />
+                Reconciliation
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="transactions" className="space-y-6">
@@ -143,6 +148,49 @@ export function PaymentHistoryPage() {
                 hasMore={hasMore}
                 onLoadMore={loadMore}
                 isDark={isDark}
+              />
+            </TabsContent>
+
+            <TabsContent value="reconciliation" className="space-y-6">
+              <ReconciliationSection
+                summary={{
+                  reconciledTransactions: filteredTransactions.filter(t => t.status === 'succeeded').length,
+                  reconciledAmount: filteredTransactions
+                    .filter(t => t.status === 'succeeded')
+                    .reduce((sum, t) => sum + t.amount, 0),
+                  unreconciledTransactions: filteredTransactions.filter(t => t.status === 'pending').length,
+                  unreconciledAmount: filteredTransactions
+                    .filter(t => t.status === 'pending')
+                    .reduce((sum, t) => sum + t.amount, 0),
+                  lastReconciledDate: filteredTransactions.length > 0 
+                    ? filteredTransactions[0].createdAt.toISOString()
+                    : null,
+                }}
+                unreconciledTransactions={filteredTransactions
+                  .filter(t => t.status === 'pending')
+                  .map(t => ({
+                    id: t.id,
+                    transactionRef: t.transactionRef,
+                    type: 'booking_payment' as const,
+                    amount: t.amount,
+                    customerName: t.customerName || 'Unknown',
+                    customerEmail: t.customerEmail || '',
+                    customerId: t.id,
+                    currency: t.currency,
+                    status: 'pending' as const,
+                    createdAt: t.createdAt.toISOString(),
+                    paymentMethod: {
+                      type: (t.paymentMethod.type as any) || 'stripe',
+                      brand: t.paymentMethod.brand,
+                      last4: t.paymentMethod.last4,
+                    },
+                    reconciled: false,
+                    createdBy: 'system',
+                  }))}
+                onReconcile={(id) => {
+                  console.log('Reconcile:', id);
+                }}
+                isLoading={loading}
               />
             </TabsContent>
           </Tabs>

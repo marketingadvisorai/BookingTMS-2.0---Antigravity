@@ -120,13 +120,13 @@ serve(async (req: Request) => {
         console.log(`[stripe-connect-org] Account created: ${account.id}`);
 
         // Generate onboarding link
-        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-        const origin = supabaseUrl.replace('/rest/v1', '').replace('supabase.co', 'app.supabase.co');
+        // Use the app URL from environment or default
+        const appUrl = Deno.env.get('APP_URL') || 'http://localhost:5173';
         
         const accountLink = await stripe.accountLinks.create({
           account: account.id,
-          refresh_url: `${origin}/stripe-connect?org=${organizationId}&refresh=true`,
-          return_url: `${origin}/stripe-connect?org=${organizationId}&success=true`,
+          refresh_url: `${appUrl}/settings?tab=payments&refresh=true`,
+          return_url: `${appUrl}/settings?tab=payments&success=true`,
           type: 'account_onboarding',
         });
 
@@ -163,10 +163,12 @@ serve(async (req: Request) => {
           );
         }
 
+        const appUrl = Deno.env.get('APP_URL') || 'http://localhost:5173';
+        
         const accountLink = await stripe.accountLinks.create({
           account: accountId,
-          refresh_url: refreshUrl || 'https://app.bookingtms.com/stripe-connect',
-          return_url: returnUrl || 'https://app.bookingtms.com/stripe-connect?success=true',
+          refresh_url: refreshUrl || `${appUrl}/settings?tab=payments&refresh=true`,
+          return_url: returnUrl || `${appUrl}/settings?tab=payments&success=true`,
           type: type || 'account_onboarding',
         });
 

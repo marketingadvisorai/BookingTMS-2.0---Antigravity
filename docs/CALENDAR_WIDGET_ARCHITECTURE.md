@@ -344,32 +344,46 @@ Manages temporary slot reservations during checkout.
 
 ## File Structure
 
+### Modular Calendar Widget Architecture (Enterprise Grade)
+
 ```
-/src/modules/embed-pro/
-├── widgets/
-│   ├── CalendarWidgetPro.tsx    # Main calendar widget (refactored)
-│   ├── BookingWidgetPro.tsx     # Full booking widget
-│   └── index.ts
-├── widget-components/
-│   ├── WidgetCalendar.tsx       # Calendar grid
-│   ├── WidgetTimeSlots.tsx      # Time slot selection
-│   ├── WidgetPartySize.tsx      # Party size selector
-│   ├── WidgetCheckout.tsx       # Customer form
-│   ├── WidgetSuccess.tsx        # Confirmation
-│   ├── WidgetDiscounts.tsx      # Promo/gift cards
-│   └── index.ts
+/src/modules/embed-pro/widgets/calendar-widget/
+├── index.ts                              # Module exports (~35 lines)
+├── CalendarWidgetPro.tsx                 # Main orchestrator (~200 lines)
+├── types.ts                              # TypeScript definitions (~90 lines)
+├── components/
+│   ├── index.ts                          # Component exports
+│   ├── CalendarStepIndicator.tsx         # Step progress indicator (~85 lines)
+│   ├── CalendarActivityInfo.tsx          # Activity quick info (~65 lines)
+│   └── CalendarLegend.tsx                # Availability legend (~45 lines)
 ├── hooks/
-│   ├── useBookingFlow.ts        # Booking state machine
-│   ├── useEmbedProData.ts       # Data fetching
-│   ├── usePromoCode.ts          # Promo validation
-│   └── useGiftCard.ts           # Gift card validation
-├── services/
-│   ├── checkoutPro.service.ts   # Stripe checkout
-│   ├── availability.service.ts  # Slot availability
-│   └── preview.service.ts       # Preview URLs
-└── types/
-    └── widget.types.ts          # Type definitions
+│   └── useCalendarBooking.ts             # Checkout logic (~130 lines)
+└── styles/
+    └── liquidGlass.styles.ts             # Glassmorphism styles (~95 lines)
 ```
+
+### Shared Widget Components
+
+```
+/src/modules/embed-pro/widget-components/
+├── WidgetCalendar.tsx       # Calendar grid
+├── WidgetTimeSlots.tsx      # Time slot selection
+├── WidgetPartySize.tsx      # Party size selector
+├── WidgetCheckout.tsx       # Customer form
+├── WidgetSuccess.tsx        # Confirmation
+├── WidgetHeader.tsx         # Activity/venue header
+├── WidgetPreviewCheckout.tsx # Preview mode checkout
+└── index.ts
+```
+
+### Module Pattern Benefits
+
+1. **File Size Limits**: Each file stays under 200 lines (enterprise standard)
+2. **Single Responsibility**: Each component has one clear purpose
+3. **Easy Testing**: Isolated components are easier to unit test
+4. **Reusability**: Sub-components can be used elsewhere
+5. **Maintainability**: Changes are localized to specific files
+6. **AI-Friendly**: Smaller files are easier for AI tools to understand
 
 ## Implementation Notes
 

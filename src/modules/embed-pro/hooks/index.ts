@@ -15,3 +15,6 @@ export { useBookingFlow } from './useBookingFlow';
 export { usePromoCode } from './usePromoCode';
 export { useGiftCard } from './useGiftCard';
 export { useGroupBooking } from './useGroupBooking';
+
+// Styling Hooks
+export { useWidgetStyling } from './useWidgetStyling';

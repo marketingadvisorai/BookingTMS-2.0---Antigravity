@@ -13,6 +13,8 @@ export { analyticsService } from './analytics.service';
 // Customer Widget Services (Embed Pro 2.0)
 export { embedProDataService, availabilityService, widgetDataNormalizer } from './embedProData.service';
 export { checkoutProService } from './checkoutPro.service';
+export { checkoutService } from './checkout.service';
+export type { CheckoutParams, CheckoutResult, StripeConnectStatus } from './checkout.service';
 export { bookingVerificationService } from './bookingVerification.service';
 export { promoService } from './promo.service';
 export { waitlistService } from './waitlist.service';

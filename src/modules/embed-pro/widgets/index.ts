@@ -9,8 +9,8 @@
 // Full booking experience widget
 export { BookingWidgetPro } from './BookingWidgetPro';
 
-// Calendar-only availability widget
-export { CalendarWidgetPro } from './CalendarWidgetPro';
+// Calendar-first booking widget (modular architecture)
+export { CalendarWidgetPro } from './calendar-widget';
 
 // Button trigger widget (opens popup)
 export { ButtonWidgetPro } from './ButtonWidgetPro';

@@ -33,6 +33,17 @@ export interface EditFormData {
   showActivityCapacity: boolean;
   enableSearch: boolean;
   compactOnMobile: boolean;
+  // Advanced Styling Options
+  enableGlassmorphism?: boolean;
+  enableAnimations?: boolean;
+  enableHoverEffects?: boolean;
+  cardShadow?: string;
+  buttonShadow?: string;
+  headingFontFamily?: string;
+  inheritParentFonts?: boolean;
+  successColor?: string;
+  errorColor?: string;
+  customCSS?: string;
 }
 
 export const DEFAULT_FORM_DATA: EditFormData = {
@@ -54,4 +65,15 @@ export const DEFAULT_FORM_DATA: EditFormData = {
   showActivityCapacity: true,
   enableSearch: false,
   compactOnMobile: true,
+  // Advanced styling defaults
+  enableGlassmorphism: true,
+  enableAnimations: true,
+  enableHoverEffects: true,
+  cardShadow: 'lg',
+  buttonShadow: 'md',
+  headingFontFamily: 'Inter, system-ui, sans-serif',
+  inheritParentFonts: false,
+  successColor: '#10b981',
+  errorColor: '#ef4444',
+  customCSS: '',
 };

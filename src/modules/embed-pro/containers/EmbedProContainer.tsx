@@ -87,9 +87,12 @@ export const EmbedProContainer: React.FC<EmbedProContainerProps> = ({
       return (
         <CalendarWidgetPro
           data={effectiveData}
-          onBookClick={(date) => {
-            // Could redirect or open booking modal
-            console.log('Date selected:', date);
+          onDateSelect={(date) => {
+            console.log('[CalendarWidget] Date selected:', date);
+          }}
+          onBookingComplete={(bookingId) => {
+            console.log('[CalendarWidget] Booking complete:', bookingId);
+            onBookingComplete?.(bookingId);
           }}
         />
       );

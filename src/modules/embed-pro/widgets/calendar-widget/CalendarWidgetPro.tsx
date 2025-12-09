@@ -20,6 +20,7 @@ import {
   WidgetCheckout,
   WidgetSuccess,
   WidgetPreviewCheckout,
+  WidgetActivitySelector,
 } from '../../widget-components';
 import { CalendarStepIndicator, CalendarActivityInfo, CalendarLegend } from './components';
 import { useCalendarBooking } from './hooks/useCalendarBooking';
@@ -58,13 +59,23 @@ export const CalendarWidgetPro: React.FC<CalendarWidgetProProps> = ({
   onBookClick,
   onBookingComplete,
 }) => {
-  const { venue, style, isPreview } = data;
+  const { venue, style, isPreview, activities } = data;
   const [isTransitioning, setIsTransitioning] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const { showPricing = true, showLegend = true } = calendarOptions || {};
-  const activity = data.activities?.[0] || data.activity;
   const isDarkMode = style.theme === 'dark';
+  
+  // Check if venue has multiple activities
+  const hasMultipleActivities = (activities?.length || 0) > 1;
+  
+  // Track selected activity for venue mode
+  const [selectedActivity, setSelectedActivity] = useState<typeof data.activity>(
+    hasMultipleActivities ? null : (activities?.[0] || data.activity)
+  );
+  
+  // Active activity is selected or the only one
+  const activity = selectedActivity || activities?.[0] || data.activity;
 
   // Booking flow state machine
   const {
@@ -78,7 +89,16 @@ export const CalendarWidgetPro: React.FC<CalendarWidgetProProps> = ({
     goBack,
     goToStep,
     setBookingId,
-  } = useBookingFlow({ initialActivity: activity, hasMultipleActivities: false });
+    reset,
+  } = useBookingFlow({ initialActivity: activity, hasMultipleActivities });
+  
+  // Handle activity selection for venue mode
+  const handleActivitySelect = useCallback((selected: typeof data.activity) => {
+    if (!selected) return;
+    setSelectedActivity(selected);
+    // Move to date selection after selecting activity
+    goToStep('select-date');
+  }, [goToStep]);
 
   // Checkout handling
   const {
@@ -103,9 +123,8 @@ export const CalendarWidgetPro: React.FC<CalendarWidgetProProps> = ({
     }, 100);
   }, []);
 
-  if (!activity) {
-    return <div className="p-8 text-center text-gray-500">No activity selected</div>;
-  }
+  // Needs activity selection (venue with multiple activities, none selected yet)
+  const needsActivitySelection = hasMultipleActivities && !selectedActivity;
 
   return (
     <>
@@ -113,21 +132,34 @@ export const CalendarWidgetPro: React.FC<CalendarWidgetProProps> = ({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="rounded-2xl overflow-hidden shadow-lg"
+        className={`rounded-2xl overflow-hidden shadow-lg ${isDarkMode ? 'liquid-glass-dark' : ''}`}
         style={{
-          backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-          color: style.textColor,
+          backgroundColor: isDarkMode ? 'rgba(18, 18, 18, 0.96)' : '#ffffff',
+          color: isDarkMode ? '#ffffff' : style.textColor,
           fontFamily: style.fontFamily,
           borderRadius: style.borderRadius,
+          border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.08)' : undefined,
         }}
       >
-        {/* Header */}
-        {currentStep !== 'success' && (
-          <WidgetHeader activity={activity} venue={venue} style={style} compact />
+        {/* Header - Show only when activity is selected */}
+        {currentStep !== 'success' && !needsActivitySelection && activity && (
+          <WidgetHeader activity={activity} venue={venue} style={style} compact isDarkMode={isDarkMode} />
+        )}
+        
+        {/* Venue Header - Show when selecting activities */}
+        {needsActivitySelection && venue && (
+          <div className={`p-4 border-b ${isDarkMode ? 'border-white/10' : 'border-gray-100'}`}>
+            <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              {venue.name}
+            </h2>
+            <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Select an activity to book
+            </p>
+          </div>
         )}
 
         {/* Activity Info - Only on date selection */}
-        {currentStep === 'select-date' && (
+        {currentStep === 'select-date' && !needsActivitySelection && activity && (
           <CalendarActivityInfo
             activity={activity}
             style={style}
@@ -147,15 +179,26 @@ export const CalendarWidgetPro: React.FC<CalendarWidgetProProps> = ({
         )}
 
         {/* Back Button */}
-        {currentStep !== 'success' && currentStep !== 'select-date' && canGoBack && (
+        {currentStep !== 'success' && !needsActivitySelection && (
           <button
-            onClick={() => handleStepChange(goBack)}
+            onClick={() => {
+              if (currentStep === 'select-date' && hasMultipleActivities) {
+                // Go back to activity selection
+                setSelectedActivity(null);
+                reset();
+              } else if (canGoBack) {
+                handleStepChange(goBack);
+              }
+            }}
             className={`flex items-center gap-1 mx-4 mb-2 px-3 py-1.5 rounded-xl text-sm 
-              transition-all hover:bg-gray-100 dark:hover:bg-gray-700
-              ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}
+              transition-all 
+              ${isDarkMode 
+                ? 'text-gray-300 hover:bg-white/10' 
+                : 'text-gray-600 hover:bg-gray-100'}
+              ${currentStep === 'select-date' && !hasMultipleActivities ? 'hidden' : ''}`}
           >
             <ChevronLeft className="w-4 h-4" />
-            Back
+            {currentStep === 'select-date' && hasMultipleActivities ? 'Change Activity' : 'Back'}
           </button>
         )}
 
@@ -166,7 +209,21 @@ export const CalendarWidgetPro: React.FC<CalendarWidgetProProps> = ({
           style={{ minHeight: 320 }}
         >
           <AnimatePresence mode="wait">
-            {currentStep === 'select-date' && (
+            {/* Activity Selection for Venues */}
+            {needsActivitySelection && activities && (
+              <motion.div key="activities" {...stepVariants}>
+                <WidgetActivitySelector
+                  activities={activities}
+                  venue={venue}
+                  style={style}
+                  onSelect={handleActivitySelect}
+                  layout={data.venueLayout}
+                  isDarkMode={isDarkMode}
+                />
+              </motion.div>
+            )}
+
+            {currentStep === 'select-date' && !needsActivitySelection && activity && (
               <motion.div key="date" {...stepVariants}>
                 <WidgetCalendar
                   schedule={activity.schedule}
@@ -195,6 +252,7 @@ export const CalendarWidgetPro: React.FC<CalendarWidgetProProps> = ({
                   }}
                   style={style}
                   duration={activity.duration}
+                  isDarkMode={isDarkMode}
                 />
               </motion.div>
             )}
@@ -208,6 +266,7 @@ export const CalendarWidgetPro: React.FC<CalendarWidgetProProps> = ({
                   onPartySizeChange={setPartySize}
                   onChildCountChange={setChildCount}
                   style={style}
+                  isDarkMode={isDarkMode}
                 />
                 <button
                   onClick={() => handleStepChange(() => goToStep('checkout'))}
@@ -265,6 +324,7 @@ export const CalendarWidgetPro: React.FC<CalendarWidgetProProps> = ({
                   partySize={state.partySize}
                   childCount={state.childCount}
                   style={style}
+                  isDarkMode={isDarkMode}
                   onNewBooking={() => {
                     onBookingComplete?.(state.bookingId || '');
                   }}

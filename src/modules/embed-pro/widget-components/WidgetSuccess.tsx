@@ -28,6 +28,7 @@ interface WidgetSuccessProps {
   style: WidgetStyle;
   successMessage?: string;
   onNewBooking?: () => void;
+  isDarkMode?: boolean;
 }
 
 // =====================================================
@@ -75,7 +76,9 @@ export const WidgetSuccess: React.FC<WidgetSuccessProps> = ({
   style,
   successMessage = 'Your booking is confirmed!',
   onNewBooking,
+  isDarkMode: isDarkModeProp,
 }) => {
+  const isDarkMode = isDarkModeProp ?? style.theme === 'dark';
   const [showAnimation, setShowAnimation] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -132,24 +135,24 @@ export const WidgetSuccess: React.FC<WidgetSuccessProps> = ({
       </div>
 
       {/* Success Message */}
-      <h2 className="text-2xl font-bold text-gray-800 mb-1" id="success-heading">{successMessage}</h2>
-      <p className="text-gray-500 text-sm mb-4">Thank you for your booking</p>
+      <h2 className={`text-2xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-800'}`} id="success-heading">{successMessage}</h2>
+      <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Thank you for your booking</p>
 
       {/* Booking Reference */}
       {displayRef && (
-        <div className="bg-gray-100 rounded-lg px-4 py-2 inline-flex items-center gap-2 mb-6">
-          <span className="text-xs text-gray-500" id="ref-label">Reference:</span>
-          <span className="font-mono font-semibold text-gray-800" aria-labelledby="ref-label">{displayRef}</span>
+        <div className={`rounded-lg px-4 py-2 inline-flex items-center gap-2 mb-6 ${isDarkMode ? 'bg-white/10' : 'bg-gray-100'}`}>
+          <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} id="ref-label">Reference:</span>
+          <span className={`font-mono font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`} aria-labelledby="ref-label">{displayRef}</span>
           <button 
             onClick={copyBookingRef}
-            className="p-1 hover:bg-gray-200 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1"
+            className={`p-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${isDarkMode ? 'hover:bg-white/15' : 'hover:bg-gray-200'}`}
             style={{ ['--tw-ring-color' as any]: style.primaryColor }}
             aria-label={copied ? 'Reference copied to clipboard' : 'Copy booking reference to clipboard'}
           >
             {copied ? (
-              <Check className="w-4 h-4 text-green-600" aria-hidden="true" />
+              <Check className="w-4 h-4 text-green-400" aria-hidden="true" />
             ) : (
-              <Copy className="w-4 h-4 text-gray-500" aria-hidden="true" />
+              <Copy className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} aria-hidden="true" />
             )}
           </button>
         </div>
@@ -163,7 +166,7 @@ export const WidgetSuccess: React.FC<WidgetSuccessProps> = ({
         aria-label="Booking details"
       >
         <div className="flex items-start justify-between mb-3">
-          <h3 className="font-bold text-gray-800 text-lg">{activity.name}</h3>
+          <h3 className={`font-bold text-lg ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{activity.name}</h3>
           {totalAmount !== undefined && (
             <span 
               className="font-bold text-lg"
@@ -175,7 +178,7 @@ export const WidgetSuccess: React.FC<WidgetSuccessProps> = ({
           )}
         </div>
         
-        <dl className="grid gap-3 text-sm text-gray-600">
+        <dl className={`grid gap-3 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
           {/* Date */}
           <div className="flex items-center gap-2">
             <dt className="sr-only">Date</dt>
@@ -212,11 +215,11 @@ export const WidgetSuccess: React.FC<WidgetSuccessProps> = ({
       </div>
 
       {/* Email Confirmation Note */}
-      <div className="flex items-center justify-center gap-2 text-sm text-gray-500 mb-6">
+      <div className={`flex items-center justify-center gap-2 text-sm mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
         <Mail className="w-4 h-4" aria-hidden="true" />
         <span>
           Confirmation sent to{' '}
-          <span className="font-medium text-gray-700">{customerEmail || 'your email'}</span>
+          <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-700'}`}>{customerEmail || 'your email'}</span>
         </span>
       </div>
 
@@ -236,7 +239,10 @@ export const WidgetSuccess: React.FC<WidgetSuccessProps> = ({
         {/* Print Button */}
         <button
           onClick={() => window.print()}
-          className="w-full min-h-[44px] py-3 px-4 rounded-xl font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+          className={`w-full min-h-[44px] py-3 px-4 rounded-xl font-medium transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2
+            ${isDarkMode 
+              ? 'text-gray-300 bg-white/10 hover:bg-white/15 focus:ring-gray-600' 
+              : 'text-gray-600 bg-gray-100 hover:bg-gray-200 focus:ring-gray-400'}`}
           aria-label="Print booking confirmation"
         >
           <ExternalLink className="w-4 h-4" aria-hidden="true" />

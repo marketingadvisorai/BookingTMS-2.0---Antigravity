@@ -43,20 +43,21 @@ export const liquidGlassStyles = `
   /* Glass Buttons - Dark */
   .liquid-glass-button-dark {
     position: relative;
-    background: linear-gradient(135deg, rgba(55, 55, 65, 0.9) 0%, rgba(40, 40, 50, 0.8) 100%);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(100, 100, 110, 0.4);
-    color: rgba(255, 255, 255, 0.9);
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
     box-shadow: 
-      0 4px 16px rgba(0, 0, 0, 0.3),
-      inset 0 2px 8px rgba(100, 100, 110, 0.2);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      0 4px 6px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   /* Hover Effects */
   .liquid-glass-button:hover,
   .liquid-glass-button-dark:hover {
-    transform: translateY(-2px) scale(1.02);
+    transform: translateY(-1px);
   }
   
   .liquid-glass-button:hover {
@@ -66,15 +67,18 @@ export const liquidGlassStyles = `
   }
   
   .liquid-glass-button-dark:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.2);
     box-shadow: 
-      0 8px 24px rgba(0, 0, 0, 0.4),
-      inset 0 2px 12px rgba(120, 120, 130, 0.3);
+      0 8px 20px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
   
   /* Active States */
   .liquid-glass-button:active,
   .liquid-glass-button-dark:active {
-    transform: translateY(0) scale(0.98);
+    transform: translateY(1px);
+    box-shadow: none;
   }
   
   /* Primary Button */

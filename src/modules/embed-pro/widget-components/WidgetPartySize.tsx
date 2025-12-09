@@ -21,6 +21,7 @@ interface WidgetPartySizeProps {
   onPartySizeChange: (size: number) => void;
   onChildCountChange: (count: number) => void;
   style: WidgetStyle;
+  isDarkMode?: boolean;
 }
 
 // =====================================================
@@ -37,6 +38,7 @@ interface CounterProps {
   price?: number;
   currency?: string;
   primaryColor: string;
+  isDarkMode?: boolean;
 }
 
 const Counter: React.FC<CounterProps> = ({
@@ -49,6 +51,7 @@ const Counter: React.FC<CounterProps> = ({
   price,
   currency = 'USD',
   primaryColor,
+  isDarkMode = false,
 }) => {
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -59,10 +62,10 @@ const Counter: React.FC<CounterProps> = ({
   };
 
   return (
-    <div className="flex items-center justify-between py-3 sm:py-4 border-b border-white/30 last:border-b-0">
+    <div className={`flex items-center justify-between py-3 sm:py-4 border-b last:border-b-0 ${isDarkMode ? 'border-white/10' : 'border-white/30'}`}>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-800 text-sm sm:text-base">{label}</p>
-        {sublabel && <p className="text-[10px] sm:text-xs text-gray-500">{sublabel}</p>}
+        <p className={`font-semibold text-sm sm:text-base ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{label}</p>
+        {sublabel && <p className={`text-[10px] sm:text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{sublabel}</p>}
         {price !== undefined && (
           <p className="text-xs sm:text-sm font-semibold mt-0.5" style={{ color: primaryColor }}>
             {formatPrice(price)} each
@@ -75,19 +78,20 @@ const Counter: React.FC<CounterProps> = ({
         <button
           onClick={() => onChange(Math.max(min, value - 1))}
           disabled={value <= min}
-          className="w-11 h-11 rounded-xl flex items-center justify-center touch-manipulation
-                     bg-white/60 backdrop-blur-sm border border-white/80
-                     shadow-[0_2px_8px_rgba(0,0,0,0.08),inset_0_1px_4px_rgba(255,255,255,0.6)]
-                     hover:bg-white/80 active:bg-gray-100
+          className={`w-11 h-11 rounded-xl flex items-center justify-center touch-manipulation
+                     backdrop-blur-sm border
                      disabled:opacity-30 disabled:cursor-not-allowed 
-                     transition-all duration-150 active:scale-95"
+                     transition-all duration-150 active:scale-95
+                     ${isDarkMode 
+                       ? 'bg-white/10 border-white/10 hover:bg-white/15 active:bg-white/20' 
+                       : 'bg-white/60 border-white/80 hover:bg-white/80 active:bg-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.08),inset_0_1px_4px_rgba(255,255,255,0.6)]'}`}
           aria-label={`Decrease ${label}`}
         >
-          <Minus className="w-5 h-5 text-gray-600" />
+          <Minus className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-gray-600'}`} />
         </button>
         
         {/* Value Display */}
-        <span className="w-8 sm:w-10 text-center font-bold text-lg sm:text-xl text-gray-800">{value}</span>
+        <span className={`w-8 sm:w-10 text-center font-bold text-lg sm:text-xl ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{value}</span>
         
         {/* Increase Button - 44px touch target */}
         <button
@@ -122,7 +126,9 @@ export const WidgetPartySize: React.FC<WidgetPartySizeProps> = ({
   onPartySizeChange,
   onChildCountChange,
   style,
+  isDarkMode: isDarkModeProp,
 }) => {
+  const isDarkMode = isDarkModeProp ?? style.theme === 'dark';
   const { minPlayers, maxPlayers, price, childPrice, currency } = activity;
   const hasChildPricing = childPrice !== null && childPrice !== undefined;
   
@@ -155,7 +161,7 @@ export const WidgetPartySize: React.FC<WidgetPartySizeProps> = ({
         >
           <Users className="w-4 h-4" style={{ color: style.primaryColor }} />
         </div>
-        <h3 className="font-semibold text-gray-800">Select Guests</h3>
+        <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Select Guests</h3>
         <span 
           className="text-xs px-2 py-0.5 rounded-full backdrop-blur-sm"
           style={{ 
@@ -168,8 +174,10 @@ export const WidgetPartySize: React.FC<WidgetPartySizeProps> = ({
       </div>
 
       {/* Counter Container - Liquid Glass */}
-      <div className="rounded-2xl p-4 bg-white/50 backdrop-blur-sm border border-white/60
-                      shadow-[0_4px_16px_rgba(0,0,0,0.06),inset_0_2px_8px_rgba(255,255,255,0.4)]">
+      <div className={`rounded-2xl p-4 backdrop-blur-sm border
+                      ${isDarkMode 
+                        ? 'bg-white/5 border-white/10' 
+                        : 'bg-white/50 border-white/60 shadow-[0_4px_16px_rgba(0,0,0,0.06),inset_0_2px_8px_rgba(255,255,255,0.4)]'}`}>
         {/* Adults Counter */}
         <Counter
           label={hasChildPricing ? 'Adults' : 'Players'}
@@ -181,6 +189,7 @@ export const WidgetPartySize: React.FC<WidgetPartySizeProps> = ({
           price={price}
           currency={currency}
           primaryColor={style.primaryColor}
+          isDarkMode={isDarkMode}
         />
 
         {/* Children Counter (if child pricing exists) */}
@@ -195,6 +204,7 @@ export const WidgetPartySize: React.FC<WidgetPartySizeProps> = ({
             price={childPrice || 0}
             currency={currency}
             primaryColor={style.primaryColor}
+            isDarkMode={isDarkMode}
           />
         )}
       </div>
@@ -217,7 +227,7 @@ export const WidgetPartySize: React.FC<WidgetPartySizeProps> = ({
         
         <div className="flex items-center justify-between relative">
           <div>
-            <p className="text-sm text-gray-600 font-medium">
+            <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               Total for {totalParty} {totalParty === 1 ? 'guest' : 'guests'}
             </p>
             <p className="text-3xl font-bold mt-1" style={{ color: style.primaryColor }}>

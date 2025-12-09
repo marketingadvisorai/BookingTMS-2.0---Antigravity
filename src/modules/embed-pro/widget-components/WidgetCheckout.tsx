@@ -110,7 +110,7 @@ export const WidgetCheckout: React.FC<WidgetCheckoutProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* First Name */}
           <div>
-            <label className={`block text-xs sm:text-sm font-medium mb-1.5 ${dark ? 'text-gray-300' : 'text-gray-700'}`}>
+            <label className={`block text-xs sm:text-sm font-medium mb-1.5 ${dark ? 'text-white' : 'text-gray-700'}`}>
               First Name *
             </label>
             <div className="relative group">
@@ -122,10 +122,10 @@ export const WidgetCheckout: React.FC<WidgetCheckoutProps> = ({
                 onChange={(e) => handleChange('firstName', e.target.value)}
                 className={`w-full pl-10 pr-3 py-2.5 md:py-3 border rounded-xl text-sm md:text-base
                   ${errors.firstName 
-                    ? dark ? 'border-red-500/70 bg-red-900/20' : 'border-red-500 bg-red-50/50' 
-                    : dark ? 'border-gray-600 bg-gray-800/80 text-gray-100' : 'border-gray-200 bg-white/80 text-gray-900'}
+                    ? dark ? 'border-red-400 bg-red-500/10' : 'border-red-500 bg-red-50/50' 
+                    : dark ? 'border-white/20 bg-white/5 text-white' : 'border-gray-200 bg-white/80 text-gray-900'}
                   focus:outline-none focus:ring-2 focus:ring-offset-1 focus:border-transparent
-                  ${dark ? 'hover:border-gray-500 placeholder-gray-500' : 'hover:border-gray-300 placeholder-gray-400'}
+                  ${dark ? 'hover:border-white/30 placeholder-gray-500' : 'hover:border-gray-300 placeholder-gray-400'}
                   transition-all duration-150`}
                 style={{ ['--tw-ring-color' as any]: style.primaryColor }}
                 placeholder="John"
@@ -143,7 +143,7 @@ export const WidgetCheckout: React.FC<WidgetCheckoutProps> = ({
 
           {/* Last Name */}
           <div>
-            <label className={`block text-xs sm:text-sm font-medium mb-1.5 ${dark ? 'text-gray-300' : 'text-gray-700'}`}>
+            <label className={`block text-xs sm:text-sm font-medium mb-1.5 ${dark ? 'text-white' : 'text-gray-700'}`}>
               Last Name *
             </label>
             <div className="relative group">
@@ -153,10 +153,10 @@ export const WidgetCheckout: React.FC<WidgetCheckoutProps> = ({
                 onChange={(e) => handleChange('lastName', e.target.value)}
                 className={`w-full px-3 py-2.5 md:py-3 border rounded-xl text-sm md:text-base
                   ${errors.lastName 
-                    ? dark ? 'border-red-500/70 bg-red-900/20' : 'border-red-500 bg-red-50/50' 
-                    : dark ? 'border-gray-600 bg-gray-800/80 text-gray-100' : 'border-gray-200 bg-white/80 text-gray-900'}
+                    ? dark ? 'border-red-400 bg-red-500/10' : 'border-red-500 bg-red-50/50' 
+                    : dark ? 'border-white/20 bg-white/5 text-white' : 'border-gray-200 bg-white/80 text-gray-900'}
                   focus:outline-none focus:ring-2 focus:ring-offset-1 focus:border-transparent
-                  ${dark ? 'hover:border-gray-500 placeholder-gray-500' : 'hover:border-gray-300 placeholder-gray-400'}
+                  ${dark ? 'hover:border-white/30 placeholder-gray-500' : 'hover:border-gray-300 placeholder-gray-400'}
                   transition-all duration-150`}
                 style={{ ['--tw-ring-color' as any]: style.primaryColor }}
                 placeholder="Doe"
@@ -175,7 +175,7 @@ export const WidgetCheckout: React.FC<WidgetCheckoutProps> = ({
 
         {/* Email */}
         <div>
-          <label className={`block text-xs sm:text-sm font-medium mb-1.5 ${dark ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-xs sm:text-sm font-medium mb-1.5 ${dark ? 'text-white' : 'text-gray-700'}`}>
             Email *
           </label>
           <div className="relative group">
@@ -187,8 +187,8 @@ export const WidgetCheckout: React.FC<WidgetCheckoutProps> = ({
               onChange={(e) => handleChange('email', e.target.value)}
               className={`w-full pl-10 pr-3 py-2.5 md:py-3 border rounded-xl text-sm md:text-base
                 ${errors.email 
-                  ? dark ? 'border-red-500/70 bg-red-900/20' : 'border-red-500 bg-red-50/50' 
-                  : dark ? 'border-gray-600 bg-gray-800/80 text-gray-100' : 'border-gray-200 bg-white/80 text-gray-900'}
+                  ? dark ? 'border-red-400 bg-red-500/10' : 'border-red-500 bg-red-50/50' 
+                  : dark ? 'border-white/20 bg-white/5 text-white' : 'border-gray-200 bg-white/80 text-gray-900'}
                 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:border-transparent
                 ${dark ? 'hover:border-gray-500 placeholder-gray-500' : 'hover:border-gray-300 placeholder-gray-400'}
                 transition-all duration-150`}
@@ -208,7 +208,7 @@ export const WidgetCheckout: React.FC<WidgetCheckoutProps> = ({
 
         {/* Phone */}
         <div>
-          <label className={`block text-xs sm:text-sm font-medium mb-1.5 ${dark ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-xs sm:text-sm font-medium mb-1.5 ${dark ? 'text-white' : 'text-gray-700'}`}>
             Phone *
           </label>
           <div className="relative group">
@@ -220,8 +220,8 @@ export const WidgetCheckout: React.FC<WidgetCheckoutProps> = ({
               onChange={(e) => handleChange('phone', e.target.value)}
               className={`w-full pl-10 pr-3 py-2.5 md:py-3 border rounded-xl text-sm md:text-base
                 ${errors.phone 
-                  ? dark ? 'border-red-500/70 bg-red-900/20' : 'border-red-500 bg-red-50/50' 
-                  : dark ? 'border-gray-600 bg-gray-800/80 text-gray-100' : 'border-gray-200 bg-white/80 text-gray-900'}
+                  ? dark ? 'border-red-400 bg-red-500/10' : 'border-red-500 bg-red-50/50' 
+                  : dark ? 'border-white/20 bg-white/5 text-white' : 'border-gray-200 bg-white/80 text-gray-900'}
                 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:border-transparent
                 ${dark ? 'hover:border-gray-500 placeholder-gray-500' : 'hover:border-gray-300 placeholder-gray-400'}
                 transition-all duration-150`}
@@ -241,7 +241,7 @@ export const WidgetCheckout: React.FC<WidgetCheckoutProps> = ({
 
         {/* Notes (Optional) */}
         <div>
-          <label className={`block text-xs sm:text-sm font-medium mb-1.5 ${dark ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-xs sm:text-sm font-medium mb-1.5 ${dark ? 'text-white' : 'text-gray-700'}`}>
             Special Requests <span className={`font-normal ${dark ? 'text-gray-500' : 'text-gray-400'}`}>(Optional)</span>
           </label>
           <div className="relative group">
@@ -252,7 +252,7 @@ export const WidgetCheckout: React.FC<WidgetCheckoutProps> = ({
               onChange={(e) => handleChange('notes', e.target.value)}
               rows={2}
               className={`w-full pl-10 pr-3 py-2.5 md:py-3 border rounded-xl text-sm md:text-base
-                ${dark ? 'border-gray-600 bg-gray-800/80 text-gray-100 placeholder-gray-500' : 'border-gray-200 bg-white/80 text-gray-900 placeholder-gray-400'}
+                ${dark ? 'border-white/20 bg-white/5 text-white placeholder-gray-500' : 'border-gray-200 bg-white/80 text-gray-900 placeholder-gray-400'}
                 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:border-transparent
                 ${dark ? 'hover:border-gray-500' : 'hover:border-gray-300'}
                 transition-all duration-150 resize-none`}

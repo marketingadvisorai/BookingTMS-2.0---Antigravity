@@ -78,6 +78,11 @@ export function generateCSSVariables(
   vars.push(`${prefix}-radius-input: ${config.input.borderRadius};`);
   vars.push(`${prefix}-radius-card: ${config.card.borderRadius};`);
   vars.push(`${prefix}-radius-calendar-day: ${config.calendar.dayBorderRadius};`);
+  
+  // Card specific
+  if (config.card.border) {
+    vars.push(`${prefix}-card-border-color: ${config.card.borderColor};`);
+  }
 
   // Animation
   vars.push(`${prefix}-transition-default: ${config.animation.transitions.default};`);

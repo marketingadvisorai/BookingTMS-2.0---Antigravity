@@ -26,6 +26,7 @@ interface WidgetTimeSlotsProps {
   activityId?: string;
   partySize?: number;
   useRealAvailability?: boolean; // Enable DB-backed availability
+  isDarkMode?: boolean;
 }
 
 // =====================================================
@@ -104,7 +105,9 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
   activityId,
   partySize = 1,
   useRealAvailability = false,
+  isDarkMode: isDarkModeProp,
 }) => {
+  const isDarkMode = isDarkModeProp ?? style.theme === 'dark';
   // State for real-time availability
   const [realSlots, setRealSlots] = useState<AvailabilitySlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -163,8 +166,8 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
   // Loading state
   if (isLoading) {
     return (
-      <div className="p-4 text-center text-gray-500">
-        <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin mx-auto mb-2" />
+      <div className={`p-4 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+        <div className={`w-6 h-6 border-2 rounded-full animate-spin mx-auto mb-2 ${isDarkMode ? 'border-gray-600 border-t-white' : 'border-gray-300 border-t-blue-500'}`} />
         <p className="text-sm">Loading available times...</p>
       </div>
     );
@@ -172,7 +175,7 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
 
   if (!selectedDate) {
     return (
-      <div className="p-4 text-center text-gray-500">
+      <div className={`p-4 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
         <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
         <p>Select a date to see available times</p>
       </div>
@@ -181,7 +184,7 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
 
   if (timeSlots.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-500">
+      <div className={`p-4 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
         <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
         <p>No time slots available for this date</p>
       </div>
@@ -215,7 +218,7 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
 
       {/* Date Display */}
       <div className="flex items-center justify-between mb-3 md:mb-4">
-        <h3 className="font-semibold text-gray-800 text-sm sm:text-base md:text-lg" id="time-slot-heading">
+        <h3 className={`font-semibold text-sm sm:text-base md:text-lg ${isDarkMode ? 'text-white' : 'text-gray-800'}`} id="time-slot-heading">
           Select Time
         </h3>
         <span 
@@ -251,7 +254,9 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
                 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2
                 ${isSelected
                   ? 'text-white shadow-lg'
-                  : 'bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-gray-700'
+                  : isDarkMode 
+                    ? 'bg-white/10 hover:bg-white/15 active:bg-white/20 text-white border border-white/10' 
+                    : 'bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-gray-700'
                 }
               `}
               style={{
@@ -273,7 +278,7 @@ export const WidgetTimeSlots: React.FC<WidgetTimeSlotsProps> = ({
 
       {/* Selection Hint */}
       <p 
-        className="text-center text-[10px] sm:text-xs text-gray-400 mt-3" 
+        className={`text-center text-[10px] sm:text-xs mt-3 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} 
         id="time-slot-count"
         aria-live="polite"
       >

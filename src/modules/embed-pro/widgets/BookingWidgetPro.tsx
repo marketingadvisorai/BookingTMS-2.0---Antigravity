@@ -47,15 +47,27 @@ const liquidGlassStyles = `
       inset 0 2px 20px rgba(255, 255, 255, 0.4);
   }
   
-  /* Dark Mode Styles */
+  /* Dark Mode Styles - Spotify-inspired */
   .liquid-glass-dark {
-    background: rgba(30, 30, 35, 0.85);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(75, 75, 85, 0.4);
+    background: linear-gradient(180deg, rgba(32, 32, 32, 0.9) 0%, rgba(18, 18, 18, 0.95) 100%);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      inset 0 2px 20px rgba(75, 75, 85, 0.2);
+      0 20px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Noise Texture Overlay */
+  .liquid-glass-dark::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
   }
   
   .liquid-glass-button {
@@ -71,19 +83,20 @@ const liquidGlassStyles = `
   
   .liquid-glass-button-dark {
     position: relative;
-    background: linear-gradient(135deg, rgba(55, 55, 65, 0.9) 0%, rgba(40, 40, 50, 0.8) 100%);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(100, 100, 110, 0.4);
-    color: rgba(255, 255, 255, 0.9);
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
     box-shadow: 
-      0 4px 16px rgba(0, 0, 0, 0.3),
-      inset 0 2px 8px rgba(100, 100, 110, 0.2);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      0 4px 6px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .liquid-glass-button:hover,
   .liquid-glass-button-dark:hover {
-    transform: translateY(-2px) scale(1.02);
+    transform: translateY(-1px);
   }
   
   .liquid-glass-button:hover {
@@ -93,9 +106,11 @@ const liquidGlassStyles = `
   }
   
   .liquid-glass-button-dark:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.2);
     box-shadow: 
-      0 8px 24px rgba(0, 0, 0, 0.4),
-      inset 0 2px 12px rgba(120, 120, 130, 0.3);
+      0 8px 20px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
   
   .liquid-glass-button:active,
@@ -166,10 +181,10 @@ const liquidGlassStyles = `
   }
   
   .step-indicator-glass-dark {
-    background: rgba(45, 45, 55, 0.7);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(80, 80, 90, 0.4);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    background: rgba(30, 30, 30, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
   
   .step-dot {
@@ -429,7 +444,7 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
                         style={{
                           background: isActive || isComplete 
                             ? `linear-gradient(135deg, ${style.primaryColor} 0%, ${style.primaryColor}dd 100%)`
-                            : isDarkMode ? 'rgba(75, 75, 85, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                            : isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(229, 231, 235, 0.8)',
                           color: isActive || isComplete ? '#fff' : isDarkMode ? '#9ca3af' : '#9ca3af',
                           boxShadow: isActive 
                             ? `0 4px 15px ${style.primaryColor}40` 
@@ -439,7 +454,7 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
                         {isComplete ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                       </div>
                       <span className={`text-[10px] mt-1.5 font-semibold tracking-wide ${
-                        isActive ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : 'text-gray-400'
+                        isActive ? (isDarkMode ? 'text-white' : 'text-gray-900') : 'text-gray-500'
                       }`}>
                         {step.label}
                       </span>
@@ -450,7 +465,7 @@ export const BookingWidgetPro: React.FC<BookingWidgetProProps> = ({
                         style={{ 
                           background: idx < currentStepIndex 
                             ? `linear-gradient(90deg, ${style.primaryColor}, ${style.primaryColor}aa)`
-                            : isDarkMode ? 'rgba(75, 75, 85, 0.5)' : 'rgba(229, 231, 235, 0.6)'
+                            : isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(229, 231, 235, 0.6)'
                         }}
                       />
                     )}

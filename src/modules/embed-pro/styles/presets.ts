@@ -145,25 +145,30 @@ export const LIQUID_GLASS_DARK: WidgetStyleConfig = {
   themeId: 'liquid-glass-dark',
   colorMode: 'dark',
   background: {
-    base: 'rgba(17, 24, 39, 0.9)',
-    card: 'rgba(31, 41, 55, 0.8)',
-    input: 'rgba(55, 65, 81, 0.8)',
-    hover: 'rgba(55, 65, 81, 0.9)',
-    overlay: 'rgba(0, 0, 0, 0.6)',
+    base: 'rgba(18, 18, 18, 0.96)', // Deep charcoal/black, high opacity
+    card: 'rgba(40, 40, 40, 0.6)',  // Lighter, glassy card
+    input: 'rgba(60, 60, 60, 0.4)', // Subtle input background
+    hover: 'rgba(255, 255, 255, 0.1)', // Light hover overlay
+    overlay: 'rgba(0, 0, 0, 0.7)',
   },
   text: {
-    primary: '#f9fafb',
-    secondary: '#d1d5db',
-    muted: '#6b7280',
-    inverted: '#111827',
-    link: '#60a5fa',
+    primary: '#ffffff',     // Pure white for readability
+    secondary: '#e5e7eb',   // Light gray for secondary
+    muted: '#9ca3af',       // Muted gray
+    inverted: '#000000',    // Black on white
+    link: '#4ade80',        // Vibrant green link (Spotify-esque)
   },
   border: {
-    default: 'rgba(75, 85, 99, 0.6)',
-    focus: '#60a5fa',
+    default: 'rgba(255, 255, 255, 0.1)', // Very subtle white border
+    focus: '#4ade80',       // Green focus ring
     error: '#f87171',
     success: '#34d399',
   },
+  card: {
+    ...LIQUID_GLASS_LIGHT.card,
+    borderColor: 'rgba(255, 255, 255, 0.1)', // Fixed: Explicit border color for dark mode
+    shadow: 'xl',
+  }
 };
 
 // =====================================================

@@ -27,6 +27,7 @@ interface WidgetActivitySelectorProps {
   style: WidgetStyle;
   onSelect: (activity: WidgetActivity) => void;
   layout?: VenueLayoutConfig;
+  isDarkMode?: boolean;
 }
 
 // =====================================================
@@ -43,6 +44,7 @@ interface ActivityCardProps {
   showPrice?: boolean;
   showDuration?: boolean;
   showCapacity?: boolean;
+  isDarkMode?: boolean;
 }
 
 const ActivityCard: React.FC<ActivityCardProps> = ({ 
@@ -55,6 +57,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
   showPrice = true,
   showDuration = true,
   showCapacity = true,
+  isDarkMode = false,
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -80,10 +83,14 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
         <div 
           className={`
             relative overflow-hidden rounded-2xl flex
-            bg-white/60 backdrop-blur-md border border-white/70
-            shadow-[0_4px_20px_rgba(0,0,0,0.08),inset_0_2px_12px_rgba(255,255,255,0.4)]
+            ${isDarkMode 
+              ? 'bg-white/5 backdrop-blur-md border border-white/10' 
+              : 'bg-white/60 backdrop-blur-md border border-white/70'}
+            ${isDarkMode 
+              ? 'shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]' 
+              : 'shadow-[0_4px_20px_rgba(0,0,0,0.08),inset_0_2px_12px_rgba(255,255,255,0.4)]'}
             transition-all duration-300 ease-out
-            ${isHovered ? 'scale-[1.01] shadow-[0_8px_30px_rgba(0,0,0,0.12)]' : ''}
+            ${isHovered ? (isDarkMode ? 'scale-[1.01] bg-white/10' : 'scale-[1.01] shadow-[0_8px_30px_rgba(0,0,0,0.12)]') : ''}
           `}
         >
           {/* Image Section - Side */}
@@ -115,7 +122,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
           <div className="flex-1 p-4 flex flex-col justify-between">
             <div>
               <div className="flex items-start justify-between">
-                <h3 className="font-semibold text-gray-900 text-base line-clamp-1">
+                <h3 className={`font-semibold text-base line-clamp-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   {activity.name}
                 </h3>
                 {showPrice && (
@@ -125,13 +132,13 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
                 )}
               </div>
               {activity.tagline && (
-                <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+                <p className={`text-sm line-clamp-2 mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   {activity.tagline}
                 </p>
               )}
             </div>
             
-            <div className="flex items-center gap-3 text-xs text-gray-500 mt-2">
+            <div className={`flex items-center gap-3 text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 {showDuration && (
                   <div className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" />
@@ -178,10 +185,14 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
       <div 
         className={`
           relative overflow-hidden rounded-2xl
-          bg-white/60 backdrop-blur-md border border-white/70
-          shadow-[0_4px_20px_rgba(0,0,0,0.08),inset_0_2px_12px_rgba(255,255,255,0.4)]
+          ${isDarkMode 
+            ? 'bg-white/5 backdrop-blur-md border border-white/10' 
+            : 'bg-white/60 backdrop-blur-md border border-white/70'}
+          ${isDarkMode 
+            ? 'shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]' 
+            : 'shadow-[0_4px_20px_rgba(0,0,0,0.08),inset_0_2px_12px_rgba(255,255,255,0.4)]'}
           transition-all duration-300 ease-out
-          ${isHovered ? 'scale-[1.02] shadow-[0_8px_30px_rgba(0,0,0,0.12)]' : ''}
+          ${isHovered ? (isDarkMode ? 'scale-[1.02] bg-white/10' : 'scale-[1.02] shadow-[0_8px_30px_rgba(0,0,0,0.12)]') : ''}
         `}
       >
         {/* Image Section */}
@@ -214,11 +225,13 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
             {/* Price Badge - Liquid Glass */}
             {showPrice && (
               <div 
-                className="absolute top-3 right-3 px-3 py-1.5 rounded-xl
-                           bg-white/80 backdrop-blur-md border border-white/60
-                           shadow-[0_2px_10px_rgba(0,0,0,0.1)]"
+                className={`absolute top-3 right-3 px-3 py-1.5 rounded-xl backdrop-blur-md
+                           ${isDarkMode 
+                             ? 'bg-black/60 border border-white/10' 
+                             : 'bg-white/80 border border-white/60'}
+                           shadow-[0_2px_10px_rgba(0,0,0,0.1)]`}
               >
-                <span className="font-bold text-sm" style={{ color: style.primaryColor }}>
+                <span className="font-bold text-sm" style={{ color: isDarkMode ? '#fff' : style.primaryColor }}>
                   {formatPrice(activity.price)}
                 </span>
               </div>
@@ -228,19 +241,19 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
 
         {/* Content Section */}
         <div className={cardStyle === 'compact' ? 'p-3' : 'p-4'}>
-          <h3 className={`font-semibold text-gray-900 line-clamp-1 mb-1 ${cardStyle === 'compact' ? 'text-base' : 'text-lg mb-2'}`}>
+          <h3 className={`font-semibold line-clamp-1 mb-1 ${cardStyle === 'compact' ? 'text-base' : 'text-lg mb-2'} ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             {activity.name}
           </h3>
           
           {cardStyle !== 'compact' && activity.tagline && (
-            <p className="text-sm text-gray-500 line-clamp-1 mb-3">
+            <p className={`text-sm line-clamp-1 mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               {activity.tagline}
             </p>
           )}
           
           {/* Stats Row */}
           {(showDuration || showCapacity) && (
-            <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+            <div className={`flex items-center gap-4 text-xs mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               {showDuration && (
                 <div className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" />
@@ -304,8 +317,10 @@ export const WidgetActivitySelector: React.FC<WidgetActivitySelectorProps> = ({
   style,
   onSelect,
   layout: layoutProp,
+  isDarkMode: isDarkModeProp,
 }) => {
   const layout = { ...DEFAULT_LAYOUT, ...layoutProp };
+  const isDarkMode = isDarkModeProp ?? style.theme === 'dark';
   const [searchQuery, setSearchQuery] = useState('');
   const [carouselIndex, setCarouselIndex] = useState(0);
 
@@ -374,18 +389,10 @@ export const WidgetActivitySelector: React.FC<WidgetActivitySelectorProps> = ({
 
   return (
     <div className="p-4">
-      {/* Venue Header */}
-      {venue && (
-        <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
-          <MapPin className="w-4 h-4" style={{ color: style.primaryColor }} />
-          <span className="font-medium">{venue.name}</span>
-        </div>
-      )}
-
       {/* Section Title */}
       <div className="mb-4">
-        <h2 className="text-lg font-bold text-gray-900">Select an Experience</h2>
-        <p className="text-sm text-gray-500 mt-0.5">
+        <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Select an Experience</h2>
+        <p className={`text-sm mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
           {filteredActivities.length} experience{filteredActivities.length !== 1 ? 's' : ''} available
         </p>
       </div>
@@ -393,13 +400,16 @@ export const WidgetActivitySelector: React.FC<WidgetActivitySelectorProps> = ({
       {/* Search Box */}
       {layout.enableSearch && (
         <div className="mb-4 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search experiences..."
-            className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
+            className={`w-full pl-10 pr-4 py-2 rounded-xl border transition-all text-sm
+              ${isDarkMode 
+                ? 'border-white/20 bg-white/5 text-white placeholder-gray-500 focus:border-white/30' 
+                : 'border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200'}`}
           />
         </div>
       )}
@@ -424,6 +434,7 @@ export const WidgetActivitySelector: React.FC<WidgetActivitySelectorProps> = ({
                     showPrice={layout.showActivityPrice}
                     showDuration={layout.showActivityDuration}
                     showCapacity={layout.showActivityCapacity}
+                    isDarkMode={isDarkMode}
                   />
                 </div>
               ))}
@@ -476,6 +487,7 @@ export const WidgetActivitySelector: React.FC<WidgetActivitySelectorProps> = ({
               showPrice={layout.showActivityPrice}
               showDuration={layout.showActivityDuration}
               showCapacity={layout.showActivityCapacity}
+              isDarkMode={isDarkMode}
             />
           ))}
         </div>
@@ -496,6 +508,7 @@ export const WidgetActivitySelector: React.FC<WidgetActivitySelectorProps> = ({
               showPrice={layout.showActivityPrice}
               showDuration={layout.showActivityDuration}
               showCapacity={layout.showActivityCapacity}
+              isDarkMode={isDarkMode}
             />
           ))}
         </div>

@@ -123,18 +123,9 @@ const OrgLogin = () => {
 
             {/* Password Field */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className={isDark ? 'text-gray-300' : 'text-gray-700'}>
-                  Password
-                </Label>
-                <button
-                  type="button"
-                  className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
-                  onClick={() => window.location.href = '/forgot-password'}
-                >
-                  Forgot password?
-                </button>
-              </div>
+              <Label className={isDark ? 'text-gray-300' : 'text-gray-700'}>
+                Password
+              </Label>
               <div className="relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}
@@ -175,6 +166,15 @@ const OrgLogin = () => {
                 'Sign In'
               )}
             </Button>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                onClick={() => window.location.href = '/forgot-password'}
+              >
+                Forgot password?
+              </button>
+            </div>
           </form>
         </div>
 

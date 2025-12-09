@@ -19,6 +19,7 @@ interface WidgetHeaderProps {
   venue?: WidgetVenue | null;
   style: WidgetStyle;
   compact?: boolean;
+  isDarkMode?: boolean;
 }
 
 // =====================================================
@@ -30,7 +31,10 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({
   venue,
   style,
   compact = false,
+  isDarkMode: isDarkModeProp,
 }) => {
+  // Detect dark mode from style or prop
+  const isDarkMode = isDarkModeProp ?? style.theme === 'dark';
   const [imgLoaded, setImgLoaded] = useState(false);
   const { name, coverImage, duration, minPlayers, maxPlayers, price, currency } = activity;
 
@@ -45,9 +49,13 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({
 
   return (
     <div 
-      className="flex items-center gap-3 p-3 border-b border-gray-100"
+      className={`flex items-center gap-3 p-3 border-b ${
+        isDarkMode ? 'border-white/10' : 'border-gray-100'
+      }`}
       style={{ 
-        background: `linear-gradient(135deg, ${style.primaryColor}08 0%, transparent 50%)` 
+        background: isDarkMode 
+          ? `linear-gradient(135deg, ${style.primaryColor}15 0%, transparent 50%)`
+          : `linear-gradient(135deg, ${style.primaryColor}08 0%, transparent 50%)` 
       }}
     >
       {/* Thumbnail */}
@@ -79,20 +87,26 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({
       {/* Info */}
       <div className="flex-1 min-w-0">
         {/* Activity Name */}
-        <h1 className="font-semibold text-gray-900 truncate text-base leading-tight">
+        <h1 className={`font-semibold truncate text-base leading-tight ${
+          isDarkMode ? 'text-white' : 'text-gray-900'
+        }`}>
           {name}
         </h1>
 
         {/* Venue (if available) */}
         {venue && (
-          <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+          <div className={`flex items-center gap-1 text-xs mt-0.5 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
             <MapPin className="w-3 h-3" />
             <span className="truncate">{venue.name}</span>
           </div>
         )}
 
         {/* Quick Stats */}
-        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-600">
+        <div className={`flex items-center gap-3 mt-1.5 text-xs ${
+          isDarkMode ? 'text-gray-300' : 'text-gray-600'
+        }`}>
           <span className="flex items-center gap-1">
             <Clock className="w-3 h-3" style={{ color: style.primaryColor }} />
             {duration}min

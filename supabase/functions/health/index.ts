@@ -125,59 +125,20 @@ async function checkDatabase(): Promise<ComponentHealth> {
 }
 
 async function checkRedis(): Promise<ComponentHealth> {
-  const start = Date.now()
-  
-  const url = Deno.env.get('UPSTASH_REDIS_REST_URL')
-  const token = Deno.env.get('UPSTASH_REDIS_REST_TOKEN')
-
-  if (!url || !token) {
-    return {
-      status: 'degraded',
-      latency: 0,
-      message: 'Redis not configured',
-    }
+  // Redis/Upstash has been removed - using HTTP edge caching instead
+  // This stub is kept for backward compatibility with health check consumers
+  return {
+    status: 'healthy',
+    latency: 0,
+    message: 'Redis removed - using HTTP edge caching (Cache-Control headers)',
   }
 
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(['PING']),
-    })
-
-    const latency = Date.now() - start
-    const data = await response.json()
-
-    if (data.result === 'PONG') {
-      if (latency > 200) {
-        return {
-          status: 'degraded',
-          latency,
-          message: 'High latency detected',
-        }
-      }
-      return {
-        status: 'healthy',
-        latency,
-      }
-    }
-
-    return {
-      status: 'unhealthy',
-      latency,
-      message: 'Unexpected response from Redis',
-    }
-  } catch (error) {
-    return {
-      status: 'unhealthy',
-      latency: Date.now() - start,
-      message: error instanceof Error ? error.message : 'Redis connection failed',
-    }
-  }
+  // OLD IMPLEMENTATION REMOVED:
+  // const url = Deno.env.get('UPSTASH_REDIS_REST_URL')
+  // const token = Deno.env.get('UPSTASH_REDIS_REST_TOKEN')
+  // ... Redis ping logic removed ...
 }
+
 
 async function checkStripe(): Promise<ComponentHealth> {
   const start = Date.now()

@@ -1,74 +1,19 @@
 /**
  * Cached Widget API Edge Function
  * 
+ * VERSION 2.0.0 - Now using HTTP Cache-Control headers instead of Redis
+ * 
  * High-performance endpoint for widget data with:
- * - Redis caching (Upstash)
- * - Rate limiting
- * - Edge-optimized responses
+ * - Edge caching via Cache-Control headers (CDN-level)
+ * - No external dependencies (Redis removed)
  * 
  * @module supabase/functions/cached-widget-api
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
-
-// Upstash Redis REST API client (no external dependencies)
-class UpstashRedis {
-  private url: string
-  private token: string
-
-  constructor(url: string, token: string) {
-    this.url = url
-    this.token = token
-  }
-
-  private async command(...args: (string | number)[]): Promise<any> {
-    const response = await fetch(`${this.url}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(args),
-    })
-    const data = await response.json()
-    if (data.error) throw new Error(data.error)
-    return data.result
-  }
-
-  async get(key: string): Promise<string | null> {
-    return this.command('GET', key)
-  }
-
-  async set(key: string, value: string, options?: { ex?: number }): Promise<void> {
-    if (options?.ex) {
-      await this.command('SET', key, value, 'EX', options.ex)
-    } else {
-      await this.command('SET', key, value)
-    }
-  }
-
-  async del(...keys: string[]): Promise<number> {
-    return this.command('DEL', ...keys)
-  }
-
-  async zadd(key: string, score: number, member: string): Promise<number> {
-    return this.command('ZADD', key, score, member)
-  }
-
-  async zremrangebyscore(key: string, min: number, max: number): Promise<number> {
-    return this.command('ZREMRANGEBYSCORE', key, min, max)
-  }
-
-  async zcard(key: string): Promise<number> {
-    return this.command('ZCARD', key)
-  }
-
-  async expire(key: string, seconds: number): Promise<number> {
-    return this.command('EXPIRE', key, seconds)
-  }
-}
+import { getCacheHeaders, CACHE_TTL } from '../_shared/edgeCacheHeaders.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -83,22 +28,8 @@ const TTL = {
   SESSION_AVAIL: 30,     // 30 seconds (more dynamic)
 }
 
-// Rate limits
-const RATE_LIMITS = {
-  WIDGET_LOAD: { limit: 60, window: 60 },    // 60 req/min per widget
-  API_CALL: { limit: 100, window: 60 },       // 100 req/min per IP
-}
-
-// Initialize Redis (lazy)
-let redis: UpstashRedis | null = null
-function getRedis(): UpstashRedis | null {
-  if (redis) return redis
-  const url = Deno.env.get('UPSTASH_REDIS_REST_URL')
-  const token = Deno.env.get('UPSTASH_REDIS_REST_TOKEN')
-  if (!url || !token) return null
-  redis = new UpstashRedis(url, token)
-  return redis
-}
+// Rate limits - now rely on Supabase platform limits (500 req/sec)
+// Custom rate limiting removed with Redis
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -111,33 +42,8 @@ serve(async (req) => {
   const activityId = url.searchParams.get('activityId')
   const action = url.searchParams.get('action') || 'config'
 
-  // Get client IP for rate limiting
-  const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0] || 
-                   req.headers.get('cf-connecting-ip') || 
-                   'unknown'
-
   try {
-    // Rate limit check
-    const rateLimitResult = await checkRateLimit(clientIP, 'api')
-    if (!rateLimitResult.allowed) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Rate limit exceeded',
-          retryAfter: rateLimitResult.reset 
-        }),
-        { 
-          status: 429, 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json',
-            'Retry-After': String(rateLimitResult.reset),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          } 
-        }
-      )
-    }
-
-    // Route to appropriate handler
+    // Route to appropriate handler (rate limiting now handled by Supabase platform)
     switch (action) {
       case 'config':
         return await handleGetConfig(embedKey, activityId)
@@ -166,23 +72,7 @@ async function handleGetConfig(embedKey: string | null, activityId: string | nul
     return jsonResponse({ error: 'embedKey or activityId required' }, 400)
   }
 
-  const cacheKey = embedKey 
-    ? `widget:config:${embedKey}` 
-    : `activity:config:${activityId}`
-
-  // Try cache first
-  const redis = getRedis()
-  if (redis) {
-    const cached = await redis.get(cacheKey)
-    if (cached) {
-      console.log(`Cache HIT: ${cacheKey}`)
-      return jsonResponse(typeof cached === 'string' ? JSON.parse(cached) : cached, 200, true)
-    }
-  }
-
-  console.log(`Cache MISS: ${cacheKey}`)
-
-  // Fetch from database
+  // Fetch from database (HTTP caching handled via Cache-Control headers in response)
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -231,12 +121,8 @@ async function handleGetConfig(embedKey: string | null, activityId: string | nul
     data = activity
   }
 
-  // Cache the result
-  if (redis && data) {
-    await redis.set(cacheKey, JSON.stringify(data), { ex: TTL.WIDGET_CONFIG })
-  }
-
-  return jsonResponse(data)
+  // Return with cache headers (CDN will cache this response)
+  return jsonResponse(data, 200, TTL.WIDGET_CONFIG)
 }
 
 async function handleGetSessions(
@@ -249,18 +135,8 @@ async function handleGetSessions(
 
   // Default to today
   const targetDate = date || new Date().toISOString().split('T')[0]
-  const cacheKey = `sessions:${activityId}:${targetDate}`
 
-  // Try cache
-  const redis = getRedis()
-  if (redis) {
-    const cached = await redis.get(cacheKey)
-    if (cached) {
-      return jsonResponse(typeof cached === 'string' ? JSON.parse(cached) : cached, 200, true)
-    }
-  }
-
-  // Fetch from database
+  // Fetch from database (HTTP caching via Cache-Control headers)
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -284,12 +160,8 @@ async function handleGetSessions(
     return jsonResponse({ error: 'Failed to fetch sessions' }, 500)
   }
 
-  // Cache with shorter TTL (sessions are more dynamic)
-  if (redis && sessions) {
-    await redis.set(cacheKey, JSON.stringify(sessions), { ex: TTL.SESSION_AVAIL })
-  }
-
-  return jsonResponse(sessions || [])
+  // Return with short cache (sessions are dynamic)
+  return jsonResponse(sessions || [], 200, TTL.SESSION_AVAIL)
 }
 
 async function handleCheckAvailability(sessionId: string | null, spots: number) {
@@ -336,54 +208,25 @@ async function handleCheckAvailability(sessionId: string | null, spots: number) 
 // UTILITIES
 // ============================================================================
 
-function jsonResponse(data: any, status = 200, cached = false) {
+/**
+ * Create JSON response with optional edge cache headers
+ * @param data - Response data
+ * @param status - HTTP status code
+ * @param cacheTtl - Cache TTL in seconds (0 = no cache)
+ */
+function jsonResponse(data: any, status = 200, cacheTtl = 0) {
   const headers: Record<string, string> = {
     ...corsHeaders,
     'Content-Type': 'application/json',
   }
   
-  if (cached) {
-    headers['X-Cache'] = 'HIT'
-    headers['Cache-Control'] = 'public, max-age=30'
-  } else {
-    headers['X-Cache'] = 'MISS'
+  if (cacheTtl > 0) {
+    // Add edge cache headers for CDN caching
+    const swr = Math.min(cacheTtl, 60); // stale-while-revalidate
+    headers['Cache-Control'] = `public, max-age=${cacheTtl}, s-maxage=${cacheTtl}, stale-while-revalidate=${swr}`;
+    headers['CDN-Cache-Control'] = `max-age=${cacheTtl}`;
+    headers['Vary'] = 'Accept-Encoding';
   }
 
   return new Response(JSON.stringify(data), { status, headers })
-}
-
-async function checkRateLimit(
-  key: string, 
-  type: 'api' | 'widget' = 'api'
-): Promise<{ allowed: boolean; remaining: number; reset: number }> {
-  const redis = getRedis()
-  if (!redis) {
-    return { allowed: true, remaining: 100, reset: 0 }
-  }
-
-  const limits = type === 'widget' ? RATE_LIMITS.WIDGET_LOAD : RATE_LIMITS.API_CALL
-  const rateLimitKey = `ratelimit:${type}:${key}`
-  const now = Date.now()
-  const windowMs = limits.window * 1000
-
-  try {
-    // Remove old entries
-    await redis.zremrangebyscore(rateLimitKey, 0, now - windowMs)
-    
-    // Count current
-    const count = await redis.zcard(rateLimitKey)
-    
-    if (count >= limits.limit) {
-      return { allowed: false, remaining: 0, reset: limits.window }
-    }
-
-    // Add current request
-    await redis.zadd(rateLimitKey, now, `${now}:${Math.random()}`)
-    await redis.expire(rateLimitKey, limits.window)
-
-    return { allowed: true, remaining: limits.limit - count - 1, reset: limits.window }
-  } catch (error) {
-    console.error('Rate limit error:', error)
-    return { allowed: true, remaining: limits.limit, reset: 0 }
-  }
 }

@@ -174,6 +174,9 @@ export function useSettings(options: UseSettingsOptions = {}): UseSettingsReturn
     mountedRef.current = true;
     if (autoFetch && organizationId) {
       fetchSettings();
+    } else if (!organizationId) {
+      // No organizationId (system admin) - stop loading immediately
+      setLoading(false);
     }
     return () => {
       mountedRef.current = false;

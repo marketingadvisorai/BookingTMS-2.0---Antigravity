@@ -55,11 +55,29 @@ class StripeConnectService {
       }
     );
 
+    const data = await this.safeJsonParse(response);
+    
     if (!response.ok) {
-      throw new Error('Failed to fetch account status');
+      throw new Error(data.error || `Failed to fetch account status (${response.status})`);
     }
 
-    return response.json();
+    return data;
+  }
+
+  /**
+   * Safely parse JSON response, handling empty/invalid responses
+   */
+  private async safeJsonParse(response: Response): Promise<any> {
+    const text = await response.text();
+    if (!text || text.trim() === '') {
+      return {};
+    }
+    try {
+      return JSON.parse(text);
+    } catch {
+      console.error('Failed to parse response:', text);
+      return { error: 'Invalid response from server' };
+    }
   }
 
   /**
@@ -91,12 +109,17 @@ class StripeConnectService {
       }
     );
 
+    const data = await this.safeJsonParse(response);
+    
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to create account');
+      throw new Error(data.error || `Failed to create account (${response.status})`);
     }
 
-    return response.json();
+    if (!data.onboardingUrl) {
+      throw new Error('No onboarding URL returned from Stripe');
+    }
+
+    return data;
   }
 
   /**
@@ -128,12 +151,13 @@ class StripeConnectService {
       }
     );
 
+    const data = await this.safeJsonParse(response);
+    
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to generate OAuth URL');
+      throw new Error(data.error || `Failed to generate OAuth URL (${response.status})`);
     }
 
-    return response.json();
+    return data;
   }
 
   /**
@@ -157,11 +181,13 @@ class StripeConnectService {
       }
     );
 
+    const data = await this.safeJsonParse(response);
+    
     if (!response.ok) {
-      throw new Error('Failed to create login link');
+      throw new Error(data.error || `Failed to create login link (${response.status})`);
     }
 
-    return response.json();
+    return data;
   }
 }
 

@@ -206,17 +206,52 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
     };
   }, [enableRealTime, organizationId, refreshStaff, refreshStats]);
 
-  // Initial fetch
+  // Initial fetch and refetch when organizationId changes
   useEffect(() => {
     mountedRef.current = true;
-    if (autoFetch && organizationId) {
-      refreshStaff();
-      refreshStats();
+    
+    const fetchData = async () => {
+      if (!organizationId) {
+        setStaff([]);
+        setStats({ total: 0, active: 0, byRole: {}, byDepartment: {}, avgHoursThisMonth: 0 });
+        setLoading(false);
+        return;
+      }
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const [staffData, statsData, deptData] = await Promise.all([
+          staffService.list({ organizationId, filters }),
+          staffService.getStats(organizationId),
+          staffService.getDepartments(organizationId),
+        ]);
+        
+        if (mountedRef.current) {
+          setStaff(staffData);
+          setStats(statsData);
+          setDepartments(deptData);
+        }
+      } catch (err: any) {
+        console.error('Error fetching staff data:', err);
+        if (mountedRef.current) {
+          setError(err.message);
+          toast.error('Failed to load staff data');
+        }
+      } finally {
+        if (mountedRef.current) setLoading(false);
+      }
+    };
+    
+    if (autoFetch) {
+      fetchData();
     }
+    
     return () => {
       mountedRef.current = false;
     };
-  }, [autoFetch, organizationId, refreshStaff, refreshStats]);
+  }, [autoFetch, organizationId, filters]); // Depend on organizationId and filters
 
   return {
     staff,

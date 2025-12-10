@@ -12,6 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { StaffFormData, STAFF_ROLES, DEPARTMENTS, DEFAULT_STAFF_FORM, StaffRole } from '../types';
 import { getInitials } from '../utils/mappers';
 import { useStaffPermissions } from '../hooks/useStaffPermissions';
@@ -35,6 +38,7 @@ export function AddStaffDialog({ open, onClose, onSubmit, isDark, defaultOrganiz
   const [password, setPassword] = useState('');
   const [selectedOrgId, setSelectedOrgId] = useState<string>(defaultOrganizationId || '');
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   
   const { getAssignableRoles } = useStaffPermissions();
   const assignableRoles = getAssignableRoles();
@@ -50,17 +54,50 @@ export function AddStaffDialog({ open, onClose, onSubmit, isDark, defaultOrganiz
 
   const textClass = isDark ? 'text-white' : 'text-gray-900';
   const textMutedClass = isDark ? 'text-[#a3a3a3]' : 'text-gray-600';
+  const inputClass = isDark ? 'bg-[#0a0a0a] border-[#2a2a2a] text-white placeholder:text-[#666]' : '';
 
-  const canSubmit = formData.email && formData.fullName && password.length >= 6 && selectedOrgId;
+  // Validation function
+  const validateForm = (): string | null => {
+    if (!selectedOrgId) {
+      return 'Please select an organization';
+    }
+    if (!formData.fullName || formData.fullName.trim().length < 2) {
+      return 'Full name must be at least 2 characters';
+    }
+    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      return 'Please enter a valid email address';
+    }
+    if (!password || password.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    if (!formData.role) {
+      return 'Please select a role';
+    }
+    return null;
+  };
+
+  const canSubmit = formData.email && formData.fullName && password.length >= 6 && selectedOrgId && formData.role;
 
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    setFormError(null);
+    
+    const validationError = validateForm();
+    if (validationError) {
+      setFormError(validationError);
+      toast.error(validationError);
+      return;
+    }
+    
     setLoading(true);
     try {
       await onSubmit(formData, password, selectedOrgId);
+      toast.success(`Staff member "${formData.fullName}" created successfully!`);
       handleClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating staff:', error);
+      const errorMessage = error?.message || 'Failed to create staff member';
+      setFormError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -69,6 +106,7 @@ export function AddStaffDialog({ open, onClose, onSubmit, isDark, defaultOrganiz
   const handleClose = () => {
     setFormData(DEFAULT_STAFF_FORM);
     setPassword('');
+    setFormError(null);
     if (isSystemAdmin) setSelectedOrgId('');
     onClose();
   };
@@ -86,6 +124,14 @@ export function AddStaffDialog({ open, onClose, onSubmit, isDark, defaultOrganiz
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Error Alert */}
+          {formError && (
+            <Alert variant="destructive" className={isDark ? 'border-red-800 bg-red-950/50 text-red-400' : ''}>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          )}
+          
           {/* Organization Selector - Only for System Admins */}
           {isSystemAdmin && (
             <OrganizationSelector

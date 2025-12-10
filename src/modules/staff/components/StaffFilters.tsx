@@ -21,10 +21,11 @@ interface StaffFiltersProps {
   filters: StaffFiltersType;
   onFiltersChange: (filters: StaffFiltersType) => void;
   onClear: () => void;
+  onExport?: () => void;
   isDark: boolean;
 }
 
-export function StaffFilters({ filters, onFiltersChange, onClear, isDark }: StaffFiltersProps) {
+export function StaffFilters({ filters, onFiltersChange, onClear, onExport, isDark }: StaffFiltersProps) {
   const cardBgClass = isDark ? 'bg-[#161616]' : 'bg-white';
   const borderClass = isDark ? 'border-[#2a2a2a]' : 'border-gray-200';
   const iconColor = isDark ? 'text-[#737373]' : 'text-gray-400';
@@ -98,7 +99,11 @@ export function StaffFilters({ filters, onFiltersChange, onClear, isDark }: Staf
               </Button>
             )}
 
-            <Button variant="outline" className="h-11">
+            <Button 
+              variant="outline" 
+              className="h-11"
+              onClick={onExport}
+            >
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>

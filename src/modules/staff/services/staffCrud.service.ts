@@ -160,6 +160,17 @@ class StaffCrudService {
   async delete(userId: string): Promise<void> {
     await this.updateUser(userId, { isActive: false });
   }
+  /**
+   * Permanently delete staff member
+   * Calls Edge Function to remove auth user and profile
+   */
+  async deletePermanent(userId: string): Promise<void> {
+    const { error } = await supabase.functions.invoke('delete-staff-member', {
+      body: { userId },
+    });
+
+    if (error) throw new Error(error.message);
+  }
 }
 
 export const staffCrudService = new StaffCrudService();

@@ -43,12 +43,11 @@ export function DeleteStaffDialog({
       <AlertDialogContent className={isDark ? 'bg-[#161616] border-[#2a2a2a]' : ''}>
         <AlertDialogHeader>
           <AlertDialogTitle className={isDark ? 'text-white' : ''}>
-            Deactivate Staff Member?
+            Delete Staff Member?
           </AlertDialogTitle>
           <AlertDialogDescription className={isDark ? 'text-[#a3a3a3]' : ''}>
-            This will deactivate <strong>{staff.fullName}</strong> and they will no longer be
-            able to access the system. Their data will be preserved and they can be reactivated
-            later.
+            This will <strong>permanently delete</strong> <strong>{staff.fullName}</strong> from the system.
+            This action cannot be undone. To just remove access, use "Deactivate" instead.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -57,7 +56,7 @@ export function DeleteStaffDialog({
             onClick={handleConfirm}
             className="bg-red-600 hover:bg-red-700 text-white"
           >
-            Deactivate
+            Delete Permanently
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

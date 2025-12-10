@@ -68,6 +68,7 @@ export function StaffPage() {
     updateStaff,
     toggleStatus,
     deleteStaff,
+    deleteStaffPermanent,
     refreshStaff,
     refreshStats,
   } = useStaff({ 
@@ -144,7 +145,7 @@ export function StaffPage() {
 
   const handleDeleteConfirm = async () => {
     if (!selectedStaff) return;
-    await deleteStaff(selectedStaff.userId);
+    await deleteStaffPermanent(selectedStaff.userId);
   };
 
   const handleToggleStatus = async (userId: string, isActive: boolean) => {
@@ -157,6 +158,35 @@ export function StaffPage() {
 
   const handleUpdateStaff = async (id: string, userId: string, updates: any) => {
     await updateStaff(id, userId, updates);
+  };
+
+  const handleExport = () => {
+    const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department', 'Job Title', 'Joined'];
+    const csvContent = [
+      headers.join(','),
+      ...staff.map(s => [
+        `"${s.fullName}"`,
+        s.email,
+        s.role,
+        s.isActive ? 'Active' : 'Inactive',
+        s.phone || '',
+        s.department || '',
+        s.jobTitle || '',
+        new Date(s.createdAt).toLocaleDateString()
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `staff_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (
@@ -237,7 +267,6 @@ export function StaffPage() {
       {isSystemAdmin && !isFilteredFromOrg && (
         <div className={`rounded-lg border p-4 ${isDark ? 'bg-[#161616] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center gap-4">
-            <Building2 className={`w-5 h-5 ${isDark ? 'text-[#a3a3a3]' : 'text-gray-500'}`} />
             <div className="flex-1 max-w-md">
               <OrganizationSelector
                 value={selectedOrgId}
@@ -265,6 +294,7 @@ export function StaffPage() {
         filters={filters}
         onFiltersChange={setFilters}
         onClear={clearFilters}
+        onExport={handleExport}
         isDark={isDark}
       />
 

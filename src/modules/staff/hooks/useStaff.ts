@@ -36,6 +36,7 @@ export interface UseStaffReturn {
   createStaff: (data: StaffFormData, password: string, orgId?: string) => Promise<StaffMember>;
   updateStaff: (id: string, userId: string, updates: StaffUpdateData) => Promise<void>;
   deleteStaff: (userId: string) => Promise<void>;
+  deleteStaffPermanent: (userId: string) => Promise<void>;
   toggleStatus: (userId: string, currentlyActive: boolean) => Promise<void>;
   
   // Data fetching
@@ -156,11 +157,21 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
     [refreshStaff, refreshStats]
   );
 
-  // Delete staff
+  // Delete staff (Soft Delete / Deactivate)
   const deleteStaff = useCallback(
     async (userId: string) => {
       await staffService.delete(userId);
       toast.success('Staff member deactivated');
+      await Promise.all([refreshStaff(), refreshStats()]);
+    },
+    [refreshStaff, refreshStats]
+  );
+
+  // Permanently delete staff
+  const deleteStaffPermanent = useCallback(
+    async (userId: string) => {
+      await staffService.deletePermanent(userId);
+      toast.success('Staff member permanently deleted');
       await Promise.all([refreshStaff(), refreshStats()]);
     },
     [refreshStaff, refreshStats]
@@ -315,6 +326,7 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
     createStaff,
     updateStaff,
     deleteStaff,
+    deleteStaffPermanent,
     toggleStatus,
     refreshStaff,
     refreshStats,

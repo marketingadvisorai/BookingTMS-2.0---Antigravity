@@ -29,6 +29,7 @@ class StaffService {
   toggleStatus = (userId: string, currentlyActive: boolean) =>
     staffCrudService.toggleStatus(userId, currentlyActive);
   delete = (userId: string) => staffCrudService.delete(userId);
+  deletePermanent = (userId: string) => staffCrudService.deletePermanent(userId);
 }
 
 export const staffService = new StaffService();

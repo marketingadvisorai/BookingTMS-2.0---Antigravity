@@ -31,8 +31,8 @@ export interface UseStaffReturn {
   loading: boolean;
   error: string | null;
   
-  // CRUD operations
-  createStaff: (data: StaffFormData, password: string) => Promise<StaffMember>;
+  // CRUD operations - organizationId optional for system admins who pass it from form
+  createStaff: (data: StaffFormData, password: string, orgId?: string) => Promise<StaffMember>;
   updateStaff: (id: string, userId: string, updates: StaffUpdateData) => Promise<void>;
   deleteStaff: (userId: string) => Promise<void>;
   toggleStatus: (userId: string, currentlyActive: boolean) => Promise<void>;
@@ -112,12 +112,13 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
     }
   }, [organizationId]);
 
-  // Create staff
+  // Create staff - accepts orgId for system admin flow
   const createStaff = useCallback(
-    async (data: StaffFormData, password: string) => {
-      if (!organizationId) throw new Error('Organization ID required');
+    async (data: StaffFormData, password: string, orgId?: string) => {
+      const targetOrgId = orgId || organizationId;
+      if (!targetOrgId) throw new Error('Organization ID required');
 
-      const result = await staffService.create(data, organizationId, password);
+      const result = await staffService.create(data, targetOrgId, password);
       toast.success('Staff member created successfully');
       await Promise.all([refreshStaff(), refreshStats()]);
       return result;

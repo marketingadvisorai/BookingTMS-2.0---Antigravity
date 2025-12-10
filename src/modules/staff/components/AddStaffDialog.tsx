@@ -1,10 +1,11 @@
 /**
  * Add Staff Dialog Component
  * Form for creating new staff members with role-based permissions
+ * System admins must select an organization; org admins use their own org
  * @module staff/components/AddStaffDialog
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,31 +15,52 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { StaffFormData, STAFF_ROLES, DEPARTMENTS, DEFAULT_STAFF_FORM, StaffRole } from '../types';
 import { getInitials } from '../utils/mappers';
 import { useStaffPermissions } from '../hooks/useStaffPermissions';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { OrganizationSelector } from './OrganizationSelector';
 
 interface AddStaffDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: StaffFormData, password: string) => Promise<void>;
+  onSubmit: (data: StaffFormData, password: string, organizationId: string) => Promise<void>;
   isDark: boolean;
+  /** Pre-selected organization ID (optional) */
+  defaultOrganizationId?: string;
 }
 
-export function AddStaffDialog({ open, onClose, onSubmit, isDark }: AddStaffDialogProps) {
+export function AddStaffDialog({ open, onClose, onSubmit, isDark, defaultOrganizationId }: AddStaffDialogProps) {
+  const { currentUser } = useAuth();
+  const isSystemAdmin = currentUser?.role === 'system-admin';
+  
   const [formData, setFormData] = useState<StaffFormData>(DEFAULT_STAFF_FORM);
   const [password, setPassword] = useState('');
+  const [selectedOrgId, setSelectedOrgId] = useState<string>(defaultOrganizationId || '');
   const [loading, setLoading] = useState(false);
   
   const { getAssignableRoles } = useStaffPermissions();
   const assignableRoles = getAssignableRoles();
 
+  // Set organization ID based on user role
+  useEffect(() => {
+    if (!isSystemAdmin && currentUser?.organizationId) {
+      setSelectedOrgId(currentUser.organizationId);
+    } else if (defaultOrganizationId) {
+      setSelectedOrgId(defaultOrganizationId);
+    }
+  }, [isSystemAdmin, currentUser?.organizationId, defaultOrganizationId]);
+
   const textClass = isDark ? 'text-white' : 'text-gray-900';
   const textMutedClass = isDark ? 'text-[#a3a3a3]' : 'text-gray-600';
 
+  const canSubmit = formData.email && formData.fullName && password.length >= 6 && selectedOrgId;
+
   const handleSubmit = async () => {
-    if (!formData.email || !formData.fullName || !password || password.length < 6) return;
+    if (!canSubmit) return;
     setLoading(true);
     try {
-      await onSubmit(formData, password);
+      await onSubmit(formData, password, selectedOrgId);
       handleClose();
+    } catch (error) {
+      console.error('Error creating staff:', error);
     } finally {
       setLoading(false);
     }
@@ -47,6 +69,7 @@ export function AddStaffDialog({ open, onClose, onSubmit, isDark }: AddStaffDial
   const handleClose = () => {
     setFormData(DEFAULT_STAFF_FORM);
     setPassword('');
+    if (isSystemAdmin) setSelectedOrgId('');
     onClose();
   };
 
@@ -63,6 +86,15 @@ export function AddStaffDialog({ open, onClose, onSubmit, isDark }: AddStaffDial
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Organization Selector - Only for System Admins */}
+          {isSystemAdmin && (
+            <OrganizationSelector
+              value={selectedOrgId}
+              onChange={setSelectedOrgId}
+              isDark={isDark}
+            />
+          )}
+
           <div className="flex items-center gap-4">
             <Avatar className="w-12 h-12">
               <AvatarFallback className={isDark ? 'bg-[#4f46e5]/20 text-[#6366f1]' : 'bg-blue-100 text-blue-600'}>
@@ -138,7 +170,7 @@ export function AddStaffDialog({ open, onClose, onSubmit, isDark }: AddStaffDial
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>Cancel</Button>
           <Button onClick={handleSubmit}
-            disabled={loading || !formData.email || !formData.fullName || password.length < 6}
+            disabled={loading || !canSubmit}
             className={isDark ? 'bg-[#4f46e5] hover:bg-[#4338ca]' : ''}>
             {loading ? 'Creating...' : 'Add Staff Member'}
           </Button>

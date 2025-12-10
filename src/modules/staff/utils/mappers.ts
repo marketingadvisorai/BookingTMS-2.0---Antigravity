@@ -145,6 +145,10 @@ export function getInitials(name: string): string {
 
 export function getRoleColor(role: StaffRole, isDark: boolean): string {
   const colors: Record<StaffRole, { light: string; dark: string }> = {
+    'system-admin': {
+      light: 'bg-amber-100 text-amber-700 border-amber-200',
+      dark: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+    },
     'super-admin': {
       light: 'bg-purple-100 text-purple-700 border-purple-200',
       dark: 'bg-purple-500/20 text-purple-400 border-purple-500/30',

@@ -1,15 +1,17 @@
 /**
  * Staff Page
  * Main staff management page component
+ * System admins can select organization to view staff
  * @module staff/pages/StaffPage
  */
 
 import { useState, useEffect } from 'react';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, Building2, AlertCircle } from 'lucide-react';
 import { useTheme } from '@/components/layout/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { PermissionGuard } from '@/components/auth/PermissionGuard';
+import { useAuth } from '@/lib/auth/AuthContext';
 import { useStaff } from '../hooks/useStaff';
 import { StaffMember, StaffFormData } from '../types';
 import {
@@ -19,13 +21,22 @@ import {
   AddStaffDialog,
   ViewStaffDialog,
   DeleteStaffDialog,
+  OrganizationSelector,
 } from '../components';
 
 export function StaffPage() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { currentUser } = useAuth();
+  
+  const isSystemAdmin = currentUser?.role === 'system-admin';
+  
+  // Organization selection for system admins
+  const [selectedOrgId, setSelectedOrgId] = useState<string>(
+    currentUser?.organizationId || ''
+  );
 
-  // Use modular staff hook
+  // Use modular staff hook with selected organization
   const {
     staff,
     stats,
@@ -38,7 +49,7 @@ export function StaffPage() {
     deleteStaff,
     refreshStaff,
     refreshStats,
-  } = useStaff();
+  } = useStaff({ organizationId: selectedOrgId });
 
   // Loading timeout - force recovery after 15 seconds
   const [loadingTimeout, setLoadingTimeout] = useState(false);
@@ -101,8 +112,8 @@ export function StaffPage() {
     await toggleStatus(userId, isActive);
   };
 
-  const handleAddStaff = async (data: StaffFormData, password: string) => {
-    await createStaff(data, password);
+  const handleAddStaff = async (data: StaffFormData, password: string, organizationId: string) => {
+    await createStaff(data, password, organizationId);
   };
 
   return (
@@ -129,6 +140,7 @@ export function StaffPage() {
                 style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
                 className={isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}
                 onClick={() => setIsAddDialogOpen(true)}
+                disabled={isSystemAdmin && !selectedOrgId}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Staff Member
@@ -137,6 +149,28 @@ export function StaffPage() {
           </div>
         }
       />
+
+      {/* Organization Selector for System Admins */}
+      {isSystemAdmin && (
+        <div className={`rounded-lg border p-4 ${isDark ? 'bg-[#161616] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
+          <div className="flex items-center gap-4">
+            <Building2 className={`w-5 h-5 ${isDark ? 'text-[#a3a3a3]' : 'text-gray-500'}`} />
+            <div className="flex-1 max-w-md">
+              <OrganizationSelector
+                value={selectedOrgId}
+                onChange={setSelectedOrgId}
+                isDark={isDark}
+              />
+            </div>
+            {!selectedOrgId && (
+              <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                <AlertCircle className="w-4 h-4" />
+                Select an organization to view and manage staff
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <StaffStatsCards stats={stats} isDark={isDark} />
@@ -186,6 +220,7 @@ export function StaffPage() {
         onClose={() => setIsAddDialogOpen(false)}
         onSubmit={handleAddStaff}
         isDark={isDark}
+        defaultOrganizationId={selectedOrgId}
       />
 
       <ViewStaffDialog

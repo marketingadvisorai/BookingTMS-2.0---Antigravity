@@ -43,6 +43,9 @@ export type { ListStaffOptions } from './services';
 export { useStaff } from './hooks/useStaff';
 export type { UseStaffOptions, UseStaffReturn } from './hooks/useStaff';
 
+export { useStaffCached } from './hooks/useStaffCached';
+export type { UseStaffCachedOptions } from './hooks/useStaffCached';
+
 export { useStaffAssignments } from './hooks/useStaffAssignments';
 export type { UseStaffAssignmentsOptions, UseStaffAssignmentsReturn } from './hooks/useStaffAssignments';
 

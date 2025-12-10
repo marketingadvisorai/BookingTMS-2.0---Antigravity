@@ -122,6 +122,18 @@ export const queryKeys = {
     availability: (sessionId: string) => 
       ['sessions', 'availability', sessionId] as const,
   },
+  
+  // Staff (new)
+  staff: {
+    all: ['staff'] as const,
+    byOrg: (orgId: string) => ['staff', 'org', orgId] as const,
+    byId: (staffId: string) => ['staff', 'detail', staffId] as const,
+    stats: (orgId: string) => ['staff', 'stats', orgId] as const,
+    assignments: (staffId: string) => ['staff', 'assignments', staffId] as const,
+    shifts: (orgId: string, startDate: string, endDate: string) => 
+      ['staff', 'shifts', orgId, startDate, endDate] as const,
+    availability: (staffId: string) => ['staff', 'availability', staffId] as const,
+  },
 } as const;
 
 // ============================================================================
@@ -164,5 +176,22 @@ export const invalidationPatterns = {
   afterCustomerUpdate: (queryClient: QueryClient, orgId: string) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.customers.all });
     queryClient.invalidateQueries({ queryKey: queryKeys.customers.byOrg(orgId) });
+  },
+  
+  // Staff invalidation patterns
+  afterStaffCreate: (queryClient: QueryClient, orgId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.staff.all });
+    queryClient.invalidateQueries({ queryKey: queryKeys.staff.byOrg(orgId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.staff.stats(orgId) });
+  },
+  
+  afterStaffUpdate: (queryClient: QueryClient, orgId: string, staffId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.staff.byOrg(orgId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.staff.byId(staffId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.staff.stats(orgId) });
+  },
+  
+  afterStaffAssignmentChange: (queryClient: QueryClient, staffId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.staff.assignments(staffId) });
   },
 };

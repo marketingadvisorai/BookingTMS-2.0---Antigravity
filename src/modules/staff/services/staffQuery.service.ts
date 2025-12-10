@@ -17,14 +17,31 @@ export interface ListStaffOptions {
 
 class StaffQueryService {
   /**
-   * List staff members using RPC function
+   * List staff members using RPC function v2
+   * Uses get_staff_members_v2 which includes organization_id and organization_name
    */
   async list(options: ListStaffOptions): Promise<StaffMember[]> {
     const { organizationId, filters, limit = 100, offset = 0 } = options;
 
-    const { data, error } = await (supabase.rpc as any)('get_staff_members', {
+    // Try v2 first (includes organization_id), fallback to v1
+    let data: DBStaffMember[] | null = null;
+    let error: any = null;
+    
+    const result = await (supabase.rpc as any)('get_staff_members_v2', {
       p_organization_id: organizationId,
     });
+    
+    if (result.error && result.error.message?.includes('function') && result.error.message?.includes('does not exist')) {
+      // Fallback to v1 if v2 doesn't exist
+      const fallback = await (supabase.rpc as any)('get_staff_members', {
+        p_organization_id: organizationId,
+      });
+      data = fallback.data;
+      error = fallback.error;
+    } else {
+      data = result.data;
+      error = result.error;
+    }
 
     if (error) {
       console.error('Error fetching staff:', error);

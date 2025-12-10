@@ -11,6 +11,7 @@ export interface StaffMember {
   id: string;
   userId: string;
   organizationId: string;
+  organizationName?: string; // From get_staff_members_v2
   email: string;
   fullName: string;
   role: StaffRole;
@@ -34,6 +35,7 @@ export interface DBStaffMember {
   id: string;
   user_id: string;
   organization_id: string;
+  organization_name?: string; // From get_staff_members_v2
   email: string;
   full_name: string;
   role: StaffRole;

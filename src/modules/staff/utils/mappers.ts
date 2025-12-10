@@ -23,6 +23,7 @@ export function mapDBStaffToUI(db: DBStaffMember): StaffMember {
     id: db.id,
     userId: db.user_id,
     organizationId: db.organization_id,
+    organizationName: db.organization_name,
     email: db.email || '',
     fullName: db.full_name || '',
     role: db.role || 'staff',

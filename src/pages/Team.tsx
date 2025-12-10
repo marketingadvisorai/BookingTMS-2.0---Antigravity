@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../components/layout/ThemeContext';
+import { useTeam, TeamMember as TeamMemberType, TeamRole, TeamMemberStatus } from '@/modules/team';
+import { useAuth } from '@/lib/auth/AuthContext';
 import {
   Users,
   UserPlus,
@@ -21,7 +23,9 @@ import {
   AlertCircle,
   Send,
   Key,
-  Lock
+  Lock,
+  RefreshCw,
+  Building2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -57,7 +61,9 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { toast } from 'sonner';
 import avatarImage from 'figma:asset/00e8f72492f468a73fc822a8f3b89537848df6aa.png';
 
-interface TeamMember {
+// Using TeamMemberType from @/modules/team
+// Legacy interface kept for UI compatibility
+interface TeamMemberUI {
   id: string;
   name: string;
   email: string;
@@ -77,6 +83,61 @@ interface TeamMember {
   };
 }
 
+// Map database TeamMember to UI format
+function mapTeamMemberToUI(member: TeamMemberType): TeamMemberUI {
+  const roleMap: Record<string, 'Owner' | 'Admin' | 'Manager' | 'Staff'> = {
+    'owner': 'Owner',
+    'super-admin': 'Owner',
+    'org-admin': 'Admin',
+    'admin': 'Admin',
+    'manager': 'Manager',
+    'staff': 'Staff',
+    'member': 'Staff',
+  };
+  
+  const statusMap: Record<string, 'Active' | 'Inactive' | 'Invited'> = {
+    'active': 'Active',
+    'inactive': 'Inactive',
+    'invited': 'Invited',
+    'suspended': 'Inactive',
+  };
+
+  return {
+    id: member.id,
+    name: member.name,
+    email: member.email,
+    phone: member.phone || '',
+    role: roleMap[member.role] || 'Staff',
+    status: statusMap[member.status] || 'Active',
+    avatar: member.avatarUrl,
+    joinDate: member.joinDate ? new Date(member.joinDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown',
+    lastActive: member.lastActive ? formatLastActive(member.lastActive) : 'Never',
+    permissions: {
+      bookings: member.permissions.bookings,
+      games: member.permissions.activities,
+      staff: member.permissions.staff,
+      reports: member.permissions.reports,
+      billing: member.permissions.billing,
+      settings: member.permissions.settings,
+    },
+  };
+}
+
+function formatLastActive(date: string): string {
+  const d = new Date(date);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 export function Team() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -94,130 +155,38 @@ export function Team() {
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [selectedMember, setSelectedMember] = useState<TeamMemberUI | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const [inviteForm, setInviteForm] = useState({
     name: '',
     email: '',
     phone: '',
-    role: 'Staff' as TeamMember['role'],
+    role: 'Staff' as TeamMemberUI['role'],
     sendEmail: true
   });
 
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([
-    {
-      id: '1',
-      name: 'John Doe',
-      email: 'john.doe@bookingtms.com',
-      phone: '+1 (555) 123-4567',
-      role: 'Owner',
-      status: 'Active',
-      avatar: avatarImage,
-      joinDate: 'Jan 15, 2024',
-      lastActive: '2 minutes ago',
-      permissions: {
-        bookings: true,
-        games: true,
-        staff: true,
-        reports: true,
-        billing: true,
-        settings: true
-      }
-    },
-    {
-      id: '2',
-      name: 'Sarah Johnson',
-      email: 'sarah.j@bookingtms.com',
-      phone: '+1 (555) 234-5678',
-      role: 'Admin',
-      status: 'Active',
-      joinDate: 'Feb 10, 2024',
-      lastActive: '1 hour ago',
-      permissions: {
-        bookings: true,
-        games: true,
-        staff: true,
-        reports: true,
-        billing: false,
-        settings: true
-      }
-    },
-    {
-      id: '3',
-      name: 'Michael Chen',
-      email: 'michael.chen@bookingtms.com',
-      phone: '+1 (555) 345-6789',
-      role: 'Manager',
-      status: 'Active',
-      joinDate: 'Mar 5, 2024',
-      lastActive: '3 hours ago',
-      permissions: {
-        bookings: true,
-        games: true,
-        staff: false,
-        reports: true,
-        billing: false,
-        settings: false
-      }
-    },
-    {
-      id: '4',
-      name: 'Emily Rodriguez',
-      email: 'emily.r@bookingtms.com',
-      phone: '+1 (555) 456-7890',
-      role: 'Staff',
-      status: 'Active',
-      joinDate: 'Apr 20, 2024',
-      lastActive: '5 hours ago',
-      permissions: {
-        bookings: true,
-        games: false,
-        staff: false,
-        reports: false,
-        billing: false,
-        settings: false
-      }
-    },
-    {
-      id: '5',
-      name: 'David Park',
-      email: 'david.park@bookingtms.com',
-      phone: '+1 (555) 567-8901',
-      role: 'Staff',
-      status: 'Inactive',
-      joinDate: 'May 12, 2024',
-      lastActive: '2 days ago',
-      permissions: {
-        bookings: true,
-        games: false,
-        staff: false,
-        reports: false,
-        billing: false,
-        settings: false
-      }
-    },
-    {
-      id: '6',
-      name: 'Jessica Taylor',
-      email: 'jessica.t@bookingtms.com',
-      phone: '+1 (555) 678-9012',
-      role: 'Manager',
-      status: 'Invited',
-      joinDate: 'Oct 28, 2024',
-      lastActive: 'Never',
-      permissions: {
-        bookings: true,
-        games: true,
-        staff: false,
-        reports: true,
-        billing: false,
-        settings: false
-      }
-    }
-  ]);
+  // Use real database data via useTeam hook
+  const { currentUser } = useAuth();
+  const { 
+    members: dbMembers, 
+    stats: dbStats, 
+    loading, 
+    refresh,
+    updateStatus,
+    removeMember,
+  } = useTeam({ organizationId: currentUser?.organizationId });
 
-  const getRoleIcon = (role: TeamMember['role']) => {
+  // Map database members to UI format
+  const teamMembers: TeamMemberUI[] = dbMembers.map(mapTeamMemberToUI);
+
+  // Handler adapters for the hook methods
+  const setTeamMembers = (_members: TeamMemberUI[]) => {
+    // This is a no-op since we use the hook now
+    // The hook handles state management
+  };
+
+  const getRoleIcon = (role: TeamMemberUI['role']) => {
     switch (role) {
       case 'Owner':
         return <Crown className="w-4 h-4" />;
@@ -226,11 +195,12 @@ export function Team() {
       case 'Manager':
         return <Star className="w-4 h-4" />;
       case 'Staff':
+      default:
         return <Users className="w-4 h-4" />;
     }
   };
 
-  const getRoleColor = (role: TeamMember['role']) => {
+  const getRoleColor = (role: TeamMemberUI['role']) => {
     if (isDark) {
       switch (role) {
         case 'Owner':
@@ -240,6 +210,7 @@ export function Team() {
         case 'Manager':
           return 'bg-[#4f46e5]/20 text-[#6366f1] border-0';
         case 'Staff':
+        default:
           return 'bg-[#2a2a2a] text-[#a3a3a3] border-0';
       }
     } else {
@@ -251,12 +222,13 @@ export function Team() {
         case 'Manager':
           return 'bg-blue-100 text-blue-700 border-0';
         case 'Staff':
+        default:
           return 'bg-gray-100 text-gray-700 border-0';
       }
     }
   };
 
-  const getStatusBadge = (status: TeamMember['status']) => {
+  const getStatusBadge = (status: TeamMemberUI['status']) => {
     switch (status) {
       case 'Active':
         return (
@@ -273,6 +245,7 @@ export function Team() {
           </Badge>
         );
       case 'Invited':
+      default:
         return (
           <Badge className={isDark ? 'bg-yellow-500/20 text-yellow-400 border-0' : 'bg-yellow-100 text-yellow-700 border-0'}>
             <Clock className="w-3 h-3 mr-1" />
@@ -289,10 +262,11 @@ export function Team() {
     return matchesSearch && matchesRole;
   });
 
+  // Use database stats with fallback to computed values
   const teamStats = {
-    total: teamMembers.length,
-    active: teamMembers.filter(m => m.status === 'Active').length,
-    invited: teamMembers.filter(m => m.status === 'Invited').length,
+    total: dbStats?.total ?? teamMembers.length,
+    active: dbStats?.active ?? teamMembers.filter(m => m.status === 'Active').length,
+    invited: dbStats?.invited ?? teamMembers.filter(m => m.status === 'Invited').length,
     roles: {
       owner: teamMembers.filter(m => m.role === 'Owner').length,
       admin: teamMembers.filter(m => m.role === 'Admin').length,
@@ -307,7 +281,7 @@ export function Team() {
       return;
     }
 
-    const newMember: TeamMember = {
+    const newMember: TeamMemberUI = {
       id: String(teamMembers.length + 1),
       name: inviteForm.name,
       email: inviteForm.email,
@@ -338,35 +312,42 @@ export function Team() {
     });
   };
 
-  const handleEditMember = (member: TeamMember) => {
+  const handleEditMember = (member: TeamMemberUI) => {
     setSelectedMember(member);
     setIsEditDialogOpen(true);
   };
 
-  const handleDeleteMember = (member: TeamMember) => {
+  const handleDeleteMember = (member: TeamMemberUI) => {
     setSelectedMember(member);
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (selectedMember) {
-      setTeamMembers(teamMembers.filter(m => m.id !== selectedMember.id));
-      toast.success(`${selectedMember.name} has been removed from the team`);
-      setIsDeleteDialogOpen(false);
-      setSelectedMember(null);
+      try {
+        await removeMember(selectedMember.id);
+        setIsDeleteDialogOpen(false);
+        setSelectedMember(null);
+      } catch (err) {
+        console.error('Failed to remove member:', err);
+        toast.error('Failed to remove team member');
+      }
     }
   };
 
-  const handleResendInvite = (member: TeamMember) => {
+  const handleResendInvite = (member: TeamMemberUI) => {
+    // TODO: Implement resend invite via edge function
     toast.success(`Invitation resent to ${member.name}`);
   };
 
-  const handleToggleStatus = (member: TeamMember) => {
-    const newStatus = member.status === 'Active' ? 'Inactive' : 'Active';
-    setTeamMembers(teamMembers.map(m => 
-      m.id === member.id ? { ...m, status: newStatus as TeamMember['status'] } : m
-    ));
-    toast.success(`${member.name} is now ${newStatus}`);
+  const handleToggleStatus = async (member: TeamMemberUI) => {
+    const newStatus = member.status === 'Active' ? 'inactive' : 'active';
+    try {
+      await updateStatus(member.id, newStatus as TeamMemberStatus);
+    } catch (err) {
+      console.error('Failed to update status:', err);
+      toast.error('Failed to update member status');
+    }
   };
 
   return (
@@ -681,7 +662,7 @@ export function Team() {
               <Label htmlFor="invite-role" className={textClass}>Role</Label>
               <Select 
                 value={inviteForm.role} 
-                onValueChange={(value) => setInviteForm({ ...inviteForm, role: value as TeamMember['role'] })}
+                onValueChange={(value) => setInviteForm({ ...inviteForm, role: value as TeamMemberUI['role'] })}
               >
                 <SelectTrigger className="h-11">
                   <SelectValue />

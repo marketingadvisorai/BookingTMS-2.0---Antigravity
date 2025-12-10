@@ -22,6 +22,7 @@ import {
   StaffFilters,
   StaffTable,
   AddStaffDialog,
+  EditStaffDialog,
   ViewStaffDialog,
   DeleteStaffDialog,
   OrganizationSelector,
@@ -64,6 +65,7 @@ export function StaffPage() {
     setFilters,
     clearFilters,
     createStaff,
+    updateStaff,
     toggleStatus,
     deleteStaff,
     refreshStaff,
@@ -120,6 +122,7 @@ export function StaffPage() {
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
 
@@ -130,9 +133,8 @@ export function StaffPage() {
   };
 
   const handleEdit = (member: StaffMember) => {
-    // For now, open view dialog - edit can be added later
     setSelectedStaff(member);
-    setIsViewDialogOpen(true);
+    setIsEditDialogOpen(true);
   };
 
   const handleDeleteClick = (member: StaffMember) => {
@@ -151,6 +153,10 @@ export function StaffPage() {
 
   const handleAddStaff = async (data: StaffFormData, password: string, organizationId: string) => {
     await createStaff(data, password, organizationId);
+  };
+
+  const handleUpdateStaff = async (id: string, userId: string, updates: any) => {
+    await updateStaff(id, userId, updates);
   };
 
   return (
@@ -314,6 +320,19 @@ export function StaffPage() {
         staff={selectedStaff}
         isDark={isDark}
       />
+
+      {selectedStaff && (
+        <EditStaffDialog
+          open={isEditDialogOpen}
+          onClose={() => {
+            setIsEditDialogOpen(false);
+            setSelectedStaff(null);
+          }}
+          staff={selectedStaff}
+          onUpdate={handleUpdateStaff}
+          isDark={isDark}
+        />
+      )}
 
       <DeleteStaffDialog
         open={isDeleteDialogOpen}

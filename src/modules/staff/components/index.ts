@@ -4,11 +4,14 @@
  */
 
 // Core components
-export { StaffStatsCards } from './StaffStatsCards';
-export { StaffFilters } from './StaffFilters';
-export { StaffTable } from './StaffTable';
-export { AddStaffDialog } from './AddStaffDialog';
-export { ViewStaffDialog } from './ViewStaffDialog';
+export * from './OrganizationSelector';
+export * from './StaffStatsCards';
+export * from './StaffFilters';
+export * from './StaffTable';
+export * from './AddStaffDialog';
+export * from './EditStaffDialog';
+export * from './ViewStaffDialog';
+export * from './DeleteStaffDialog';
 export { DeleteStaffDialog } from './DeleteStaffDialog';
 export { StaffDetailPanel } from './StaffDetailPanel';
 export { OrganizationSelector } from './OrganizationSelector';

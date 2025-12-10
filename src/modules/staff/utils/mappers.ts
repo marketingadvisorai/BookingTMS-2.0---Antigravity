@@ -39,6 +39,7 @@ export function mapDBStaffToUI(db: DBStaffMember): StaffMember {
     assignedVenues: db.assigned_venues || [],
     skills: db.skills || [],
     avatarUrl: db.avatar_url,
+    notes: db.notes,
     createdAt: db.created_at,
     updatedAt: db.updated_at || db.created_at,
   };
@@ -62,6 +63,8 @@ export function mapUIStaffToDBInsert(
     assigned_activities: data.assignedActivities || [],
     assigned_venues: data.assignedVenues || [],
     skills: data.skills || [],
+    avatar_url: data.avatarUrl || null,
+    notes: data.notes || null,
   };
 }
 
@@ -86,6 +89,8 @@ export function mapUIStaffToDBUpdate(data: StaffUpdateData): Record<string, unkn
     update.assigned_venues = data.assignedVenues;
   }
   if (data.skills !== undefined) update.skills = data.skills;
+  if (data.avatarUrl !== undefined) update.avatar_url = data.avatarUrl;
+  if (data.notes !== undefined) update.notes = data.notes;
 
   return update;
 }

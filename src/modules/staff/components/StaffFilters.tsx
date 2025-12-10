@@ -41,12 +41,16 @@ export function StaffFilters({ filters, onFiltersChange, onClear, isDark }: Staf
               className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${iconColor}`}
             />
             <Input
+              id="staff-filter-search"
+              name="staff-filter-search"
               placeholder="Search by name or email..."
               value={filters.search}
               onChange={(e) =>
                 onFiltersChange({ ...filters, search: e.target.value })
               }
               className="pl-10 h-11"
+              autoComplete="off"
+              data-form-type="other"
             />
           </div>
           <div className="flex gap-2 flex-wrap">

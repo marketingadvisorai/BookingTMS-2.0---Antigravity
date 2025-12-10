@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,7 @@ import {
 import { toast } from 'sonner';
 import { OrganizationService } from '../../features/system-admin/services';
 import { usePlans } from '../../features/system-admin/hooks';
+import { TeamTab } from './TeamTab';
 import type { Organization, UpdateOrganizationDTO } from '../../features/system-admin/types';
 
 interface OrganizationSettingsModalProps {
@@ -66,9 +68,17 @@ export default function OrganizationSettingsModal({
   organization,
   onUpdate,
 }: OrganizationSettingsModalProps) {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('general');
   const [isLoading, setIsLoading] = useState(false);
   const { plans } = usePlans(true);
+
+  // Handler to navigate to Staff page with organization context
+  const handleManageStaff = () => {
+    onClose(); // Close the modal first
+    // Navigate to staff page with organization ID as query param
+    navigate(`/staff?org=${organization.id}&orgName=${encodeURIComponent(organization.name)}`);
+  };
 
   // Form state
   const [formData, setFormData] = useState({
@@ -251,7 +261,7 @@ export default function OrganizationSettingsModal({
 
           {/* Team Members */}
           <TabsContent value="team" className="space-y-4 mt-4">
-            <TeamTab organization={organization} />
+            <TeamTab organization={organization} onManageStaff={handleManageStaff} />
           </TabsContent>
         </Tabs>
 
@@ -871,46 +881,4 @@ function LimitItem({
   );
 }
 
-// Team Tab
-function TeamTab({ organization }: { organization: Organization }) {
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Team Members</CardTitle>
-          <CardDescription>Users associated with this organization</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {organization.members && organization.members.length > 0 ? (
-            <div className="space-y-3">
-              {organization.members.map((member) => (
-                <div 
-                  key={member.id} 
-                  className="flex items-center justify-between p-3 rounded-lg border"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-gray-500" />
-                    </div>
-                    <div>
-                      <p className="font-medium">User ID: {member.user_id.slice(0, 8)}...</p>
-                      <p className="text-sm text-gray-500">{member.role}</p>
-                    </div>
-                  </div>
-                  <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
-                    {member.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No team members found</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+// Team Tab is now imported from ./TeamTab.tsx

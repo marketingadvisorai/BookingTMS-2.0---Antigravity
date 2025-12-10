@@ -27,6 +27,7 @@ export interface StaffMember {
   assignedVenues: string[];
   skills: string[];
   avatarUrl?: string;
+  notes?: string; // Bio/description
   createdAt: string;
   updatedAt: string;
 }
@@ -51,6 +52,7 @@ export interface DBStaffMember {
   assigned_venues: string[];
   skills: string[];
   avatar_url?: string;
+  notes?: string; // Bio/description
   created_at: string;
   updated_at?: string;
 }
@@ -70,6 +72,8 @@ export interface StaffFormData {
   assignedVenues?: string[];
   skills?: string[];
   password?: string;
+  avatarUrl?: string; // Profile photo URL
+  notes?: string; // Bio/description
 }
 
 export interface StaffUpdateData {
@@ -86,6 +90,8 @@ export interface StaffUpdateData {
   assignedVenues?: string[];
   skills?: string[];
   isActive?: boolean;
+  avatarUrl?: string; // Profile photo URL
+  notes?: string; // Bio/description
 }
 
 export interface StaffFilters {
@@ -147,4 +153,5 @@ export const DEFAULT_STAFF_FORM: StaffFormData = {
   assignedActivities: [],
   assignedVenues: [],
   skills: [],
+  notes: '',
 };

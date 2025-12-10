@@ -415,7 +415,7 @@ export const StripeConnectAdminPanel = () => {
               <div>
                 <p className={`text-xs ${mutedTextClass} mb-1`}>Active Disputes</p>
                 <p className={`text-2xl font-bold ${textClass}`}>
-                  {connectedAccounts.reduce((sum, acc) => sum + acc.disputes, 0)}
+                  {recentDisputes.filter(d => d.status === 'needs_response').length || 0}
                 </p>
               </div>
               <AlertTriangle className="w-8 h-8 text-amber-500" />
@@ -429,7 +429,7 @@ export const StripeConnectAdminPanel = () => {
               <div>
                 <p className={`text-xs ${mutedTextClass} mb-1`}>Pending Payouts</p>
                 <p className={`text-2xl font-bold ${textClass}`}>
-                  {connectedAccounts.reduce((sum, acc) => sum + acc.pendingPayouts, 0)}
+                  {recentPayouts.filter(p => p.status === 'pending').length || 0}
                 </p>
               </div>
               <Clock className="w-8 h-8 text-blue-500" />
@@ -564,20 +564,22 @@ export const StripeConnectAdminPanel = () => {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h4 className={`font-semibold ${textClass}`}>{account.name}</h4>
+                      <h4 className={`font-semibold ${textClass}`}>
+                        {account.business_profile?.name || account.metadata?.business_name || account.email || 'Unnamed Account'}
+                      </h4>
                       <Badge
                         variant="outline"
                         className={
-                          account.status === 'active'
+                          getAccountStatus(account) === 'active'
                             ? 'border-emerald-500 text-emerald-500'
-                            : account.status === 'pending'
+                            : getAccountStatus(account) === 'pending'
                             ? 'border-amber-500 text-amber-500'
                             : 'border-red-500 text-red-500'
                         }
                       >
-                        {account.status}
+                        {getAccountStatus(account)}
                       </Badge>
-                      {account.verification === 'verified' && (
+                      {getVerificationStatus(account) === 'verified' && (
                         <Badge variant="outline" className="border-blue-500 text-blue-500">
                           Verified
                         </Badge>
@@ -622,7 +624,7 @@ export const StripeConnectAdminPanel = () => {
                       <DollarSign className="w-4 h-4" />
                       Trigger Payout
                     </Button>
-                    {account.disputes > 0 && (
+                    {recentDisputes.some(d => d.charge?.startsWith(account.id)) && (
                       <Button variant="outline" size="sm" className="gap-2 text-amber-500 border-amber-500">
                         <AlertTriangle className="w-4 h-4" />
                         View Disputes

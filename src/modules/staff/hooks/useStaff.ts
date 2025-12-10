@@ -22,6 +22,7 @@ export interface UseStaffOptions {
   organizationId?: string;
   autoFetch?: boolean;
   enableRealTime?: boolean;
+  viewAllOrgs?: boolean; // System admin flag to view all organizations
 }
 
 export interface UseStaffReturn {
@@ -48,9 +49,10 @@ export interface UseStaffReturn {
 }
 
 export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
-  const { autoFetch = true, enableRealTime = true } = options;
+  const { autoFetch = true, enableRealTime = true, viewAllOrgs = false } = options;
   const { currentUser } = useAuth();
   const organizationId = options.organizationId || currentUser?.organizationId;
+  const isSystemAdmin = currentUser?.role === 'system-admin';
 
   // State
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -72,13 +74,19 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
 
   // Fetch staff members
   const refreshStaff = useCallback(async () => {
-    if (!organizationId || !mountedRef.current) return;
+    // System admin with viewAllOrgs can fetch without org ID
+    const shouldFetch = viewAllOrgs || organizationId;
+    if (!shouldFetch || !mountedRef.current) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const data = await staffService.list({ organizationId, filters });
+      const data = await staffService.list({ 
+        organizationId, 
+        filters, 
+        viewAllOrgs: viewAllOrgs && isSystemAdmin 
+      });
       if (mountedRef.current) {
         setStaff(data);
       }
@@ -91,7 +99,7 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [organizationId, filters]);
+  }, [organizationId, filters, viewAllOrgs, isSystemAdmin]);
 
   // Fetch stats
   const refreshStats = useCallback(async () => {
@@ -211,7 +219,18 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
     mountedRef.current = true;
     
     const fetchData = async () => {
-      if (!organizationId) {
+      // System admin with viewAllOrgs can fetch without org ID
+      const shouldFetch = viewAllOrgs || organizationId;
+      
+      console.log('[useStaff] fetchData called:', { 
+        viewAllOrgs, 
+        organizationId, 
+        isSystemAdmin, 
+        shouldFetch 
+      });
+      
+      if (!shouldFetch) {
+        console.log('[useStaff] No fetch needed, clearing data');
         setStaff([]);
         setStats({ total: 0, active: 0, byRole: {}, byDepartment: {}, avgHoursThisMonth: 0 });
         setLoading(false);
@@ -222,11 +241,45 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
       setError(null);
       
       try {
-        const [staffData, statsData, deptData] = await Promise.all([
-          staffService.list({ organizationId, filters }),
-          staffService.getStats(organizationId),
-          staffService.getDepartments(organizationId),
-        ]);
+        // Fetch staff (supports viewAllOrgs for system admins)
+        console.log('[useStaff] Calling staffService.list with:', { 
+          organizationId, 
+          viewAllOrgs: viewAllOrgs && isSystemAdmin 
+        });
+        const staffData = await staffService.list({ 
+          organizationId, 
+          filters, 
+          viewAllOrgs: viewAllOrgs && isSystemAdmin 
+        });
+        console.log('[useStaff] Got staff data:', staffData.length, 'members');
+        
+        // Stats and departments only work with org ID
+        let statsData = { total: 0, active: 0, byRole: {}, byDepartment: {}, avgHoursThisMonth: 0 };
+        let deptData: string[] = [];
+        
+        if (organizationId) {
+          [statsData, deptData] = await Promise.all([
+            staffService.getStats(organizationId),
+            staffService.getDepartments(organizationId),
+          ]);
+        } else if (viewAllOrgs && staffData.length > 0) {
+          // Calculate stats from fetched data for system admin
+          statsData = {
+            total: staffData.length,
+            active: staffData.filter(s => s.isActive).length,
+            byRole: staffData.reduce((acc, s) => {
+              acc[s.role] = (acc[s.role] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>),
+            byDepartment: staffData.reduce((acc, s) => {
+              const dept = s.department || 'Unassigned';
+              acc[dept] = (acc[dept] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>),
+            avgHoursThisMonth: 0,
+          };
+          deptData = [...new Set(staffData.map(s => s.department).filter(Boolean))] as string[];
+        }
         
         if (mountedRef.current) {
           setStaff(staffData);
@@ -251,7 +304,7 @@ export function useStaff(options: UseStaffOptions = {}): UseStaffReturn {
     return () => {
       mountedRef.current = false;
     };
-  }, [autoFetch, organizationId, filters]); // Depend on organizationId and filters
+  }, [autoFetch, organizationId, filters, viewAllOrgs, isSystemAdmin]); // Depend on organizationId, filters, and viewAllOrgs
 
   return {
     staff,

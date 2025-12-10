@@ -17,11 +17,16 @@ interface StaffProfileWithUser {
   job_title?: string;
   phone?: string;
   hire_date?: string;
+  employee_id?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
   skills: string[];
   assigned_activities: string[];
   assigned_venues: string[];
   avatar_url?: string;
+  notes?: string;
   created_at: string;
+  updated_at?: string;
   users: {
     id: string;
     email: string;
@@ -51,13 +56,27 @@ class StaffCrudService {
 
     const row = data as StaffProfileWithUser;
     const dbStaff: DBStaffMember = {
-      ...row,
+      id: row.id,
       user_id: row.users.id,
+      organization_id: row.organization_id,
       email: row.users.email,
       full_name: row.users.full_name,
       role: row.users.role as any,
       is_active: row.users.is_active,
+      department: row.department,
+      job_title: row.job_title,
+      phone: row.phone,
+      hire_date: row.hire_date,
+      employee_id: row.employee_id,
+      emergency_contact_name: row.emergency_contact_name,
+      emergency_contact_phone: row.emergency_contact_phone,
+      assigned_activities: row.assigned_activities || [],
+      assigned_venues: row.assigned_venues || [],
+      skills: row.skills || [],
       avatar_url: row.avatar_url || row.users.avatar_url,
+      notes: row.notes,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
     };
 
     return mapDBStaffToUI(dbStaff);
@@ -65,6 +84,7 @@ class StaffCrudService {
 
   /**
    * Create a new staff member via Edge Function
+   * Then update with avatar and notes if provided
    */
   async create(data: StaffFormData, organizationId: string, password: string): Promise<StaffMember> {
     const { data: result, error } = await supabase.functions.invoke('create-staff-member', {
@@ -84,6 +104,17 @@ class StaffCrudService {
 
     if (error) throw new Error(error.message);
     if (!result?.staff_profile_id) throw new Error('Failed to create staff profile');
+
+    // Update with avatar and notes if provided
+    if (data.avatarUrl || data.notes) {
+      const updateData: Record<string, unknown> = {};
+      if (data.avatarUrl) updateData.avatar_url = data.avatarUrl;
+      if (data.notes) updateData.notes = data.notes;
+      
+      await (supabase.from('staff_profiles') as any)
+        .update(updateData)
+        .eq('id', result.staff_profile_id);
+    }
 
     const created = await this.getById(result.staff_profile_id);
     if (!created) throw new Error('Failed to retrieve created staff');

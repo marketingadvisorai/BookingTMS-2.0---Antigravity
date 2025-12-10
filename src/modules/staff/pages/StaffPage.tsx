@@ -2,13 +2,16 @@
  * Staff Page
  * Main staff management page component
  * System admins can select organization to view staff
+ * Supports URL params for org context: ?org={orgId}&orgName={orgName}
  * @module staff/pages/StaffPage
  */
 
-import { useState, useEffect } from 'react';
-import { Plus, RefreshCw, Building2, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Plus, RefreshCw, Building2, AlertCircle, ArrowLeft, X } from 'lucide-react';
 import { useTheme } from '@/components/layout/ThemeContext';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { PermissionGuard } from '@/components/auth/PermissionGuard';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -28,15 +31,30 @@ export function StaffPage() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { currentUser } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   
   const isSystemAdmin = currentUser?.role === 'system-admin';
   
+  // Get organization context from URL params (if coming from Organizations page)
+  const urlOrgId = searchParams.get('org');
+  const urlOrgName = searchParams.get('orgName');
+  
   // Organization selection for system admins
-  const [selectedOrgId, setSelectedOrgId] = useState<string>(
-    currentUser?.organizationId || ''
-  );
+  // If URL has org param, use that; otherwise default to 'all' for system admins
+  const [selectedOrgId, setSelectedOrgId] = useState<string>(() => {
+    if (urlOrgId) return urlOrgId;
+    return isSystemAdmin ? 'all' : (currentUser?.organizationId || '');
+  });
+  
+  // Track if we're in "filtered by organization" mode from URL
+  const isFilteredFromOrg = !!urlOrgId;
 
-  // Use modular staff hook with selected organization
+  // Determine if viewing all organizations
+  const viewAllOrgs = isSystemAdmin && selectedOrgId === 'all';
+  const effectiveOrgId = selectedOrgId === 'all' ? undefined : selectedOrgId;
+
+  // Use modular staff hook with selected organization or viewAllOrgs
   const {
     staff,
     stats,
@@ -49,11 +67,29 @@ export function StaffPage() {
     deleteStaff,
     refreshStaff,
     refreshStats,
-  } = useStaff({ organizationId: selectedOrgId });
+  } = useStaff({ 
+    organizationId: effectiveOrgId, 
+    viewAllOrgs 
+  });
 
   // Loading timeout - force recovery after 15 seconds
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Clear organization filter (remove URL params)
+  const clearOrgFilter = () => {
+    setSearchParams({});
+    setSelectedOrgId('all');
+  };
+
+  // Handle organization change from selector
+  const handleOrgChange = (orgId: string) => {
+    setSelectedOrgId(orgId);
+    // Clear URL params when manually changing organization
+    if (urlOrgId) {
+      setSearchParams({});
+    }
+  };
 
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
@@ -140,7 +176,8 @@ export function StaffPage() {
                 style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
                 className={isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}
                 onClick={() => setIsAddDialogOpen(true)}
-                disabled={isSystemAdmin && !selectedOrgId}
+                disabled={isSystemAdmin && viewAllOrgs}
+                title={isSystemAdmin && viewAllOrgs ? 'Select a specific organization to add staff' : undefined}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Staff Member
@@ -150,22 +187,63 @@ export function StaffPage() {
         }
       />
 
-      {/* Organization Selector for System Admins */}
-      {isSystemAdmin && (
+      {/* Organization Filter Banner (when coming from Organizations page) */}
+      {isFilteredFromOrg && urlOrgName && (
+        <div className={`rounded-lg border p-4 ${isDark ? 'bg-indigo-950/30 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Building2 className={`w-5 h-5 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+              <div>
+                <p className={`text-sm font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-700'}`}>
+                  Viewing staff for organization
+                </p>
+                <p className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-indigo-900'}`}>
+                  {decodeURIComponent(urlOrgName)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/organizations')}
+                className={isDark ? 'border-indigo-700 text-indigo-300 hover:bg-indigo-950' : 'border-indigo-300 text-indigo-700 hover:bg-indigo-100'}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Organizations
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearOrgFilter}
+                className={isDark ? 'text-indigo-300 hover:bg-indigo-950' : 'text-indigo-700 hover:bg-indigo-100'}
+              >
+                <X className="w-4 h-4 mr-2" />
+                Clear Filter
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Organization Selector for System Admins (when not filtered from URL) */}
+      {isSystemAdmin && !isFilteredFromOrg && (
         <div className={`rounded-lg border p-4 ${isDark ? 'bg-[#161616] border-[#2a2a2a]' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center gap-4">
             <Building2 className={`w-5 h-5 ${isDark ? 'text-[#a3a3a3]' : 'text-gray-500'}`} />
             <div className="flex-1 max-w-md">
               <OrganizationSelector
                 value={selectedOrgId}
-                onChange={setSelectedOrgId}
+                onChange={handleOrgChange}
                 isDark={isDark}
+                showAllOption={true}
+                label="Filter by Organization"
               />
             </div>
-            {!selectedOrgId && (
-              <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+            {viewAllOrgs && (
+              <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
                 <AlertCircle className="w-4 h-4" />
-                Select an organization to view and manage staff
+                Viewing staff from all organizations
               </div>
             )}
           </div>
@@ -211,6 +289,7 @@ export function StaffPage() {
           onEdit={handleEdit}
           onDelete={handleDeleteClick}
           onToggleStatus={handleToggleStatus}
+          showOrganization={viewAllOrgs}
         />
       )}
 

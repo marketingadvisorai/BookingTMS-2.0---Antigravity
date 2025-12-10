@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, RefreshCw, Users } from 'lucide-react';
 import { StaffMember } from '../types';
-import { StaffTableSkeleton, StaffMobileCard, StaffTableRow } from './table';
+import { StaffTableSkeleton, StaffListItem } from './table';
 
 interface StaffTableProps {
   staff: StaffMember[];
@@ -88,11 +88,6 @@ export function StaffTable({
     );
   }
 
-  // Build table headers dynamically
-  const headers = ['Member', 'Contact', 'Role', 'Department'];
-  if (showOrganization) headers.push('Organization');
-  headers.push('Join Date', 'Status', 'Actions');
-
   return (
     <Card className={`${cardBgClass} border ${borderClass} shadow-sm`}>
       <CardHeader className="p-6">
@@ -108,70 +103,33 @@ export function StaffTable({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0 sm:p-6 sm:pt-0">
-        {/* Mobile Card View */}
-        <div className="sm:hidden space-y-3 p-4">
-          {staff.length === 0 ? (
-            <div className={`text-center py-12 ${textMutedClass}`}>
-              <Users className={`w-12 h-12 mx-auto mb-4 ${isDark ? 'text-[#3a3a3a]' : 'text-gray-300'}`} />
-              <p className={`text-lg font-medium mb-2 ${textClass}`}>No team members yet</p>
-              <p className="text-sm">Add your first team member to get started</p>
-            </div>
-          ) : (
-            staff.map((member) => (
-              <StaffMobileCard
+      <CardContent className="p-0">
+        {staff.length === 0 ? (
+          <div className="p-12 text-center">
+            <Users className={`w-12 h-12 mx-auto mb-4 ${isDark ? 'text-[#3a3a3a]' : 'text-gray-300'}`} />
+            <p className={`text-lg font-medium mb-2 ${textClass}`}>No team members yet</p>
+            <p className={`text-sm ${textMutedClass}`}>Add your first team member to get started</p>
+          </div>
+        ) : (
+          <div className="divide-y border-t border-b-0 divide-gray-200 dark:divide-gray-800">
+            {staff.map((member) => (
+              <StaffListItem
                 key={member.id}
                 member={member}
                 isDark={isDark}
+                borderClass={borderClass}
+                hoverBgClass={hoverBgClass}
+                textClass={textClass}
+                textMutedClass={textMutedClass}
                 onView={onView}
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onToggleStatus={onToggleStatus}
+                showOrganization={showOrganization}
               />
-            ))
-          )}
-        </div>
-
-        {/* Desktop Table */}
-        <div className="hidden sm:block overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className={`border-b ${borderClass}`}>
-                {headers.map((h) => (
-                  <th key={h} className={`text-left py-3 px-4 text-sm ${textMutedClass}`}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {staff.length === 0 ? (
-                <tr>
-                  <td colSpan={headers.length} className="text-center py-12">
-                    <Users className={`w-12 h-12 mx-auto mb-4 ${isDark ? 'text-[#3a3a3a]' : 'text-gray-300'}`} />
-                    <p className={`text-lg font-medium mb-2 ${textClass}`}>No team members yet</p>
-                    <p className={`text-sm ${textMutedClass}`}>Add your first team member to get started</p>
-                  </td>
-                </tr>
-              ) : (
-                staff.map((member) => (
-                  <StaffTableRow
-                    key={member.id}
-                    member={member}
-                    isDark={isDark}
-                    borderClass={borderClass}
-                    hoverBgClass={hoverBgClass}
-                    textClass={textClass}
-                    textMutedClass={textMutedClass}
-                    onView={onView}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    onToggleStatus={onToggleStatus}
-                    showOrganization={showOrganization}
-                  />
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,21 +1,27 @@
 /**
- * Staff Module
- * Enterprise-grade staff management system
+ * Staff Module v2.0
+ * Enterprise-grade staff management system with scheduling and assignments
  * 
  * @module staff
- * @version 1.0.0
+ * @version 2.0.0
  * 
  * @example
  * ```typescript
- * import { useStaff, StaffPage, staffService } from '@/modules/staff';
+ * import { useStaff, useStaffAssignments, useStaffPermissions } from '@/modules/staff';
  * 
- * // Use the hook
+ * // Staff management
  * const { staff, stats, createStaff } = useStaff();
  * 
- * // Or use services directly
- * const staffList = await staffService.list({ organizationId });
+ * // Assignment management
+ * const { assignments, createAssignment } = useStaffAssignments({ staffProfileId });
+ * 
+ * // Permission checking
+ * const { canCreateStaff, getAssignableRoles } = useStaffPermissions();
  * ```
  */
+
+// Constants
+export * from './constants';
 
 // Types
 export * from './types';
@@ -24,12 +30,24 @@ export * from './types';
 export * from './utils/mappers';
 
 // Services
-export { staffService } from './services';
+export {
+  staffService,
+  assignmentService,
+  scheduleService,
+  availabilityService,
+  permissionService,
+} from './services';
 export type { ListStaffOptions } from './services';
 
 // Hooks
 export { useStaff } from './hooks/useStaff';
 export type { UseStaffOptions, UseStaffReturn } from './hooks/useStaff';
+
+export { useStaffAssignments } from './hooks/useStaffAssignments';
+export type { UseStaffAssignmentsOptions, UseStaffAssignmentsReturn } from './hooks/useStaffAssignments';
+
+export { useStaffPermissions } from './hooks/useStaffPermissions';
+export type { UseStaffPermissionsReturn } from './hooks/useStaffPermissions';
 
 // Components
 export {
@@ -39,6 +57,9 @@ export {
   AddStaffDialog,
   ViewStaffDialog,
   DeleteStaffDialog,
+  StaffDetailPanel,
+  AssignmentList,
+  ActivityAssignmentDialog,
 } from './components';
 
 // Pages

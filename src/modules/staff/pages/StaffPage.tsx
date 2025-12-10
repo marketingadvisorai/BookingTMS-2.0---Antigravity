@@ -59,6 +59,7 @@ export function StaffPage() {
     staff,
     stats,
     loading,
+    error,
     filters,
     setFilters,
     clearFilters,
@@ -285,10 +286,12 @@ export function StaffPage() {
           staff={staff}
           loading={loading}
           isDark={isDark}
+          error={error}
           onView={handleView}
           onEdit={handleEdit}
           onDelete={handleDeleteClick}
           onToggleStatus={handleToggleStatus}
+          onRefresh={handleRefresh}
           showOrganization={viewAllOrgs}
         />
       )}

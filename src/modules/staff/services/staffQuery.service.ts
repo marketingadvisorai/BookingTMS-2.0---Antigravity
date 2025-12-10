@@ -32,14 +32,21 @@ class StaffQueryService {
     if (viewAllOrgs) {
       console.log('[StaffQueryService] Fetching all staff members for system admin');
       const result = await (supabase.rpc as any)('get_all_staff_members');
+      console.log('[StaffQueryService] RPC result:', { data: result.data?.length || 0, error: result.error });
       data = result.data;
       error = result.error;
       
       // Fallback if function doesn't exist or access denied
       if (error) {
-        console.warn('[StaffQueryService] get_all_staff_members error:', error.message);
+        console.error('[StaffQueryService] get_all_staff_members RPC error:', error);
+        // If it's a permission error, throw it directly so user sees the real error
+        if (error.message?.includes('Access denied') || error.message?.includes('permission')) {
+          throw new Error(error.message);
+        }
+        
         // Fallback: query staff_profiles directly with join
         // Using separate queries to avoid RLS issues with joins
+        console.log('[StaffQueryService] Attempting fallback query...');
         const staffResult = await supabase
           .from('staff_profiles')
           .select('*')
@@ -47,7 +54,7 @@ class StaffQueryService {
         
         if (staffResult.error) {
           console.error('[StaffQueryService] Staff profiles query failed:', staffResult.error);
-          throw new Error(staffResult.error.message);
+          throw new Error(`Failed to load staff: ${staffResult.error.message}`);
         }
 
         // Get user details for each staff profile

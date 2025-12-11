@@ -6,3 +6,4 @@
 export * from './useAIAgents';
 export * from './useTextAgent';
 export * from './useAISettings';
+export * from './useVoiceAgent';

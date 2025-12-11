@@ -1,8 +1,10 @@
-# AI Agents Module
+# AI Agents Module v2.0
 
 ## Overview
 
 The AI Agents module provides a comprehensive system for text-based and voice-based AI agents. It supports multiple LLM providers (OpenAI, DeepSeek) and voice synthesis (ElevenLabs).
+
+**Updated Dec 12, 2025**: Enhanced with modular architecture, ElevenLabs voice UI, and proper component separation.
 
 ## Architecture
 
@@ -20,13 +22,18 @@ The AI Agents module provides a comprehensive system for text-based and voice-ba
 │   ├── index.ts                - Hook exports
 │   ├── useAIAgents.ts          - Agent management hook
 │   ├── useTextAgent.ts         - Chat conversation hook
-│   └── useAISettings.ts        - System settings hook
+│   ├── useAISettings.ts        - System settings hook
+│   └── useVoiceAgent.ts        - NEW: ElevenLabs voice hook
 ├── components/
 │   ├── index.ts                - Component exports
 │   ├── AgentCard.tsx           - Agent display card
-│   └── AgentChatPreview.tsx    - Live chat preview
+│   ├── AgentChatPreview.tsx    - Live chat preview
+│   ├── AgentStatsCards.tsx     - NEW: Stats overview
+│   ├── VoiceAgentConfig.tsx    - NEW: ElevenLabs config
+│   └── VoiceAgentPanel.tsx     - NEW: Voice call UI
 └── pages/
     ├── index.ts                - Page exports
+    ├── AIAgentsPage.tsx        - NEW: Main tabbed view
     ├── OrgAdminAgentsPage.tsx  - Org admin view
     └── SystemAdminSettingsPage.tsx - System admin settings
 ```

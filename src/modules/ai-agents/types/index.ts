@@ -1,18 +1,88 @@
 /**
- * AI Agents Module Types
- * Supports text agents (DeepSeek, OpenAI) and voice agents (ElevenLabs)
+ * AI Agents Module Types v2.0
+ * Supports 3 agent types: Basic Chat, Booking Agent, Voice Agent
+ * With ElevenLabs voice synthesis and OpenAI function calling
  */
 
 // ============================================================================
-// Enums
+// Enums & Agent Types
 // ============================================================================
 
 export type AIAgentType = 'text' | 'voice' | 'hybrid';
+export type AIAgentCategory = 'basic_chat' | 'booking_agent' | 'voice_agent';
+export type AIAgentTier = 'free' | 'pro' | 'enterprise';
 export type AIAgentStatus = 'active' | 'inactive' | 'training' | 'error';
 export type AIProvider = 'openai' | 'deepseek' | 'anthropic' | 'elevenlabs' | 'custom';
 export type VoiceCallStatus = 'queued' | 'ringing' | 'in_progress' | 'completed' | 'failed' | 'busy' | 'no_answer';
 export type VoiceCallDirection = 'inbound' | 'outbound';
 export type ConversationStatus = 'active' | 'completed' | 'escalated' | 'abandoned';
+export type TrainingStatus = 'ready' | 'training' | 'failed';
+
+// Agent Capabilities
+export type AgentCapability = 
+  | 'answer_faq'
+  | 'provide_info'
+  | 'collect_lead'
+  | 'check_availability'
+  | 'create_booking'
+  | 'get_checkout_link'
+  | 'activity_planning'
+  | 'voice_inbound'
+  | 'voice_outbound'
+  | 'booking_reminder'
+  | 'process_refund'
+  | 'reschedule_booking'
+  | 'cancel_booking';
+
+// Agent Type Definition (from database)
+export interface AIAgentTypeDefinition {
+  id: string;
+  name: AIAgentCategory;
+  displayName: string;
+  description: string;
+  tier: AIAgentTier;
+  capabilities: AgentCapability[];
+  defaultModel: string;
+  defaultMaxTokens: number;
+  icon: string;
+  sortOrder: number;
+}
+
+// Agent Capabilities Configuration
+export interface AgentCapabilities {
+  canAnswerFAQ: boolean;
+  canProvideInfo: boolean;
+  canCollectLead: boolean;
+  canCheckAvailability: boolean;
+  canCreateBooking: boolean;
+  canGetCheckoutLink: boolean;
+  canPlanActivities: boolean;
+  canHandleInboundCalls: boolean;
+  canMakeOutboundCalls: boolean;
+  canSendReminders: boolean;
+  canProcessRefund: boolean;
+  canRescheduleBooking: boolean;
+  canCancelBooking: boolean;
+}
+
+// Cost Configuration
+export interface AgentCostConfig {
+  dailyLimit?: number;
+  monthlyLimit?: number;
+  maxTokensPerConversation: number;
+  alertThreshold?: number; // Percentage to alert at
+}
+
+// Voice Configuration (ElevenLabs)
+export interface AgentVoiceConfig {
+  provider: 'elevenlabs';
+  voiceId: string;
+  voiceName?: string;
+  modelId: string; // eleven_turbo_v2_5, eleven_multilingual_v2
+  language: string;
+  stability?: number;
+  similarityBoost?: number;
+}
 
 // ============================================================================
 // AI Agent Settings (System Admin only)

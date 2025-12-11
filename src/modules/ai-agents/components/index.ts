@@ -8,3 +8,5 @@ export * from './AgentChatPreview';
 export * from './AgentStatsCards';
 export * from './VoiceAgentConfig';
 export * from './VoiceAgentPanel';
+export * from './wizard';
+export * from './knowledge';

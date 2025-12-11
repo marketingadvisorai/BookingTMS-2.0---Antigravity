@@ -1,17 +1,65 @@
-# AI Agents Enhanced Architecture v2.0
+# AI Agents Enhanced Architecture v3.0
 
 ## Overview
 
-The AI Agents module provides a comprehensive system for text-based and voice-based AI agents, supporting multiple LLM providers and ElevenLabs voice synthesis.
+This document outlines the comprehensive architecture for the AI Agents module, implementing 3 distinct agent types with full ElevenLabs voice integration and OpenAI function calling.
 
-## Problem Statement
+## Agent Types
 
-The current implementation has:
-1. **AIAgents.tsx** is 1431 lines - violates 200-line limit
-2. Hardcoded demo data instead of real Supabase data
-3. ElevenLabs voice service exists but NO UI
-4. SystemAdminSettingsPage not wired to main flow
-5. Voice agent shows as "Inactive" with no configuration
+### 1. Basic Chat Agent (Free Tier)
+- Answer FAQs and general queries
+- Provide business information
+- Collect customer leads
+- Uses `gpt-4o-mini` for cost efficiency ($0.15/1M tokens)
+
+### 2. Booking Agent (Pro Tier)
+- All Basic features PLUS
+- Check real-time availability
+- Create bookings via function calling
+- Generate checkout links
+- Activity planning assistance
+- Uses `gpt-4o` for reliability
+
+### 3. Voice Agent (Enterprise Tier)
+- All Booking features PLUS
+- Inbound call handling
+- Outbound booking reminders
+- Process refunds via phone
+- Reschedule/cancel bookings
+- Uses ElevenLabs Conversational AI
+
+## Database Schema
+
+### ai_agent_types
+Lookup table for agent type definitions with tier and capabilities.
+
+### ai_knowledge_base
+RAG-enabled knowledge entries with vector embeddings for semantic search.
+
+### ai_agent_tools
+Tool configurations for each agent (availability, booking, refund, etc.).
+
+---
+
+## UI Components (v3.0)
+
+### Create Agent Wizard
+- **AgentTypeSelector** - Visual cards for 3 agent types
+- **AgentConfigStep** - Name, personality, system prompt
+- **AgentTestStep** - Live chat testing with token tracking
+
+### Knowledge Base Manager
+- System admin only
+- Add/edit FAQ entries
+- Import business info
+- Vector embeddings for RAG
+
+### Tabs Structure
+1. **Overview** - Stats cards + agent grid
+2. **Text Agents** - Chat agent management
+3. **Voice Agents** - ElevenLabs configuration + call panel
+4. **Knowledge Base** - Training data (system admin)
+5. **Settings** - API keys and models (system admin)
 
 ## Target Architecture
 
@@ -180,5 +228,6 @@ interface UseVoiceAgentReturn {
 
 ## Version History
 
+- v3.0 (Dec 12, 2025): 3 agent types, Create Agent wizard, Knowledge Base manager
 - v2.0 (Dec 12, 2025): Enhanced architecture with ElevenLabs UI
 - v1.0 (Nov 2025): Initial implementation

@@ -5,21 +5,24 @@
  */
 
 import React, { useState } from 'react';
-import { Bot, MessageSquare, Phone, Settings, Plus } from 'lucide-react';
+import { Bot, MessageSquare, Phone, Settings, Plus, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useTheme } from '@/components/layout/ThemeContext';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { toast } from 'sonner';
 import { useAIAgents, useAISettings } from '../hooks';
 import {
   AgentCard,
   AgentStatsCards,
   VoiceAgentConfig,
   VoiceAgentPanel,
+  CreateAgentWizard,
+  KnowledgeBaseManager,
 } from '../components';
 import { SystemAdminSettingsPage } from './SystemAdminSettingsPage';
-import type { AIAgent } from '../types';
+import type { AIAgent, AIAgentCategory } from '../types';
 
 export function AIAgentsPage() {
   const { theme } = useTheme();
@@ -35,6 +38,7 @@ export function AIAgentsPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedVoice, setSelectedVoice] = useState('');
   const [elevenLabsKey, setElevenLabsKey] = useState('');
+  const [showCreateWizard, setShowCreateWizard] = useState(false);
 
   const textClass = isDark ? 'text-white' : 'text-gray-900';
   const textMutedClass = isDark ? 'text-[#a3a3a3]' : 'text-gray-600';
@@ -46,6 +50,22 @@ export function AIAgentsPage() {
     console.log('Saving voice config:', { elevenLabsKey, selectedVoice });
   };
 
+  const handleCreateAgent = async (data: { type: AIAgentCategory; config: any }) => {
+    try {
+      // Map agent category to agent type
+      const agentType = data.type === 'voice_agent' ? 'voice' : 'text';
+      
+      // Use createFromTemplate with the agent type as template ID and name
+      await createFromTemplate(data.type, data.config.name);
+      
+      toast.success(`${data.config.name} created successfully!`);
+      await refresh();
+    } catch (error) {
+      toast.error('Failed to create agent');
+      throw error;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -54,6 +74,7 @@ export function AIAgentsPage() {
         sticky
         action={
           <Button
+            onClick={() => setShowCreateWizard(true)}
             style={{ backgroundColor: isDark ? '#4f46e5' : undefined }}
             className={isDark ? 'text-white hover:bg-[#4338ca]' : 'bg-blue-600 hover:bg-blue-700'}
           >
@@ -77,6 +98,12 @@ export function AIAgentsPage() {
             <Phone className="w-4 h-4" />
             Voice Agents
           </TabsTrigger>
+          {isSystemAdmin && (
+            <TabsTrigger value="knowledge" className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              Knowledge Base
+            </TabsTrigger>
+          )}
           {isSystemAdmin && (
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
@@ -145,6 +172,13 @@ export function AIAgentsPage() {
           </div>
         </TabsContent>
 
+        {/* Knowledge Base Tab (System Admin only) */}
+        {isSystemAdmin && (
+          <TabsContent value="knowledge" className="mt-6">
+            <KnowledgeBaseManager organizationId={organizationId} isDark={isDark} />
+          </TabsContent>
+        )}
+
         {/* Settings Tab (System Admin only) */}
         {isSystemAdmin && (
           <TabsContent value="settings" className="mt-6">
@@ -152,6 +186,13 @@ export function AIAgentsPage() {
           </TabsContent>
         )}
       </Tabs>
+
+      {/* Create Agent Wizard */}
+      <CreateAgentWizard
+        open={showCreateWizard}
+        onClose={() => setShowCreateWizard(false)}
+        onComplete={handleCreateAgent}
+      />
     </div>
   );
 }

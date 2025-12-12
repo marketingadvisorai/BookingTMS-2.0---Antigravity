@@ -132,47 +132,43 @@ export async function completeConversation(
 interface LLMConfig {
   provider: 'openai' | 'deepseek';
   model: string;
-  apiKey: string;
   temperature: number;
   maxTokens: number;
 }
 
+/**
+ * Send message to LLM via Edge Function (keeps API keys server-side)
+ */
 export async function sendMessageToLLM(
   systemPrompt: string,
   messages: { role: string; content: string }[],
   config: LLMConfig
 ): Promise<{ content: string; tokensUsed: number }> {
-  // Determine API endpoint based on provider
-  const endpoints = {
-    openai: 'https://api.openai.com/v1/chat/completions',
-    deepseek: 'https://api.deepseek.com/v1/chat/completions',
-  };
+  // Build messages array with system prompt
+  const fullMessages = [
+    { role: 'system', content: systemPrompt },
+    ...messages,
+  ];
 
-  const endpoint = endpoints[config.provider];
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify({
+  // Call Edge Function instead of direct API (API key is server-side)
+  const response = await supabase.functions.invoke('ai-agent-chat', {
+    body: {
+      provider: config.provider,
       model: config.model,
-      messages: [{ role: 'system', content: systemPrompt }, ...messages],
+      messages: fullMessages,
       temperature: config.temperature,
-      max_tokens: config.maxTokens,
-    }),
+      maxTokens: config.maxTokens,
+    },
   });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(`LLM API error: ${response.status} - ${JSON.stringify(error)}`);
+  if (response.error) {
+    throw new Error(`AI Agent Chat error: ${response.error.message}`);
   }
 
-  const data = await response.json();
+  const data = response.data;
   return {
-    content: data.choices?.[0]?.message?.content || '',
-    tokensUsed: data.usage?.total_tokens || 0,
+    content: data?.choices?.[0]?.message?.content || '',
+    tokensUsed: data?.usage?.total_tokens || 0,
   };
 }
 

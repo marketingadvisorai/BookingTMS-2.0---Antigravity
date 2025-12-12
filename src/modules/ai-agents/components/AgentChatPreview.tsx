@@ -15,14 +15,12 @@ import type { AIAgent } from '../types';
 interface AgentChatPreviewProps {
   agent: AIAgent;
   activities?: { id: string; name: string; price: number; duration?: number }[];
-  apiKey?: string;
   onClose?: () => void;
 }
 
 export function AgentChatPreview({
   agent,
   activities = [],
-  apiKey,
   onClose,
 }: AgentChatPreviewProps) {
   const { theme } = useTheme();
@@ -40,7 +38,6 @@ export function AgentChatPreview({
   const { messages, slots, isProcessing, sendMessage, reset } = useTextAgent({
     agent,
     activities,
-    apiKey,
     onBookingReady: (slots) => {
       console.log('Booking ready:', slots);
     },

@@ -5,6 +5,7 @@
 
 export * from './AgentCard';
 export * from './AgentChatPreview';
+export * from './AgentPreviewModal';
 export * from './AgentStatsCards';
 export * from './VoiceAgentConfig';
 export * from './VoiceAgentPanel';

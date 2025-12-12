@@ -16,7 +16,6 @@ interface UseTextAgentOptions {
   agent: AIAgent;
   activities?: { id: string; name: string; price: number; duration?: number }[];
   onBookingReady?: (slots: BookingSlots) => void;
-  apiKey?: string;
 }
 
 interface UseTextAgentReturn {
@@ -37,7 +36,7 @@ function generateMessageId(): string {
 }
 
 export function useTextAgent(options: UseTextAgentOptions): UseTextAgentReturn {
-  const { agent, activities = [], onBookingReady, apiKey } = options;
+  const { agent, activities = [], onBookingReady } = options;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [slots, setSlots] = useState<BookingSlots>({});
@@ -119,11 +118,10 @@ export function useTextAgent(options: UseTextAgentOptions): UseTextAgentReturn {
           .map((m) => ({ role: m.role, content: m.content }));
         messageHistory.push({ role: 'user', content });
 
-        // Get provider config from agent's system config
+        // Get provider config from agent's system config (API key is handled server-side)
         const config = {
           provider: (agent.systemConfig.provider as 'openai' | 'deepseek') || 'openai',
           model: agent.systemConfig.model || 'gpt-4o-mini',
-          apiKey: apiKey || '',
           temperature: agent.systemConfig.temperature || 0.7,
           maxTokens: agent.systemConfig.maxTokens || 500,
         };
@@ -131,7 +129,8 @@ export function useTextAgent(options: UseTextAgentOptions): UseTextAgentReturn {
         let responseContent: string;
         let tokensUsed = 0;
 
-        if (config.apiKey) {
+        try {
+          // Call Edge Function (API key is server-side)
           const result = await textAgentService.sendMessageToLLM(
             systemPrompt,
             messageHistory,
@@ -139,8 +138,8 @@ export function useTextAgent(options: UseTextAgentOptions): UseTextAgentReturn {
           );
           responseContent = result.content;
           tokensUsed = result.tokensUsed;
-        } else {
-          // Fallback to simple response without API
+        } catch (llmError) {
+          console.warn('LLM call failed, using fallback:', llmError);
           responseContent = generateFallbackResponse(newSlots, activities);
         }
 
@@ -186,7 +185,7 @@ export function useTextAgent(options: UseTextAgentOptions): UseTextAgentReturn {
         }
       }
     },
-    [agent, activities, apiKey, isProcessing, messages, onBookingReady, sessionId, slots]
+    [agent, activities, isProcessing, messages, onBookingReady, sessionId, slots]
   );
 
   const reset = useCallback(() => {

@@ -16,6 +16,7 @@ import { useAIAgents, useAISettings } from '../hooks';
 import {
   AgentCard,
   AgentStatsCards,
+  AgentPreviewModal,
   VoiceAgentConfig,
   VoiceAgentPanel,
   CreateAgentWizard,
@@ -39,6 +40,7 @@ export function AIAgentsPage() {
   const [selectedVoice, setSelectedVoice] = useState('');
   const [elevenLabsKey, setElevenLabsKey] = useState('');
   const [showCreateWizard, setShowCreateWizard] = useState(false);
+  const [previewAgent, setPreviewAgent] = useState<AIAgent | null>(null);
 
   const textClass = isDark ? 'text-white' : 'text-gray-900';
   const textMutedClass = isDark ? 'text-[#a3a3a3]' : 'text-gray-600';
@@ -121,7 +123,7 @@ export function AIAgentsPage() {
               <AgentCard
                 key={agent.id}
                 agent={agent}
-                onPreview={() => {}}
+                onPreview={() => setPreviewAgent(agent)}
                 showSystemControls={isSystemAdmin}
               />
             ))}
@@ -145,7 +147,7 @@ export function AIAgentsPage() {
                 <AgentCard
                   key={agent.id}
                   agent={agent}
-                  onPreview={() => {}}
+                  onPreview={() => setPreviewAgent(agent)}
                   showSystemControls={isSystemAdmin}
                 />
               ))}
@@ -192,6 +194,13 @@ export function AIAgentsPage() {
         open={showCreateWizard}
         onClose={() => setShowCreateWizard(false)}
         onComplete={handleCreateAgent}
+      />
+
+      {/* Agent Preview Modal */}
+      <AgentPreviewModal
+        agent={previewAgent}
+        open={!!previewAgent}
+        onClose={() => setPreviewAgent(null)}
       />
     </div>
   );

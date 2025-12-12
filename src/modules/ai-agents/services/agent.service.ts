@@ -6,12 +6,16 @@
 import { supabase } from '@/lib/supabase';
 import type {
   AIAgent,
+  AIAgentCategory,
   DBAIAgent,
   AIAgentConfig,
   AIAgentWidgetConfig,
   AIAgentFilters,
   AIAgentTemplate,
 } from '../types';
+
+// Type helper for Supabase queries (ai_agents table not in generated types yet)
+type AnyRecord = Record<string, unknown>;
 
 // ============================================================================
 // Mappers
@@ -94,10 +98,20 @@ export async function createAgent(
     name: string;
     description?: string;
     agentType: AIAgent['agentType'];
+    category?: AIAgentCategory;
     config: AIAgentConfig;
     widgetConfig?: AIAgentWidgetConfig;
+    systemPrompt?: string;
   }
 ): Promise<AIAgent> {
+  const defaultModel =
+    data.category === 'booking_agent' || data.agentType === 'voice'
+      ? 'gpt-4o'
+      : 'gpt-4o-mini';
+
+  const defaultMaxTokens =
+    data.category === 'booking_agent' || data.agentType === 'voice' ? 800 : 500;
+
   const { data: agent, error } = await supabase
     .from('ai_agents')
     .insert({
@@ -109,9 +123,10 @@ export async function createAgent(
       config: data.config,
       system_config: {
         provider: 'openai',
-        model: 'gpt-4o-mini',
+        model: defaultModel,
         temperature: 0.7,
-        maxTokens: 500,
+        maxTokens: defaultMaxTokens,
+        systemPrompt: data.systemPrompt,
       },
       widget_config: data.widgetConfig || {
         primaryColor: '#4f46e5',
